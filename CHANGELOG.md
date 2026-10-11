@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3-beta.35 Alpine — 11 October 2026
+
+- Enlarge and recrop the mobile hero so the complete landscape RoonDeck is the dominant product while the portrait unit is cropped away.
+
 ## 1.1.3-beta.34 Alpine — 11 October 2026
 
 - Reverse the mobile hero crop so the landscape RoonDeck remains fully visible and the portrait display crops at the right edge.
