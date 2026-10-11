@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.29 Alpine — 11 October 2026
+
+- Tighten the space above and below Settings diagnostics in every supported layout.
+- Restore breathing room between the landscape Background controls and bottom action row.
+- Reduce the Settings title to a medium weight that better matches the supplied Deck wordmark.
+
 ## 1.1.3-beta.28 Alpine — 11 October 2026
 
 - Fix Screen Preview captures racing the display wake-up and page navigation sequence.
