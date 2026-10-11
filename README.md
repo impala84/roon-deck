@@ -1,6 +1,6 @@
 # RoonDeck
 
-Alpine testing release: **1.1.3-beta.36**, reframing the mobile hero to show the complete landscape RoonDeck and a clear crop of the portrait unit. Select Beta explicitly to test; Stable remains 1.1.2.
+Alpine testing release: **1.1.3-beta.37**, reorganising Roon and audio services, refining the public website journey and adding a lightweight suggestions form. Select Beta explicitly to test; Stable remains 1.1.2.
 
 The current Alpine stable release is **1.1.2**: an in-place correction for 10-inch Touch Display 2 touch rotation. Update through System → Software on the Stable channel, then reboot manually to apply input calibration. Physical touch acceptance is still required. The 1.1.1 full image remains available for fresh installs. Raspberry Pi OS releases remain separate.
 

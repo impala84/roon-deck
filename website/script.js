@@ -75,3 +75,57 @@ featureTabs.forEach((tab, index) => {
     selectFeature(featureTabs[nextIndex], true);
   });
 });
+
+const endpointTabs = [...document.querySelectorAll('.endpoint-tab')];
+const endpointPanels = [...document.querySelectorAll('.endpoint-panel')];
+
+function selectEndpoint(tab, focus = false) {
+  endpointTabs.forEach((candidate) => {
+    const selected = candidate === tab;
+    candidate.setAttribute('aria-selected', String(selected));
+    candidate.tabIndex = selected ? 0 : -1;
+  });
+  endpointPanels.forEach((panel) => {
+    panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+  });
+  if (focus) tab.focus();
+}
+
+endpointTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectEndpoint(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const backwards = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? endpointTabs.length - 1 : (index + (backwards ? -1 : 1) + endpointTabs.length) % endpointTabs.length;
+    selectEndpoint(endpointTabs[nextIndex], true);
+  });
+});
+
+const feedbackForm = document.getElementById('feedback-form');
+const feedbackStatus = document.getElementById('feedback-status');
+const feedbackStartedAt = document.getElementById('feedback-started-at');
+if (feedbackStartedAt) feedbackStartedAt.value = String(Date.now());
+
+feedbackForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = feedbackForm.querySelector('button[type="submit"]');
+  feedbackStatus.className = 'feedback-status';
+  feedbackStatus.textContent = 'Sending…';
+  button.disabled = true;
+  try {
+    const payload = Object.fromEntries(new FormData(feedbackForm));
+    const response = await fetch('/api/feedback', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'The message could not be sent.');
+    feedbackForm.reset();
+    feedbackStartedAt.value = String(Date.now());
+    feedbackStatus.classList.add('success');
+    feedbackStatus.textContent = 'Thanks—your message has been received.';
+  } catch (error) {
+    feedbackStatus.classList.add('error');
+    feedbackStatus.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

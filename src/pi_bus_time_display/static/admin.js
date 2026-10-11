@@ -5,7 +5,7 @@ const saveState=document.getElementById('save-state');
 const updateStatus=document.getElementById('update-status');
 const updateFeed=document.getElementById('update-feed');
 const updateButtons=[...document.querySelectorAll('[data-action="update"]')];
-let activeTab='overview',activeService='bus',toastTimer=null,updateWatchTimer=null,updateWatchStartedAt=0,updateSeenActive=false,pinnedBanner='',bannerMessage='';
+let activeTab='overview',activeService='bus',activeIntegration='display',toastTimer=null,updateWatchTimer=null,updateWatchStartedAt=0,updateSeenActive=false,pinnedBanner='',bannerMessage='';
 const dirtySections=new Set();
 const updateHistory=[];
 const sectionFields={
@@ -33,6 +33,7 @@ function recordAdminRoute(){if(restoringRoute)return;const sub=activeTab==='serv
 function showTab(name){activeTab=name;document.querySelectorAll('[data-panel]').forEach(panel=>panel.hidden=panel.dataset.panel!==name);document.querySelectorAll('[data-tab]').forEach(button=>{const selected=button.dataset.tab===name;button.setAttribute('aria-selected',String(selected))});updateSaveBar();recordAdminRoute();if(name==='system')loadSystem();}
 function openSystemSection(id){if(!document.querySelector('[data-system-panel="'+id+'"]'))return;document.querySelectorAll('[data-system-panel]').forEach(panel=>{const selected=panel.dataset.systemPanel===id;panel.hidden=!selected;panel.open=selected});document.querySelectorAll('[data-system-anchor]').forEach(button=>{const selected=button.dataset.systemAnchor===id;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1});updateSaveBar();recordAdminRoute()}
 function showService(name){activeService=name;document.querySelectorAll('[data-service-panel]').forEach(panel=>panel.hidden=panel.dataset.servicePanel!==name);document.querySelectorAll('[data-service-tab]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.serviceTab===name)));updateSaveBar();recordAdminRoute()}
+function showIntegration(name){activeIntegration=name;document.querySelectorAll('[data-integration-panel]').forEach(panel=>panel.hidden=panel.dataset.integrationPanel!==name);document.querySelectorAll('[data-integration-tab]').forEach(button=>{const selected=button.dataset.integrationTab===name;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1})}
 function updateConditional(input){const target=document.getElementById(input.dataset.reveals);if(target)target.hidden=!input.checked}
 function secondsToMinutes(value){return Number((Number(value||0)/60).toFixed(2))}
 function minutesToSeconds(value){return Math.round(Number(value||0)*60)}
@@ -80,6 +81,7 @@ function watchAirPlayInstall(){const started=Date.now(),timer=setInterval(async(
 
 document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>showTab(button.dataset.tab)));
 document.querySelectorAll('[data-service-tab]').forEach(button=>button.addEventListener('click',()=>showService(button.dataset.serviceTab)));
+document.querySelectorAll('[data-integration-tab]').forEach(button=>{button.addEventListener('click',()=>showIntegration(button.dataset.integrationTab));button.addEventListener('keydown',event=>{const tabs=[...document.querySelectorAll('[data-integration-tab]')];let index=tabs.indexOf(button);if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else return;event.preventDefault();showIntegration(tabs[index].dataset.integrationTab);tabs[index].focus()})});
 document.querySelectorAll('[data-jump]').forEach(button=>button.addEventListener('click',()=>{showTab(button.dataset.jump);if(button.dataset.jumpTarget)openSystemSection(button.dataset.jumpTarget)}));
 document.querySelectorAll('[data-system-anchor]').forEach(button=>{button.addEventListener('click',()=>openSystemSection(button.dataset.systemAnchor));button.addEventListener('keydown',event=>{const tabs=[...document.querySelectorAll('[data-system-anchor]')];let index=tabs.indexOf(button);if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else return;event.preventDefault();openSystemSection(tabs[index].dataset.systemAnchor);tabs[index].focus()})});
 document.querySelectorAll('[data-service]').forEach(button=>button.addEventListener('click',()=>{showTab('services');showService(button.dataset.service)}));

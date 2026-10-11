@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.3-beta.37 Alpine — 11 October 2026
+
+- Split web Settings → Services into focused Roon Display, BluOS, Roon Bridge and AirPlay panels, and lighten the Settings title weight.
+- Add a guided playback and endpoint section to the website with white Roon, BluOS and AirPlay marks.
+- Align the extra-feature screenshots, tighten the setup-step columns and keep the hardware headline on a cleaner desktop line.
+- Preserve the full landscape-and-portrait hero composition on mobile and centre its calls to action.
+- Add a quiet, spam-resistant suggestions form backed by a small Neon table, with optional email delivery.
+- Match the microSD illustration outline weight to the Raspberry Pi and touchscreen drawings.
+
 ## 1.1.3-beta.36 Alpine — 11 October 2026
 
 - Reframe the mobile hero to keep the complete landscape RoonDeck visible alongside a clear crop of the portrait unit.
