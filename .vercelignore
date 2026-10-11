@@ -1,6 +1,6 @@
 artifacts/
-build/
-dist/
+/build/
+/dist/
 .git/
 .github/
 .vercel/
