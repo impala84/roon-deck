@@ -49,3 +49,29 @@ const navObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-25% 0px -60% 0px', threshold: [0, 0.2, 0.6] });
 
 sections.forEach((section) => navObserver.observe(section));
+
+const featureTabs = [...document.querySelectorAll('.feature-tab')];
+const featurePanels = [...document.querySelectorAll('.feature-panel')];
+
+function selectFeature(tab, focus = false) {
+  featureTabs.forEach((candidate) => {
+    const selected = candidate === tab;
+    candidate.setAttribute('aria-selected', String(selected));
+    candidate.tabIndex = selected ? 0 : -1;
+  });
+  featurePanels.forEach((panel) => {
+    panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+  });
+  if (focus) tab.focus();
+}
+
+featureTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectFeature(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const backwards = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? featureTabs.length - 1 : (index + (backwards ? -1 : 1) + featureTabs.length) % featureTabs.length;
+    selectFeature(featureTabs[nextIndex], true);
+  });
+});

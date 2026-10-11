@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.31 Alpine — 11 October 2026
+
+- Replace the repeated website feature gallery and summary cards with one accessible, interactive journey ordered from Now Playing through browsing and discovery.
+- Separate the optional Roon Bridge and AirPlay endpoint choices into their own section.
+- Give the public website a distinct white favicon with a purple “r” and black “D”, while retaining the existing web Settings favicon.
+
 ## 1.1.3-beta.30 Alpine — 11 October 2026
 
 - Add an optional classic AirPlay audio endpoint using Alpine's maintained Shairport Sync package, with install, naming and service controls in onboarding and web Settings.
