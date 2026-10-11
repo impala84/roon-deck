@@ -532,6 +532,7 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         "api": {"label": "Bus data service", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "controller": {"label": "Roon controller", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "bridge": {"label": "Roon Bridge", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
+        "airplay": {"label": "AirPlay · Shairport Sync", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "netdata": {"label": "Netdata", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
     }
     for line in command_output(["ps", "-eo", "pid=,rss=,pcpu=,args="]).splitlines():
@@ -548,6 +549,8 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
             group = "controller"
         elif "roonbridge" in lowered or "roon bridge" in lowered:
             group = "bridge"
+        elif "shairport-sync" in lowered:
+            group = "airplay"
         elif Path(executable).name == "netdata" or executable.startswith(("/opt/netdata/usr/libexec/netdata/", "/usr/libexec/netdata/", "/usr/lib/netdata/")):
             group = "netdata"
         elif ("pi-bus-time-display" in lowered or "/pi-home " in lowered) and "native" not in lowered:
@@ -561,7 +564,7 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
             except ValueError:
                 pass
     alpine = os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype"
-    services = {"controller": "pi-home-roon", "api": "pi-home-api", "display": "pi-home-display", "bridge": "roonbridge"} if alpine else {"controller": "pi-bus-roon-controller.service", "api": "pi-bus-time-display.service", "display": "pi-bus-native.service", "bridge": "roonbridge.service"}
+    services = {"controller": "pi-home-roon", "api": "pi-home-api", "display": "pi-home-display", "bridge": "roonbridge", "airplay": "shairport-sync"} if alpine else {"controller": "pi-bus-roon-controller.service", "api": "pi-bus-time-display.service", "display": "pi-bus-native.service", "bridge": "roonbridge.service", "airplay": "shairport-sync.service"}
     for group, service in services.items():
         groups[group]["active"] = service_state(service) == "running" or groups[group]["active"]
     if not alpine:
@@ -577,6 +580,9 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         bridge_enabled = Path("/etc/runlevels/default/roonbridge").exists() if alpine else command_output(["systemctl", "is-enabled", "roonbridge.service"]) == "enabled" or command_output(["systemctl", "is-enabled", "RoonBridge.service"]) == "enabled"
         if not groups["bridge"]["active"] and not bridge_enabled:
             visible.discard("bridge")
+        airplay_enabled = Path("/etc/runlevels/default/shairport-sync").exists() if alpine else command_output(["systemctl", "is-enabled", "shairport-sync.service"]) == "enabled"
+        if not groups["airplay"]["active"] and not airplay_enabled:
+            visible.discard("airplay")
     try:
         uptime = float(Path("/proc/uptime").read_text(encoding="ascii").split()[0])
     except (OSError, ValueError, IndexError):
@@ -611,6 +617,30 @@ def active_wifi_ssid() -> str:
         return ""
     ssid = command_output(["nmcli", "--escape", "no", "-g", "802-11-wireless.ssid", "connection", "show", profile])
     return ssid or profile
+
+
+def connected_network_snapshot() -> dict:
+    """Return useful, non-sensitive details for the active network link."""
+    rows = command_output(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"])
+    active = next((line.split(":", 3) for line in rows.splitlines() if ":connected:" in line), [])
+    if len(active) != 4:
+        return {"name": active_wifi_ssid(), "interface": "", "type": "", "address": "", "signal": "", "speed": ""}
+    interface, link_type, _, connection = active
+    name = active_wifi_ssid() if link_type in {"wifi", "802-11-wireless"} else connection
+    address_output = command_output(["ip", "-4", "-o", "addr", "show", "dev", interface])
+    address_match = re.search(r"\binet\s+([^\s]+)", address_output)
+    signal = ""
+    speed = ""
+    if link_type in {"wifi", "802-11-wireless"}:
+        link = command_output(["iw", "dev", interface, "link"])
+        signal_match = re.search(r"signal:\s*(-?\d+)\s*dBm", link, re.I)
+        speed_match = re.search(r"(?:rx|tx) bitrate:\s*([\d.]+\s*\w+/s)", link, re.I)
+        signal = f"{signal_match.group(1)} dBm" if signal_match else ""
+        speed = speed_match.group(1) if speed_match else ""
+    else:
+        raw_speed = command_output(["cat", f"/sys/class/net/{interface}/speed"])
+        speed = f"{raw_speed} Mb/s" if raw_speed.isdigit() else ""
+    return {"name": name, "interface": interface, "type": "Wi-Fi" if link_type in {"wifi", "802-11-wireless"} else "Ethernet" if link_type == "ethernet" else link_type, "address": address_match.group(1) if address_match else "", "signal": signal, "speed": speed}
 
 
 def service_state(name: str) -> str:
@@ -700,7 +730,8 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
             if status and status != "unknown":
                 roon_service = status
                 break
-    active_wifi = active_wifi_ssid()
+    network = connected_network_snapshot()
+    active_wifi = network["name"] if network["type"] == "Wi-Fi" else active_wifi_ssid()
     airplay_service = service_state("shairport-sync.service")
     try:
         update_status = (state_dir / "update-status").read_text(encoding="utf-8").strip()
@@ -749,6 +780,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
     snapshot = {
         "hostname": socket.gethostname(),
         "wifi_ssid": active_wifi,
+        "network": network,
         "roon_bridge": roon_service,
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
         "airplay": airplay_service,
@@ -1382,7 +1414,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 if candidate.display_theme not in {"fresh-mint", "roon"}:
                     raise ValueError("Choose Fresh Mint or Roon for the display style")
                 if candidate.display_background not in {"current", "black"}:
-                    raise ValueError("Choose Current background or Pure black")
+                    raise ValueError("Choose Purple Gradient or Pure Black")
                 if candidate.portrait_discovery_columns not in {2, 3}:
                     raise ValueError("Choose 2 or 3 portrait Discover columns")
                 if candidate.landscape_music_clock not in {"icon", "full"}:

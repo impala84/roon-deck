@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-beta.38 Alpine — 11 October 2026
+
+- Shows a running or boot-enabled AirPlay receiver in Diagnostics and adds interface, address, signal and link-speed details for the connected network.
+- Tightens the Settings masthead, gives the AirPlay-name action breathing room, and expands the mode controls to two equal columns when Bus Times is disabled.
+- Renames the display backgrounds to Purple Gradient and Pure Black.
+- Removes the redundant homepage hero buttons and moves the Getting Started number spine to 25% of the content width.
+- Connects the website feedback form to a small production Neon database so messages can be submitted reliably.
+
 ## 1.1.3-beta.37 Alpine — 11 October 2026
 
 - Split web Settings → Services into focused Roon Display, BluOS, Roon Bridge and AirPlay panels, and lighten the Settings title weight.

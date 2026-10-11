@@ -7,7 +7,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from pi_bus_time_display.config import Config, load_config
-from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, display_config_dir, display_orientation, display_target, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
+from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
 
 
 class DisplayModeTests(unittest.TestCase):
@@ -109,7 +109,7 @@ class DisplayModeTests(unittest.TestCase):
         with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.command_output", return_value=""), patch("pi_bus_time_display.server.service_state", return_value="running") as services:
             data = diagnostics_snapshot()
         self.assertTrue(all(process["active"] for process in data["processes"]))
-        self.assertEqual({call.args[0] for call in services.call_args_list}, {"pi-home-roon", "pi-home-api", "pi-home-display", "roonbridge"})
+        self.assertEqual({call.args[0] for call in services.call_args_list}, {"pi-home-roon", "pi-home-api", "pi-home-display", "roonbridge", "shairport-sync"})
 
     def test_diagnostics_includes_netdata_and_collectors_only_when_running(self):
         from pi_bus_time_display.server import diagnostics_snapshot
@@ -134,6 +134,7 @@ class DisplayModeTests(unittest.TestCase):
             labels = [p["label"] for p in diagnostics_snapshot(Config(bus_enabled=False))["processes"]]
             self.assertNotIn("Roon controller", labels)
             self.assertNotIn("Roon Bridge", labels)
+            self.assertNotIn("AirPlay · Shairport Sync", labels)
             self.assertNotIn("Netdata", labels)
             self.assertIn("RoonDeck backend", labels)
             configured = diagnostics_snapshot(Config(roon_zone_name="NAD M33"))["processes"]
@@ -464,6 +465,26 @@ class DisplayModeTests(unittest.TestCase):
     def test_wifi_reports_ssid_not_netplan_profile_name(self):
         with patch("pi_bus_time_display.server.command_output", side_effect=["netplan-wlan0-Boogaloo:802-11-wireless", "Boogaloo"]):
             self.assertEqual(active_wifi_ssid(), "Boogaloo")
+
+    def test_connected_wifi_reports_link_metrics(self):
+        outputs = [
+            "wlan0:wifi:connected:netplan-wlan0-Boogaloo",
+            "netplan-wlan0-Boogaloo:802-11-wireless",
+            "Boogaloo",
+            "2: wlan0 inet 10.12.0.50/24 brd 10.12.0.255 scope global wlan0",
+            "Connected to aa:bb:cc\nsignal: -51 dBm\nrx bitrate: 866.7 MBit/s",
+        ]
+        with patch("pi_bus_time_display.server.command_output", side_effect=outputs):
+            details = connected_network_snapshot()
+        self.assertEqual(details, {"name": "Boogaloo", "interface": "wlan0", "type": "Wi-Fi", "address": "10.12.0.50/24", "signal": "-51 dBm", "speed": "866.7 MBit/s"})
+
+    def test_diagnostics_includes_running_airplay(self):
+        from pi_bus_time_display.server import diagnostics_snapshot
+        output = "24 4096 0.2 /usr/bin/shairport-sync -c /etc/shairport-sync.conf\n"
+        with patch("pi_bus_time_display.server.command_output", return_value=output), patch("pi_bus_time_display.server.service_state", return_value="stopped"):
+            airplay = next(process for process in diagnostics_snapshot(Config())["processes"] if process["label"] == "AirPlay · Shairport Sync")
+        self.assertTrue(airplay["active"])
+        self.assertEqual(airplay["pids"], [24])
 
     def test_home_light_level_uses_brightness_percentage(self):
         with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
