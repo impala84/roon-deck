@@ -472,11 +472,11 @@ class DisplayModeTests(unittest.TestCase):
             "netplan-wlan0-Boogaloo:802-11-wireless",
             "Boogaloo",
             "2: wlan0 inet 10.12.0.50/24 brd 10.12.0.255 scope global wlan0",
-            "Connected to aa:bb:cc\nsignal: -51 dBm\nrx bitrate: 866.7 MBit/s",
+            "yes:72:866 Mbit/s",
         ]
         with patch("pi_bus_time_display.server.command_output", side_effect=outputs):
             details = connected_network_snapshot()
-        self.assertEqual(details, {"name": "Boogaloo", "interface": "wlan0", "type": "Wi-Fi", "address": "10.12.0.50/24", "signal": "-51 dBm", "speed": "866.7 MBit/s"})
+        self.assertEqual(details, {"name": "Boogaloo", "interface": "wlan0", "type": "Wi-Fi", "address": "10.12.0.50/24", "signal": "72%", "speed": "866 Mbit/s"})
 
     def test_diagnostics_includes_running_airplay(self):
         from pi_bus_time_display.server import diagnostics_snapshot

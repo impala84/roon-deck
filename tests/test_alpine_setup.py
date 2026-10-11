@@ -391,6 +391,15 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual(chrony.read_text(), "pool pool.ntp.org iburst\nmakestep 0.1 -1\n")
         self.assertEqual((self.root / "var/lib/pi-home/clock-seed").read_text(), "1800000000\n")
 
+    def test_daily_update_check_is_installed_once_at_three_am(self):
+        path = self.root / "etc/crontabs/root"
+        path.parent.mkdir(parents=True)
+        path.write_text("15 2 * * * existing-job\n")
+        module.ensure_daily_update_check(self.root)
+        module.ensure_daily_update_check(self.root)
+        self.assertEqual(path.read_text().splitlines(), ["15 2 * * * existing-job", module.UPDATE_CHECK_CRON])
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
     def test_netdata_controls_require_setup_and_use_only_fixed_openrc_commands(self):
         with self.assertRaises(ValueError): self.setup.handle({"action": "netdata_enable"})
         self.setup.save({"complete": True})

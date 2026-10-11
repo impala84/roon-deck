@@ -17,6 +17,11 @@ class AlpineUpdaterTests(unittest.TestCase):
     def test_updates_follow_the_renamed_alpine_beta_branch(self):
         self.assertEqual(updater.BRANCH, "alpine-beta")
 
+    def test_check_reports_an_available_release_without_installing(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(updater, "APP", Path(folder)), patch.object(updater, "wait_for_clock"), patch.object(updater, "verified_revision", return_value="a" * 40), patch.object(updater, "status") as status:
+            updater.check()
+        status.assert_called_once()
+
     def test_stage_space_tracks_current_release_size_with_a_bounded_reserve(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

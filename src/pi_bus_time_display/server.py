@@ -632,11 +632,20 @@ def connected_network_snapshot() -> dict:
     signal = ""
     speed = ""
     if link_type in {"wifi", "802-11-wireless"}:
-        link = command_output(["iw", "dev", interface, "link"])
-        signal_match = re.search(r"signal:\s*(-?\d+)\s*dBm", link, re.I)
-        speed_match = re.search(r"(?:rx|tx) bitrate:\s*([\d.]+\s*\w+/s)", link, re.I)
-        signal = f"{signal_match.group(1)} dBm" if signal_match else ""
-        speed = speed_match.group(1) if speed_match else ""
+        # NetworkManager is part of every RoonDeck image, whereas `iw` is not.
+        # Ask it for the active access point so the web UI works on both the
+        # original and current Alpine images without another package install.
+        access_points = command_output(["nmcli", "--escape", "no", "-t", "-f", "IN-USE,SIGNAL,RATE", "device", "wifi", "list", "ifname", interface])
+        active_access_point = next((line.split(":", 2) for line in access_points.splitlines() if line.startswith(("yes:", "*:"))), [])
+        if len(active_access_point) == 3:
+            signal = f"{active_access_point[1]}%" if active_access_point[1].isdigit() else active_access_point[1]
+            speed = active_access_point[2]
+        if not signal or not speed:
+            link = command_output(["iw", "dev", interface, "link"])
+            signal_match = re.search(r"signal:\s*(-?\d+)\s*dBm", link, re.I)
+            speed_match = re.search(r"(?:rx|tx) bitrate:\s*([\d.]+\s*\w+/s)", link, re.I)
+            signal = signal or (f"{signal_match.group(1)} dBm" if signal_match else "")
+            speed = speed or (speed_match.group(1) if speed_match else "")
     else:
         raw_speed = command_output(["cat", f"/sys/class/net/{interface}/speed"])
         speed = f"{raw_speed} Mb/s" if raw_speed.isdigit() else ""

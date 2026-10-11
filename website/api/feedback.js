@@ -39,8 +39,9 @@ export default async function handler(request, response) {
     const inserted = await sql`insert into feedback_messages (category, message, reply_email, ip_hash, user_agent) values (${category}, ${message}, ${email || null}, ${ipHash}, ${String(request.headers['user-agent'] || '').slice(0, 300)}) returning id`;
     let delivered = false;
     if (process.env.RESEND_API_KEY) {
-      const mail = await fetch('https://api.resend.com/emails', {method: 'POST', headers: {'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json'}, body: JSON.stringify({from: process.env.FEEDBACK_FROM || 'RoonDeck <onboarding@resend.dev>', to: ['philipjdall@gmail.com'], reply_to: email || undefined, subject: `RoonDeck ${category.replace('_', ' ')}`, text: `${message}\n\nReply email: ${email || 'Not supplied'}\nSubmission: ${inserted[0].id}`})});
+      const mail = await fetch('https://api.resend.com/emails', {method: 'POST', headers: {'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json'}, body: JSON.stringify({from: process.env.FEEDBACK_FROM || 'RoonDeck <onboarding@resend.dev>', to: [process.env.FEEDBACK_TO || 'philipjdall@gmail.com'], reply_to: email || undefined, subject: `RoonDeck ${category.replace('_', ' ')}`, text: `${message}\n\nReply email: ${email || 'Not supplied'}\nSubmission: ${inserted[0].id}`})});
       delivered = mail.ok;
+      if (!mail.ok) console.error('Feedback email delivery failed', mail.status, await mail.text());
       if (delivered) await sql`update feedback_messages set delivered_at = now() where id = ${inserted[0].id}`;
     }
     return reply(response, 200, {ok: true, delivered});

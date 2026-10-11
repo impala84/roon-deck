@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#151328"><meta name="description" content="RoonDeck is an independent Raspberry Pi touchscreen for Roon, with optional Roon Bridge support for a RAAT audio endpoint.">
   <meta property="og:title" content="RoonDeck — Your music. A tap away."><meta property="og:description" content="An independent touchscreen for Roon, built for Raspberry Pi."><meta property="og:image" content="https://roondeck.vercel.app/assets/roondeck-hero.png">
-  <title>RoonDeck — Your music. A tap away.</title><link rel="icon" href="/assets/brand/favicon-website.svg?v=37" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/brand/favicon-website.svg?v=37"><link rel="manifest" href="/site.webmanifest?v=37"><link rel="stylesheet" href="/styles.css?v=37"><script src="/script.js?v=37" defer></script>
+  <title>RoonDeck — Your music. A tap away.</title><link rel="icon" href="/assets/brand/favicon-website.svg?v=39" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/brand/favicon-website.svg?v=39"><link rel="manifest" href="/site.webmanifest?v=39"><link rel="stylesheet" href="/styles.css?v=39"><script src="/script.js?v=39" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -57,32 +57,33 @@
       <ol class="build-equation reveal" aria-label="What you need to build RoonDeck">
         <li class="build-step">
           <span class="build-number" aria-hidden="true">1</span>
-          <a class="build-asset-link" href="https://www.raspberrypi.com/products/" target="_blank" rel="noopener noreferrer" aria-label="Explore Raspberry Pi computers"><img src="/assets/build/raspberry-pi-sketch.png" alt="Isometric Raspberry Pi circuit board"></a>
+          <a class="build-asset-link" href="https://www.raspberrypi.com/products/" target="_blank" rel="noopener noreferrer" aria-label="Explore Raspberry Pi computers"><img src="/assets/build/raspberry-pi-sketch.png?v=39" alt="Isometric Raspberry Pi circuit board" width="667" height="400"></a>
           <h3>Raspberry Pi</h3><p>Raspberry Pi 4 or 5.<br>Pi 4 or newer recommended.</p>
         </li>
         <li class="build-step">
           <span class="build-number" aria-hidden="true">2</span>
-          <a class="build-asset-link" href="https://www.raspberrypi.com/products/touch-display-2/" target="_blank" rel="noopener noreferrer" aria-label="Explore the official Raspberry Pi Touch Display 2"><img src="/assets/build/touchscreen-sketch.png" alt="Landscape Raspberry Pi touchscreen with its left kickstand visible"></a>
+          <a class="build-asset-link" href="https://www.raspberrypi.com/products/touch-display-2/" target="_blank" rel="noopener noreferrer" aria-label="Explore the official Raspberry Pi Touch Display 2"><img src="/assets/build/touchscreen-sketch.png?v=39" alt="Landscape Raspberry Pi touchscreen with its left kickstand visible" width="648" height="444"></a>
           <h3>Raspberry Pi Touchscreen</h3><p>Official Raspberry Pi touchscreen.<br>Touch Display 2, 7-inch or larger, recommended.</p>
         </li>
         <li class="build-step">
           <span class="build-number" aria-hidden="true">3</span>
-          <a class="build-asset-link" href="https://www.raspberrypi.com/documentation/computers/getting-started.html#storage" target="_blank" rel="noopener noreferrer" aria-label="Read Raspberry Pi storage guidance"><img src="/assets/build/microsd-sketch.svg" alt="Outlined microSD card labelled 16GB plus"></a>
+          <a class="build-asset-link" href="https://www.raspberrypi.com/documentation/computers/getting-started.html#storage" target="_blank" rel="noopener noreferrer" aria-label="Read Raspberry Pi storage guidance"><img src="/assets/build/microsd-sketch.svg?v=39" alt="Outlined microSD card labelled 16GB plus" width="390" height="480"></a>
           <h3>microSD Card</h3><p>16GB or larger<br>recommended.</p>
         </li>
         <li class="build-step build-step-roon">
           <span class="build-number" aria-hidden="true">4</span>
-          <a class="build-asset-link" href="https://roonlabs.com" target="_blank" rel="noopener noreferrer" aria-label="Visit Roon Labs"><img src="/assets/build/roon-wordmark.svg" alt="Roon"></a>
+          <a class="build-asset-link" href="https://roonlabs.com" target="_blank" rel="noopener noreferrer" aria-label="Visit Roon Labs"><img src="/assets/build/roon-wordmark.svg?v=39" alt="Roon" width="512" height="180"></a>
           <h3>Working Roon Server</h3><p>A working Roon Server and active subscription.</p><a class="build-text-link" href="https://roonlabs.com" target="_blank" rel="noopener noreferrer">Visit roonlabs.com</a>
         </li>
       </ol>
       <div class="hardware-options reveal">
         <article class="hardware-choice recommended"><span>Recommended setup</span><h3>Raspberry Pi 4 or newer</h3><ul><li>Official Touch Display 2, 7-inch or larger</li><li>16GB+ high-quality microSD card</li><li>Correct official power supply</li><li>Ethernet for the simplest setup</li><li>One ARM64 image supports Raspberry Pi 3, 4 and 5</li></ul></article>
       </div>
+      <p class="lean-note reveal">RoonDeck is optimised for low-power Raspberry Pi hardware and minimal memory use, while still delivering responsive browsing, playback control and display performance.</p>
       <div class="specs-grid reveal">
-        <article class="spec-block"><h3>Supported hardware</h3><dl><div><dt>Raspberry Pi</dt><dd>Pi 3 minimum; Pi 4 or newer recommended</dd></div><div><dt>Memory</dt><dd>1GB minimum</dd></div><div><dt>Displays</dt><dd>Official Touch Display 7″ V1, 7″ V2 and 10″ V2</dd></div><div><dt>5″ displays</dt><dd>Expected to work; untested and may feel cramped</dd></div><div><dt>Layout</dt><dd>Portrait and landscape</dd></div></dl></article>
-        <article class="spec-block"><h3>Under the hood</h3><dl><div><dt>Operating system</dt><dd>Alpine Linux (recommended)</dd></div><div><dt>Alternative OS</dt><dd>Raspberry Pi OS</dd></div><div><dt>Interface</dt><dd>Native GTK4</dd></div><div><dt>Display server</dt><dd>Cage / Wayland</dd></div><div><dt>Updates</dt><dd>Built-in Stable / Beta channels</dd></div><div><dt>Optional services</dt><dd>Roon Bridge, AirPlay and Netdata</dd></div></dl></article>
-      </div><p class="lean-note reveal">RoonDeck is optimized for low-power Raspberry Pi hardware and minimal memory use, while still delivering responsive browsing, playback control and display performance.</p>
+        <details class="spec-block"><summary>Supported hardware</summary><dl><div><dt>Raspberry Pi</dt><dd>Pi 3 minimum; Pi 4 or newer recommended</dd></div><div><dt>Memory</dt><dd>1GB minimum</dd></div><div><dt>Displays</dt><dd>Official Touch Display 7″ V1, 7″ V2 and 10″ V2</dd></div><div><dt>5″ displays</dt><dd>Expected to work; untested and may feel cramped</dd></div><div><dt>Layout</dt><dd>Portrait and landscape</dd></div></dl></details>
+        <details class="spec-block"><summary>Technical details</summary><dl><div><dt>Operating system</dt><dd>Alpine Linux (recommended)</dd></div><div><dt>Alternative OS</dt><dd>Raspberry Pi OS</dd></div><div><dt>Interface</dt><dd>Native GTK4</dd></div><div><dt>Display server</dt><dd>Cage / Wayland</dd></div><div><dt>Updates</dt><dd>Built-in Stable / Beta channels</dd></div><div><dt>Optional services</dt><dd>Roon Bridge, AirPlay and Netdata</dd></div></dl></details>
+      </div>
     </section>
     <section id="get-started" class="guide-section get-started section-shell">
       <div class="section-heading reveal"><p class="eyebrow">Get started</p><h2>Download the image to get started.</h2><p>Five straightforward steps take RoonDeck from an image file to a dedicated music touchscreen.</p></div>
@@ -96,7 +97,6 @@
       </ol>
       <div class="get-actions reveal"><a class="button" href="/download">Download stable image v1.1.1 <svg class="download-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg></a><a class="button button-secondary" href="https://github.com/impala84/roon-deck/releases">Alternative versions &amp; betas</a></div>
       <div class="setup-details reveal">
-        <details><summary>Technical details and first boot</summary><div><p>Use the official power supply for your Pi model. Ethernet is easiest for first setup, although Wi-Fi can be configured on the touchscreen. Raspberry Pi Imager can decompress the image while writing it.</p><p>After setup, open RoonDeck Settings → System → Software to install newer stable application updates when available.</p></div></details>
         <details><summary>Troubleshooting and advanced options</summary><div class="after-grid"><article><h3>No controller in Roon?</h3><p>Confirm the Pi and Roon Server are on the same local network, then check Roon Settings → Extensions.</p></article><article><h3>Display or touch rotated?</h3><p>Select the exact display model and orientation in RoonDeck Settings, apply the change and reboot.</p></article><article><h3>Want a RAAT endpoint?</h3><p>Enable Roon Bridge in RoonDeck Settings, then enable the Pi output separately in Roon Settings → Audio.</p></article><article><h3>Need help?</h3><p>Capture the display from web Settings and include it when opening a GitHub issue.</p><a href="https://github.com/impala84/roon-deck/issues">Open an issue →</a></article></div></details>
       </div>
     </section>

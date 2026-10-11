@@ -306,12 +306,25 @@ def update():
     status("Update installed. Alpine " + sha[:7] + "; settings and pairing preserved.")
 
 
+def check():
+    """Check the selected channel without downloading or installing an update."""
+    os.chdir("/")
+    wait_for_clock()
+    try:
+        sha = verified_revision()
+    except NoDowngrade:
+        return
+    installed = (APP / ".source-commit").read_text().strip() if (APP / ".source-commit").exists() else ""
+    if installed != sha:
+        status("Update available. Open Settings → System → Software to install the latest verified Alpine release.")
+
+
 def main():
     if os.geteuid() != 0: raise SystemExit("Run with sudo")
     with open("/run/pi-home-update.lock", "a") as lock:
         try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError: return
-        try: update()
+        try: check() if "--check" in sys.argv[1:] else update()
         except Exception as error:
             reason = getattr(error, "reason", error)
             if isinstance(reason, ssl.SSLCertVerificationError):

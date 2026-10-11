@@ -23,6 +23,17 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 SOCKET = "/run/pi-home-setup.sock"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
 ROON_BRIDGE_URL = "https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.tar.bz2"
+UPDATE_CHECK_CRON = "0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check"
+
+
+def ensure_daily_update_check(root=Path("/")):
+    """Install one quiet 03:00 release check without disturbing other jobs."""
+    path = Path(root) / "etc/crontabs/root"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = path.read_text().splitlines() if path.exists() else []
+    lines = [line for line in lines if "pi-home/appliance/alpine/updater.py --check" not in line]
+    lines.append(UPDATE_CHECK_CRON)
+    atomic(path, "\n".join(lines) + "\n", 0o600)
 
 
 def configure_netdata_lightweight(root, enabled):
@@ -912,6 +923,7 @@ class Setup:
 
 def serve():
     install_clock_support()
+    ensure_daily_update_check()
     app = Setup()
     if Path("/opt/netdata/bin/netdata").is_file():
         ensure_netdata_service(Path("/"))

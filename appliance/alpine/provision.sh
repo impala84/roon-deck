@@ -72,6 +72,10 @@ sed -i -E '/^[[:space:]]*(pool|server)[[:space:]]/ { /[[:space:]]iburst([[:space
 printf '%s\n' 'makestep 0.1 -1' >> /etc/chrony/chrony.conf
 rc-update add chronyd default
 rc-update add crond default
+mkdir -p /etc/crontabs
+sed -i '\|pi-home/appliance/alpine/updater.py --check|d' /etc/crontabs/root 2>/dev/null || true
+printf '%s\n' '0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check' >> /etc/crontabs/root
+chmod 600 /etc/crontabs/root
 # SSH is enabled, but admin stays locked until setup supplies a unique password.
 awk -F: '$1 == "root" && $2 ~ /^[!*]/ {locked=1} END {exit !locked}' /etc/shadow
 sed -i '/^[^#].*getty/s/^/#/' /etc/inittab

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-beta.39 Alpine — 12 October 2026
+
+- Reads Wi-Fi signal and link speed from NetworkManager on every supported image and removes the low-value interface card from Settings.
+- Adds a non-installing release check at 03:00 each day; available updates remain user-controlled in Settings.
+- Restores the homepage hardware artwork, improves the inset mobile hero crop and gives mobile setup steps their own number-heading row.
+- Turns Supported hardware and Technical details into compact accordions, moves the optimisation note above them and removes the first-boot section.
+- Uses the configured Resend recipient for feedback notifications and records delivery failures in deployment logs.
+
 ## 1.1.3-beta.38 Alpine — 11 October 2026
 
 - Shows a running or boot-enabled AirPlay receiver in Diagnostics and adds interface, address, signal and link-speed details for the connected network.
