@@ -1,6 +1,6 @@
 # RoonDeck
 
-Alpine testing release: **1.1.3-beta.33**, refining the mobile website with a full-width hero image, cleaner section transitions, quieter setup links and a shorter hardware headline. Select Beta explicitly to test; Stable remains 1.1.2.
+Alpine testing release: **1.1.3-beta.34**, correcting the mobile hero crop, Home Assistant mark, library screenshot and endpoint divider on the website. Select Beta explicitly to test; Stable remains 1.1.2.
 
 The current Alpine stable release is **1.1.2**: an in-place correction for 10-inch Touch Display 2 touch rotation. Update through System → Software on the Stable channel, then reboot manually to apply input calibration. Physical touch acceptance is still required. The 1.1.1 full image remains available for fresh installs. Raspberry Pi OS releases remain separate.
 

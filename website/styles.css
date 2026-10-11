@@ -72,7 +72,7 @@ main section[id]{scroll-margin-top:112px}
 .endpoint-callout{width:100vw;margin-left:calc(50% - 50vw);padding:clamp(58px,7vw,98px) max(48px,calc((100vw - var(--content))/2));display:grid;grid-template-columns:minmax(320px,.8fr) minmax(520px,1.2fr);gap:clamp(46px,7vw,110px);align-items:center;background:linear-gradient(110deg,#17112e 0,#2c2157 52%,#17112e 100%);border-bottom:1px solid rgba(160,150,255,.35)}
 .endpoint-callout h3{max-width:560px;margin:0 0 18px;font-size:clamp(2.1rem,3.4vw,3.8rem);line-height:1.04;letter-spacing:-.03em}
 .endpoint-callout>div>p:last-child,.endpoint-options p{margin:0;color:#cbc6d9}
-.endpoint-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid rgba(160,150,255,.35);border-bottom:1px solid rgba(160,150,255,.35)}
+.endpoint-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid rgba(160,150,255,.35)}
 .endpoint-options article{padding:30px}
 .endpoint-options article+article{border-left:1px solid rgba(160,150,255,.35)}
 .endpoint-options span{color:var(--purple-bright);font-size:.76rem;font-weight:760;letter-spacing:.12em}
@@ -119,5 +119,5 @@ main section[id]{scroll-margin-top:112px}
   .build-equation{gap:56px}
   .build-step:not(:last-child)::after,.build-step:nth-child(2)::after{top:auto;right:50%;bottom:-48px;width:40px;height:40px;display:grid;place-items:center;transform:translate(50%,0);font-size:2.5rem}
 }
-@media(max-width:480px){.hero-image{aspect-ratio:1.26/1;object-position:69% bottom}.hardware .section-heading h2{font-size:2.3rem}}
+@media(max-width:480px){.hero-image{aspect-ratio:1.26/1;object-position:left bottom}.hardware .section-heading h2{font-size:2.3rem}}
 .utility-list article:last-child{border-bottom:0}

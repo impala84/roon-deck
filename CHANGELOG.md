@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.34 Alpine — 11 October 2026
+
+- Reverse the mobile hero crop so the landscape RoonDeck remains fully visible and the portrait display crops at the right edge.
+- Restore the complete Home Assistant tree mark without relying on an SVG mask that fails in mobile Safari.
+- Show the supplied album-cover grid for Browse your library and remove the duplicate divider below AirPlay.
+
 ## 1.1.3-beta.33 Alpine — 11 October 2026
 
 - Run the mobile hero image full width while preserving the copy, image and action sequence.

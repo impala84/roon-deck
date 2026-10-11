@@ -1,16 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Home Assistant">
-  <defs>
-    <mask id="home-assistant-cutout">
-      <path fill="#fff" d="M240 224.8c0 8.3-6.8 15-15 15H15c-8.3 0-15-6.7-15-15v-90c0-8.2 4.8-19.8 10.6-25.6l98.8-98.8a15 15 0 0 1 21.2 0l98.8 98.8c5.8 5.8 10.6 17.4 10.6 25.6v90Z"/>
-      <g fill="none" stroke="#000" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M120 84v156M120 202l-60-60M120 170l60-60"/>
-      </g>
-      <g fill="#000">
-        <circle cx="120" cy="84" r="20.5"/>
-        <circle cx="60" cy="142" r="20.5"/>
-        <circle cx="180" cy="110" r="20.5"/>
-      </g>
-    </mask>
-  </defs>
-  <rect width="240" height="240" fill="#fff" mask="url(#home-assistant-cutout)"/>
+  <path fill="#fff" d="M240 224.8c0 8.3-6.8 15-15 15H15c-8.3 0-15-6.7-15-15v-90c0-8.2 4.8-19.8 10.6-25.6l98.8-98.8a15 15 0 0 1 21.2 0l98.8 98.8c5.8 5.8 10.6 17.4 10.6 25.6v90Z"/>
+  <g fill="none" stroke="#0b0b0c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 84v156M120 202l-60-60M120 170l60-60"/>
+  </g>
+  <g fill="#0b0b0c">
+    <circle cx="120" cy="84" r="20.5"/>
+    <circle cx="60" cy="142" r="20.5"/>
+    <circle cx="180" cy="110" r="20.5"/>
+  </g>
 </svg>
