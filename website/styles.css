@@ -106,3 +106,16 @@ main section[id]{scroll-margin-top:112px}
 .endpoint-options h3{margin:14px 0 9px;font-size:1.25rem}
 @media(max-width:1000px){.feature-explorer{grid-template-columns:1fr}.feature-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.feature-tab:nth-child(odd){border-right:1px solid var(--line)}.feature-panel-portrait{width:min(52%,330px)}}
 @media(max-width:620px){.feature-explorer{margin-top:46px;gap:30px}.feature-list{grid-template-columns:1fr}.feature-tab:nth-child(odd){border-right:0}.feature-tab{padding:17px 8px}.feature-tab[aria-selected="true"]{padding-left:16px}.feature-panel-portrait{width:min(70%,330px)}}
+
+/* Keep the buying recommendation unambiguous and make the mobile hero a clear sequence. */
+.hardware-options{max-width:980px;margin-inline:auto;grid-template-columns:1fr}
+@media(max-width:780px){
+  .hero{height:auto;min-height:0;padding-bottom:42px;display:grid;grid-template-rows:auto auto auto;background:#171438}
+  .hero-image{position:static;grid-row:2;width:min(calc(100% - 36px),620px);height:auto;aspect-ratio:4/3;margin:0 auto;border:1px solid rgba(160,150,255,.32);border-radius:18px;object-fit:cover;object-position:70% bottom;box-shadow:0 24px 60px rgba(0,0,0,.34)}
+  .hero-content{display:contents}
+  .hero-copy{grid-row:1;width:min(calc(100% - 36px),620px);margin:0 auto;padding:54px 0 30px;opacity:1;transform:none}
+  .hero-controls{position:static;grid-row:3;width:min(calc(100% - 36px),620px);margin:0 auto;padding-top:20px;opacity:1;transform:none}
+  .build-equation{gap:56px}
+  .build-step:not(:last-child)::after,.build-step:nth-child(2)::after{top:auto;right:50%;bottom:-48px;width:40px;height:40px;display:grid;place-items:center;transform:translate(50%,0);font-size:2.5rem}
+}
+@media(max-width:480px){.hero-image{aspect-ratio:1.26/1;object-position:69% bottom}}

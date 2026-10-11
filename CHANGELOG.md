@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.32 Alpine — 11 October 2026
+
+- Recompose the mobile website hero into a clear copy, product image and action sequence.
+- Centre the hardware plus connectors precisely between stacked mobile cards.
+- Present only the Pi 4-or-newer recommended setup, with Pi 3 and 1GB retained as minimum support details rather than buying guidance.
+
 ## 1.1.3-beta.31 Alpine — 11 October 2026
 
 - Replace the repeated website feature gallery and summary cards with one accessible, interactive journey ordered from Now Playing through browsing and discovery.
