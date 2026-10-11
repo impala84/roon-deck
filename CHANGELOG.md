@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.33 Alpine — 11 October 2026
+
+- Run the mobile hero image full width while preserving the copy, image and action sequence.
+- Remove the duplicate divider below Display & settings.
+- Shorten the mobile hardware headline, keep setup headings plain with quiet links in their copy, and remove the glyph from the Roon URL.
+
 ## 1.1.3-beta.32 Alpine — 11 October 2026
 
 - Recompose the mobile website hero into a clear copy, product image and action sequence.

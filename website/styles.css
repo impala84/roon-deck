@@ -84,6 +84,7 @@ main section[id]{scroll-margin-top:112px}
 .install-steps li>div>span{width:52px;height:52px;display:grid;place-items:center;border:3px solid var(--purple);border-radius:50%;background:#121025;color:var(--purple-bright);font-size:1.12rem;font-weight:760;letter-spacing:0}
 .install-steps h3 a,.install-steps p a{color:inherit;text-underline-offset:4px}
 .install-steps h3 a:hover,.install-steps p a:hover{color:var(--purple-bright)}
+.install-steps .quiet-link{color:#c7c2d0;text-decoration-color:rgba(199,194,208,.5);text-decoration-thickness:1px}
 @media(max-width:1120px){.endpoint-callout{grid-template-columns:1fr}.endpoint-options{max-width:760px}.music-features article:last-child{grid-column:auto}}
 @media(max-width:780px){.endpoint-callout{padding-inline:18px}.endpoint-options{grid-template-columns:1fr}.endpoint-options article+article{border-left:0;border-top:1px solid rgba(160,150,255,.35)}.settings-visual{transform:none}}
 
@@ -111,11 +112,12 @@ main section[id]{scroll-margin-top:112px}
 .hardware-options{max-width:980px;margin-inline:auto;grid-template-columns:1fr}
 @media(max-width:780px){
   .hero{height:auto;min-height:0;padding-bottom:42px;display:grid;grid-template-rows:auto auto auto;background:#171438}
-  .hero-image{position:static;grid-row:2;width:min(calc(100% - 36px),620px);height:auto;aspect-ratio:4/3;margin:0 auto;border:1px solid rgba(160,150,255,.32);border-radius:18px;object-fit:cover;object-position:70% bottom;box-shadow:0 24px 60px rgba(0,0,0,.34)}
+  .hero-image{position:static;grid-row:2;width:100%;max-width:none;height:auto;aspect-ratio:4/3;margin:0;border:0;border-radius:0;object-fit:cover;object-position:70% bottom;box-shadow:0 24px 60px rgba(0,0,0,.34)}
   .hero-content{display:contents}
   .hero-copy{grid-row:1;width:min(calc(100% - 36px),620px);margin:0 auto;padding:54px 0 30px;opacity:1;transform:none}
   .hero-controls{position:static;grid-row:3;width:min(calc(100% - 36px),620px);margin:0 auto;padding-top:20px;opacity:1;transform:none}
   .build-equation{gap:56px}
   .build-step:not(:last-child)::after,.build-step:nth-child(2)::after{top:auto;right:50%;bottom:-48px;width:40px;height:40px;display:grid;place-items:center;transform:translate(50%,0);font-size:2.5rem}
 }
-@media(max-width:480px){.hero-image{aspect-ratio:1.26/1;object-position:69% bottom}}
+@media(max-width:480px){.hero-image{aspect-ratio:1.26/1;object-position:69% bottom}.hardware .section-heading h2{font-size:2.3rem}}
+.utility-list article:last-child{border-bottom:0}
