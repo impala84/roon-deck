@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.3-beta.30 Alpine — 11 October 2026
+
+- Add an optional classic AirPlay audio endpoint using Alpine's maintained Shairport Sync package, with install, naming and service controls in onboarding and web Settings.
+- Align the web Settings wordmark, title and version on one compact baseline to match the touchscreen interface.
+- Restructure the website around browsing, optional audio endpoints, hardware and a clearer linked setup sequence.
+- Strengthen the experimental Roon warning, correct the Home Assistant mark, recommend 16GB+ storage and add the current Settings screenshot.
+- Refresh the website with the latest Daily, Genres, Now Playing, album-detail and Surprise Me captures, and distinguish its white favicon from the purple web Settings icon.
+- Keep the three remaining bottom-navigation items exactly centred and equally weighted when Bus Times is disabled.
+
 ## 1.1.3-beta.29 Alpine — 11 October 2026
 
 - Tighten the space above and below Settings diagnostics in every supported layout.

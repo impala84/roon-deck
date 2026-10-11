@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 480" role="img" aria-label="microSD card labelled 16GB plus">
+  <defs><linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#c7c2ff"/></linearGradient></defs>
+  <path d="M102 42h218c20 0 35 16 35 35v338c0 20-15 35-35 35H66c-20 0-36-15-36-35V317l22-17v-39l-22-12v-42l48-45V77c0-19 11-35 24-35Z" fill="#0c0b20" stroke="url(#edge)" stroke-width="8" stroke-linejoin="round"/>
+  <g fill="none" stroke="#9d86ff" stroke-width="8" stroke-linejoin="round">
+    <path d="M100 68h30v86h-30zM151 68h30v86h-30zM202 68h30v86h-30zM253 68h30v86h-30zM304 68h30v86h-30z"/>
+  </g>
+  <text x="194" y="328" fill="#9d75ff" font-family="Inter,Arial,sans-serif" font-size="62" font-weight="800" text-anchor="middle">16GB+</text>
+</svg>

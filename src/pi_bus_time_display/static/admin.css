@@ -29,3 +29,10 @@ button[data-action="reboot"]{background:#8a5b24!important;color:#fff1d2!importan
 /* Comfortable settings controls on touchscreens, without changing colours. */
 button,.button-link,.capture-download{min-height:48px}
 @media(pointer:coarse){button,.button-link,.capture-download{min-height:60px;font-size:18px;padding:16px 22px}input:not([type="checkbox"]):not([type="range"]),select{min-height:60px;font-size:18px}}
+
+/* Keep the web identity row consistent with the touchscreen Settings header. */
+.masthead-identity{min-width:0;display:flex;align-items:baseline;gap:clamp(10px,1.4vw,20px);flex-wrap:nowrap}
+.masthead .masthead-identity .brand-home{display:inline-flex;align-self:baseline;width:clamp(150px,17vw,210px);flex:0 0 auto}
+.masthead-identity h1{margin:0;font-size:clamp(30px,3.4vw,44px);font-weight:520;line-height:1;white-space:nowrap}
+.masthead-identity #version{margin:0;align-self:baseline;color:var(--muted);font-size:clamp(10px,1.15vw,13px);font-weight:500;letter-spacing:0;white-space:nowrap}
+@media(max-width:620px){.masthead{flex-direction:column}.masthead-actions{width:100%;flex-direction:row;justify-content:space-between;align-items:center}.masthead-identity{gap:8px;width:100%}.masthead .masthead-identity .brand-home{width:clamp(116px,32vw,160px)}.masthead-identity h1{font-size:clamp(25px,7vw,34px)}.masthead-identity #version{font-size:9px}}

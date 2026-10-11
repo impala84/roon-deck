@@ -349,6 +349,8 @@ class DisplayModeTests(unittest.TestCase):
             client.makefile.return_value.readline.return_value = b'{"ok":true}\n'
             self.assertTrue(write_control_request(Path("/unused"), {"action": "netdata_lightweight", "enabled": True}))
             self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "netdata_lightweight", "enabled": True})
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "airplay_configure", "name": "Listening Room"}))
+            self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "airplay_configure", "name": "Listening Room"})
         with tempfile.TemporaryDirectory() as directory:
             state_dir = Path(directory)
             self.assertTrue(write_control_request(state_dir, {"action": "update"}))

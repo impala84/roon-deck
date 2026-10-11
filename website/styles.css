@@ -60,3 +60,29 @@ main section[id]{scroll-margin-top:112px}
   .header-cta{min-height:42px;padding-inline:12px;font-size:.82rem}
   .menu-toggle{width:42px;height:42px;padding:10px}
 }
+
+/* Clearer product story: browse first, then optional audio endpoints. */
+.api-notice{border-color:var(--purple);background:linear-gradient(135deg,rgba(129,116,242,.3),rgba(28,20,65,.94))}
+.api-notice .notice-label{grid-column:1/-1;width:max-content;margin:0 0 18px;padding:7px 12px;border-radius:999px;background:var(--purple);color:#08070d;font-size:.72rem;font-weight:820;letter-spacing:.16em;text-transform:uppercase}
+.api-notice h2{color:var(--purple-bright)}
+.api-notice>p:last-child{color:#e0ddea}
+.api-notice a{color:#fff}
+.section-heading .accent-line{display:block;color:var(--purple-bright)}
+.music-features{grid-template-columns:repeat(4,minmax(0,1fr))}
+.endpoint-callout{width:100vw;margin-left:calc(50% - 50vw);padding:clamp(58px,7vw,98px) max(48px,calc((100vw - var(--content))/2));display:grid;grid-template-columns:minmax(320px,.8fr) minmax(520px,1.2fr);gap:clamp(46px,7vw,110px);align-items:center;background:linear-gradient(110deg,#17112e 0,#2c2157 52%,#17112e 100%);border-bottom:1px solid rgba(160,150,255,.35)}
+.endpoint-callout h3{max-width:560px;margin:0 0 18px;font-size:clamp(2.1rem,3.4vw,3.8rem);line-height:1.04;letter-spacing:-.03em}
+.endpoint-callout>div>p:last-child,.endpoint-options p{margin:0;color:#cbc6d9}
+.endpoint-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid rgba(160,150,255,.35);border-bottom:1px solid rgba(160,150,255,.35)}
+.endpoint-options article{padding:30px}
+.endpoint-options article+article{border-left:1px solid rgba(160,150,255,.35)}
+.endpoint-options span{color:var(--purple-bright);font-size:.76rem;font-weight:760;letter-spacing:.12em}
+.endpoint-options h4{margin:14px 0 9px;font-size:1.25rem}
+.utility-visuals{display:grid;gap:24px}
+.settings-visual{transform:translateX(clamp(0px,3vw,38px))}
+.utility-brand-home img{width:34px;height:34px}
+.install-steps li>div{grid-template-columns:58px 1fr;gap:18px;align-items:center}
+.install-steps li>div>span{width:52px;height:52px;display:grid;place-items:center;border:3px solid var(--purple);border-radius:50%;background:#121025;color:var(--purple-bright);font-size:1.12rem;font-weight:760;letter-spacing:0}
+.install-steps h3 a,.install-steps p a{color:inherit;text-underline-offset:4px}
+.install-steps h3 a:hover,.install-steps p a:hover{color:var(--purple-bright)}
+@media(max-width:1120px){.endpoint-callout{grid-template-columns:1fr}.endpoint-options{max-width:760px}.music-features article:last-child{grid-column:auto}}
+@media(max-width:780px){.endpoint-callout{padding-inline:18px}.endpoint-options{grid-template-columns:1fr}.endpoint-options article+article{border-left:0;border-top:1px solid rgba(160,150,255,.35)}.settings-visual{transform:none}}

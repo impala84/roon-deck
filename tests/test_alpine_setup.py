@@ -452,6 +452,36 @@ class AlpineSetupTests(unittest.TestCase):
             self.assertFalse(self.setup.handle({"action": "roon_install"})["queued"])
         thread.assert_called_once()
 
+    def test_airplay_install_uses_alpine_package_and_managed_configuration(self):
+        binary = self.root / "usr/bin/shairport-sync"
+        binary.parent.mkdir(parents=True)
+        self.setup.airplay_install_lock.acquire()
+        def install_packages(arguments):
+            self.run(arguments)
+            binary.touch()
+        with patch.object(self.setup, "run", side_effect=install_packages) as run:
+            self.setup.install_airplay()
+        run.assert_any_call(["apk", "add", "--no-cache", "shairport-sync", "shairport-sync-openrc"])
+        run.assert_any_call(["rc-update", "add", "shairport-sync", "default"])
+        run.assert_any_call(["rc-service", "shairport-sync", "start"])
+        configuration = (self.root / "etc/shairport-sync.conf").read_text()
+        self.assertIn('name = "RoonDeck"', configuration)
+        self.assertIn('output_backend = "alsa"', configuration)
+
+    def test_airplay_name_is_validated_and_restart_is_bounded(self):
+        self.setup.save({"complete": True})
+        binary = self.root / "usr/bin/shairport-sync"; binary.parent.mkdir(parents=True); binary.touch()
+        result = self.setup.handle({"action": "airplay_configure", "name": "Listening Room"})
+        self.assertEqual(result["name"], "Listening Room")
+        self.run.assert_called_with(["rc-service", "shairport-sync", "restart"])
+        with self.assertRaisesRegex(ValueError, "1–50"):
+            self.setup.handle({"action": "airplay_configure", "name": 'bad"name'})
+
+    def test_airplay_controls_require_an_installed_receiver(self):
+        self.setup.save({"complete": True})
+        with self.assertRaisesRegex(ValueError, "not installed"):
+            self.setup.handle({"action": "airplay_start"})
+
     def test_sleep_extinguishes_backlight_and_wake_restores_saved_brightness(self):
         backlight = self.root / "sys/class/backlight/rpi_backlight"; backlight.mkdir(parents=True)
         (backlight / "brightness").write_text("255"); (backlight / "max_brightness").write_text("255"); (backlight / "bl_power").write_text("0")

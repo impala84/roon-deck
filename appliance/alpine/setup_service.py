@@ -251,6 +251,29 @@ depend() { need localmount; after networkmanager; }
     return service
 
 
+def configure_airplay(root, name="RoonDeck"):
+    """Write the small, owned Shairport Sync configuration used by RoonDeck."""
+    root = Path(root)
+    name = str(name).strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ._'-]{0,49}", name):
+        raise ValueError("Use 1–50 letters, numbers, spaces, dots, hyphens or apostrophes for the AirPlay name.")
+    if not (root / "usr/bin/shairport-sync").is_file():
+        raise ValueError("AirPlay is not installed on this appliance.")
+    atomic(root / "etc/shairport-sync.conf", f'''general = {{
+    name = "{name}";
+    output_backend = "alsa";
+}};
+
+alsa = {{
+    output_device = "default";
+}};
+''', 0o644)
+    state = root / "var/lib/pi-home"
+    state.mkdir(parents=True, exist_ok=True)
+    atomic(state / "airplay-name", name + "\n")
+    return name
+
+
 def ensure_netdata_service(root):
     """Adopt Alpine's package or Netdata's official /opt installation."""
     root = Path(root)
@@ -356,6 +379,7 @@ class Setup:
         self.tools_lock = threading.Lock()
         self.netdata_install_lock = threading.Lock()
         self.roon_install_lock = threading.Lock()
+        self.airplay_install_lock = threading.Lock()
         self.software_lock = threading.Lock()
         self.update_process = None
         self.progress = self.root / "var/lib/pi-home-setup/progress.json"
@@ -509,15 +533,36 @@ class Setup:
             if work.exists(): shutil.rmtree(work)
             self.roon_install_lock.release()
 
+    def install_airplay(self):
+        """Install Alpine's maintained classic AirPlay receiver and enable it."""
+        status = self.root / "var/lib/pi-home/airplay-install-status"
+        status.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            if (self.root / "usr/bin/shairport-sync").is_file():
+                raise ValueError("AirPlay is already installed.")
+            atomic(status, "Installing the Alpine Shairport Sync package…\n")
+            self.run(["apk", "add", "--no-cache", "shairport-sync", "shairport-sync-openrc"])
+            configure_airplay(self.root)
+            self.run(["rc-update", "add", "shairport-sync", "default"])
+            self.run(["rc-service", "shairport-sync", "start"])
+            atomic(status, "AirPlay installed and running. Choose RoonDeck from the AirPlay menu on an Apple device.\n")
+        except Exception as error:
+            message = str(error) if isinstance(error, ValueError) else "AirPlay installation failed. Check the network and try again."
+            atomic(status, "Failed: " + message + "\n")
+        finally:
+            self.airplay_install_lock.release()
+
     def install_setup_software(self, choices):
         """Install optional services serially; persist choices, never credentials."""
         try:
             for name, installer, lock, status_name, present in (
                 ("roon_bridge", self.install_roon_bridge, self.roon_install_lock, "roonbridge-install-status", "opt/RoonBridge/start.sh"),
+                ("airplay", self.install_airplay, self.airplay_install_lock, "airplay-install-status", "usr/bin/shairport-sync"),
                 ("netdata", self.install_official_netdata, self.netdata_install_lock, "netdata-operation-status", "opt/netdata/bin/netdata"),
             ):
-                if not choices[name] or (self.root / present).is_file(): continue
-                state = self.saved(); state["software_status"] = "Installing " + ("Roon Bridge…" if name == "roon_bridge" else "Netdata…"); self.save(state)
+                if not choices.get(name, False) or (self.root / present).is_file(): continue
+                labels = {"roon_bridge": "Roon Bridge…", "airplay": "AirPlay…", "netdata": "Netdata…"}
+                state = self.saved(); state["software_status"] = "Installing " + labels[name]; self.save(state)
                 lock.acquire(); installer()
                 status = read(self.root / "var/lib/pi-home" / status_name).strip()
                 if status.startswith("Failed:"): raise ValueError(status)
@@ -540,14 +585,14 @@ class Setup:
         if action == "software":
             if state.get("complete"): raise ValueError("Setup is already complete.")
             if not state.get("network"): raise ValueError("Connect to your network first.")
-            choices = {name: data.get(name, False) for name in ("roon_bridge", "netdata")}
+            choices = {name: data.get(name, False) for name in ("roon_bridge", "airplay", "netdata")}
             if any(type(value) is not bool for value in choices.values()): raise ValueError("Choose supported software options.")
             lightweight = data.get("netdata_lightweight", True)
             if type(lightweight) is not bool: raise ValueError("Choose a supported Netdata monitoring mode.")
             (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
             atomic(self.root / "var/lib/pi-home/netdata-lightweight", "yes\n" if lightweight else "no\n")
             choices["netdata_lightweight"] = lightweight
-            selected = choices["roon_bridge"] or choices["netdata"]
+            selected = choices["roon_bridge"] or choices["airplay"] or choices["netdata"]
             state.update(software_choices=choices, software=not selected, software_status="Installing selected software…" if selected else "Optional software skipped.")
             self.save(state)
             if selected:
@@ -639,6 +684,22 @@ class Setup:
             else:
                 self.run(["rc-service", "roonbridge", "restart"])
             return {"ok": True}
+        if action in {"airplay_start", "airplay_stop", "airplay_restart", "airplay_configure"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing services.")
+            if not (self.root / "usr/bin/shairport-sync").is_file(): raise ValueError("AirPlay is not installed on this appliance.")
+            if action == "airplay_configure":
+                name = configure_airplay(self.root, data.get("name", ""))
+                self.run(["rc-service", "shairport-sync", "restart"])
+                return {"ok": True, "name": name}
+            if action == "airplay_start":
+                self.run(["rc-update", "add", "shairport-sync", "default"])
+                self.run(["rc-service", "shairport-sync", "start"])
+            elif action == "airplay_stop":
+                self.run(["rc-service", "shairport-sync", "stop"])
+                self.run(["rc-update", "del", "shairport-sync", "default"])
+            else:
+                self.run(["rc-service", "shairport-sync", "restart"])
+            return {"ok": True}
         if action == "roon_install":
             if not state.get("complete"): raise ValueError("Finish setup before installing Roon Bridge.")
             if (self.root / "opt/RoonBridge/start.sh").is_file(): raise ValueError("Roon Bridge is already installed.")
@@ -646,6 +707,14 @@ class Setup:
             status = self.root / "var/lib/pi-home/roonbridge-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
             atomic(status, "Roon Bridge installation queued…\n")
             threading.Thread(target=self.install_roon_bridge, daemon=True).start()
+            return {"ok": True, "queued": True}
+        if action == "airplay_install":
+            if not state.get("complete"): raise ValueError("Finish setup before installing AirPlay.")
+            if (self.root / "usr/bin/shairport-sync").is_file(): raise ValueError("AirPlay is already installed.")
+            if not self.airplay_install_lock.acquire(blocking=False): return {"ok": True, "queued": False}
+            status = self.root / "var/lib/pi-home/airplay-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
+            atomic(status, "AirPlay installation queued…\n")
+            threading.Thread(target=self.install_airplay, daemon=True).start()
             return {"ok": True, "queued": True}
         if action in {"netdata_claim", "netdata_claim_command", "netdata_disconnect"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing Netdata Cloud.")

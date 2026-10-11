@@ -89,6 +89,14 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('watchRoonBridgeInstall()', javascript)
         self.assertIn("data.roon_bridge_operation_status", javascript)
 
+    def test_airplay_endpoint_can_be_installed_named_and_controlled(self):
+        html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
+        javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()
+        self.assertIn('data-action="airplay_install"', html)
+        self.assertIn('id="airplay-name"', html)
+        self.assertIn("action:'airplay_configure'", javascript)
+        self.assertIn('watchAirPlayInstall()', javascript)
+
     def test_bus_colours_are_keyed_by_route_not_row_position(self):
         css = (ROOT / "src/pi_bus_time_display/static/bus-refinements.css").read_text()
         self.assertNotIn(".service:nth-child", css)

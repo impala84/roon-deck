@@ -37,3 +37,8 @@ test('Daily pages expose every tile in one arrow-free horizontal swipe track',()
   assert.doesNotMatch(read('discovery.js'),/PREVIOUS|NEXT|daily-pager/);
   assert.match(read('discovery.css'),/\.daily-grid\{display:flex;gap:22px;overflow-x:auto/);
 });
+test('bottom navigation uses equal grid columns when Bus Times is disabled',()=>{
+  const css=read('discovery.css');
+  assert.match(css,/\.web-nav:has\(a\[hidden\]\)\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important\}/);
+  assert.doesNotMatch(css,/\.web-nav:has\(a\[hidden\]\)\{display:flex\}/);
+});

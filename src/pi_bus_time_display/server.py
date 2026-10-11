@@ -34,6 +34,7 @@ ALPINE_SYSTEM_ACTIONS = {
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
     "device_credentials", "install_tools", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
+    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure",
 }
 SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
     "leds_enable", "leds_disable",
@@ -700,6 +701,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
                 roon_service = status
                 break
     active_wifi = active_wifi_ssid()
+    airplay_service = service_state("shairport-sync.service")
     try:
         update_status = (state_dir / "update-status").read_text(encoding="utf-8").strip()
     except OSError:
@@ -749,6 +751,9 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "wifi_ssid": active_wifi,
         "roon_bridge": roon_service,
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
+        "airplay": airplay_service,
+        "airplay_name": (state_dir / "airplay-name").read_text().strip() if (state_dir / "airplay-name").is_file() else "RoonDeck",
+        "airplay_operation_status": (state_dir / "airplay-install-status").read_text().strip() if (state_dir / "airplay-install-status").is_file() else "",
         "roon_controller": roon_controller,
         "netdata": netdata["service"],
         "netdata_details": netdata,
@@ -798,13 +803,15 @@ def write_control_request(state_dir: Path, request: dict) -> bool:
             if request["action"] == "netdata_lightweight":
                 if type(request.get("enabled")) is not bool: raise ValueError("Choose a supported Netdata monitoring mode.")
                 payload["enabled"] = request["enabled"]
+            if request["action"] == "airplay_configure":
+                payload["name"] = str(request.get("name", ""))
             if request["action"] == "device_credentials":
                 payload.update(username=str(request.get("username", "")), password=str(request.get("password", "")), confirmation=str(request.get("confirmation", "")))
             if request["action"] == "set_display":
                 payload.update(profile=str(request.get("profile", "")), orientation=str(request.get("orientation", "")), mounting=str(request.get("mounting", "standard")))
             try:
                 with socket.socket(socket.AF_UNIX) as client:
-                    client.settimeout(105 if request["action"] in {"netdata_claim", "netdata_claim_command", "netdata_lightweight", "roon_start", "roon_stop", "roon_restart"} else 45 if request["action"] == "set_wifi" else 15); client.connect("/run/pi-home-setup.sock")
+                    client.settimeout(105 if request["action"] in {"netdata_claim", "netdata_claim_command", "netdata_lightweight", "roon_start", "roon_stop", "roon_restart", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure"} else 45 if request["action"] == "set_wifi" else 15); client.connect("/run/pi-home-setup.sock")
                     client.sendall((json.dumps(payload) + "\n").encode())
                     result = json.loads(client.makefile("rb").readline(4096))
             except OSError as error: raise ValueError("Alpine system helper is not ready. Please retry.") from error
@@ -1268,6 +1275,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if type(data.get("enabled")) is not bool:
                             raise ValueError("Choose a supported Netdata monitoring mode.")
                         request["enabled"] = data["enabled"]
+                    if action == "airplay_configure":
+                        request["name"] = str(data.get("name", "")).strip()
                     if action == "device_credentials":
                         request.update(username=str(data.get("username", "")).strip(), password=str(data.get("password", "")), confirmation=str(data.get("confirmation", "")))
                     if action == "set_rotation":
