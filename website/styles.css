@@ -101,6 +101,9 @@ main section[id]{scroll-margin-top:112px}
 .feature-panel{width:100%;margin:0}
 .feature-panel[hidden]{display:none}
 .feature-panel-portrait{width:min(34%,330px)}
+#feature-panel-orientation{width:min(100%,900px)}
+#feature-panel-orientation .interface-frame{aspect-ratio:1.55/1}
+#feature-panel-orientation .interface-frame img{width:100%;height:100%;object-fit:cover;object-position:center bottom}
 .endpoints{scroll-margin-top:112px}
 .endpoints .endpoint-callout{width:100%;margin-left:0;border-top:1px solid rgba(160,150,255,.35)}
 .endpoint-callout h2{max-width:620px;margin:0 0 18px;font-size:clamp(2.1rem,3.4vw,3.8rem);line-height:1.04;letter-spacing:-.03em}

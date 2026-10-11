@@ -78,6 +78,8 @@ featureTabs.forEach((tab, index) => {
 
 const endpointTabs = [...document.querySelectorAll('.endpoint-tab')];
 const endpointPanels = [...document.querySelectorAll('.endpoint-panel')];
+const bluosLogo = document.querySelector('img[src="/assets/brand/bluos-white.svg"]');
+if (bluosLogo) bluosLogo.src = '/assets/brand/bluos-white.svg?v=2';
 
 function selectEndpoint(tab, focus = false) {
   endpointTabs.forEach((candidate) => {
