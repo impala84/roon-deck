@@ -106,6 +106,17 @@ endpointTabs.forEach((tab, index) => {
   });
 });
 
+const specBlocks = [...document.querySelectorAll('.specs-grid .spec-block')];
+let syncingSpecBlocks = false;
+specBlocks.forEach((details) => {
+  details.addEventListener('toggle', () => {
+    if (syncingSpecBlocks) return;
+    syncingSpecBlocks = true;
+    specBlocks.forEach((candidate) => { candidate.open = details.open; });
+    syncingSpecBlocks = false;
+  });
+});
+
 const feedbackForm = document.getElementById('feedback-form');
 const feedbackStatus = document.getElementById('feedback-status');
 const feedbackStartedAt = document.getElementById('feedback-started-at');
