@@ -52,11 +52,11 @@ document.getElementById('setup-form').addEventListener('submit', async event => 
   if (data.password !== data.confirmation) return status(form, 'The passwords do not match.', 'error');
   button.disabled = true;
   status(form, 'Creating your account…');
+  const handoff = setTimeout(() => location.replace('/admin'), 8000);
   try {
-    const result = await request('/api/admin/setup', {method: 'POST', body: JSON.stringify({token: setupPanel.dataset.token, password: data.password})});
-    history.replaceState({}, '', '/admin');
-    showCms(result.user);
-  } catch (error) { status(form, error.message, 'error'); button.disabled = false; }
+    await request('/api/admin/setup', {method: 'POST', body: JSON.stringify({token: setupPanel.dataset.token, password: data.password})});
+    location.replace('/admin');
+  } catch (error) { clearTimeout(handoff); status(form, error.message, 'error'); button.disabled = false; }
 });
 
 document.getElementById('login-form').addEventListener('submit', async event => {
