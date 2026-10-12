@@ -75,11 +75,30 @@ document.querySelectorAll('.nav-button').forEach(button => button.addEventListen
   if (button.dataset.view === 'feedback') loadFeedback();
 }));
 
+const previewPanel = document.querySelector('.preview-panel');
+const previewViewport = document.querySelector('.preview-viewport');
+const previewFrame = document.getElementById('site-preview');
+
+function sizePreview() {
+  const mobile = previewPanel.classList.contains('mobile-preview');
+  const width = mobile ? 390 : 1024;
+  const scale = mobile ? 1 : Math.min(1, previewViewport.clientWidth / width);
+  previewFrame.style.width = `${width}px`;
+  previewFrame.style.height = `${760 / scale}px`;
+  previewFrame.style.left = mobile ? `${Math.max(0, (previewViewport.clientWidth - width) / 2)}px` : '0';
+  previewFrame.style.transform = `scale(${scale})`;
+}
+
 document.querySelectorAll('[data-preview-mode]').forEach(button => button.addEventListener('click', () => {
   const mobile = button.dataset.previewMode === 'mobile';
   document.querySelectorAll('[data-preview-mode]').forEach(item => item.classList.toggle('active', item === button));
-  document.querySelector('.preview-panel').classList.toggle('mobile-preview', mobile);
+  previewPanel.classList.toggle('mobile-preview', mobile);
+  previewPanel.classList.toggle('desktop-preview', !mobile);
+  sizePreview();
 }));
+
+new ResizeObserver(sizePreview).observe(previewViewport);
+sizePreview();
 
 async function loadContent() {
   const [{content}, previewResponse] = await Promise.all([request('/api/admin/content'), fetch('/')]);
@@ -145,7 +164,15 @@ async function loadFeedback() {
       const meta = document.createElement('div'); meta.className = 'feedback-meta'; const reply = document.createElement(item.reply_email ? 'a' : 'span'); reply.textContent = item.reply_email || 'No reply email'; if (item.reply_email) reply.href = `mailto:${item.reply_email}`;
       const select = document.createElement('select'); select.className = 'status-select'; for (const value of ['new', 'read', 'resolved']) { const option = document.createElement('option'); option.value = value; option.textContent = value[0].toUpperCase() + value.slice(1); option.selected = value === item.status; select.append(option); }
       select.addEventListener('change', async () => { try { await request('/api/admin/feedback', {method: 'PUT', body: JSON.stringify({id: item.id, status: select.value})}); } catch (error) { status(document.getElementById('feedback-status'), error.message, 'error'); } });
-      meta.append(reply, select); article.append(header, message, meta); return article;
+      const actions = document.createElement('div'); actions.className = 'feedback-actions';
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'delete-button'; remove.textContent = 'Delete';
+      remove.addEventListener('click', async () => {
+        if (!confirm('Permanently delete this feedback message?')) return;
+        remove.disabled = true;
+        try { await request('/api/admin/feedback', {method: 'DELETE', body: JSON.stringify({id: item.id})}); article.remove(); }
+        catch (error) { remove.disabled = false; status(document.getElementById('feedback-status'), error.message, 'error'); }
+      });
+      actions.append(select, remove); meta.append(reply, actions); article.append(header, message, meta); return article;
     }));
   } catch (error) { list.textContent = ''; status(document.getElementById('feedback-status'), error.message, 'error'); }
 }
