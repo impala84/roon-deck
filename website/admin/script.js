@@ -106,7 +106,6 @@ document.getElementById('save-content').addEventListener('click', async event =>
     if (!Object.keys(changed).length) { status(document.getElementById('content-status'), 'There are no unsaved changes.'); return; }
     await request('/api/admin/content', {method: 'PUT', body: JSON.stringify({content: changed})});
     [...contentForm.elements].forEach(input => { if (input.name) input.dataset.original = input.value; });
-    document.getElementById('site-preview').contentWindow.location.reload();
     status(document.getElementById('content-status'), 'All page text has been saved.', 'success');
   } catch (error) { status(document.getElementById('content-status'), error.message, 'error'); }
   finally { button.disabled = false; }
