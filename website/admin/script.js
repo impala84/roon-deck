@@ -62,8 +62,9 @@ document.getElementById('setup-form').addEventListener('submit', async event => 
 document.getElementById('login-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button[type="submit"]');
   button.disabled = true; status(form, 'Signing in…');
-  try { const result = await request('/api/admin/login', {method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form)))}); showCms(result.user); }
-  catch (error) { status(form, error.message, 'error'); button.disabled = false; }
+  const handoff = setTimeout(() => location.replace('/admin'), 8000);
+  try { await request('/api/admin/login', {method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form)))}); location.replace('/admin'); }
+  catch (error) { clearTimeout(handoff); status(form, error.message, 'error'); button.disabled = false; }
 });
 
 document.getElementById('logout-button').addEventListener('click', async () => { await request('/api/admin/logout', {method: 'POST', body: '{}'}); location.href = '/admin'; });
