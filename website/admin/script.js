@@ -75,6 +75,12 @@ document.querySelectorAll('.nav-button').forEach(button => button.addEventListen
   if (button.dataset.view === 'feedback') loadFeedback();
 }));
 
+document.querySelectorAll('[data-preview-mode]').forEach(button => button.addEventListener('click', () => {
+  const mobile = button.dataset.previewMode === 'mobile';
+  document.querySelectorAll('[data-preview-mode]').forEach(item => item.classList.toggle('active', item === button));
+  document.querySelector('.preview-panel').classList.toggle('mobile-preview', mobile);
+}));
+
 async function loadContent() {
   const [{content}, previewResponse] = await Promise.all([request('/api/admin/content'), fetch('/')]);
   const previewHtml = await previewResponse.text();
@@ -97,6 +103,22 @@ async function loadContent() {
     }
     return group;
   }));
+  const imageGroup = document.createElement('section'); imageGroup.className = 'content-group hero-image-controls';
+  const imageHeading = document.createElement('h2'); imageHeading.textContent = 'Hero image crop'; imageGroup.append(imageHeading);
+  for (const field of window.RoonDeckHeroImageFields) {
+    const saved = Object.hasOwn(content, field.key) ? Number(content[field.key]) : field.defaultValue;
+    const value = Number.isFinite(saved) ? saved : field.defaultValue;
+    const label = document.createElement('label'); label.className = 'content-field range-field';
+    const caption = document.createElement('span'); caption.textContent = field.label;
+    const output = document.createElement('output'); output.textContent = `${value}${field.unit}`;
+    const input = document.createElement('input'); input.type = 'range'; input.name = field.key; input.min = field.min; input.max = field.max; input.value = value; input.dataset.original = String(value);
+    input.addEventListener('input', () => {
+      output.textContent = `${input.value}${field.unit}`;
+      try { const image = document.getElementById('site-preview').contentDocument.querySelector('.hero-image'); if (image) image.style.setProperty(field.property, field.scale ? String(Number(input.value) / 100) : `${input.value}${field.unit}`); } catch {}
+    });
+    label.append(caption, output, input); imageGroup.append(label);
+  }
+  contentForm.prepend(imageGroup);
 }
 
 document.getElementById('save-content').addEventListener('click', async event => {

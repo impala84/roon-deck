@@ -64,6 +64,25 @@ window.RoonDeckContentFields = [
   ['footer.story', 'Footer', 'Project note', '.footer-project p:nth-of-type(2)']
 ].map(([key, section, label, selector, optional = false]) => ({key, section, label, selector, optional}));
 
+window.RoonDeckHeroImageFields = [
+  {key: 'hero.image.desktop_x', label: 'Desktop horizontal position', property: '--hero-desktop-x', defaultValue: 50, min: 0, max: 100, unit: '%'},
+  {key: 'hero.image.desktop_y', label: 'Desktop vertical position', property: '--hero-desktop-y', defaultValue: 100, min: 0, max: 100, unit: '%'},
+  {key: 'hero.image.desktop_zoom', label: 'Desktop zoom', property: '--hero-desktop-scale', defaultValue: 100, min: 100, max: 160, unit: '%', scale: true},
+  {key: 'hero.image.mobile_x', label: 'Mobile horizontal position', property: '--hero-mobile-x', defaultValue: 60, min: 0, max: 100, unit: '%'},
+  {key: 'hero.image.mobile_y', label: 'Mobile vertical position', property: '--hero-mobile-y', defaultValue: 100, min: 0, max: 100, unit: '%'},
+  {key: 'hero.image.mobile_zoom', label: 'Mobile zoom', property: '--hero-mobile-scale', defaultValue: 100, min: 100, max: 160, unit: '%', scale: true}
+];
+
+window.applyRoonDeckHeroImageSettings = function applyRoonDeckHeroImageSettings(content, root = document) {
+  const image = root.querySelector('.hero-image');
+  if (!image) return;
+  for (const field of window.RoonDeckHeroImageFields) {
+    const raw = Object.hasOwn(content, field.key) ? Number(content[field.key]) : field.defaultValue;
+    const value = Number.isFinite(raw) ? Math.min(field.max, Math.max(field.min, raw)) : field.defaultValue;
+    image.style.setProperty(field.property, field.scale ? String(value / 100) : `${value}${field.unit}`);
+  }
+};
+
 window.applyRoonDeckContent = async function applyRoonDeckContent(root = document) {
   try {
     const response = await fetch('/api/content');
@@ -77,6 +96,7 @@ window.applyRoonDeckContent = async function applyRoonDeckContent(root = documen
         if (field.optional) element.hidden = !content[field.key].trim();
       }
     }
+    window.applyRoonDeckHeroImageSettings(content, root);
   } catch {
     // The checked-in page copy remains the reliable fallback.
   }
