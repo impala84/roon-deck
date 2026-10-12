@@ -139,6 +139,8 @@ main section[id]:not(#top) { scroll-margin-top: 124px; }
 @media (max-width: 780px) {
   :root { --section-space: 68px; }
 
+  .hero-copy { padding-bottom: 52px; }
+
   .hero-image {
     width: 100%;
     max-width: none;
