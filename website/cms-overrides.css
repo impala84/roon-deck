@@ -1,0 +1,15 @@
+.hero-title-main {
+  color: #fff;
+}
+
+.origin-story-grid {
+  grid-template-columns: minmax(340px, .8fr) minmax(440px, 1.2fr);
+  gap: clamp(42px, 6vw, 92px);
+}
+
+@media (max-width: 780px) {
+  .origin-story-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
