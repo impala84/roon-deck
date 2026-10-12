@@ -1,3 +1,5 @@
+window.applyRoonDeckContent?.();
+
 const menuButton = document.querySelector('.menu-toggle');
 const siteNav = document.querySelector('.site-nav');
 
