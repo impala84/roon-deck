@@ -6,12 +6,18 @@
   object-position: var(--hero-desktop-x, 50%) var(--hero-desktop-y, 100%);
   transform: scale(var(--hero-desktop-scale, 1));
   transform-origin: var(--hero-desktop-x, 50%) var(--hero-desktop-y, 100%);
+  transition: opacity .18s ease;
 }
 
+.cms-loading .hero-image { opacity: 0; }
+
 .origin-story-grid {
-  grid-template-columns: minmax(340px, .8fr) minmax(440px, 1.2fr);
-  gap: clamp(42px, 6vw, 92px);
+  grid-template-columns: minmax(320px, .65fr) minmax(440px, 1.35fr);
+  gap: clamp(32px, 4vw, 64px);
 }
+
+.origin-story { padding-bottom: clamp(44px, 4vw, 68px); }
+.api-notice { margin-top: 0; }
 
 @media (max-width: 780px) {
   .hero-image {

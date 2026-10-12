@@ -89,16 +89,52 @@ function sizePreview() {
   previewFrame.style.transform = `scale(${scale})`;
 }
 
-document.querySelectorAll('[data-preview-mode]').forEach(button => button.addEventListener('click', () => {
-  const mobile = button.dataset.previewMode === 'mobile';
-  document.querySelectorAll('[data-preview-mode]').forEach(item => item.classList.toggle('active', item === button));
+function setPreviewMode(mode) {
+  const mobile = mode === 'mobile';
+  document.querySelectorAll('[data-preview-mode]').forEach(item => item.classList.toggle('active', item.dataset.previewMode === mode));
   previewPanel.classList.toggle('mobile-preview', mobile);
   previewPanel.classList.toggle('desktop-preview', !mobile);
   sizePreview();
-}));
+}
+
+document.querySelectorAll('[data-preview-mode]').forEach(button => button.addEventListener('click', () => setPreviewMode(button.dataset.previewMode)));
 
 new ResizeObserver(sizePreview).observe(previewViewport);
 sizePreview();
+
+let previewScrollFrame = 0;
+
+function scrollEditorToPreviewSection() {
+  cancelAnimationFrame(previewScrollFrame);
+  previewScrollFrame = requestAnimationFrame(() => {
+    try {
+      const previewDocument = previewFrame.contentDocument;
+      const marker = previewFrame.contentWindow.scrollY + 180;
+      let activeGroup = null;
+      for (const group of contentForm.querySelectorAll('[data-preview-selector]')) {
+        const target = previewDocument.querySelector(group.dataset.previewSelector);
+        const targetTop = target ? target.getBoundingClientRect().top + previewFrame.contentWindow.scrollY : Infinity;
+        if (targetTop <= marker) activeGroup = group;
+      }
+      if (activeGroup) contentForm.scrollTo({top: Math.max(0, activeGroup.offsetTop - contentForm.offsetTop - 12), behavior: 'smooth'});
+    } catch {}
+  });
+}
+
+function connectPreviewScroll() {
+  try {
+    previewFrame.contentWindow.removeEventListener('scroll', scrollEditorToPreviewSection);
+    previewFrame.contentWindow.addEventListener('scroll', scrollEditorToPreviewSection, {passive: true});
+  } catch {}
+}
+
+previewFrame.addEventListener('load', connectPreviewScroll);
+
+function showFieldInPreview(group) {
+  try {
+    previewFrame.contentDocument.querySelector(group.dataset.previewSelector)?.scrollIntoView({behavior: 'smooth', block: 'start'});
+  } catch {}
+}
 
 async function loadContent() {
   const [{content}, previewResponse] = await Promise.all([request('/api/admin/content'), fetch('/')]);
@@ -112,18 +148,20 @@ async function loadContent() {
   }
   contentForm.replaceChildren(...[...groups].map(([section, fields]) => {
     const group = document.createElement('section'); group.className = 'content-group';
+    group.dataset.previewSelector = fields[0].selector;
     const heading = document.createElement('h2'); heading.textContent = section; group.append(heading);
     for (const field of fields) {
       const label = document.createElement('label'); label.className = 'content-field'; label.textContent = field.label;
       const input = document.createElement(field.value.length > 90 ? 'textarea' : 'input'); input.name = field.key; input.value = field.value; input.dataset.selector = field.selector; input.dataset.original = field.value;
       input.dataset.optional = field.optional ? 'true' : 'false';
-      input.addEventListener('input', () => { try { const target = document.getElementById('site-preview').contentDocument.querySelector(field.selector); if (target) { target.textContent = input.value; if (field.optional) target.hidden = !input.value.trim(); } } catch {} });
+      input.addEventListener('focus', () => showFieldInPreview(group));
+      input.addEventListener('input', () => { try { const target = previewFrame.contentDocument.querySelector(field.selector); if (target) { target.textContent = input.value; if (field.optional) target.hidden = !input.value.trim(); } } catch {} });
       label.append(input); group.append(label);
     }
     return group;
   }));
-  const imageGroup = document.createElement('section'); imageGroup.className = 'content-group hero-image-controls';
-  const imageHeading = document.createElement('h2'); imageHeading.textContent = 'Hero image crop'; imageGroup.append(imageHeading);
+  const imageGroup = document.createElement('details'); imageGroup.className = 'content-group hero-image-controls'; imageGroup.dataset.previewSelector = '.hero';
+  const imageHeading = document.createElement('summary'); imageHeading.textContent = 'Hero image crop and position'; imageGroup.append(imageHeading);
   for (const field of window.RoonDeckHeroImageFields) {
     const saved = Object.hasOwn(content, field.key) ? Number(content[field.key]) : field.defaultValue;
     const value = Number.isFinite(saved) ? saved : field.defaultValue;
@@ -131,13 +169,16 @@ async function loadContent() {
     const caption = document.createElement('span'); caption.textContent = field.label;
     const output = document.createElement('output'); output.textContent = `${value}${field.unit}`;
     const input = document.createElement('input'); input.type = 'range'; input.name = field.key; input.min = field.min; input.max = field.max; input.value = value; input.dataset.original = String(value);
+    input.addEventListener('focus', () => { setPreviewMode(field.mode); showFieldInPreview(imageGroup); });
     input.addEventListener('input', () => {
+      setPreviewMode(field.mode);
       output.textContent = `${input.value}${field.unit}`;
-      try { const image = document.getElementById('site-preview').contentDocument.querySelector('.hero-image'); if (image) image.style.setProperty(field.property, field.scale ? String(Number(input.value) / 100) : `${input.value}${field.unit}`); } catch {}
+      try { const image = previewFrame.contentDocument.querySelector('.hero-image'); if (image) image.style.setProperty(field.property, field.scale ? String(Number(input.value) / 100) : `${input.value}${field.unit}`); } catch {}
     });
     label.append(caption, output, input); imageGroup.append(label);
   }
   contentForm.prepend(imageGroup);
+  connectPreviewScroll();
 }
 
 document.getElementById('save-content').addEventListener('click', async event => {

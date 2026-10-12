@@ -65,12 +65,12 @@ window.RoonDeckContentFields = [
 ].map(([key, section, label, selector, optional = false]) => ({key, section, label, selector, optional}));
 
 window.RoonDeckHeroImageFields = [
-  {key: 'hero.image.desktop_x', label: 'Desktop horizontal position', property: '--hero-desktop-x', defaultValue: 50, min: 0, max: 100, unit: '%'},
-  {key: 'hero.image.desktop_y', label: 'Desktop vertical position', property: '--hero-desktop-y', defaultValue: 100, min: 0, max: 100, unit: '%'},
-  {key: 'hero.image.desktop_zoom', label: 'Desktop zoom', property: '--hero-desktop-scale', defaultValue: 100, min: 100, max: 160, unit: '%', scale: true},
-  {key: 'hero.image.mobile_x', label: 'Mobile horizontal position', property: '--hero-mobile-x', defaultValue: 60, min: 0, max: 100, unit: '%'},
-  {key: 'hero.image.mobile_y', label: 'Mobile vertical position', property: '--hero-mobile-y', defaultValue: 100, min: 0, max: 100, unit: '%'},
-  {key: 'hero.image.mobile_zoom', label: 'Mobile zoom', property: '--hero-mobile-scale', defaultValue: 100, min: 100, max: 160, unit: '%', scale: true}
+  {key: 'hero.image.desktop_x', label: 'Desktop horizontal position', property: '--hero-desktop-x', defaultValue: 50, min: 0, max: 100, unit: '%', mode: 'desktop'},
+  {key: 'hero.image.desktop_y', label: 'Desktop vertical position', property: '--hero-desktop-y', defaultValue: 100, min: 0, max: 100, unit: '%', mode: 'desktop'},
+  {key: 'hero.image.desktop_zoom', label: 'Desktop zoom', property: '--hero-desktop-scale', defaultValue: 100, min: 50, max: 160, unit: '%', scale: true, mode: 'desktop'},
+  {key: 'hero.image.mobile_x', label: 'Mobile horizontal position', property: '--hero-mobile-x', defaultValue: 60, min: 0, max: 100, unit: '%', mode: 'mobile'},
+  {key: 'hero.image.mobile_y', label: 'Mobile vertical position', property: '--hero-mobile-y', defaultValue: 100, min: 0, max: 100, unit: '%', mode: 'mobile'},
+  {key: 'hero.image.mobile_zoom', label: 'Mobile zoom', property: '--hero-mobile-scale', defaultValue: 100, min: 50, max: 160, unit: '%', scale: true, mode: 'mobile'}
 ];
 
 window.applyRoonDeckHeroImageSettings = function applyRoonDeckHeroImageSettings(content, root = document) {
@@ -99,5 +99,7 @@ window.applyRoonDeckContent = async function applyRoonDeckContent(root = documen
     window.applyRoonDeckHeroImageSettings(content, root);
   } catch {
     // The checked-in page copy remains the reliable fallback.
+  } finally {
+    root.documentElement?.classList.remove('cms-loading');
   }
 };
