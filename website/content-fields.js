@@ -32,6 +32,7 @@ window.RoonDeckContentFields = [
   ['endpoints.bridge.description', 'Playback and endpoints', 'Roon Bridge description', '#endpoint-panel-bridge p'],
   ['endpoints.airplay.title', 'Playback and endpoints', 'AirPlay title', '#endpoint-panel-airplay h3'],
   ['endpoints.airplay.description', 'Playback and endpoints', 'AirPlay description', '#endpoint-panel-airplay p'],
+  ['extras.eyebrow', 'Beyond music', 'Eyebrow (optional)', '#beyond-music .section-heading .eyebrow', true],
   ['extras.title', 'Beyond music', 'Headline', '#beyond-music .section-heading h2'],
   ['extras.description', 'Beyond music', 'Introduction', '#beyond-music .section-heading > p:last-child'],
   ['extras.home.title', 'Beyond music', 'Home Assistant title', '.utility-list article:nth-child(1) h3 span'],
@@ -56,7 +57,7 @@ window.RoonDeckContentFields = [
   ['feedback.description', 'Feedback form', 'Introduction', '#feedback .feedback-copy > p:last-child'],
   ['footer.tagline', 'Footer', 'Tagline', '.footer-project p:nth-of-type(1)'],
   ['footer.story', 'Footer', 'Project note', '.footer-project p:nth-of-type(2)']
-].map(([key, section, label, selector]) => ({key, section, label, selector}));
+].map(([key, section, label, selector, optional = false]) => ({key, section, label, selector, optional}));
 
 window.applyRoonDeckContent = async function applyRoonDeckContent(root = document) {
   try {
@@ -66,7 +67,10 @@ window.applyRoonDeckContent = async function applyRoonDeckContent(root = documen
     for (const field of window.RoonDeckContentFields) {
       if (!Object.hasOwn(content, field.key)) continue;
       const element = root.querySelector(field.selector);
-      if (element) element.textContent = content[field.key];
+      if (element) {
+        element.textContent = content[field.key];
+        if (field.optional) element.hidden = !content[field.key].trim();
+      }
     }
   } catch {
     // The checked-in page copy remains the reliable fallback.

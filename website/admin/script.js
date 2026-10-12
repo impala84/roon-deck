@@ -91,7 +91,8 @@ async function loadContent() {
     for (const field of fields) {
       const label = document.createElement('label'); label.className = 'content-field'; label.textContent = field.label;
       const input = document.createElement(field.value.length > 90 ? 'textarea' : 'input'); input.name = field.key; input.value = field.value; input.dataset.selector = field.selector; input.dataset.original = field.value;
-      input.addEventListener('input', () => { try { const target = document.getElementById('site-preview').contentDocument.querySelector(field.selector); if (target) target.textContent = input.value; } catch {} });
+      input.dataset.optional = field.optional ? 'true' : 'false';
+      input.addEventListener('input', () => { try { const target = document.getElementById('site-preview').contentDocument.querySelector(field.selector); if (target) { target.textContent = input.value; if (field.optional) target.hidden = !input.value.trim(); } } catch {} });
       label.append(input); group.append(label);
     }
     return group;
