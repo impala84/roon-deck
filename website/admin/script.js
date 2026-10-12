@@ -47,19 +47,23 @@ async function initialise() {
 document.getElementById('setup-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
   const data = Object.fromEntries(new FormData(form));
   if (data.password !== data.confirmation) return status(form, 'The passwords do not match.', 'error');
+  button.disabled = true;
+  status(form, 'Creating your account…');
   try {
     const result = await request('/api/admin/setup', {method: 'POST', body: JSON.stringify({token: setupPanel.dataset.token, password: data.password})});
     history.replaceState({}, '', '/admin');
     showCms(result.user);
-  } catch (error) { status(form, error.message, 'error'); }
+  } catch (error) { status(form, error.message, 'error'); button.disabled = false; }
 });
 
 document.getElementById('login-form').addEventListener('submit', async event => {
-  event.preventDefault(); const form = event.currentTarget;
+  event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button[type="submit"]');
+  button.disabled = true; status(form, 'Signing in…');
   try { const result = await request('/api/admin/login', {method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form)))}); showCms(result.user); }
-  catch (error) { status(form, error.message, 'error'); }
+  catch (error) { status(form, error.message, 'error'); button.disabled = false; }
 });
 
 document.getElementById('logout-button').addEventListener('click', async () => { await request('/api/admin/logout', {method: 'POST', body: '{}'}); location.href = '/admin'; });
