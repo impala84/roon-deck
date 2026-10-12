@@ -101,5 +101,10 @@ window.applyRoonDeckContent = async function applyRoonDeckContent(root = documen
     // The checked-in page copy remains the reliable fallback.
   } finally {
     root.documentElement?.classList.remove('cms-loading');
+    if (root === document && location.hash.length > 1) {
+      let target = null;
+      try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch {}
+      if (target) requestAnimationFrame(() => requestAnimationFrame(() => target.scrollIntoView({block: 'start', behavior: 'instant'})));
+    }
   }
 };

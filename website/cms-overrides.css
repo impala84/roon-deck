@@ -2,7 +2,18 @@
   color: #fff;
 }
 
-:root { --section-space: clamp(76px, 7vw, 112px); }
+:root {
+  --section-space: clamp(76px, 7vw, 112px);
+  --purple-rgb: 152, 104, 249;
+}
+
+body {
+  background:
+    radial-gradient(circle at 78% 12%, rgba(var(--purple-rgb), .18), transparent 28rem),
+    linear-gradient(180deg, #090815 0, #050507 34%, #10091b 68%, #050507 100%);
+}
+
+main section[id]:not(#top) { scroll-margin-top: 124px; }
 
 .hero-image {
   object-position: var(--hero-desktop-x, 50%) var(--hero-desktop-y, 100%);
@@ -25,7 +36,28 @@
 .guide-section,
 .feedback { padding-block: var(--section-space); }
 
-.api-notice { margin-top: 0; }
+.music,
+.beyond,
+.hardware,
+.guide-section,
+.feedback { border-top: 0; }
+
+.api-notice {
+  position: relative;
+  isolation: isolate;
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.api-notice::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(50% - 50vw);
+  background: linear-gradient(115deg, #1b1029 0%, #382052 52%, #180e25 100%);
+}
 
 .endpoint-callout { padding-block: var(--section-space); }
 
@@ -55,8 +87,59 @@
 
 .feedback-form { background: rgba(12, 11, 19, .72); }
 
+.feedback-form input,
+.feedback-form select,
+.feedback-form textarea { font-weight: 400; }
+
 .endpoint-callout {
   background: linear-gradient(110deg, #160d24 0%, #321a4c 52%, #160d24 100%);
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.endpoints .endpoint-callout { border: 0; }
+
+.endpoint-options,
+.endpoint-options article + article,
+.endpoint-tabs,
+.endpoint-tab,
+.feedback-form,
+.build-step {
+  border-color: rgba(var(--purple-rgb), .32);
+}
+
+.music-features {
+  border-top: 0;
+  border-bottom: 0;
+  background: linear-gradient(110deg, #130b20 0%, #321b4b 48%, #160d24 100%);
+}
+
+.music-features article { border-color: rgba(var(--purple-rgb), .24); }
+
+.feature-tab:hover,
+.feature-tab:focus-visible { background: rgba(var(--purple-rgb), .07); }
+
+.feature-tab[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(var(--purple-rgb), .2), rgba(var(--purple-rgb), .035));
+}
+
+.endpoint-tab[aria-selected="true"] { background: rgba(var(--purple-rgb), .24); }
+
+.endpoint-panel {
+  background: linear-gradient(145deg, rgba(var(--purple-rgb), .18), rgba(10, 8, 24, .42));
+}
+
+.get-roondeck {
+  background: radial-gradient(circle at 50% 0, rgba(var(--purple-rgb), .17), transparent 45%), var(--surface);
+}
+
+.hardware-choice.recommended {
+  background: linear-gradient(145deg, rgba(var(--purple-rgb), .2), rgba(17, 18, 25, .88));
+}
+
+.download-panel {
+  border-color: rgba(var(--purple-rgb), .65);
+  background: linear-gradient(135deg, rgba(var(--purple-rgb), .18), rgba(17, 18, 25, .86));
 }
 
 @media (max-width: 780px) {
@@ -78,4 +161,8 @@
     grid-template-columns: 1fr;
     gap: 28px;
   }
+}
+
+@media (max-width: 1120px) {
+  main section[id]:not(#top) { scroll-margin-top: 106px; }
 }
