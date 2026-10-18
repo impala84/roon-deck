@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.42 Alpine — 19 October 2026
+
+- Reworked album and artist details to use the available touchscreen space, remove redundant headings, rules, repeated artist text and track snippets, and improve portrait and 7-inch landscape readability.
+- Enlarged the fixed **Browse Artist Albums** action and artist-album rows, with a transparent outlined close control and more legible album copy and metadata.
+- Retry temporarily missing artist biographies, return an idle browser to Now Playing after one minute without discarding its browse position, and group native Bus Times controls together below Daily Controls.
+
 ## 1.1.3-beta.41 Alpine — 18 October 2026
 
 - Rebuilt the 7-inch landscape Album & Artist sheet around one large album cover and a readable album-and-artist write-up, removing the cramped duplicate artist column.

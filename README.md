@@ -1,6 +1,6 @@
 # RoonDeck
 
-Alpine testing release: **1.1.3-beta.41**, with a dedicated album-focused layout for the 7-inch landscape screen, genuinely equal-width touchscreen navigation, consistent detail-sheet alignment, and a native Display setting for showing or hiding Bus Times. Select Beta explicitly to test; Stable remains 1.1.2.
+Alpine testing release: **1.1.3-beta.42**, with roomier album and artist details, larger readable actions and artist-album rows, a cleaner outlined close control, automatic return from browsing to Now Playing, and a compact native Bus Times settings group. Select Beta explicitly to test; Stable remains 1.1.2.
 
 The current Alpine stable release is **1.1.2**: an in-place correction for 10-inch Touch Display 2 touch rotation. Update through System → Software on the Stable channel, then reboot manually to apply input calibration. Physical touch acceptance is still required. The 1.1.1 full image remains available for fresh installs. Raspberry Pi OS releases remain separate.
 
