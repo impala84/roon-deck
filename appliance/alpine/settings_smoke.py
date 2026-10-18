@@ -72,7 +72,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         Path(output).mkdir(parents=True,exist_ok=True)
         subprocess.run(["import","-silent","-window","root",str(Path(output)/f"settings-{width}x{height}.png")],check=True)
     display.render_touch_controls({"services":[]},{"roon_bridge":"not_installed"})
-    assert display.touch_daily.get_last_child().get_first_child().get_text()=="Buses"
+    assert display.touch_bus_services.get_first_child() is None
     display.render_touch_controls({"services":[]},{"roon_bridge":"running"})
     bridge_check=display.touch_daily.get_first_child().get_first_child().get_first_child()
     assert bridge_check.get_active()
