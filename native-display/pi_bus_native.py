@@ -234,6 +234,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .touch-landscape .page { padding: 18px 28px 14px; }.touch-landscape .service-no, .touch-landscape .arrival { font-size: 138px; }.touch-landscape .service-no { min-width: 205px; }.touch-landscape .arrival-sub { font-size: 17px; }.touch-landscape .stop, .touch-landscape .stop-code { font-size: 42px; }.touch-landscape .clock { font-size: 50px; }.touch-landscape .nav button { min-height: 58px; font-size: 22px; }.touch-landscape .roon-subnav button { min-height: 54px; padding: 8px 18px 5px; font-size: 18px; }.touch-landscape .artwork { min-width: 324px; min-height: 324px; }.touch-landscape .roon-title { font-size: 46px; }.touch-landscape .roon-artist { font-size: 25px; }.touch-landscape .transport button { min-width: 70px; min-height: 70px; border-radius: 35px; }.touch-landscape .transport .play { min-width: 88px; min-height: 88px; border-radius: 44px; }.touch-landscape .settings-title { font-size: 43px; }.touch-landscape .settings-card { padding: 24px 28px; }.touch-landscape .settings-card .muted, .touch-landscape .settings-diagnostic { font-size: 17px; }.touch-landscape .settings-select { min-height: 70px; font-size: 19px; }.touch-landscape .setting-line { min-height: 78px; padding: 0 18px; }.touch-landscape .setting-line label, .touch-landscape .setting-line checkbutton { font-size: 19px; }.touch-landscape .setting-line check { min-width: 30px; min-height: 30px; }.touch-landscape .settings-action { min-height: 74px; font-size: 20px; }.touch-landscape .settings-controls { padding: 12px 0; }.touch-landscape .utility { min-width: 118px; min-height: 52px; font-size: 16px; }
 .boot-splash { background: #000; }.boot-wordmark, .settings-wordmark { min-width: 0; min-height: 0; }
 .touch-landscape .header-title { transform: translateY(-5px); }
+.touch-landscape .bus-number-choice { padding-left: 0; padding-right: 0; font-size: 14px; }
 .touch-landscape .stop, .touch-landscape .stop-code { font-size: 34px; }
 .touch-landscape .stop-row { margin-bottom: 14px; }
 .touch-landscape .service { border-width: 2px; padding-top: 11px; padding-bottom: 11px; }
@@ -1834,7 +1835,7 @@ class Display(Gtk.Application):
         while child := self.touch_bus_services.get_first_child(): self.touch_bus_services.remove(child)
         services = self.touch_bus_services
         for item in device.get("services", []):
-            button = Gtk.CheckButton(label=item.get("name", "")); button.set_active(bool(item.get("enabled"))); button.connect("toggled", self.toggle_service, item.get("name", "")); services.append(button)
+            button = Gtk.CheckButton(label=item.get("name", "")); button.add_css_class("bus-number-choice"); button.set_active(bool(item.get("enabled"))); button.connect("toggled", self.toggle_service, item.get("name", "")); services.append(button)
         self.settings_row_sizes.add_widget(services)
 
     def render_home(self, home):
