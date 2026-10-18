@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3-beta.43 Alpine — 19 October 2026
+
+- Fix Discover and Browse returning to Now Playing immediately when the display inherited an older general inactivity timestamp.
+- Start a dedicated browsing inactivity countdown whenever browsing opens and reset it on every touchscreen contact.
+- Add the independent **Return browsing to Now Playing after** setting to Web Admin → Automation, including an option to keep browsing open.
+- Compact landscape touchscreen settings by removing the redundant Bus Times heading and shortening its visibility control.
+
 ## 1.1.3-beta.42 Alpine — 19 October 2026
 
 - Reworked album and artist details to use the available touchscreen space, remove redundant headings, rules, repeated artist text and track snippets, and improve portrait and 7-inch landscape readability.

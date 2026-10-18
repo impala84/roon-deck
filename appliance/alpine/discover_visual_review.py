@@ -654,12 +654,14 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.3-beta.42 Alpine")
+display.device_status.set_text("v1.1.3-beta.43 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
 assert display.settings_actions.get_last_child().has_css_class("reboot-action")
 assert display.touch_bus_enabled.get_visible()
+assert display.touch_bus_heading.get_visible() == (screen_height > screen_width or screen_width > 1280)
+assert display.touch_bus_enabled.get_label() == "Bus Times"
 
 # The optional black canvas preserves all foreground controls and works on
 # every native page without changing the selected colour theme.

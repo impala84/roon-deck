@@ -30,6 +30,7 @@ bluos_input_names = []
 sleep_show_clock = false
 auto_switch_to_roon = true
 roon_idle_return_seconds = 300
+browse_idle_return_seconds = 60
 outside_hours_wake_seconds = 600
 daytime_inactivity_seconds = 900
 home_assistant_enabled = false

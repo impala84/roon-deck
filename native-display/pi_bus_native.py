@@ -733,6 +733,7 @@ class Display(Gtk.Application):
         self.browser_scroll_restore = None
         self.browser_section_scrolls = {}
         self.last_interaction = time.monotonic()
+        self.browse_last_interaction = self.last_interaction
         self.inactivity_sleeping = False
         self.sleep_entered_at = 0.0
         self.manual_sleep_pending = False
@@ -1225,6 +1226,7 @@ class Display(Gtk.Application):
         self.settings_actions.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         if hasattr(self, "touch_bus_pair"):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
+            self.touch_bus_heading.set_visible(portrait or width > 1280)
 
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
@@ -1278,7 +1280,7 @@ class Display(Gtk.Application):
         appearance.append(self.touch_background_row)
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("DAILY CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
-        daily.append(self.label("BUS TIMES", "eyebrow")); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Show Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
+        self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
         daily.append(appearance); self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); display_column.set_hexpand(True); display_column.append(self.label("DISPLAY", "eyebrow"))
         self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); display_column.append(self.touch_profile)
@@ -1387,6 +1389,9 @@ class Display(Gtk.Application):
         # press. Record every contact so inactivity is measured from the last
         # touch, not from the time the panel originally woke.
         self.last_interaction = max(self.last_interaction, contact_at or time.monotonic())
+        if (hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
+                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+            self.browse_last_interaction = self.last_interaction
         # The low-level event from the gesture which pressed Sleep may reach
         # GTK after the screen has already gone dark. It is not a wake gesture.
         # Compare when contact actually began, not when this idle callback ran.
@@ -1403,9 +1408,10 @@ class Display(Gtk.Application):
         if now != getattr(self, "last_clock_time", None):
             self.last_clock_time = now
             if icon := getattr(self, "music_clock_icon", None): icon.queue_draw()
-        if (hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
+        browse_timeout = int(getattr(self, "settings_data", {}).get("browse_idle_return_seconds", 60))
+        if (browse_timeout > 0 and hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
                 and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
-                and time.monotonic() - self.last_interaction >= 60):
+                and time.monotonic() - self.browse_last_interaction >= browse_timeout):
             self.show_roon_now()
         return True
 
@@ -2062,6 +2068,8 @@ class Display(Gtk.Application):
         self.portrait_music_tabs.set_visible(False)
 
     def set_roon_view(self, name):
+        if name in {"discover", "browse", "search"}:
+            self.browse_last_interaction = time.monotonic()
         # A delayed search belongs to the keyboard view, never a later Browse
         # or Surprise request. Cancel it before moving the shared results list.
         if name != "search":
@@ -3328,6 +3336,9 @@ class Display(Gtk.Application):
         if not contact_started and not contact_finished:
             return False
         self.last_interaction = time.monotonic()
+        if (self.stack.get_visible_child_name() == "roon"
+                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+            self.browse_last_interaction = self.last_interaction
         if self.inactivity_sleeping:
             source = getattr(event_type, "value_nick", str(event_type))
             self.inactivity_sleeping = False; print(f"RoonDeck waking after touchscreen {source}", flush=True); self.set_screen_power(True, force=True); self.stack.set_visible_child_name(self.last_mode or "bus")

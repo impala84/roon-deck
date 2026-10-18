@@ -376,6 +376,35 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertFalse(native_method("note_activity")(owner, None, None))
         self.assertEqual(owner.last_interaction, 123)
 
+    def test_browse_return_uses_its_own_configurable_activity_clock(self):
+        now = [1000.0]
+        clock = SimpleNamespace(set_text=Mock())
+        owner = SimpleNamespace(
+            bus_clock=clock, roon_clock=clock, home_clock=clock, sleep_clock=clock,
+            last_clock_time="12:00", stack=SimpleNamespace(get_visible_child_name=lambda: "roon"),
+            roon_views=SimpleNamespace(get_visible_child_name=lambda: "discover"),
+            settings_data={"browse_idle_return_seconds": 60}, browse_last_interaction=999.0,
+            last_interaction=1.0, show_roon_now=Mock(),
+        )
+        fake_datetime = SimpleNamespace(now=lambda _tz: SimpleNamespace(strftime=lambda _format: "12:00", year=2026))
+        tick = native_method("tick", {"datetime": fake_datetime, "TZ": object(), "time": SimpleNamespace(monotonic=lambda: now[0])})
+        self.assertTrue(tick(owner))
+        owner.show_roon_now.assert_not_called()
+        now[0] = 1060.0
+        self.assertTrue(tick(owner))
+        owner.show_roon_now.assert_called_once_with()
+
+    def test_browse_return_can_be_disabled_and_resets_on_navigation(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('browse_timeout > 0', code)
+        self.assertIn('self.browse_last_interaction = time.monotonic()', code.split('def set_roon_view', 1)[1].split('def ', 1)[0])
+        self.assertIn('self.browse_last_interaction = self.last_interaction', code.split('def note_activity', 1)[1].split('def ', 1)[0])
+
+    def test_small_landscape_settings_compact_bus_times_controls(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)
+        self.assertIn('Gtk.CheckButton(label="Bus Times")', code)
+
     def test_secondary_navigation_is_section_specific_and_actions_preserve_context(self):
         navigation = native_method("discovery_secondary_navigation")
         owner = SimpleNamespace(discovery_section="recent", discovery_recent_mode="added", discovery_picks=False, open_recent=Mock(), open_discover=Mock())

@@ -346,6 +346,7 @@ def write_config(path: Path, config: Config) -> None:
         f"sleep_show_clock = {str(config.sleep_show_clock).lower()}",
         f"auto_switch_to_roon = {str(config.auto_switch_to_roon).lower()}",
         f"roon_idle_return_seconds = {config.roon_idle_return_seconds}",
+        f"browse_idle_return_seconds = {config.browse_idle_return_seconds}",
         f"outside_hours_wake_seconds = {config.outside_hours_wake_seconds}",
         f"daytime_inactivity_seconds = {config.daytime_inactivity_seconds}",
         f"home_assistant_enabled = {str(config.home_assistant_enabled).lower()}",
@@ -978,6 +979,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "sleep_show_clock": config.sleep_show_clock,
                     "auto_switch_to_roon": config.auto_switch_to_roon,
                     "roon_idle_return_seconds": config.roon_idle_return_seconds,
+                    "browse_idle_return_seconds": config.browse_idle_return_seconds,
                     "outside_hours_wake_seconds": config.outside_hours_wake_seconds,
                     "daytime_inactivity_seconds": config.daytime_inactivity_seconds,
                     "home_assistant_enabled": config.home_assistant_enabled,
@@ -1406,6 +1408,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     sleep_show_clock=bool(data.get("sleep_show_clock", current.sleep_show_clock)),
                     auto_switch_to_roon=bool(data.get("auto_switch_to_roon", current.auto_switch_to_roon)),
                     roon_idle_return_seconds=int(data.get("roon_idle_return_seconds", current.roon_idle_return_seconds)),
+                    browse_idle_return_seconds=int(data.get("browse_idle_return_seconds", current.browse_idle_return_seconds)),
                     outside_hours_wake_seconds=int(data.get("outside_hours_wake_seconds", current.outside_hours_wake_seconds)),
                     daytime_inactivity_seconds=int(data.get("daytime_inactivity_seconds", current.daytime_inactivity_seconds)),
                     home_assistant_enabled=bool(data.get("home_assistant_enabled", current.home_assistant_enabled)),
@@ -1440,6 +1443,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Polling must be between 5 and 300 seconds")
                 if not (0 <= candidate.roon_idle_return_seconds <= 7200):
                     raise ValueError("Roon return delay must be between 0 and 7200 seconds")
+                if not (0 <= candidate.browse_idle_return_seconds <= 7200):
+                    raise ValueError("Browse return delay must be between 0 and 7200 seconds")
                 if not (30 <= candidate.outside_hours_wake_seconds <= 7200):
                     raise ValueError("Wake timeout must be between 30 and 7200 seconds")
                 if not (0 <= candidate.daytime_inactivity_seconds <= 7200):
