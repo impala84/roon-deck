@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3-beta.41 Alpine — 18 October 2026
+
+- Rebuilt the 7-inch landscape Album & Artist sheet around one large album cover and a readable album-and-artist write-up, removing the cramped duplicate artist column.
+- Made the close control truly circular, aligned artwork and headings to the same content margins, and gave the fixed action button a consistent bottom inset.
+- Made every visible bottom-navigation destination occupy an equal share of the row, including the three-item layout.
+- Added the Bus Times visibility control to the physical touchscreen's Settings → Display section while retaining the existing web-admin service controls.
+
 ## 1.1.3-beta.40 Alpine — 18 October 2026
 
 - Keep Now Playing, Discover, Bus Times and Home in equal-width touchscreen navigation slots, including the three-item layout when Bus Times is hidden.

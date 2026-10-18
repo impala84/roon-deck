@@ -469,11 +469,37 @@ assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_
 assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
 assert display.detail_close.get_visible()
 assert display.detail_browse_action.get_visible()
+assert display.detail_close.get_width() == display.detail_close.get_height(), (display.detail_close.get_width(), display.detail_close.get_height())
 if screen_width == 1280 and screen_height == 720:
     assert display.compact_detail
-    assert display.detail_artist_artwork.get_width() == display.detail_album_artwork.get_width()
-    assert display.detail_artist_artwork.get_height() == display.detail_album_artwork.get_height()
+    assert display.album_focus_detail
+    assert not display.detail_artist_card.get_visible()
+    assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
+    assert display.detail_album_artwork.get_width() >= 420, display.detail_album_artwork.get_width()
+    art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
+    copy_bounds = display.detail_album_content.compute_bounds(display.detail_takeover)[1]
+    assert art_bounds.get_x() == 20, art_bounds.get_x()
+    assert copy_bounds.get_x() > art_bounds.get_x() + art_bounds.get_width(), (copy_bounds.get_x(), art_bounds.get_x(), art_bounds.get_width())
+    action_bounds = display.detail_browse_action.compute_bounds(display.detail_takeover)[1]
+    assert round(screen_height - action_bounds.get_y() - action_bounds.get_height()) == 20, (action_bounds.get_y(), action_bounds.get_height())
+if screen_width == 1200 and screen_height == 1920:
+    artist_art_bounds = display.detail_artist_artwork_frame.compute_bounds(display.detail_takeover)[1]
+    artist_name_bounds = display.detail_artist_name.compute_bounds(display.detail_takeover)[1]
+    album_art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
+    album_title_bounds = display.detail_title.compute_bounds(display.detail_takeover)[1]
+    assert artist_art_bounds.get_x() == artist_name_bounds.get_x(), (artist_art_bounds.get_x(), artist_name_bounds.get_x())
+    assert album_art_bounds.get_x() == album_title_bounds.get_x(), (album_art_bounds.get_x(), album_title_bounds.get_x())
+    action_bounds = display.detail_browse_action.compute_bounds(display.detail_takeover)[1]
+    assert round(screen_height - action_bounds.get_y() - action_bounds.get_height()) == 28, (action_bounds.get_y(), action_bounds.get_height())
 display.set_roon_view("now")
+nav_buttons = [button for button in (display.music_navigation.get_first_child(),) if button]
+while nav_buttons[-1].get_next_sibling(): nav_buttons.append(nav_buttons[-1].get_next_sibling())
+assert max(button.get_width() for button in nav_buttons) - min(button.get_width() for button in nav_buttons) <= 1, [button.get_width() for button in nav_buttons]
+display.bus_nav_buttons[0].set_visible(False); settle()
+visible_nav = [button for button in nav_buttons if button.get_visible()]
+assert len(visible_nav) == 3
+assert max(button.get_width() for button in visible_nav) - min(button.get_width() for button in visible_nav) <= 1, [button.get_width() for button in visible_nav]
+display.bus_nav_buttons[0].set_visible(True)
 if min(screen_width, screen_height) >= 1000:
     for control in (display.library_add, display.prev, display.next):
         assert control.get_width() == control.get_height(), (control.get_width(), control.get_height())
@@ -628,11 +654,12 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.3-beta.40 Alpine")
+display.device_status.set_text("v1.1.3-beta.41 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
 assert display.settings_actions.get_last_child().has_css_class("reboot-action")
+assert display.touch_bus_enabled.get_visible()
 
 # The optional black canvas preserves all foreground controls and works on
 # every native page without changing the selected colour theme.
