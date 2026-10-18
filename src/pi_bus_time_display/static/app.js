@@ -5,8 +5,7 @@ function render(data){
   const theme=data.display_theme==='roon'?'roon':'fresh-mint';document.body.dataset.theme=theme;const favicon=document.querySelector('link[rel="icon"]');if(favicon)favicon.href=theme==='roon'?'/favicon-roon.svg':'/favicon.svg';
   byId('roon-link').textContent='Now Playing';
   const nav=byId('roon-link').parentElement;
-  if(!nav.querySelector('[data-discover]')){const link=document.createElement('a');link.dataset.discover='';link.href='/roon/#discover/recent';link.textContent='Discover';byId('roon-link').after(link);nav.style.gridTemplateColumns='repeat(4,minmax(0,1fr))'}
-  nav.style.display='flex';for(const link of nav.children)link.style.flex='1';
+  if(!nav.querySelector('[data-discover]')){const link=document.createElement('a');link.dataset.discover='';link.href='/roon/#discover/recent';link.textContent='Discover';byId('roon-link').after(link)}
   byId('app').hidden=!data.window_active;byId('resting').hidden=data.window_active;
   byId('stop').replaceChildren(document.createTextNode(data.stop_name+' '));
   const code=document.createElement('span');code.className='stop-code';code.textContent=data.stop_code;byId('stop').append(code);

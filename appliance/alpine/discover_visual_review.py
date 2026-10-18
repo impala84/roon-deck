@@ -468,6 +468,11 @@ takeover_bounds = display.detail_takeover.compute_bounds(window)[1]
 assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_bounds.get_x(), takeover_bounds.get_y())
 assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
 assert display.detail_close.get_visible()
+assert display.detail_browse_action.get_visible()
+if screen_width == 1280 and screen_height == 720:
+    assert display.compact_detail
+    assert display.detail_artist_artwork.get_width() == display.detail_album_artwork.get_width()
+    assert display.detail_artist_artwork.get_height() == display.detail_album_artwork.get_height()
 display.set_roon_view("now")
 if min(screen_width, screen_height) >= 1000:
     for control in (display.library_add, display.prev, display.next):
@@ -623,7 +628,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.3-beta.39 Alpine")
+display.device_status.set_text("v1.1.3-beta.40 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

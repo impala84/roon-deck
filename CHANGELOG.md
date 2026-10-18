@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3-beta.40 Alpine — 18 October 2026
+
+- Keep Now Playing, Discover, Bus Times and Home in equal-width touchscreen navigation slots, including the three-item layout when Bus Times is hidden.
+- Move the optional Bus Times visibility control to Display settings while retaining stop and service configuration under Services.
+- Refine the Album & Artist sheet with balanced portrait columns, a dedicated compact landscape layout, a prominent circular close control and one fixed Browse Artist Albums action.
+- Increase the brightness slider's physical touch target for larger portrait touchscreens.
+
 ## 1.1.3-beta.39 Alpine — 12 October 2026
 
 - Reads Wi-Fi signal and link speed from NetworkManager on every supported image and removes the low-value interface card from Settings.

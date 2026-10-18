@@ -215,7 +215,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .arrival-sub { color: #7f8b87; font-size: 10px; font-weight: 650; }.muted { color: #78837f; font-size: 11px; font-weight: 400; }
 .nav { padding-top: 3px; }.nav button { min-height: 40px; border: 0; border-bottom: 5px solid transparent; border-radius: 0; background: transparent; color: #7f8b87; font-size: 14px; font-weight: 700; }
 .nav button.active { border-bottom-color: #6ed9ae; background: transparent; color: #dfe4e1; }.artwork { border-radius: 12px; }.roon-title { font-size: 35px; font-weight: 620; }.roon-artist { color: #b6c0bc; font-size: 18px; }
-.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 84px; padding: 12px 28px; border-bottom: 1px solid #292929; background: #000; }.detail-header-title { color: #f4f0e6; font-size: 25px; font-weight: 700; }.detail-close { min-width: 56px; min-height: 56px; border: 1px solid #4a4a4a; border-radius: 50%; padding: 0; background: #171717; color: #f5f5f5; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 30px 34px 54px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #9868F9; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 18px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 650; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #a8b3af; font-size: 16px; font-weight: 600; }.detail-rule { margin: 12px 0; background: #403b67; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #2d2943; color: #9868F9; font-size: 17px; font-weight: 750; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; border-top: 1px solid #2f2b4b; }.detail-track-no { color: #9868F9; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
+.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 84px; padding: 12px 28px; border-bottom: 1px solid #292929; background: #000; }.detail-header-title { color: #f4f0e6; font-size: 25px; font-weight: 700; }.detail-close { min-width: 56px; min-height: 56px; border: 2px solid #9868F9; border-radius: 50%; padding: 0; background: #9868F9; color: #111; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 30px 34px 24px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #9868F9; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork-frame, .detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 18px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 650; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #a8b3af; font-size: 16px; font-weight: 600; }.detail-rule { margin: 12px 0; background: #403b67; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #2d2943; color: #9868F9; font-size: 17px; font-weight: 750; }.detail-footer { padding: 10px 28px 18px; background: #000; }.detail-footer .detail-action { min-height: 54px; margin: 0; background: #9868F9; color: #111; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; border-top: 1px solid #2f2b4b; }.detail-track-no { color: #9868F9; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
 .roon-subnav { margin-top: 0; }.roon-subnav button { min-height: 29px; padding: 4px 13px 2px; border-radius: 0; border-top: 3px solid transparent; background: transparent; color: #68736f; font-size: 10px; font-weight: 750; letter-spacing: 1px; }.roon-subnav button.active { border-top-color: #5bcbd6; color: #f4f0e6; }
 .source-view { padding: 8px; }.source-title { font-size: 25px; font-weight: 700; }.source-volume { font-size: 104px; font-weight: 620; font-variant-numeric: tabular-nums; }.source-step { min-width: 92px; min-height: 92px; border-radius: 46px; background: #18211f; color: #f4f0e6; font-size: 45px; }.source-mute { min-width: 92px; min-height: 38px; border-radius: 8px; background: #18211f; color: #dfe4e1; font-size: 11px; font-weight: 750; }
 .queue-scroll { background: transparent; }.queue-scroll scrollbar { opacity: 0; min-width: 0; min-height: 0; }.queue-list { padding: 5px 8px 8px; }.queue-row { min-height: 78px; padding: 7px 11px; border-radius: 8px; background: transparent; color: #f4f0e6; }.queue-row:hover, .queue-row:active, .queue-row.current { background: #121e1c; }.queue-row.previous { opacity: .5; }.queue-art { min-width: 66px; min-height: 66px; border-radius: 6px; background: #18211f; }.queue-art-stack { min-width: 66px; min-height: 66px; }.queue-play-badge { min-width: 34px; min-height: 34px; border-radius: 17px; background: rgba(8,13,12,.82); color: #6ed9ae; }.queue-title { color: #f4f0e6; font-size: 20px; font-weight: 650; }.queue-meta { color: #84908c; font-size: 15px; }.queue-duration { color: #aab4b0; font-size: 18px; font-variant-numeric: tabular-nums; }.queue-empty { color: #78837f; font-size: 15px; padding: 60px 0; }
@@ -616,6 +616,8 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .compact-detail .detail-fact, .compact-detail .detail-track-title { font-size: 13px; }
 .compact-detail .detail-action { min-height: 43px; padding: 6px 12px; font-size: 14px; }
 .compact-detail .detail-rule { margin: 7px 0; }
+.compact-detail .detail-footer { padding: 7px 20px 10px; }
+.compact-detail .detail-footer .detail-action { min-height: 46px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -950,15 +952,20 @@ class Display(Gtk.Application):
             self.artwork_viewport.set_size_request(artwork_size, artwork_size)
         elif self.artwork_button.get_child() is self.artwork_viewport:
             self.artwork_viewport.set_child(None); self.artwork_button.set_child(self.artwork)
-        self.compact_detail = compact_landscape
-        (self.detail_takeover.add_css_class if compact_landscape else self.detail_takeover.remove_css_class)("compact-detail")
-        detail_size = max(180, min(round((width - 120) / 2), 430)) if portrait else (max(140, min(round((width - 180) / 2), height - 280, 180)) if compact_landscape else max(220, min(round((width - 260) / 2), height - 330, 430)))
+        compact_detail = compact_landscape or (not portrait and height <= 720)
+        self.compact_detail = compact_detail
+        (self.detail_takeover.add_css_class if compact_detail else self.detail_takeover.remove_css_class)("compact-detail")
+        detail_size = max(180, min(round((width - 120) / 2), 430)) if portrait else (max(140, min(round((width - 180) / 2), height - 280, 180)) if compact_detail else max(220, min(round((width - 260) / 2), height - 330, 430)))
         self.detail_album_artwork.set_size_request(detail_size, detail_size)
         self.detail_artist_artwork.set_size_request(detail_size, detail_size)
+        for viewport in (self.detail_album_artwork_frame, self.detail_artist_artwork_frame):
+            viewport.set_min_content_width(detail_size); viewport.set_max_content_width(detail_size)
+            viewport.set_min_content_height(detail_size); viewport.set_max_content_height(detail_size)
+            viewport.set_size_request(detail_size, detail_size)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(3 if compact_landscape else -1)
-            label.set_ellipsize(Pango.EllipsizeMode.END if compact_landscape else Pango.EllipsizeMode.NONE)
-        self.detail_tracks.set_visible(not compact_landscape)
+            label.set_lines(3 if compact_detail else -1)
+            label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail else Pango.EllipsizeMode.NONE)
+        self.detail_tracks.set_visible(not compact_detail)
         if previous is not None and previous != portrait:
             self.home_signature = None; self.discovery_signature = None
             if getattr(self, "browser_state", None): self.render_browser(self.browser_state)
@@ -1143,16 +1150,18 @@ class Display(Gtk.Application):
         self.browser_search_entry.connect("changed", self.schedule_browser_search)
         self.browser_search_entry.set_width_chars(1)
         artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); artist_card.add_css_class("detail-entity"); artist_card.set_hexpand(True); artist_card.set_valign(Gtk.Align.START)
-        self.detail_artist_artwork = Gtk.Picture(); self.detail_artist_artwork.add_css_class("detail-artwork"); self.detail_artist_artwork.set_size_request(420, 420); self.detail_artist_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_artist_artwork.set_halign(Gtk.Align.CENTER); artist_card.append(self.detail_artist_artwork)
+        self.detail_artist_artwork = Gtk.Picture(); self.detail_artist_artwork.add_css_class("detail-artwork"); self.detail_artist_artwork.set_size_request(420, 420); self.detail_artist_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_artist_artwork.set_can_shrink(True)
+        self.detail_artist_artwork_frame = Gtk.ScrolledWindow(); self.detail_artist_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_artist_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_artist_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_artist_artwork_frame.set_child(self.detail_artist_artwork); artist_card.append(self.detail_artist_artwork_frame)
         artist_card.append(self.label("ARTIST", "detail-section-label"))
         self.detail_artist_name = self.label("Unknown artist", "detail-title"); self.detail_artist_name.set_wrap(True); artist_card.append(self.detail_artist_name)
         self.detail_artist_facts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); self.detail_artist_facts.add_css_class("detail-facts"); artist_card.append(self.detail_artist_facts)
         self.detail_artist_writeup = self.label("", "detail-writeup"); self.detail_artist_writeup.set_wrap(True); artist_card.append(self.detail_artist_writeup)
         self.detail_artist_source = self.label("", "detail-source"); artist_card.append(self.detail_artist_source)
-        artist_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); artist_rule.add_css_class("detail-rule"); artist_card.append(artist_rule)
-        self.detail_artist_action = self.button("BROWSE ARTIST", self.browse_detail_artist, "detail-action"); artist_card.append(self.detail_artist_action); detail_panel.append(artist_card)
+        artist_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); artist_rule.add_css_class("detail-rule"); artist_rule.set_visible(False); artist_card.append(artist_rule)
+        self.detail_artist_action = self.button("BROWSE ARTIST", self.browse_detail_artist, "detail-action"); self.detail_artist_action.set_visible(False); artist_card.append(self.detail_artist_action); detail_panel.append(artist_card)
         album_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); album_card.add_css_class("detail-entity"); album_card.set_hexpand(True); album_card.set_valign(Gtk.Align.START)
-        self.detail_album_artwork = Gtk.Picture(); self.detail_album_artwork.add_css_class("detail-artwork"); self.detail_album_artwork.set_size_request(420, 420); self.detail_album_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_album_artwork.set_halign(Gtk.Align.CENTER); album_card.append(self.detail_album_artwork)
+        self.detail_album_artwork = Gtk.Picture(); self.detail_album_artwork.add_css_class("detail-artwork"); self.detail_album_artwork.set_size_request(420, 420); self.detail_album_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_album_artwork.set_can_shrink(True)
+        self.detail_album_artwork_frame = Gtk.ScrolledWindow(); self.detail_album_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_album_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_album_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_album_artwork_frame.set_child(self.detail_album_artwork); album_card.append(self.detail_album_artwork_frame)
         detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         detail_content.append(self.label("ALBUM", "detail-section-label"))
         self.detail_title = self.label("Nothing playing", "detail-title"); self.detail_title.set_wrap(True); self.detail_title.set_lines(2); self.detail_title.set_ellipsize(Pango.EllipsizeMode.END); detail_content.append(self.detail_title)
@@ -1161,8 +1170,8 @@ class Display(Gtk.Application):
         self.detail_writeup = self.label("", "detail-writeup"); self.detail_writeup.set_wrap(True); detail_content.append(self.detail_writeup)
         self.detail_source = self.label("", "detail-source"); detail_content.append(self.detail_source)
         self.detail_facts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); self.detail_facts.add_css_class("detail-facts"); detail_content.append(self.detail_facts)
-        album_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); album_rule.add_css_class("detail-rule"); detail_content.append(album_rule)
-        self.detail_album_action = self.button("ARTIST ALBUMS", self.browse_detail_artist, "detail-action"); detail_content.append(self.detail_album_action)
+        album_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); album_rule.add_css_class("detail-rule"); album_rule.set_visible(False); detail_content.append(album_rule)
+        self.detail_album_action = self.button("ARTIST ALBUMS", self.browse_detail_artist, "detail-action"); self.detail_album_action.set_visible(False); detail_content.append(self.detail_album_action)
         self.detail_tracks = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); self.detail_tracks.add_css_class("detail-tracks")
         detail_scroll = Gtk.ScrolledWindow(); detail_scroll.add_css_class("queue-scroll"); detail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_scroll.set_kinetic_scrolling(True); detail_scroll.set_overlay_scrolling(True); detail_scroll.set_propagate_natural_height(True); detail_scroll.set_max_content_height(210); detail_scroll.set_child(self.detail_tracks); detail_content.append(detail_scroll)
         elastic_vertical_scroll(detail_scroll)
@@ -1170,7 +1179,8 @@ class Display(Gtk.Application):
         takeover = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); takeover.add_css_class("detail-takeover"); takeover.set_hexpand(True); takeover.set_vexpand(True); takeover.set_halign(Gtk.Align.FILL); takeover.set_valign(Gtk.Align.FILL)
         detail_header = Gtk.Box(spacing=12); detail_header.add_css_class("detail-header"); heading = self.label("Album & Artist", "detail-header-title"); heading.set_hexpand(True); detail_header.append(heading)
         close = Gtk.Button(); close.add_css_class("detail-close"); close.set_child(FamilyIcon("close", 42, stroke_width=3)); close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
-        detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet); takeover.set_visible(False); self.detail_takeover = takeover
+        detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
+        detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action"); self.detail_browse_action.set_hexpand(True); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
         root = Gtk.Overlay(); root.set_child(page); root.add_overlay(takeover); return root
 
     def build_home(self):
@@ -3066,6 +3076,7 @@ class Display(Gtk.Application):
             label = self.label(fact, "detail-fact"); label.set_wrap(True); self.detail_artist_facts.append(label)
         self.detail_artist_action.set_sensitive(bool(details.get("artist")))
         self.detail_album_action.set_sensitive(bool(details.get("artist")))
+        self.detail_browse_action.set_sensitive(bool(details.get("artist")))
         self.detail_subtitle.set_text("Loading…" if details.get("status") == "loading" else (details.get("subtitle") or ""))
         self.library_status = details.get("library_status") or "unknown"
         if self.library_album_id != details.get("album_id") and not self.library_pending: self.library_message.set_visible(False)

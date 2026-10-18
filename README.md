@@ -1,6 +1,6 @@
 # RoonDeck
 
-Alpine testing release: **1.1.3-beta.39**, restoring Wi-Fi link metrics, adding a quiet daily update check and refining the public website’s mobile setup, hardware details and feedback delivery. Select Beta explicitly to test; Stable remains 1.1.2.
+Alpine testing release: **1.1.3-beta.40**, with equal-width touchscreen navigation, a cleaner album-and-artist sheet, an easier brightness slider and the Bus Times visibility option moved to Display settings. Select Beta explicitly to test; Stable remains 1.1.2.
 
 The current Alpine stable release is **1.1.2**: an in-place correction for 10-inch Touch Display 2 touch rotation. Update through System → Software on the Stable channel, then reboot manually to apply input calibration. Physical touch acceptance is still required. The 1.1.1 full image remains available for fresh installs. Raspberry Pi OS releases remain separate.
 
