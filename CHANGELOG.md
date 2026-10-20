@@ -5,6 +5,7 @@
 - Apply the selected soft-pill treatment to prominent playback actions: filled Roon purple for Play and a quiet outlined treatment for Queue.
 - Replace the outlined Play glyph with a larger solid black triangle on Play Album, Play Artist, Play This Mix and Surprise Me.
 - Carry the pill geometry into final Play commands in action menus while retaining the existing hierarchy of secondary actions.
+- Tighten the 7-inch landscape Album & Artist header—especially below the heading—and enlarge the album write-up for easier reading.
 
 ## 1.1.3-beta.46 Alpine — 21 October 2026
 

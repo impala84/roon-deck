@@ -445,6 +445,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertLess(artist.index('detail_artist_source'), artist.index('detail_artist_facts'))
         self.assertIn('getattr(self, "album_focus_detail", False)', code)
         self.assertIn('.compact-detail .detail-title { font-size: 30px; }', code)
+        self.assertIn('.compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }', code)
+        self.assertIn('.album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
         code = SOURCE.read_text(encoding="utf-8")

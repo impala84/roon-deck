@@ -630,7 +630,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .compact-landscape .browser-scrubber { min-width: 44px; }
 .compact-landscape .browser-search-entry { min-height: 42px; padding: 4px 10px; font-size: 18px; }
 .compact-landscape .browser-key { min-width: 0; min-height: 32px; padding: 3px; font-size: 14px; }
-.compact-detail .detail-header { min-height: 68px; padding: 10px 20px; }
+.compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }
 .compact-detail .detail-close { min-width: 52px; min-height: 52px; padding: 0; }
 .compact-detail .detail-panel { padding: 8px 20px 14px; }
 .compact-detail .detail-entity { padding: 0; }
@@ -648,6 +648,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .album-focus-detail .detail-album-card { padding: 0; }
 .album-focus-detail .detail-artwork-frame { margin: 0; }
 .album-focus-detail .detail-section-label { margin-top: 0; }
+.album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
