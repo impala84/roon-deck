@@ -412,12 +412,31 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertTrue(owner.discovery_active)
         self.assertIn("active", buttons["browse"].classes)
 
-    def test_now_playing_volume_step_uses_two_percent_and_clamps(self):
+    def test_now_playing_volume_step_uses_one_percent_and_clamps(self):
         adjustment = SimpleNamespace(get_lower=lambda: 0, get_upper=lambda: 100)
         scale = SimpleNamespace(get_adjustment=lambda: adjustment, get_value=lambda: 99, set_value=Mock())
         owner = SimpleNamespace(state={"zone":{}}, volume=scale)
-        native_method("step_volume")(owner, 2)
+        native_method("step_volume")(owner, 1)
         scale.set_value.assert_called_once_with(100)
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('self.step_volume(-1)', code)
+        self.assertIn('self.step_volume(1)', code)
+
+    def test_final_play_actions_use_the_primary_colour_treatment(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('"artist-play primary-play" if action == "play"', code)
+        self.assertIn('"artist-play primary-play")', code)
+        self.assertIn('button.add_css_class("primary-play")', code)
+        self.assertIn('.artist-play, .theme-roon .artist-play', code)
+        self.assertIn('background: #9868F9; color: #111', code)
+
+    def test_detail_copy_order_and_compact_identity_are_consistent(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        artist = code.split('artist_card = Gtk.Box', 1)[1].split('album_card = Gtk.Box', 1)[0]
+        self.assertLess(artist.index('detail_artist_writeup'), artist.index('detail_artist_source'))
+        self.assertLess(artist.index('detail_artist_source'), artist.index('detail_artist_facts'))
+        self.assertIn('getattr(self, "album_focus_detail", False)', code)
+        self.assertIn('.compact-detail .detail-title { font-size: 30px; }', code)
 
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")

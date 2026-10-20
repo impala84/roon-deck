@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-beta.45 Alpine — 21 October 2026
+
+- Change the Now Playing volume step buttons to one-percent increments.
+- Give conclusive Play Album, Play Artist, Play This Mix, Play Now and equivalent action-menu commands a purple primary treatment with black iconography and text.
+- Align artist and album detail copy as title, write-up, source and then recessed facts, while removing the repeated artist line from the portrait album column.
+- Enlarge and rebalance the Album & Artist header, retaining a larger touch target around a smaller gray close glyph.
+- Carry the identity and typography improvements into 7-inch landscape, including a larger album label/title and the artist beneath it.
+
 ## 1.1.3-beta.44 Alpine — 20 October 2026
 
 - Keep the alphabet scrubber visible and usable after sorting Albums by title or artist.

@@ -319,8 +319,8 @@ CSS += b"""
 .settings-select popover listview row label { color: #f2f0f4; }
 .settings-select popover listview row:selected { background: #403c55; color: #f2f0f4; }
 .settings-select popover listview row:selected label { color: #f2f0f4; }
-.artist-play { padding: 12px 18px; border: 0; border-radius: 7px; background: #303030; color: #6ed9ae; font-size: 18px; font-weight: 650; }
-.theme-roon .artist-play { background: #292929; color: #9868F9; }
+.artist-play, .theme-roon .artist-play { padding: 12px 18px; border: 0; border-radius: 7px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+.artist-play:hover, .artist-play:active, .artist-play:focus, .theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; color: #111; }
 .artist-albums-heading { font-size: 16px; font-weight: 750; }
 .artist-album-title { font-size: 24px; }
 .theme-roon .queue-play-badge { background: transparent; color: #9868F9; }
@@ -596,14 +596,25 @@ CSS += b"""
 popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.55); }
 popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px solid #45434e; padding: 8px; }
 .browser-sort, .browser-sort:hover { background: transparent; }
-.detail-heading { color: #f4f0e6; font-size: 24px; font-weight: 700; }
-.high-resolution .detail-heading { font-size: 30px; }
-.compact-detail .detail-heading { font-size: 20px; }
+.detail-header { min-height: 92px; padding-top: 14px; padding-bottom: 14px; }
+.detail-heading { color: #f4f0e6; font-size: 28px; font-weight: 700; }
+.high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }
+.high-resolution .detail-heading { font-size: 36px; }
+.compact-detail .detail-heading { font-size: 24px; }
+.detail-close { border: 0; background: transparent; color: #858b89; }
+.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #858b89; }
+.compact-detail .detail-header { min-height: 68px; padding-top: 10px; padding-bottom: 10px; }
+.compact-detail .detail-close-glyph { min-width: 40px; min-height: 40px; }
+.detail-source { margin-top: 4px; margin-bottom: 14px; }
+.detail-facts { padding-top: 0; }
+.primary-play, .theme-roon .primary-play { background: #9868F9; color: #111; font-weight: 800; }
+.primary-play:hover, .primary-play:active, .primary-play:focus, .theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; color: #111; }
 .volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #9868F9; }
 .large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
 .track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #292929; color: #9868F9; font-size: 18px; }
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
+.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { background: #9868F9; color: #111; }
 popover.sort-menu .track-menu-action { background: transparent; }
 popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
 popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #9868F9; }
@@ -616,13 +627,13 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .compact-landscape .browser-scrubber { min-width: 44px; }
 .compact-landscape .browser-search-entry { min-height: 42px; padding: 4px 10px; font-size: 18px; }
 .compact-landscape .browser-key { min-width: 0; min-height: 32px; padding: 3px; font-size: 14px; }
-.compact-detail .detail-header { min-height: 58px; padding: 6px 20px 0; }
-.compact-detail .detail-close { min-width: 48px; min-height: 48px; padding: 0; }
+.compact-detail .detail-header { min-height: 68px; padding: 10px 20px; }
+.compact-detail .detail-close { min-width: 52px; min-height: 52px; padding: 0; }
 .compact-detail .detail-panel { padding: 8px 20px 14px; }
 .compact-detail .detail-entity { padding: 0; }
-.compact-detail .detail-section-label { margin-top: 3px; font-size: 11px; letter-spacing: 1.4px; }
-.compact-detail .detail-title { font-size: 23px; }
-.compact-detail .detail-artist { font-size: 17px; }
+.compact-detail .detail-section-label { margin-top: 3px; font-size: 14px; letter-spacing: 1.6px; }
+.compact-detail .detail-title { font-size: 30px; }
+.compact-detail .detail-artist { font-size: 21px; }
 .compact-detail .detail-subtitle { font-size: 15px; }.compact-detail .detail-writeup { font-size: 17px; line-height: 1.32; }
 .compact-detail .detail-fact, .compact-detail .detail-track-title { color: #858b89; font-size: 13px; font-weight: 500; }
 .compact-detail .detail-action { min-height: 43px; padding: 6px 12px; font-size: 14px; }
@@ -1107,9 +1118,9 @@ class Display(Gtk.Application):
         self.controls.append(self.library_add); self.controls.append(self.prev); self.controls.append(self.play); self.controls.append(self.next); centre.append(self.controls)
         self.library_message = self.label("", "browser-message", .5); self.library_message.set_wrap(True); self.library_message.set_visible(False); centre.append(self.library_message)
         volume_row = Gtk.Box(spacing=10); volume_row.add_css_class("now-volume-row"); self.volume_row = volume_row; self.mute = self.button("MUTE", self.toggle_audio_mute, "utility"); self.mute.add_css_class("now-mute"); self.mute.set_size_request(62, 38); volume_row.append(self.mute)
-        self.volume_down = self.icon_button("remove", lambda *_: self.step_volume(-2), "volume-step"); self.volume_down.set_tooltip_text("Volume down 2%"); volume_row.append(self.volume_down)
+        self.volume_down = self.icon_button("remove", lambda *_: self.step_volume(-1), "volume-step"); self.volume_down.set_tooltip_text("Volume down 1%"); volume_row.append(self.volume_down)
         self.volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.volume.add_css_class("volume"); self.volume.set_hexpand(True); self.volume.set_draw_value(False); self.volume.connect("value-changed", self.change_volume); volume_row.append(self.volume)
-        self.volume_up = self.icon_button("add", lambda *_: self.step_volume(2), "volume-step"); self.volume_up.set_tooltip_text("Volume up 2%"); volume_row.append(self.volume_up)
+        self.volume_up = self.icon_button("add", lambda *_: self.step_volume(1), "volume-step"); self.volume_up.set_tooltip_text("Volume up 1%"); volume_row.append(self.volume_up)
         self.volume_value = self.label("—", "time", 1); self.volume_value.add_css_class("volume-number"); volume_row.append(self.volume_value); centre.append(volume_row)
         content.append(centre); self.roon_views.add_named(content, "now")
         source = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); source.add_css_class("source-view"); source.set_halign(Gtk.Align.CENTER); source.set_valign(Gtk.Align.CENTER); source.set_hexpand(True); source.set_vexpand(True)
@@ -1190,9 +1201,9 @@ class Display(Gtk.Application):
         self.detail_artist_artwork_frame = Gtk.ScrolledWindow(); self.detail_artist_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_artist_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_artist_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_artist_artwork_frame.set_child(self.detail_artist_artwork); artist_card.append(self.detail_artist_artwork_frame)
         artist_card.append(self.label("ARTIST", "detail-section-label"))
         self.detail_artist_name = self.label("Unknown artist", "detail-title"); self.detail_artist_name.set_wrap(True); artist_card.append(self.detail_artist_name)
-        self.detail_artist_facts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); self.detail_artist_facts.add_css_class("detail-facts"); artist_card.append(self.detail_artist_facts)
         self.detail_artist_writeup = self.label("", "detail-writeup"); self.detail_artist_writeup.set_wrap(True); artist_card.append(self.detail_artist_writeup)
         self.detail_artist_source = self.label("", "detail-source"); artist_card.append(self.detail_artist_source)
+        self.detail_artist_facts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); self.detail_artist_facts.add_css_class("detail-facts"); artist_card.append(self.detail_artist_facts)
         artist_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); artist_rule.add_css_class("detail-rule"); artist_rule.set_visible(False); artist_card.append(artist_rule)
         self.detail_artist_action = self.button("BROWSE ARTIST", self.browse_detail_artist, "detail-action"); self.detail_artist_action.set_visible(False); artist_card.append(self.detail_artist_action); detail_panel.append(artist_card)
         album_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); album_card.add_css_class("detail-entity"); album_card.add_css_class("detail-album-card"); album_card.set_hexpand(True); album_card.set_valign(Gtk.Align.START); self.detail_album_card = album_card
@@ -1216,7 +1227,9 @@ class Display(Gtk.Application):
         detail_header = Gtk.Box(spacing=12); detail_header.add_css_class("detail-header")
         self.detail_heading = self.label("Album & Artist", "detail-heading"); self.detail_heading.set_valign(Gtk.Align.CENTER); detail_header.append(self.detail_heading)
         spacer = Gtk.Box(); spacer.set_hexpand(True); detail_header.append(spacer)
-        close = Gtk.Button(); close.add_css_class("detail-close"); close.set_size_request(56, 56); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_child(FamilyIcon("close", 40, stroke_width=3)); close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
+        close = Gtk.Button(); close.add_css_class("detail-close"); close.set_size_request(72, 72); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER)
+        close_glyph = Gtk.CenterBox(); close_glyph.add_css_class("detail-close-glyph"); close_glyph.set_size_request(48, 48); close_glyph.set_center_widget(FamilyIcon("close", 30, stroke_width=3)); close.set_child(close_glyph)
+        close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
         detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
         detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
         root = Gtk.Overlay(); root.set_child(page); root.add_overlay(takeover); return root
@@ -2241,7 +2254,7 @@ class Display(Gtk.Application):
             self.discovery_list.append(title)
             controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             for action, label in (("play", "PLAY THIS MIX"), ("queue", "QUEUE THIS MIX")):
-                control = self.labelled_icon_button("play" if action == "play" else "playlist", label, lambda _button, value=action: self.request_mix_action(value, controls), "artist-play" if action == "play" else "browser-back")
+                control = self.labelled_icon_button("play" if action == "play" else "playlist", label, lambda _button, value=action: self.request_mix_action(value, controls), "artist-play primary-play" if action == "play" else "browser-back")
                 controls.append(control)
             self.discovery_list.append(controls)
         if self.discovery_section == "daily" and not portrait_grid:
@@ -2871,7 +2884,7 @@ class Display(Gtk.Application):
             summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); copy.append(summary_slot)
             self.load_album_notes(profile, summary_slot)
         if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
-            button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play")
+            button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
             button.set_halign(Gtk.Align.START); copy.append(button)
         header.append(copy)
         return header
@@ -2912,7 +2925,8 @@ class Display(Gtk.Application):
                 selected["value"] = True; popover.popdown(); self.request_browser("open", item_key=key)
             for item in data.get("items", []):
                 if item.get("action"):
-                    choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action"); choice.set_focusable(False); choices.append(choice)
+                    final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist"}
+                    choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); choices.append(choice)
             def closed(*_):
                 self.browser_action_popover = None
                 popover.unparent()
@@ -2986,7 +3000,9 @@ class Display(Gtk.Application):
             play_controls = None
             for caption, icon, action in (("Surprise Again" if portrait else "Surprise Me", "view-refresh-symbolic", "surprise"), ("Play Now", "media-playback-start-symbolic", "surprise_play")):
                 controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); controls.set_size_request(120, -1); controls.set_valign(Gtk.Align.CENTER); controls.set_halign(Gtk.Align.CENTER)
-                button = self.icon_button(icon, lambda _button, value=action: self.request_browser(value), "surprise-action"); button.set_tooltip_text(caption); button.set_halign(Gtk.Align.CENTER); controls.append(button); controls.append(self.label(caption, "surprise-caption", .5))
+                button = self.icon_button(icon, lambda _button, value=action: self.request_browser(value), "surprise-action"); button.set_tooltip_text(caption); button.set_halign(Gtk.Align.CENTER)
+                if action == "surprise_play": button.add_css_class("primary-play")
+                controls.append(button); controls.append(self.label(caption, "surprise-caption", .5))
                 if portrait and action == "surprise_play": play_controls = controls
                 else: stage.append(controls)
                 if action == "surprise": stage.append(square)
@@ -3140,7 +3156,8 @@ class Display(Gtk.Application):
         if signature == self.detail_signature: return
         self.detail_signature = signature
         self.detail_title.set_text(details.get("album") or details.get("track") or "Nothing playing")
-        self.detail_artist.set_text(details.get("artist") or "")
+        detail_artist = details.get("artist") or ""
+        self.detail_artist.set_text(detail_artist); self.detail_artist.set_visible(bool(detail_artist) and getattr(self, "album_focus_detail", False))
         self.detail_artist_name.set_text(details.get("artist") or "Unknown artist")
         profile = self.detail_artist_profile if self.detail_artist_profile_name == (details.get("artist") or "") else {}
         self.detail_artist_writeup.set_text(profile.get("full_writeup") or profile.get("writeup") or "Artist information is unavailable.")
