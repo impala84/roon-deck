@@ -601,8 +601,8 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }
 .high-resolution .detail-heading { font-size: 36px; }
 .compact-detail .detail-heading { font-size: 24px; }
-.detail-close { border: 0; background: transparent; color: #858b89; }
-.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #858b89; }
+.detail-close { border: 0; background: transparent; color: #fff; }
+.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #fff; }
 .compact-detail .detail-header { min-height: 68px; padding-top: 10px; padding-bottom: 10px; }
 .compact-detail .detail-close-glyph { min-width: 40px; min-height: 40px; }
 .detail-source { margin-top: 4px; margin-bottom: 14px; }
@@ -972,15 +972,13 @@ class Display(Gtk.Application):
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
         self.volume_row.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.FILL)
         self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1, -1)
-        if portrait:
-            if self.artwork.get_parent() is self.artwork_button:
-                self.artwork_button.set_child(None); self.artwork_viewport.set_child(self.artwork); self.artwork_button.set_child(self.artwork_viewport)
-            for axis in ("width", "height"):
-                getattr(self.artwork_viewport, "set_min_content_" + axis)(artwork_size)
-                getattr(self.artwork_viewport, "set_max_content_" + axis)(artwork_size)
-            self.artwork_viewport.set_size_request(artwork_size, artwork_size)
-        elif self.artwork_button.get_child() is self.artwork_viewport:
-            self.artwork_viewport.set_child(None); self.artwork_button.set_child(self.artwork)
+        # Keep an explicit square allocation around the picture in every
+        # orientation. Gtk.Picture otherwise exposes the newly decoded image's
+        # intrinsic size and the transport column can jump while a cover loads.
+        for axis in ("width", "height"):
+            getattr(self.artwork_viewport, "set_min_content_" + axis)(artwork_size)
+            getattr(self.artwork_viewport, "set_max_content_" + axis)(artwork_size)
+        self.artwork_viewport.set_size_request(artwork_size, artwork_size)
         compact_detail = compact_landscape or (not portrait and height <= 720)
         album_focus_detail = not portrait and height <= 720
         self.compact_detail = compact_detail
@@ -1099,9 +1097,9 @@ class Display(Gtk.Application):
         self.discovery_body.append(self.discovery_sidebar); self.discovery_body.append(self.discovery_scroll)
         self.roon_views.add_named(self.discovery_body, "discover")
         content = Gtk.Box(spacing=26); content.add_css_class("now-playing-content"); content.set_vexpand(True); content.set_margin_start(8); content.set_margin_end(8); content.set_margin_top(8); content.set_margin_bottom(8); self.now_playing_content = content
-        self.artwork = Gtk.Picture(); self.artwork.add_css_class("artwork"); self.artwork.set_size_request(280, 280); self.artwork.set_valign(Gtk.Align.CENTER); self.artwork.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(self.artwork)
-        artwork_button = Gtk.Button(); artwork_button.add_css_class("artwork-button"); artwork_button.set_halign(Gtk.Align.CENTER); artwork_button.set_valign(Gtk.Align.CENTER); artwork_button.set_child(self.artwork); artwork_button.connect("clicked", lambda *_: self.set_roon_view("details")); content.append(artwork_button); self.artwork_button = artwork_button
-        self.artwork_viewport = Gtk.ScrolledWindow(); self.artwork_viewport.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.artwork_viewport.set_propagate_natural_width(False); self.artwork_viewport.set_propagate_natural_height(False)
+        self.artwork = Gtk.Picture(); self.artwork.add_css_class("artwork"); self.artwork.set_size_request(280, 280); self.artwork.set_valign(Gtk.Align.CENTER); self.artwork.set_can_shrink(True); self.artwork.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(self.artwork)
+        self.artwork_viewport = Gtk.ScrolledWindow(); self.artwork_viewport.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.artwork_viewport.set_propagate_natural_width(False); self.artwork_viewport.set_propagate_natural_height(False); self.artwork_viewport.set_child(self.artwork)
+        artwork_button = Gtk.Button(); artwork_button.add_css_class("artwork-button"); artwork_button.set_halign(Gtk.Align.CENTER); artwork_button.set_valign(Gtk.Align.CENTER); artwork_button.set_child(self.artwork_viewport); artwork_button.connect("clicked", lambda *_: self.set_roon_view("details")); content.append(artwork_button); self.artwork_button = artwork_button
         centre = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); centre.set_valign(Gtk.Align.CENTER); centre.set_hexpand(True); self.now_playing_centre = centre
         self.title = self.label("Waiting for Roon…", "roon-title", .5); self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL); self.title.set_wrap(True); self.title.set_lines(2); self.title.set_justify(Gtk.Justification.CENTER)
         self.artist = self.label("Enable RoonDeck in Roon", "roon-artist", .5); self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL); self.artist.set_wrap(True); self.artist.set_justify(Gtk.Justification.CENTER); centre.append(self.title); centre.append(self.artist)
@@ -1196,7 +1194,7 @@ class Display(Gtk.Application):
         detail_panel = Gtk.Box(spacing=24); detail_panel.add_css_class("detail-panel"); detail_panel.set_hexpand(True); detail_panel.set_vexpand(True); detail_panel.set_homogeneous(True); self.detail_panel = detail_panel
         self.browser_search_entry.connect("changed", self.schedule_browser_search)
         self.browser_search_entry.set_width_chars(1)
-        artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); artist_card.add_css_class("detail-entity"); artist_card.add_css_class("detail-artist-card"); artist_card.set_hexpand(True); artist_card.set_valign(Gtk.Align.START); self.detail_artist_card = artist_card
+        artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); artist_card.add_css_class("detail-entity"); artist_card.add_css_class("detail-artist-card"); artist_card.set_hexpand(True); artist_card.set_valign(Gtk.Align.START); self.detail_artist_card = artist_card
         self.detail_artist_artwork = Gtk.Picture(); self.detail_artist_artwork.add_css_class("detail-artwork"); self.detail_artist_artwork.set_size_request(420, 420); self.detail_artist_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_artist_artwork.set_can_shrink(True)
         self.detail_artist_artwork_frame = Gtk.ScrolledWindow(); self.detail_artist_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_artist_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_artist_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_artist_artwork_frame.set_child(self.detail_artist_artwork); artist_card.append(self.detail_artist_artwork_frame)
         artist_card.append(self.label("ARTIST", "detail-section-label"))
@@ -1209,7 +1207,7 @@ class Display(Gtk.Application):
         album_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); album_card.add_css_class("detail-entity"); album_card.add_css_class("detail-album-card"); album_card.set_hexpand(True); album_card.set_valign(Gtk.Align.START); self.detail_album_card = album_card
         self.detail_album_artwork = Gtk.Picture(); self.detail_album_artwork.add_css_class("detail-artwork"); self.detail_album_artwork.set_size_request(420, 420); self.detail_album_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_album_artwork.set_can_shrink(True)
         self.detail_album_artwork_frame = Gtk.ScrolledWindow(); self.detail_album_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_album_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_album_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_album_artwork_frame.set_child(self.detail_album_artwork); album_card.append(self.detail_album_artwork_frame)
-        detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6); self.detail_album_content = detail_content
+        detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.detail_album_content = detail_content
         detail_content.append(self.label("ALBUM", "detail-section-label"))
         self.detail_title = self.label("Nothing playing", "detail-title"); self.detail_title.set_wrap(True); self.detail_title.set_lines(2); self.detail_title.set_ellipsize(Pango.EllipsizeMode.END); detail_content.append(self.detail_title)
         self.detail_artist = self.label("", "detail-artist"); self.detail_artist.set_wrap(True); detail_content.append(self.detail_artist)
@@ -1228,7 +1226,7 @@ class Display(Gtk.Application):
         self.detail_heading = self.label("Album & Artist", "detail-heading"); self.detail_heading.set_valign(Gtk.Align.CENTER); detail_header.append(self.detail_heading)
         spacer = Gtk.Box(); spacer.set_hexpand(True); detail_header.append(spacer)
         close = Gtk.Button(); close.add_css_class("detail-close"); close.set_size_request(72, 72); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER)
-        close_glyph = Gtk.CenterBox(); close_glyph.add_css_class("detail-close-glyph"); close_glyph.set_size_request(48, 48); close_glyph.set_center_widget(FamilyIcon("close", 30, stroke_width=3)); close.set_child(close_glyph)
+        close_glyph = Gtk.CenterBox(); close_glyph.add_css_class("detail-close-glyph"); close_glyph.set_size_request(48, 48); close_glyph.set_center_widget(FamilyIcon("close", 34, stroke_width=3)); close.set_child(close_glyph)
         close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
         detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
         detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
@@ -3178,7 +3176,8 @@ class Display(Gtk.Application):
         self.detail_browse_action.set_sensitive(bool(details.get("artist")))
         subtitle = details.get("subtitle") or ""
         if subtitle.strip().casefold() == (details.get("artist") or "").strip().casefold(): subtitle = ""
-        self.detail_subtitle.set_text("Loading…" if details.get("status") == "loading" else subtitle)
+        detail_subtitle = "Loading…" if details.get("status") == "loading" else subtitle
+        self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
         self.library_status = details.get("library_status") or "unknown"
         if self.library_album_id != details.get("album_id") and not self.library_pending: self.library_message.set_visible(False)
         self.library_album_id = details.get("album_id"); self.library_favorite = details.get("favorite")

@@ -438,6 +438,21 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('getattr(self, "album_focus_detail", False)', code)
         self.assertIn('.compact-detail .detail-title { font-size: 30px; }', code)
 
+    def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
+        self.assertIn('detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
+        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
+        self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
+        self.assertIn('.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #fff; }', code)
+
+    def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('self.artwork.set_can_shrink(True)', code)
+        self.assertIn('self.artwork_viewport.set_child(self.artwork)', code)
+        self.assertIn('artwork_button.set_child(self.artwork_viewport)', code)
+        self.assertNotIn('elif self.artwork_button.get_child() is self.artwork_viewport', code)
+
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)

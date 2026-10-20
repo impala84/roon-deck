@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3-beta.46 Alpine — 21 October 2026
+
+- Reserve the Now Playing artwork square before a cover has downloaded or decoded so the transport controls no longer jump when returning from another input.
+- Use identical title-to-write-up spacing in both Album & Artist columns and suppress empty subtitle rows that previously offset the album copy.
+- Increase the close X inside its existing purple circle and restore it to white for clearer contrast without changing the touch target.
+
 ## 1.1.3-beta.45 Alpine — 21 October 2026
 
 - Change the Now Playing volume step buttons to one-percent increments.

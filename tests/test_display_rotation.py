@@ -206,7 +206,7 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn("* .8) if portrait else (324 if width >= 1200", display)
         self.assertIn("self.artwork.set_size_request(artwork_size, artwork_size)", display)
         self.assertIn("self.artwork_button.set_size_request(artwork_size, artwork_size)", display)
-        self.assertIn('close_glyph.set_center_widget(FamilyIcon("close", 30, stroke_width=3))', display)
+        self.assertIn('close_glyph.set_center_widget(FamilyIcon("close", 34, stroke_width=3))', display)
         self.assertIn('close.set_size_request(72, 72)', display)
         self.assertIn('close.connect("clicked", lambda *_: self.set_roon_view("now"))', display)
         self.assertIn('takeover.set_halign(Gtk.Align.FILL); takeover.set_valign(Gtk.Align.FILL)', display)
