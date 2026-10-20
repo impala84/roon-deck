@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3-beta.49 Alpine — 21 October 2026
+
+- Rebalance primary Play pills with less space before the triangle, retained trailing space, larger text and clearer separation from album metadata.
+- Increase prominent Play action sizing modestly on larger displays.
+- Give Surprise Me and Play Now matching circular controls with more space between each symbol and caption.
+- Hold the RoonDeck startup wordmark for at least 2.5 seconds before showing the ready interface.
+
 ## 1.1.3-beta.48 Alpine — 21 October 2026
 
 - Restore the 7-inch landscape Now Playing cover to a responsive square up to 440px while retaining a fixed pre-load allocation that prevents transport controls from jumping.

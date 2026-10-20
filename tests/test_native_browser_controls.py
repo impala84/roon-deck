@@ -438,6 +438,14 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.queue-pill, .theme-roon .queue-pill', code)
         self.assertIn('.surprise-action.primary-play', code)
 
+    def test_play_pill_balance_surprise_geometry_and_splash_hold(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('padding: 12px 30px 12px 20px', code)
+        self.assertIn('.surprise-action { min-width: 72px; min-height: 72px; padding: 8px; border-radius: 50%', code)
+        self.assertIn('orientation=Gtk.Orientation.VERTICAL, spacing=16', code)
+        self.assertIn('time.monotonic() - self.boot_started_at < 2.5', code)
+        self.assertIn('def finish_boot_splash(self):', code)
+
     def test_detail_artwork_closes_sheet_and_dropdown_play_stays_rectangular(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):', code)

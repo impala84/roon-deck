@@ -297,7 +297,7 @@ CSS += b"""
 .theme-roon .browser-row:active, .theme-roon .browser-row:hover { background: transparent; }
 .browser-scrubber { padding: 0; }
 .browser-surprise { font-size: 14px; }
-.surprise-action { min-width: 72px; min-height: 72px; padding: 8px; border-radius: 12px; background: #18211f; color: #6ed9ae; }
+.surprise-action { min-width: 72px; min-height: 72px; padding: 8px; border-radius: 50%; background: #18211f; color: #6ed9ae; }
 .browser-search-panel { padding: 2px 0 10px; margin: 0; }
 .touch-landscape .browser-search-panel { margin: 0; }
 .portrait .browser-search-panel { margin-left: 0; margin-right: 0; }
@@ -319,7 +319,7 @@ CSS += b"""
 .settings-select popover listview row label { color: #f2f0f4; }
 .settings-select popover listview row:selected { background: #403c55; color: #f2f0f4; }
 .settings-select popover listview row:selected label { color: #f2f0f4; }
-.artist-play, .theme-roon .artist-play { padding: 12px 28px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+.artist-play, .theme-roon .artist-play { margin-top: 12px; padding: 12px 30px 12px 20px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 20px; font-weight: 800; }
 .artist-play:hover, .artist-play:active, .artist-play:focus, .theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; color: #111; }
 .queue-pill, .theme-roon .queue-pill { min-height: 52px; padding: 10px 22px; border: 2px solid #55515d; border-radius: 999px; background: transparent; color: #ddd; font-size: 18px; font-weight: 700; }
 .queue-pill:hover, .queue-pill:active, .queue-pill:focus, .theme-roon .queue-pill:hover, .theme-roon .queue-pill:active, .theme-roon .queue-pill:focus { border-color: #77717f; background: #222; color: #fff; }
@@ -586,7 +586,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display .browser-cover-subtitle { font-size: 21px; }
 .large-display .queue-art, .large-display .browser-action-icon { min-width: 116px; min-height: 116px; }
 .large-display .artist-name { font-size: 38px; }
-.large-display .artist-play, .large-display .queue-pill { min-height: 72px; font-size: 25px; }
+.large-display .artist-play, .large-display .queue-pill { min-height: 76px; font-size: 27px; }
 .large-display .surprise-title { font-size: 42px; }
 .large-display .surprise-artist { font-size: 30px; }
 .large-display .surprise-action { min-width: 108px; min-height: 108px; }
@@ -877,6 +877,7 @@ class Display(Gtk.Application):
         activity = Gtk.EventControllerLegacy(); activity.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); activity.connect("event", self.note_activity); self.window.add_controller(activity)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE, transition_duration=0)
         self.stack.set_hhomogeneous(False); self.stack.set_vhomogeneous(False)
+        self.boot_started_at = time.monotonic(); self.boot_transition_timer = None; self.pending_boot_mode = None
         self.stack.add_named(self.build_boot_splash(), "boot"); self.stack.add_named(self.build_bus(), "bus"); self.stack.add_named(self.build_roon(), "roon"); self.stack.add_named(self.build_home(), "home"); self.stack.add_named(self.build_settings(), "settings"); self.stack.add_named(self.build_sleep(), "sleep")
         self.root_overlay = Gtk.Overlay(); self.root_overlay.set_child(self.stack)
         self.window.set_child(self.root_overlay); self.window.present()
@@ -1828,7 +1829,19 @@ class Display(Gtk.Application):
         elif target == "/" or target.endswith(":8765/"): desired = "bus"; self.set_screen_power(True); self.last_mode = "bus"
         else: desired = "roon"; self.set_screen_power(True); self.last_mode = "roon"
         if self.stack.get_visible_child_name() != desired:
-            self.stack.set_visible_child_name(desired)
+            if self.stack.get_visible_child_name() == "boot" and time.monotonic() - self.boot_started_at < 2.5:
+                self.pending_boot_mode = desired
+                if self.boot_transition_timer is None:
+                    remaining = max(1, round((2.5 - (time.monotonic() - self.boot_started_at)) * 1000))
+                    self.boot_transition_timer = GLib.timeout_add(remaining, self.finish_boot_splash)
+            else: self.stack.set_visible_child_name(desired)
+        return False
+
+    def finish_boot_splash(self):
+        self.boot_transition_timer = None
+        if self.stack.get_visible_child_name() == "boot" and self.pending_boot_mode:
+            self.stack.set_visible_child_name(self.pending_boot_mode)
+        self.pending_boot_mode = None
         return False
 
     def apply_artwork(self, image_key, image):
@@ -3006,7 +3019,7 @@ class Display(Gtk.Application):
             stage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL, spacing=38 if portrait else 40); stage.set_halign(Gtk.Align.CENTER); stage.set_valign(Gtk.Align.CENTER)
             play_controls = None
             for caption, icon, action in (("Surprise Again" if portrait else "Surprise Me", "view-refresh-symbolic", "surprise"), ("Play Now", "media-playback-start-symbolic", "surprise_play")):
-                controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); controls.set_size_request(120, -1); controls.set_valign(Gtk.Align.CENTER); controls.set_halign(Gtk.Align.CENTER)
+                controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); controls.set_size_request(120, -1); controls.set_valign(Gtk.Align.CENTER); controls.set_halign(Gtk.Align.CENTER)
                 button = self.icon_button(icon, lambda _button, value=action: self.request_browser(value), "surprise-action primary-play" if action == "surprise_play" else "surprise-action"); button.set_tooltip_text(caption); button.set_halign(Gtk.Align.CENTER)
                 controls.append(button); controls.append(self.label(caption, "surprise-caption", .5))
                 if portrait and action == "surprise_play": play_controls = controls
