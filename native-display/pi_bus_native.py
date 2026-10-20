@@ -319,8 +319,10 @@ CSS += b"""
 .settings-select popover listview row label { color: #f2f0f4; }
 .settings-select popover listview row:selected { background: #403c55; color: #f2f0f4; }
 .settings-select popover listview row:selected label { color: #f2f0f4; }
-.artist-play, .theme-roon .artist-play { padding: 12px 18px; border: 0; border-radius: 7px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+.artist-play, .theme-roon .artist-play { padding: 12px 22px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
 .artist-play:hover, .artist-play:active, .artist-play:focus, .theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; color: #111; }
+.queue-pill, .theme-roon .queue-pill { min-height: 52px; padding: 10px 22px; border: 2px solid #55515d; border-radius: 999px; background: transparent; color: #ddd; font-size: 18px; font-weight: 700; }
+.queue-pill:hover, .queue-pill:active, .queue-pill:focus, .theme-roon .queue-pill:hover, .theme-roon .queue-pill:active, .theme-roon .queue-pill:focus { border-color: #77717f; background: #222; color: #fff; }
 .artist-albums-heading { font-size: 16px; font-weight: 750; }
 .artist-album-title { font-size: 24px; }
 .theme-roon .queue-play-badge { background: transparent; color: #9868F9; }
@@ -582,7 +584,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display .browser-cover-subtitle { font-size: 21px; }
 .large-display .queue-art, .large-display .browser-action-icon { min-width: 116px; min-height: 116px; }
 .large-display .artist-name { font-size: 38px; }
-.large-display .artist-play { min-height: 72px; font-size: 25px; }
+.large-display .artist-play, .large-display .queue-pill { min-height: 72px; font-size: 25px; }
 .large-display .surprise-title { font-size: 42px; }
 .large-display .surprise-artist { font-size: 30px; }
 .large-display .surprise-action { min-width: 108px; min-height: 108px; }
@@ -609,12 +611,13 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .detail-facts { padding-top: 0; }
 .primary-play, .theme-roon .primary-play { background: #9868F9; color: #111; font-weight: 800; }
 .primary-play:hover, .primary-play:active, .primary-play:focus, .theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; color: #111; }
+.surprise-action.primary-play, .theme-roon .surprise-action.primary-play { border-radius: 50%; }
 .volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #9868F9; }
 .large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
 .track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #292929; color: #9868F9; font-size: 18px; }
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
-.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { background: #9868F9; color: #111; }
+.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 999px; background: #9868F9; color: #111; }
 popover.sort-menu .track-menu-action { background: transparent; }
 popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
 popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #9868F9; }
@@ -787,7 +790,7 @@ class Display(Gtk.Application):
         if css:
             for name in css.split(): widget.add_css_class(name)
         large = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
-        image = FamilyIcon(icon, (64 if large else 42) if "surprise-action" in css else 46 if "source-step" in css else 34); widget.set_child(image)
+        image = FamilyIcon(icon, (64 if large else 42) if "surprise-action" in css else 46 if "source-step" in css else 34, filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css); widget.set_child(image)
         caption = {"previous": "Previous track", "next": "Next track", "play": "Play", "pause": "Pause", "refresh": "Refresh", "remove": "Volume down", "add": "Add"}.get(image.icon_name, image.icon_name.title())
         widget.set_tooltip_text(caption)
         widget.update_property([Gtk.AccessibleProperty.LABEL], [caption])
@@ -798,7 +801,7 @@ class Display(Gtk.Application):
         widget = self.button(text, callback, css)
         row = Gtk.Box(spacing=8); row.set_halign(Gtk.Align.CENTER)
         large = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
-        row.append(FamilyIcon(name, 36 if large else 24)); row.append(self.label(text))
+        row.append(FamilyIcon(name, 36 if large else 24, filled=name == "play" and "primary-play" in css)); row.append(self.label(text))
         widget.set_child(row)
         widget.set_tooltip_text(text)
         widget.update_property([Gtk.AccessibleProperty.LABEL], [text])
@@ -2252,7 +2255,7 @@ class Display(Gtk.Application):
             self.discovery_list.append(title)
             controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             for action, label in (("play", "PLAY THIS MIX"), ("queue", "QUEUE THIS MIX")):
-                control = self.labelled_icon_button("play" if action == "play" else "playlist", label, lambda _button, value=action: self.request_mix_action(value, controls), "artist-play primary-play" if action == "play" else "browser-back")
+                control = self.labelled_icon_button("play" if action == "play" else "playlist", label, lambda _button, value=action: self.request_mix_action(value, controls), "artist-play primary-play" if action == "play" else "queue-pill")
                 controls.append(control)
             self.discovery_list.append(controls)
         if self.discovery_section == "daily" and not portrait_grid:
@@ -2530,7 +2533,7 @@ class Display(Gtk.Application):
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
         self.load_artist_notes(name, summary_slot)
         if play_action:
-            play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play")
+            play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
             play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)
 
     def load_artist_notes(self, name, slot):
@@ -2998,8 +3001,7 @@ class Display(Gtk.Application):
             play_controls = None
             for caption, icon, action in (("Surprise Again" if portrait else "Surprise Me", "view-refresh-symbolic", "surprise"), ("Play Now", "media-playback-start-symbolic", "surprise_play")):
                 controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); controls.set_size_request(120, -1); controls.set_valign(Gtk.Align.CENTER); controls.set_halign(Gtk.Align.CENTER)
-                button = self.icon_button(icon, lambda _button, value=action: self.request_browser(value), "surprise-action"); button.set_tooltip_text(caption); button.set_halign(Gtk.Align.CENTER)
-                if action == "surprise_play": button.add_css_class("primary-play")
+                button = self.icon_button(icon, lambda _button, value=action: self.request_browser(value), "surprise-action primary-play" if action == "surprise_play" else "surprise-action"); button.set_tooltip_text(caption); button.set_halign(Gtk.Align.CENTER)
                 controls.append(button); controls.append(self.label(caption, "surprise-caption", .5))
                 if portrait and action == "surprise_play": play_controls = controls
                 else: stage.append(controls)

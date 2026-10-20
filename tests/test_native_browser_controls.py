@@ -149,7 +149,7 @@ class PortraitRefinementTests(unittest.TestCase):
         widget = LayoutWidget(); widget.update_property = Mock()
         gtk = SimpleNamespace(Button=lambda: widget, AccessibleProperty=SimpleNamespace(LABEL="label"))
         image = LayoutWidget(); image.icon_name = "clock"
-        button = native_method("icon_button", {"Gtk": gtk, "FamilyIcon": lambda *_: image})(SimpleNamespace(), "clock", lambda *_: None, "discover-utility discover-sleep")
+        button = native_method("icon_button", {"Gtk": gtk, "FamilyIcon": lambda *_, **__: image})(SimpleNamespace(), "clock", lambda *_: None, "discover-utility discover-sleep")
         self.assertEqual(button.classes, {"discover-utility", "discover-sleep"})
         widget.update_property.assert_called_once_with(["label"], ["Clock"])
 
@@ -426,9 +426,17 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('"artist-play primary-play" if action == "play"', code)
         self.assertIn('"artist-play primary-play")', code)
-        self.assertIn('button.add_css_class("primary-play")', code)
         self.assertIn('.artist-play, .theme-roon .artist-play', code)
         self.assertIn('background: #9868F9; color: #111', code)
+
+    def test_selected_soft_pill_actions_use_filled_play_and_outlined_queue(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('border-radius: 999px; background: #9868F9', code)
+        self.assertIn('filled=name == "play" and "primary-play" in css', code)
+        self.assertIn('filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css', code)
+        self.assertIn('"queue-pill")', code)
+        self.assertIn('.queue-pill, .theme-roon .queue-pill', code)
+        self.assertIn('.surprise-action.primary-play', code)
 
     def test_detail_copy_order_and_compact_identity_are_consistent(self):
         code = SOURCE.read_text(encoding="utf-8")
