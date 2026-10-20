@@ -595,9 +595,18 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 CSS += b"""
 popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.55); }
 popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px solid #45434e; padding: 8px; }
+.browser-sort, .browser-sort:hover { background: transparent; }
+.detail-heading { color: #f4f0e6; font-size: 24px; font-weight: 700; }
+.high-resolution .detail-heading { font-size: 30px; }
+.compact-detail .detail-heading { font-size: 20px; }
+.volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #9868F9; }
+.large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
 .track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #292929; color: #9868F9; font-size: 18px; }
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
+popover.sort-menu .track-menu-action { background: transparent; }
+popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
+popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #9868F9; }
 .large-display .track-menu-action { min-height: 64px; font-size: 24px; }
 .compact-landscape popover.track-menu > contents { padding: 7px; border-radius: 10px; }
 .compact-landscape .track-menu-action { min-height: 42px; padding: 5px 12px; font-size: 16px; }
@@ -1008,7 +1017,7 @@ class Display(Gtk.Application):
         row = Gtk.Box(spacing=8); row.add_css_class("nav")
         row.set_homogeneous(True)
         now = self.button("Now Playing", lambda *_: (self.show_roon_now(), self.set_mode("roon")), ""); now.navigation_page = active; self.roon_nav_buttons.append(now)
-        discover = self.button("Discover", lambda *_: self.open_discover(), ""); discover.navigation_page = active; self.discover_nav_buttons.append(discover)
+        discover = self.button("Discover", lambda *_: self.resume_discover(), ""); discover.navigation_page = active; self.discover_nav_buttons.append(discover)
         bus = self.button("Bus Times", lambda *_: self.set_mode("bus"), "")
         self.bus_nav_buttons.append(bus)
         home = self.button("Home", lambda *_: self.set_mode("home"), ""); self.home_nav_buttons.append(home)
@@ -1097,7 +1106,11 @@ class Display(Gtk.Application):
         self.prev.set_size_request(50, 50); self.prev.set_valign(Gtk.Align.CENTER); self.play.set_size_request(68, 68); self.play.set_valign(Gtk.Align.CENTER); self.next.set_size_request(50, 50); self.next.set_valign(Gtk.Align.CENTER)
         self.controls.append(self.library_add); self.controls.append(self.prev); self.controls.append(self.play); self.controls.append(self.next); centre.append(self.controls)
         self.library_message = self.label("", "browser-message", .5); self.library_message.set_wrap(True); self.library_message.set_visible(False); centre.append(self.library_message)
-        volume_row = Gtk.Box(spacing=10); volume_row.add_css_class("now-volume-row"); self.volume_row = volume_row; self.mute = self.button("MUTE", self.toggle_audio_mute, "utility"); self.mute.add_css_class("now-mute"); self.mute.set_size_request(62, 38); volume_row.append(self.mute); self.volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.volume.add_css_class("volume"); self.volume.set_hexpand(True); self.volume.set_draw_value(False); self.volume.connect("value-changed", self.change_volume); volume_row.append(self.volume); self.volume_value = self.label("—", "time", 1); self.volume_value.add_css_class("volume-number"); volume_row.append(self.volume_value); centre.append(volume_row)
+        volume_row = Gtk.Box(spacing=10); volume_row.add_css_class("now-volume-row"); self.volume_row = volume_row; self.mute = self.button("MUTE", self.toggle_audio_mute, "utility"); self.mute.add_css_class("now-mute"); self.mute.set_size_request(62, 38); volume_row.append(self.mute)
+        self.volume_down = self.icon_button("remove", lambda *_: self.step_volume(-2), "volume-step"); self.volume_down.set_tooltip_text("Volume down 2%"); volume_row.append(self.volume_down)
+        self.volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.volume.add_css_class("volume"); self.volume.set_hexpand(True); self.volume.set_draw_value(False); self.volume.connect("value-changed", self.change_volume); volume_row.append(self.volume)
+        self.volume_up = self.icon_button("add", lambda *_: self.step_volume(2), "volume-step"); self.volume_up.set_tooltip_text("Volume up 2%"); volume_row.append(self.volume_up)
+        self.volume_value = self.label("—", "time", 1); self.volume_value.add_css_class("volume-number"); volume_row.append(self.volume_value); centre.append(volume_row)
         content.append(centre); self.roon_views.add_named(content, "now")
         source = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); source.add_css_class("source-view"); source.set_halign(Gtk.Align.CENTER); source.set_valign(Gtk.Align.CENTER); source.set_hexpand(True); source.set_vexpand(True)
         self.source_title = self.label("EXTERNAL INPUT", "source-title", .5); source.append(self.source_title)
@@ -1200,7 +1213,9 @@ class Display(Gtk.Application):
         elastic_vertical_scroll(detail_scroll)
         album_card.append(detail_content); detail_panel.append(album_card); page.append(self.roon_views); self.music_navigation = self.navigation("roon"); page.append(self.music_navigation)
         takeover = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); takeover.add_css_class("detail-takeover"); takeover.set_hexpand(True); takeover.set_vexpand(True); takeover.set_halign(Gtk.Align.FILL); takeover.set_valign(Gtk.Align.FILL)
-        detail_header = Gtk.Box(spacing=12); detail_header.add_css_class("detail-header"); spacer = Gtk.Box(); spacer.set_hexpand(True); detail_header.append(spacer)
+        detail_header = Gtk.Box(spacing=12); detail_header.add_css_class("detail-header")
+        self.detail_heading = self.label("Album & Artist", "detail-heading"); self.detail_heading.set_valign(Gtk.Align.CENTER); detail_header.append(self.detail_heading)
+        spacer = Gtk.Box(); spacer.set_hexpand(True); detail_header.append(spacer)
         close = Gtk.Button(); close.add_css_class("detail-close"); close.set_size_request(56, 56); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_child(FamilyIcon("close", 40, stroke_width=3)); close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
         detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
         detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
@@ -1390,7 +1405,8 @@ class Display(Gtk.Application):
         # touch, not from the time the panel originally woke.
         self.last_interaction = max(self.last_interaction, contact_at or time.monotonic())
         if (hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
-                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+                and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
+                     or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))):
             self.browse_last_interaction = self.last_interaction
         # The low-level event from the gesture which pressed Sleep may reach
         # GTK after the screen has already gone dark. It is not a wake gesture.
@@ -1410,7 +1426,8 @@ class Display(Gtk.Application):
             if icon := getattr(self, "music_clock_icon", None): icon.queue_draw()
         browse_timeout = int(getattr(self, "settings_data", {}).get("browse_idle_return_seconds", 60))
         if (browse_timeout > 0 and hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
-                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
+                and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
+                     or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))
                 and time.monotonic() - self.browse_last_interaction >= browse_timeout):
             self.show_roon_now()
         return True
@@ -2046,6 +2063,12 @@ class Display(Gtk.Application):
         value = ((((self.state or {}).get("amplifier") or {}).get("volume")) or {}).get("value")
         if value is not None: threading.Thread(target=post_json, args=(ROON + "/api/bluos/volume", {"value": round(float(value) + amount)}), daemon=True).start()
 
+    def step_volume(self, amount):
+        if not self.state: return
+        adjustment = self.volume.get_adjustment()
+        value = max(adjustment.get_lower(), min(adjustment.get_upper(), round(self.volume.get_value()) + amount))
+        self.volume.set_value(value)
+
     def configure_music_clock(self):
         if not hasattr(self, "music_clock_button"): return
         full = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000 and self.settings_data.get("landscape_music_clock", "icon") == "full"
@@ -2068,7 +2091,7 @@ class Display(Gtk.Application):
         self.portrait_music_tabs.set_visible(False)
 
     def set_roon_view(self, name):
-        if name in {"discover", "browse", "search"}:
+        if name in {"discover", "browse", "search", "details"}:
             self.browse_last_interaction = time.monotonic()
         # A delayed search belongs to the keyboard view, never a later Browse
         # or Surprise request. Cancel it before moving the shared results list.
@@ -2111,6 +2134,17 @@ class Display(Gtk.Application):
 
     def show_roon_now(self, *_):
         self.set_roon_view("now")
+
+    def resume_discover(self, *_):
+        section = getattr(self, "discovery_section", "recent") or "recent"
+        if section == "browse" and getattr(self, "browser_state", None):
+            self.discovery_browser_origin = False; self.discovery_active = True
+            for name, button in self.discover_tabs.items():
+                if name == section: button.add_css_class("active")
+                else: button.remove_css_class("active")
+            self.set_roon_view("browse"); self.set_mode("roon"); return
+        recent_mode = getattr(self, "discovery_recent_mode", "added") if section == "recent" else None
+        self.open_discover(section, getattr(self, "discovery_mix", ""), getattr(self, "discovery_picks", False), recent_mode)
 
     def show_browser(self, *_):
         self.discovery_browser_origin = False
@@ -2508,7 +2542,9 @@ class Display(Gtk.Application):
         for order, title in (("title", "Title, A to Z"), ("reverse", "Title, Z to A"), ("artist", "Artist, A to Z")):
             def choose(_choice, value=order, menu=popover):
                 menu.popdown(); self.browser_sort.set_sensitive(False); self.browser_sort.get_child().set_text("Sorting…"); self.request_browser("sort", order=value)
-            choice = self.button(title, choose, "track-menu-action"); choice.set_focusable(False); choices.append(choice)
+            choice = self.button(title, choose, "track-menu-action"); choice.set_focusable(False)
+            if order == self.browser_sort_order: choice.add_css_class("active")
+            choices.append(choice)
         def closed(*_):
             if getattr(self, "browser_sort_popover", None) is popover: self.browser_sort_popover = None
             popover.unparent()
@@ -2698,7 +2734,8 @@ class Display(Gtk.Application):
                 valid, bounds = card.compute_bounds(self.browser_list)
                 if valid and bounds.get_y() + bounds.get_height() > value:
                     item = entry; break
-        title = str((item or {}).get("title") or "A").strip()
+        field = "subtitle" if self.browser_state.get("sort_order") == "artist" else "title"
+        title = str((item or {}).get(field) or "A").strip()
         if title.lower().startswith("the "): title = title[4:]
         first = unicodedata.normalize("NFKD", title)[:1].upper(); value = ord(first) - 65 if "A" <= first <= "Z" else 0
         self.browser_scrub_sync = True; self.browser_scrub_scale.set_value(value); self.browser_scrub_sync = False; self.position_browser_scrub_letter(chr(65 + value), value)
@@ -3337,7 +3374,8 @@ class Display(Gtk.Application):
             return False
         self.last_interaction = time.monotonic()
         if (self.stack.get_visible_child_name() == "roon"
-                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+                and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
+                     or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))):
             self.browse_last_interaction = self.last_interaction
         if self.inactivity_sleeping:
             source = getattr(event_type, "value_nick", str(event_type))

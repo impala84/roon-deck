@@ -11,7 +11,10 @@ test('album sorting loads the whole collection and paginates owned keys without 
   manager.store('albums', 'browse', {title:'Albums', level:1, count:65}, albums.slice(0,30), '');
   const sorted = await manager.sortCollection(service, 'albums', 'title');
   assert.equal(sorted.items[0].title, 'Album 1');
-  assert.equal(sorted.alpha_scrub, false);
+  assert.equal(sorted.alpha_scrub, true);
+  const jumped = await manager.jumpTo(service, 'albums', 'A');
+  assert.equal(jumped.items[0].title, 'Album 1');
+  assert.equal(jumped.sort_order, 'title');
   const more = await manager.loadMore(service, 'albums');
   assert.equal(more.items.length,60);
   assert.equal(new Set(more.items.map(item=>item.item_key)).size,60);

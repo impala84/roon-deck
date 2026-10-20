@@ -469,13 +469,26 @@ class BrowseManager {
     const compare = (a, b) => String(a || '').localeCompare(String(b || ''), undefined, {numeric: true, sensitivity: 'base'});
     items.sort((a, b) => (order === 'artist' ? compare(a.subtitle, b.subtitle) : 0) || compare(a.title, b.title) * (order === 'reverse' ? -1 : 1));
     this.sortedCollections.set(session, items);
-    return this.save(session, {...state, items: items.slice(0, PAGE_SIZE), offset: 0, sort_order: order, alpha_scrub: false, has_more: items.length > PAGE_SIZE});
+    return this.save(session, {...state, items: items.slice(0, PAGE_SIZE), offset: 0, sort_order: order, alpha_scrub: true, has_more: items.length > PAGE_SIZE});
   }
 
   async jumpTo(service, session, letter) {
     const state = this.sessions.get(session);
     if (!state?.alpha_scrub || !state.count) return state || this.openSection(service, this.zone(), session, 'albums');
     const target = String(letter || 'A').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1) || 'A';
+    const sorted = this.sortedCollections.get(session);
+    if (state.section_root && state.sort_order && sorted) {
+      const field = state.sort_order === 'artist' ? 'subtitle' : 'title';
+      const initial = item => {
+        const first = String(item?.[field] || '').trim().replace(/^the\s+/i, '').normalize('NFKD').toUpperCase()[0];
+        return /^[A-Z]$/.test(first || '') ? first : 'A';
+      };
+      let offset = sorted.findIndex(item => initial(item) === target);
+      if (offset < 0) offset = sorted.findIndex(item => state.sort_order === 'reverse' ? initial(item) <= target : initial(item) >= target);
+      if (offset < 0) offset = Math.max(0, sorted.length - PAGE_SIZE);
+      const items = sorted.slice(offset, offset + PAGE_SIZE);
+      return this.save(session, {...state, offset, items, has_more: offset + items.length < sorted.length, message: ''});
+    }
     const cacheKey = `${session}:${state.section}:${state.level}:${state.count}`;
     let index = this.alphabetIndexes.get(cacheKey);
     if (!index) {

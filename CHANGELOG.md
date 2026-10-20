@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-beta.44 Alpine — 20 October 2026
+
+- Keep the alphabet scrubber visible and usable after sorting Albums by title or artist.
+- Resume the last Discover/Browse screen instead of resetting to Recently Added.
+- Apply the configured browsing timeout consistently while album and artist details are open.
+- Restore the aligned Album & Artist heading, simplify the sort menu treatment, and highlight the selected sort.
+- Add accessible two-percent volume-down and volume-up touch targets beside the Now Playing volume slider.
+
 ## 1.1.3-beta.43 Alpine — 19 October 2026
 
 - Fix Discover and Browse returning to Now Playing immediately when the display inherited an older general inactivity timestamp.

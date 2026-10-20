@@ -397,8 +397,27 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_browse_return_can_be_disabled_and_resets_on_navigation(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('browse_timeout > 0', code)
-        self.assertIn('self.browse_last_interaction = time.monotonic()', code.split('def set_roon_view', 1)[1].split('def ', 1)[0])
+        view_code = code.split('def set_roon_view', 1)[1].split('def ', 1)[0]
+        self.assertIn('self.browse_last_interaction = time.monotonic()', view_code)
+        self.assertIn('"details"', view_code)
         self.assertIn('self.browse_last_interaction = self.last_interaction', code.split('def note_activity', 1)[1].split('def ', 1)[0])
+
+    def test_discover_navigation_resumes_the_existing_browse_state(self):
+        buttons = {name: LayoutWidget() for name in ("recent", "browse", "daily")}
+        owner = SimpleNamespace(discovery_section="browse", browser_state={"title":"Albums"},
+            discover_tabs=buttons, set_roon_view=Mock(), set_mode=Mock())
+        native_method("resume_discover")(owner)
+        owner.set_roon_view.assert_called_once_with("browse")
+        owner.set_mode.assert_called_once_with("roon")
+        self.assertTrue(owner.discovery_active)
+        self.assertIn("active", buttons["browse"].classes)
+
+    def test_now_playing_volume_step_uses_two_percent_and_clamps(self):
+        adjustment = SimpleNamespace(get_lower=lambda: 0, get_upper=lambda: 100)
+        scale = SimpleNamespace(get_adjustment=lambda: adjustment, get_value=lambda: 99, set_value=Mock())
+        owner = SimpleNamespace(state={"zone":{}}, volume=scale)
+        native_method("step_volume")(owner, 2)
+        scale.set_value.assert_called_once_with(100)
 
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")
