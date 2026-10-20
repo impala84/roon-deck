@@ -203,7 +203,7 @@ class DisplayRotationTests(unittest.TestCase):
         web_html = (ROOT / "roon-controller" / "static" / "index.html").read_text(encoding="utf-8")
         web_js = (ROOT / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn("artwork_size = round(min(width - 64", display)
-        self.assertIn("* .8) if portrait else (324 if width >= 1200", display)
+        self.assertIn("* .8) if portrait else (min(440, max(360, height - 240)) if width >= 1200", display)
         self.assertIn("self.artwork.set_size_request(artwork_size, artwork_size)", display)
         self.assertIn("self.artwork_button.set_size_request(artwork_size, artwork_size)", display)
         self.assertIn('close_glyph.set_center_widget(FamilyIcon("close", 34, stroke_width=3))', display)

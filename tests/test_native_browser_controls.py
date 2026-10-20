@@ -432,11 +432,17 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_selected_soft_pill_actions_use_filled_play_and_outlined_queue(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('border-radius: 999px; background: #9868F9', code)
-        self.assertIn('filled=name == "play" and "primary-play" in css', code)
+        self.assertIn('primary_play = name == "play" and "primary-play" in css', code)
         self.assertIn('filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css', code)
         self.assertIn('"queue-pill")', code)
         self.assertIn('.queue-pill, .theme-roon .queue-pill', code)
         self.assertIn('.surprise-action.primary-play', code)
+
+    def test_detail_artwork_closes_sheet_and_dropdown_play_stays_rectangular(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):', code)
+        self.assertIn('close_artwork.connect("released", lambda *_: self.set_roon_view("now"))', code)
+        self.assertIn('border-radius: 8px; background: #9868F9', code)
 
     def test_detail_copy_order_and_compact_identity_are_consistent(self):
         code = SOURCE.read_text(encoding="utf-8")

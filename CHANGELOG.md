@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-beta.48 Alpine — 21 October 2026
+
+- Restore the 7-inch landscape Now Playing cover to a responsive square up to 440px while retaining a fixed pre-load allocation that prevents transport controls from jumping.
+- Give the 10-inch portrait Now Playing cover and artist line more breathing room before the metadata and seek controls.
+- Let either artwork panel close Album & Artist details, matching the existing close X behaviour.
+- Enlarge definitive Play glyphs and track-row Play targets, with slightly wider primary-action pills.
+- Restore action-menu Play Now to the original rectangular menu geometry while preserving its purple primary treatment and leaving Queue, Add Next and Start Radio unchanged.
+
 ## 1.1.3-beta.47 Alpine — 21 October 2026
 
 - Apply the selected soft-pill treatment to prominent playback actions: filled Roon purple for Play and a quiet outlined treatment for Queue.

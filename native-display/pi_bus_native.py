@@ -319,7 +319,7 @@ CSS += b"""
 .settings-select popover listview row label { color: #f2f0f4; }
 .settings-select popover listview row:selected { background: #403c55; color: #f2f0f4; }
 .settings-select popover listview row:selected label { color: #f2f0f4; }
-.artist-play, .theme-roon .artist-play { padding: 12px 22px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+.artist-play, .theme-roon .artist-play { padding: 12px 28px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
 .artist-play:hover, .artist-play:active, .artist-play:focus, .theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; color: #111; }
 .queue-pill, .theme-roon .queue-pill { min-height: 52px; padding: 10px 22px; border: 2px solid #55515d; border-radius: 999px; background: transparent; color: #ddd; font-size: 18px; font-weight: 700; }
 .queue-pill:hover, .queue-pill:active, .queue-pill:focus, .theme-roon .queue-pill:hover, .theme-roon .queue-pill:active, .theme-roon .queue-pill:focus { border-color: #77717f; background: #222; color: #fff; }
@@ -368,6 +368,8 @@ CSS += b"""
 .portrait .roon-header, .portrait .roon-page .nav, .portrait .now-playing-content, .portrait .queue-scroll, .portrait .source-view { margin-right: 0; }
 .portrait .now-playing-content { margin: 32px 0 8px 0; }
 .portrait.compact-portrait .now-playing-content { margin-top: 24px; }
+.portrait.large-portrait .artwork-button { margin-bottom: 18px; }
+.portrait.large-portrait .roon-artist { margin-bottom: 12px; }
 .portrait .browser-view { padding-right: 0; }
 .portrait .artwork { min-width: 0; min-height: 0; }
 .portrait .roon-title { font-size: 40px; }
@@ -617,7 +619,7 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #292929; color: #9868F9; font-size: 18px; }
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
-.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 999px; background: #9868F9; color: #111; }
+.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #9868F9; color: #111; }
 popover.sort-menu .track-menu-action { background: transparent; }
 popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
 popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #9868F9; }
@@ -802,7 +804,8 @@ class Display(Gtk.Application):
         widget = self.button(text, callback, css)
         row = Gtk.Box(spacing=8); row.set_halign(Gtk.Align.CENTER)
         large = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
-        row.append(FamilyIcon(name, 36 if large else 24, filled=name == "play" and "primary-play" in css)); row.append(self.label(text))
+        primary_play = name == "play" and "primary-play" in css
+        row.append(FamilyIcon(name, (42 if large else 30) if primary_play else (36 if large else 24), filled=primary_play)); row.append(self.label(text))
         widget.set_child(row)
         widget.set_tooltip_text(text)
         widget.update_property([Gtk.AccessibleProperty.LABEL], [text])
@@ -972,7 +975,7 @@ class Display(Gtk.Application):
         # Ask GTK how much height the actual text and controls need. Long
         # titles must shrink the artwork instead of expanding the window.
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
-        artwork_size = round(min(width - 64, max(160, height - reserved)) * .8) if portrait else (324 if width >= 1200 else min(280, max(220, height - 190)))
+        artwork_size = round(min(width - 64, max(160, height - reserved)) * .8) if portrait else (min(440, max(360, height - 240)) if width >= 1200 else min(280, max(220, height - 190)))
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
         self.volume_row.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.FILL)
         self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1, -1)
@@ -1211,6 +1214,8 @@ class Display(Gtk.Application):
         album_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); album_card.add_css_class("detail-entity"); album_card.add_css_class("detail-album-card"); album_card.set_hexpand(True); album_card.set_valign(Gtk.Align.START); self.detail_album_card = album_card
         self.detail_album_artwork = Gtk.Picture(); self.detail_album_artwork.add_css_class("detail-artwork"); self.detail_album_artwork.set_size_request(420, 420); self.detail_album_artwork.set_content_fit(Gtk.ContentFit.COVER); self.detail_album_artwork.set_can_shrink(True)
         self.detail_album_artwork_frame = Gtk.ScrolledWindow(); self.detail_album_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_album_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_album_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_album_artwork_frame.set_child(self.detail_album_artwork); album_card.append(self.detail_album_artwork_frame)
+        for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):
+            close_artwork = Gtk.GestureClick(); close_artwork.connect("released", lambda *_: self.set_roon_view("now")); artwork_frame.add_controller(close_artwork)
         detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.detail_album_content = detail_content
         detail_content.append(self.label("ALBUM", "detail-section-label"))
         self.detail_title = self.label("Nothing playing", "detail-title"); self.detail_title.set_wrap(True); self.detail_title.set_lines(2); self.detail_title.set_ellipsize(Pango.EllipsizeMode.END); detail_content.append(self.detail_title)
@@ -3058,7 +3063,7 @@ class Display(Gtk.Application):
                     action_icon = FamilyIcon(self.browser_action_icon(item.get("title")), 42)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_hexpand(False); action_frame.set_halign(Gtk.Align.START); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
                 elif album_profile:
-                    action_icon = FamilyIcon("play", 52 if self.window.has_css_class("large-display") else 34)
+                    action_icon = FamilyIcon("play", 60 if self.window.has_css_class("large-display") else 40)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
                 else:
                     picture = Gtk.Picture(); picture.add_css_class("queue-art"); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
