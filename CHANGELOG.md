@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.7-beta.1 Alpine — 22 October 2026
+## 1.1.7-beta.2 Alpine — 22 October 2026
 
 - Give the original 800×480 Touch Display a dedicated density profile with a smaller, higher utility row, larger top navigation, compact shared left-rail rhythm, four-column New Releases and denser Browse, Daily, Genre, loading and Surprise layouts.
 - Keep the complete Now Playing layout allocated behind BlueOS source pages so returning to Roon cannot flash full-width transport controls while artwork loads.

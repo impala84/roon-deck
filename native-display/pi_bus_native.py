@@ -708,11 +708,14 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .settings-controls { padding: 0; }
 .original-landscape .settings-column { padding: 0 3px; }
 .original-landscape .settings-page .setting-line,
-.original-landscape .settings-page .settings-select { min-height: 35px; padding: 2px 8px; }
-.original-landscape .settings-page .settings-theme-choice { min-height: 34px; }
+.original-landscape .settings-page .settings-select { min-height: 31px; padding: 1px 8px; }
+.original-landscape .settings-page .settings-theme-choice { min-height: 28px; padding-top: 1px; padding-bottom: 1px; }
 .original-landscape .settings-page .settings-action { min-height: 41px; }
 .original-landscape .settings-header .settings-utilities button { min-height: 34px; }
 .original-landscape .brightness-setting { padding: 2px 0; }
+.original-landscape .artist-profile { padding-top: 3px; padding-bottom: 2px; }
+.original-landscape .artist-name { font-size: 25px; }
+.original-landscape .artist-play { min-height: 43px; margin-top: 4px; padding-top: 6px; padding-bottom: 6px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -1342,11 +1345,16 @@ class Display(Gtk.Application):
     def configure_settings_layout(self, width, height):
         portrait = height > width
         compact = not portrait and (height <= 600 or width < 1000)
+        original = not portrait and width <= 820 and height <= 500
         self.resize_settings_wordmark(width, height)
         self.settings_controls.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_daily.set_size_request(-1 if portrait else round((width - 56) * .343), -1)
         self.settings_daily.set_hexpand(portrait)
         self.settings_controls.set_spacing(20 if portrait else 18 if compact else round(width * .052))
+        if hasattr(self, "settings_appearance"):
+            self.settings_appearance.set_spacing(6 if original else 12)
+            self.settings_daily.set_spacing(8 if original else 16)
+            self.settings_display_column.set_spacing(8 if original else 16)
         self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_actions.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         if hasattr(self, "touch_bus_pair"):
@@ -1391,7 +1399,7 @@ class Display(Gtk.Application):
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
         self.settings_row_sizes = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
-        appearance = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance.add_css_class("settings-appearance"); appearance.append(self.label("THEME", "eyebrow"))
+        appearance = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance.add_css_class("settings-appearance"); self.settings_appearance = appearance; appearance.append(self.label("THEME", "eyebrow"))
         self.touch_theme_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.touch_theme_buttons = {}
         theme_choices = Gtk.Box(spacing=16); theme_choices.set_homogeneous(True); self.touch_theme_row.append(theme_choices)
         for value, title in (("fresh-mint", "Mint"), ("roon", "Roon")):
@@ -1408,7 +1416,7 @@ class Display(Gtk.Application):
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("DAILY CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
         daily.append(appearance); self.settings_daily = daily; controls.append(daily)
-        display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); display_column.set_hexpand(True); display_column.append(self.label("DISPLAY", "eyebrow"))
+        display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True); display_column.append(self.label("DISPLAY", "eyebrow"))
         self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); display_column.append(self.touch_profile)
         self.touch_orientation = Gtk.DropDown.new_from_strings(["Orientation · Landscape", "Orientation · Portrait"]); self.touch_orientation.add_css_class("settings-select"); display_column.append(self.touch_orientation); controls.append(display_column)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
@@ -2605,7 +2613,8 @@ class Display(Gtk.Application):
         self.browser_artist_scroll.set_visible(bool(profile))
         if not profile: return
         portrait = getattr(self, "responsive_portrait", False)
-        panel.set_size_request(-1 if portrait else 260, -1)
+        original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        panel.set_size_request(-1 if portrait else 230 if original else 260, -1)
         if portrait:
             panel.set_orientation(Gtk.Orientation.HORIZONTAL)
             panel.set_spacing(28)
@@ -2635,7 +2644,7 @@ class Display(Gtk.Application):
             self.browser_artist_scroll.set_max_content_height(size + 40)
         else:
             square = Gtk.AspectFrame(xalign=.5, yalign=.5, ratio=1, obey_child=False)
-            square.set_size_request(200, 200)
+            square.set_size_request(170 if original else 200, 170 if original else 200)
         square.set_halign(Gtk.Align.CENTER); square.set_child(picture); panel.append(square)
         key = profile.get("image_key")
         if key:
@@ -2649,6 +2658,7 @@ class Display(Gtk.Application):
         panel.append(details)
         title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
+        summary_slot.artist_summary_lines = 2 if original else 5
         self.load_artist_notes(name, summary_slot)
         if play_action:
             play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
@@ -2662,7 +2672,7 @@ class Display(Gtk.Application):
                 if slot.get_root() is None: return False
                 while child := slot.get_first_child(): slot.remove(child)
                 summary = self.label(profile.get("writeup") or "No artist summary is available.", "queue-meta")
-                summary.set_wrap(True); summary.set_lines(5); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(52); slot.append(summary)
+                summary.set_wrap(True); summary.set_lines(getattr(slot, "artist_summary_lines", 5)); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(52); slot.append(summary)
                 if profile.get("source"): slot.append(self.label(profile["source"], "artist-source"))
                 return False
             GLib.idle_add(apply)
