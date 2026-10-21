@@ -716,13 +716,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.touch-landscape .roon-page .browser-view { padding-right: 0; }',code)
         self.assertIn('self.browser_scrubber.set_margin_end(18)',code)
 
-    def test_now_playing_uses_local_placeholder_before_artwork_arrives(self):
+    def test_now_playing_keeps_fixed_artwork_while_replacement_arrives(self):
         code=SOURCE.read_text(encoding='utf-8')
         build=code[code.index('    def build_roon'):code.index('    def build_home')]
         apply=code[code.index('    def apply(self,'):code.index('    def apply_artwork',code.index('    def apply(self,'))]
+        missing=code[code.index('    def note_missing_artwork'):code.index('    def open_settings')]
         self.assertIn('self.set_browser_placeholder(self.artwork)',build)
-        self.assertIn('if image_key != self.image_key:',apply)
-        self.assertIn('self.set_browser_placeholder(self.artwork)',apply)
+        self.assertNotIn('self.set_browser_placeholder(self.artwork)',apply)
+        self.assertIn('self.set_browser_placeholder(self.artwork)',missing)
+        self.assertIn('self.artwork.set_paintable(Gdk.Texture.new_from_bytes',code)
 
     def test_mix_action_is_explicit_single_request_and_stale_result_does_not_update_ui(self):
         controls = Mock(); controls.get_first_child.return_value = None

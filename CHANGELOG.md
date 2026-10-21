@@ -6,7 +6,7 @@
 - Add richer Recent, Browse, Daily, New Releases and Surprise workflows with preserved browsing state, configurable return-to-Now-Playing behaviour and stable alphabet scrubbing.
 - Rework Album & Artist details for portrait and landscape, with clearer typography, balanced metadata, artwork-based close targets and a single fixed Browse Artist Albums action.
 - Add prominent, consistent final Play actions; one-percent volume steps; larger brightness interaction; optional touchscreen Bus Times controls; and better settings layouts at every supported viewport.
-- Stabilise Now Playing artwork allocation while restoring its intended scale, prevent transport reflow during artwork loading and extend the startup wordmark hold.
+- Stabilise Now Playing artwork allocation while restoring its intended scale, retain the painted square until a replacement cover is ready, prevent transport reflow and artwork flashes during loading, and extend the startup wordmark hold.
 - Publish a fully verified ARM64 Alpine image for clean installations, including the Original Touch Display profile requested for Raspberry Pi 3 B+ acceptance testing.
 
 ## 1.1.3-beta.49 Alpine — 21 October 2026

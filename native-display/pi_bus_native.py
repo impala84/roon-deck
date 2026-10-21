@@ -1766,12 +1766,13 @@ class Display(Gtk.Application):
         bus_signature = json.dumps(status, sort_keys=True, separators=(",", ":"), default=str)
         if bus_signature != self.bus_signature:
             self.render_bus(status); self.bus_signature = bus_signature
-        # Keep the Now Playing geometry stable while a new cover is fetched.
-        # Clearing to the bundled record-cover asset also prevents the previous
-        # album from lingering during the network/decode interval.
-        if image_key != self.image_key:
-            self.set_browser_placeholder(self.artwork)
-            self.image_key = None
+        # The artwork viewport already reserves the final square before a cover
+        # exists. Keep its current paintable while a replacement downloads and
+        # decode the new cover off-screen; apply_artwork() then swaps it in as a
+        # single GTK update. Clearing here used to expose the placeholder for a
+        # frame when returning from a BluOS input and made the whole player look
+        # as though it had reflowed. A genuinely empty zone still converges on
+        # the fixed-size placeholder via note_missing_artwork().
         self.render_roon(roon)
         if not self.views_prewarmed:
             self.views_prewarmed = True; GLib.idle_add(self.prewarm_views)
