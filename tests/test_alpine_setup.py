@@ -169,8 +169,19 @@ class AlpineSetupTests(unittest.TestCase):
 
     def test_invalid_zone_rotation_and_timezone_are_rejected(self):
         with self.assertRaises(ValueError): self.setup.handle({"action": "roon", "zone": "Missing"})
-        with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "original", "rotation": "90"})
+        with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "original", "rotation": "upsideways"})
         with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "auto", "rotation": "normal", "timezone": "../etc/shadow"})
+
+    def test_original_display_accepts_180_degree_rotation_in_wizard(self):
+        result = self.setup.handle({"action": "orientation", "profile": "original", "rotation": "180"})
+        self.assertTrue(result["progress"]["orientation"])
+        self.assertEqual(result["progress"]["profile"], "original")
+        self.assertEqual(result["progress"]["rotation"], "180")
+        self.assertEqual(result["progress"]["display_orientation"], "landscape")
+        config = self.root / "etc/pi-home"
+        self.assertEqual((config / "display-profile").read_text(), "original")
+        self.assertEqual((config / "display-transform").read_text(), "180")
+        self.assertEqual((config / "display-orientation").read_text(), "landscape")
 
     def test_resume_and_completed_lock(self):
         self.setup.handle({"action": "name", "hostname": "pi-home"})

@@ -850,8 +850,6 @@ class Setup:
             profile = data.get("profile"); rotation = data.get("rotation")
             if not isinstance(profile, str) or not isinstance(rotation, str) or profile not in PROFILES or rotation not in {"normal", "90", "180", "270"}:
                 raise ValueError("Choose a supported display and orientation.")
-            if profile in {"auto", "original"} and rotation != "normal":
-                raise ValueError("Use Normal for automatic/original displays in Alpine Beta.")
             theme = data.get("theme", "roon"); timezone = data.get("timezone", "UTC")
             if theme not in ("roon", "fresh-mint") or not isinstance(timezone, str): raise ValueError("Choose a supported theme and timezone.")
             try: ZoneInfo(timezone)

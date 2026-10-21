@@ -3,6 +3,7 @@
 ## 1.1.4 Alpine — 21 October 2026
 
 - Restore the intended Now Playing cover scale at every 7-inch landscape resolution: 320px at 800×480, 360px at 1024×600 and 440px at 1280×720, while retaining the fixed no-reflow artwork stage.
+- Allow the first-run wizard to apply 180° rotation to the Original Touch Display instead of rejecting it with the obsolete Alpine Beta restriction.
 
 ## 1.1.3 Alpine — 21 October 2026
 
