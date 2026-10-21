@@ -926,7 +926,11 @@ class Display(Gtk.Application):
 
     def discover_utility_icon(self, clock=False):
         compact = getattr(self, "viewport_width", 800) < 1000 and getattr(self, "viewport_height", 480) <= 600
-        size = 30 if compact else 38
+        # The hand-drawn clock has a circular outline that reads larger than the
+        # settings glyph at the same allocation. Give it its final compact size
+        # immediately; the first responsive pass can run before this header is
+        # constructed on the original 800x480 display.
+        size = 22 if clock and compact else 30 if compact else 38
         if not clock:
             icon = FamilyIcon("settings", size)
             icon.add_css_class("settings-icon")
