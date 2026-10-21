@@ -68,8 +68,10 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert display.settings_daily.get_width() <= width // 2, display.settings_daily.get_width()
     if width==800 and height==480:
         assert display.settings_wordmark.get_height() == 26
-        assert max(row.get_width() for row in rows) <= width // 2
-        assert sum(actions) <= width
+        for widget in (*rows, display.settings_actions):
+            bounds = widget.compute_bounds(window)[1]
+            assert bounds.get_x() >= 0, (widget, bounds.get_x())
+            assert bounds.get_x() + bounds.get_width() <= width, (widget, bounds.get_x(), bounds.get_width(), width)
     assert window.get_width() == width and window.get_height() == height, (width,height,window.get_width(),window.get_height())
     output=os.environ.get("PI_HOME_SCREENSHOT_DIR")
     if output:
