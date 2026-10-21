@@ -1,8 +1,8 @@
 # RoonDeck
 
-Alpine testing release: **1.1.3-beta.49**, refining primary Play actions, matching Surprise controls and extending the startup splash. Select Beta explicitly to test; Stable remains 1.1.2.
+The current Alpine stable release is **1.1.3**, with a complete flashable image for clean installations and the accumulated touchscreen, discovery, settings and playback refinements from the 1.1.3 beta cycle.
 
-The current Alpine stable release is **1.1.2**: an in-place correction for 10-inch Touch Display 2 touch rotation. Update through System → Software on the Stable channel, then reboot manually to apply input calibration. Physical touch acceptance is still required. The 1.1.1 full image remains available for fresh installs. Raspberry Pi OS releases remain separate.
+The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
 Beta updates are normally source-only releases; full images are built for stable releases and explicit fresh-install requests. Automated backend, controller, update-safety and native layout checks run, followed by complete image validation with **build_image** enabled. The Alpine updater requires a successful verification run for the exact release commit.
 

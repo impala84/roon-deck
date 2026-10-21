@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.3 Alpine — 21 October 2026
+
+- Promote the complete 1.1.3 touchscreen and controller refinement cycle to Stable, including responsive 7-inch landscape and 10-inch portrait layouts, consistent Roon violet styling, corrected navigation widths and improved touch targets.
+- Add richer Recent, Browse, Daily, New Releases and Surprise workflows with preserved browsing state, configurable return-to-Now-Playing behaviour and stable alphabet scrubbing.
+- Rework Album & Artist details for portrait and landscape, with clearer typography, balanced metadata, artwork-based close targets and a single fixed Browse Artist Albums action.
+- Add prominent, consistent final Play actions; one-percent volume steps; larger brightness interaction; optional touchscreen Bus Times controls; and better settings layouts at every supported viewport.
+- Stabilise Now Playing artwork allocation while restoring its intended scale, prevent transport reflow during artwork loading and extend the startup wordmark hold.
+- Publish a fully verified ARM64 Alpine image for clean installations, including the Original Touch Display profile requested for Raspberry Pi 3 B+ acceptance testing.
+
 ## 1.1.3-beta.49 Alpine — 21 October 2026
 
 - Rebalance primary Play pills with less space before the triangle, retained trailing space, larger text and clearer separation from album metadata.
