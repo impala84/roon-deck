@@ -699,6 +699,17 @@ def get_bytes(url: str, timeout: float = 1.2):
         return None
 
 
+def now_playing_artwork_size(width: int, height: int, portrait: bool, reserved: int = 0) -> int:
+    if portrait:
+        return round(min(width - 64, max(160, height - reserved)) * .8)
+    if width >= 1200:
+        return min(440, max(360, height - 240))
+    # The original 800×480 and intermediate 1024×600 landscape profiles need
+    # an explicit floor. The old 280px cap fought the 324px CSS minimum and the
+    # fixed viewport clipped the cover, making it visibly shrink after reflow.
+    return min(360, max(324, height - 156))
+
+
 class Display(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="org.pihome.Native")
@@ -976,7 +987,7 @@ class Display(Gtk.Application):
         # Ask GTK how much height the actual text and controls need. Long
         # titles must shrink the artwork instead of expanding the window.
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
-        artwork_size = round(min(width - 64, max(160, height - reserved)) * .8) if portrait else (min(440, max(360, height - 240)) if width >= 1200 else min(280, max(220, height - 190)))
+        artwork_size = now_playing_artwork_size(width, height, portrait, reserved)
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
         self.volume_row.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.FILL)
         self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1, -1)
