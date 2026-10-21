@@ -944,6 +944,8 @@ class Display(Gtk.Application):
             else: icon.set_size_request(utility_size, utility_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 26)
+        self.now_playing_content.set_margin_top(3 if not portrait and width >= 1200 else 8)
+        self.now_playing_content.set_margin_bottom(3 if not portrait and width >= 1200 else 8)
         self.now_playing_centre.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
         if hasattr(self, "volume_row"):
             mute_parent = self.mute.get_parent()

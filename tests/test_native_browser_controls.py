@@ -483,6 +483,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(size(1024, 600, False), 360)
         self.assertEqual(size(1280, 720, False), 540)
 
+    def test_touch_landscape_trims_surrounding_margins_instead_of_cover(self):
+        code = SOURCE.read_text()
+        self.assertIn('set_margin_top(3 if not portrait and width >= 1200 else 8)', code)
+        self.assertIn('set_margin_bottom(3 if not portrait and width >= 1200 else 8)', code)
+
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)
