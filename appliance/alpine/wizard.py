@@ -30,7 +30,7 @@ def request(data):
 class Wizard(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="uk.co.dallabs.PiHome.Setup")
-        self.stage = 0; self.progress = {}; self.entry = None; self.shift = False; self.symbols = False; self.busy = False; self.initial = True
+        self.stage = 0; self.progress = {}; self.entry = None; self.fields = []; self.shift = False; self.symbols = False; self.busy = False; self.initial = True
         self.connect("activate", self.activate)
 
     def label(self, text):
@@ -91,7 +91,7 @@ class Wizard(Gtk.Application):
     def field(self, placeholder, text="", secret=False):
         entry = Gtk.Entry(); entry.set_placeholder_text(placeholder); entry.set_text(text); entry.set_visibility(not secret)
         focus = Gtk.EventControllerFocus(); focus.connect("enter", lambda *_: self.select_entry(entry)); entry.add_controller(focus)
-        self.content.append(entry); return entry
+        self.fields.append(entry); self.content.append(entry); return entry
 
     def secret_field(self, placeholder):
         entry = self.field(placeholder, secret=True)
@@ -113,7 +113,7 @@ class Wizard(Gtk.Application):
                 key = self.button(value, lambda c=value: self.type_key(c)); key.add_css_class("key"); key.set_focusable(False); row.append(key)
             self.keyboard.append(row)
         row = Gtk.Box(spacing=3); row.set_homogeneous(True)
-        for title, callback in (("Shift", self.toggle_shift), ("ABC" if self.symbols else "Symbols", self.toggle_symbols), ("Space", lambda: self.type_key(" ")), ("⌫", self.backspace), ("Hide", lambda: self.keyboard.set_visible(False))):
+        for title, callback in (("Shift", self.toggle_shift), ("ABC" if self.symbols else "Symbols", self.toggle_symbols), ("Space", lambda: self.type_key(" ")), ("⌫", self.backspace), ("Next", self.focus_next_entry), ("Hide", lambda: self.keyboard.set_visible(False))):
             key = self.button(title, callback); key.set_focusable(False); row.append(key)
         self.keyboard.append(row)
 
@@ -132,12 +132,19 @@ class Wizard(Gtk.Application):
                 position = self.entry.get_position()
                 if position > 0: self.entry.delete_text(position - 1, position)
 
+    def focus_next_entry(self):
+        if self.entry in self.fields:
+            index = self.fields.index(self.entry) + 1
+            if index < len(self.fields):
+                self.entry = self.fields[index]; self.entry.grab_focus(); return
+        self.keyboard.set_visible(False)
+
     def advance(self, data):
         def saved(result): self.progress = result["progress"]; self.stage += 1; self.refresh()
         self.async_call(data, saved)
 
     def render(self):
-        self.clear(self.content); self.clear(self.footer); self.keyboard.set_visible(False); self.entry = None
+        self.clear(self.content); self.clear(self.footer); self.keyboard.set_visible(False); self.entry = None; self.fields = []
         titles = ["Choose your display", "Name your device", "Connect to your network", "Connect to Roon", "Choose theme and region", "Choose optional software", "Finish setup"]
         self.title.set_text(f"{self.stage + 1}/7 · {titles[self.stage]}")
         if self.progress.get("theme") == "fresh-mint": self.window.add_css_class("mint")

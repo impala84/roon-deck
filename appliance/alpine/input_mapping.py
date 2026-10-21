@@ -19,18 +19,26 @@ MATRICES = {"normal": "1 0 0 0 1 0", "90": "0 1 0 -1 0 1",
             "180": "-1 0 1 0 -1 1", "270": "0 -1 1 1 0 0"}
 
 
+def touch_names(profile):
+    names = ["*Goodix Capacitive TouchScreen"]
+    if profile == "original":
+        # Depending on kernel/overlay generation, the original Raspberry Pi
+        # Touch Display is exposed by either the firmware driver or edt-ft5x06.
+        names.extend(["raspberrypi-ts", "*ft5x06*"])
+    if profile == "touch2-10": names.append("* ili_v3")
+    return names
+
+
 def mapping_rule(output, rotation="normal", profile=None):
     if not re.fullmatch(r"DSI-\d+", output): raise ValueError("Invalid DSI output")
     if rotation not in MATRICES: raise ValueError("Invalid touch rotation")
     # The 5/7-inch Touch Display 2 uses Goodix. The 10-inch uses ILI79600A,
     # whose kernel input name is "<I2C address> ili_v3", not Goodix.
-    names = ["*Goodix Capacitive TouchScreen"]
-    if profile == "touch2-10": names.append("* ili_v3")
     return '# RoonDeck: libinput owns touch rotation; kernel and Cage mapping stay unrotated.\n' + ''.join(
         'ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", '
         f'ENV{{ID_INPUT_TOUCHSCREEN}}=="1", ATTRS{{name}}=="{name}", '
         f'ENV{{WL_OUTPUT}}="", ENV{{LIBINPUT_CALIBRATION_MATRIX}}="{MATRICES[rotation]}"\n'
-        for name in names)
+        for name in touch_names(profile))
 
 
 def touch_present(root):

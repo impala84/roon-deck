@@ -481,7 +481,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         size = native_method("now_playing_artwork_size")
         self.assertEqual(size(800, 480, False), 320)
         self.assertEqual(size(1024, 600, False), 360)
-        self.assertEqual(size(1280, 720, False), 440)
+        self.assertEqual(size(1280, 720, False), 540)
 
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -556,6 +556,19 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('30 if portrait_grid or self.discovery_section == "releases"',source)
         self.assertIn('size = min(212, size)',source)
         self.assertNotIn('MORE RECOMMENDATIONS',source)
+
+    def test_original_landscape_uses_compact_dense_grids(self):
+        monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))
+        monitors = SimpleNamespace(get_n_items=lambda: 1, get_item=lambda _index: monitor)
+        gdk = SimpleNamespace(Display=SimpleNamespace(get_default=lambda: SimpleNamespace(get_monitors=lambda: monitors)))
+        owner = SimpleNamespace(responsive_portrait=False)
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 109))
+        discovery = native_method("discovery_grid_metrics", {"Gdk": gdk})
+        self.assertEqual(discovery(owner, "recent"), (3, 184))
+        self.assertEqual(discovery(owner, "releases"), (3, 190))
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('.compact-landscape .settings-page .settings-action { min-height: 46px;', source)
+        self.assertIn('utility_size = 30 if compact_landscape else 38', source)
 
     def test_daily_lazy_load_uses_each_horizontal_viewport(self):
         source=SOURCE.read_text(encoding="utf-8")

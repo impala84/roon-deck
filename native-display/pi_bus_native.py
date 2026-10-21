@@ -632,6 +632,15 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .compact-landscape .browser-scrubber { min-width: 44px; }
 .compact-landscape .browser-search-entry { min-height: 42px; padding: 4px 10px; font-size: 18px; }
 .compact-landscape .browser-key { min-width: 0; min-height: 32px; padding: 3px; font-size: 14px; }
+.compact-landscape .clock { font-size: 24px; }
+.compact-landscape .settings-page { padding: 8px 12px; }
+.compact-landscape .settings-page .settings-title { font-size: 26px; }
+.compact-landscape .settings-page .settings-version, .compact-landscape .settings-page .settings-diagnostic { font-size: 11px; }
+.compact-landscape .settings-header .settings-utilities button { min-height: 38px; padding: 4px 12px; }
+.compact-landscape .settings-page .setting-line, .compact-landscape .settings-page .settings-select { min-height: 40px; padding: 3px 10px; }
+.compact-landscape .settings-page .settings-action { min-height: 46px; padding: 4px 10px; }
+.compact-landscape .settings-page .settings-theme-choice { min-height: 40px; font-size: 14px; }
+.compact-landscape .settings-page .settings-controls { padding-top: 2px; }
 .compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }
 .compact-detail .detail-close { min-width: 52px; min-height: 52px; padding: 0; }
 .compact-detail .detail-panel { padding: 8px 20px 14px; }
@@ -703,7 +712,9 @@ def now_playing_artwork_size(width: int, height: int, portrait: bool, reserved: 
     if portrait:
         return round(min(width - 64, max(160, height - reserved)) * .8)
     if width >= 1200:
-        return min(440, max(360, height - 240))
+        # The 1280-wide landscape display was designed around a dominant
+        # 540px cover. Do not let unrelated detail-view sizing reduce it.
+        return min(540, max(480, height - 180))
     # The original 800×480 and intermediate 1024×600 landscape profiles need
     # an explicit floor. The old 280px cap fought the 320px CSS minimum and the
     # fixed viewport clipped the cover, making it visibly shrink after reflow.
@@ -847,14 +858,18 @@ class Display(Gtk.Application):
         return panel
 
     def discover_utility_icon(self, clock=False):
+        compact = getattr(self, "viewport_width", 800) < 1000 and getattr(self, "viewport_height", 480) <= 600
+        size = 30 if compact else 38
         if not clock:
-            icon = FamilyIcon("settings", 38)
+            icon = FamilyIcon("settings", size)
             icon.add_css_class("settings-icon")
+            self.utility_icons = getattr(self, "utility_icons", []) + [icon]
             return icon
         # Draw outlines directly: symbolic theme recolouring can fill SVG holes.
-        icon = Gtk.DrawingArea(); icon.set_size_request(36, 38)
+        icon = Gtk.DrawingArea(); icon.set_size_request(size, size)
+        self.utility_icons = getattr(self, "utility_icons", []) + [icon]
         def draw(_area, cr, width, height):
-            cr.save(); cr.translate(width / 2, height / 2); cr.scale(1.12, 1.12)
+            cr.save(); cr.translate(width / 2, height / 2); scale = 1.12 * min(width, height) / 38; cr.scale(scale, scale)
             colour = (.53, .55, .56) if clock else ((.506, .478, .922) if self.settings_data.get("display_theme") == "roon" else (.431, .851, .682))
             cr.set_source_rgb(*colour); cr.set_line_width(2); cr.set_line_join(1); cr.set_line_cap(1)
             if clock:
@@ -923,6 +938,10 @@ class Display(Gtk.Application):
         compact_landscape = not portrait and (height <= 600 or width < 1000)
         for css_class, enabled in (("portrait", portrait), ("display-landscape", not portrait), ("compact-landscape", compact_landscape), ("compact-portrait", portrait and width < 600), ("high-resolution", max(width, height) >= 1200), ("touch-landscape", width >= 1200 and not portrait)):
             (self.window.add_css_class if enabled else self.window.remove_css_class)(css_class)
+        utility_size = 30 if compact_landscape else 38
+        for icon in getattr(self, "utility_icons", []):
+            if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(utility_size)
+            else: icon.set_size_request(utility_size, utility_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 26)
         self.now_playing_centre.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
@@ -1264,11 +1283,12 @@ class Display(Gtk.Application):
 
     def configure_settings_layout(self, width, height):
         portrait = height > width
+        compact = not portrait and (height <= 600 or width < 1000)
         self.resize_settings_wordmark(width, height)
         self.settings_controls.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_daily.set_size_request(-1 if portrait else round((width - 56) * .343), -1)
         self.settings_daily.set_hexpand(portrait)
-        self.settings_controls.set_spacing(20 if portrait else round(width * .052))
+        self.settings_controls.set_spacing(20 if portrait else 18 if compact else round(width * .052))
         self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_actions.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         if hasattr(self, "touch_bus_pair"):
@@ -1284,7 +1304,7 @@ class Display(Gtk.Application):
         elif height > width:
             target_height = 24 if width < 600 else 30
         else:
-            target_height = 32
+            target_height = 26 if width < 1000 else 32
         paintable, target_width = wordmark_paintable(target_height)
         self.settings_wordmark.set_paintable(paintable)
         self.settings_wordmark.set_size_request(target_width, target_height)
@@ -1292,7 +1312,7 @@ class Display(Gtk.Application):
         # The supplied wordmark is drawn to its baseline at the bottom of the
         # SVG. Lift that edge by the adjacent title font's descent so its
         # visible baseline matches GTK labels rather than their bounding box.
-        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 7 if height > width else 8
+        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 7 if height > width else 6 if width < 1000 else 8
         self.settings_wordmark_frame.set_margin_bottom(baseline_lift)
         if hasattr(self, "touch_diagnostics"):
             diagnostics_gap = 5 if max(width, height) >= 1600 else 2
@@ -2662,7 +2682,7 @@ class Display(Gtk.Application):
             gap = 30
             return 3, max(48, (available - gap * 2) // 3)
         available = max(140, width - 266)
-        columns = min(5 if genres else 4, max(1, available // 140))
+        columns = 4 if width < 1000 and width > 600 else min(5 if genres else 4, max(1, available // 140))
         size = max(64, min(212, (available - 16 * (columns - 1)) // columns - 12))
         return columns, size
 
@@ -2680,12 +2700,12 @@ class Display(Gtk.Application):
             return columns, max(64, (available - gap * (columns - 1)) // columns)
         sidebar = section == "recent"
         available = max(300, width - (198 if sidebar else 56))
-        columns = 4 if width >= 1000 else 2
+        columns = 4 if width >= 1000 else 3
         gap = 30 if section == "releases" else 24
         # Browse is the visual benchmark. Recent needs substantially more air
         # around its sidebar, while New Releases can remain a little larger.
         cap = 236 if sidebar else 1000
-        size = max(140, min(cap, (available - gap * (columns - 1)) // columns))
+        size = max(110 if width < 1000 else 140, min(190 if width < 1000 else cap, (available - gap * (columns - 1)) // columns))
         return columns, size
 
     def browser_scrub_changed(self, scale):
@@ -3025,7 +3045,8 @@ class Display(Gtk.Application):
             screen_width = monitor.get_geometry().width if monitor else 800
             portrait = getattr(self, "responsive_portrait", False)
             large_display = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
-            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 135)))
+            compact_landscape = not portrait and getattr(self, "viewport_width", 800) < 1000
+            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 90 if compact_landscape else 135)))
             picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
             square = Gtk.ScrolledWindow(); square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); square.set_propagate_natural_width(False); square.set_propagate_natural_height(False); square.set_min_content_width(size); square.set_max_content_width(size); square.set_min_content_height(size); square.set_max_content_height(size); square.set_size_request(size, size); square.set_halign(Gtk.Align.CENTER); square.set_child(picture)
             stage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL, spacing=38 if portrait else 40); stage.set_halign(Gtk.Align.CENTER); stage.set_valign(Gtk.Align.CENTER)

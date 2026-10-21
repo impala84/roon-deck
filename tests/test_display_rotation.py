@@ -198,12 +198,12 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn("[[ ${profile} == touch2-10 ]] && mode=1200x1920", appliance)
         self.assertIn('(\"high-resolution\", max(width, height) >= 1200)', display)
 
-    def test_landscape_artwork_is_fixed_smaller_and_native_fact_sheet_has_close_button(self):
+    def test_landscape_artwork_is_fixed_and_native_fact_sheet_has_close_button(self):
         display = (ROOT / "native-display" / "pi_bus_native.py").read_text(encoding="utf-8")
         web_html = (ROOT / "roon-controller" / "static" / "index.html").read_text(encoding="utf-8")
         web_js = (ROOT / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn("artwork_size = now_playing_artwork_size(width, height, portrait, reserved)", display)
-        self.assertIn("return min(440, max(360, height - 240))", display)
+        self.assertIn("return min(540, max(480, height - 180))", display)
         self.assertIn("return min(360, max(320, height - 160))", display)
         self.assertIn("self.artwork.set_size_request(artwork_size, artwork_size)", display)
         self.assertIn("self.artwork_button.set_size_request(artwork_size, artwork_size)", display)

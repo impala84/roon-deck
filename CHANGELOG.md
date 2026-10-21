@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5 Alpine — 21 October 2026
+
+- Restore the dominant 540px Now Playing cover on 1280-wide landscape touchscreens without changing the Original Display's 320px cover allocation.
+- Apply the saved 180° calibration matrix to both Original Touch Display driver variants (`raspberrypi-ts` and `ft5x06`) instead of targeting only Touch Display 2 hardware.
+- Add a visible **Next** key to the first-run on-screen keyboard; it advances through the current page's fields and dismisses the keyboard after the last field.
+- Add an Original Display-specific compact pass: smaller settings and clock controls, denser four-column Browse and three-column Discover artwork grids, and a larger Surprise Me preview.
+
 ## 1.1.4 Alpine — 21 October 2026
 
 - Restore the intended Now Playing cover scale at every 7-inch landscape resolution: 320px at 800×480, 360px at 1024×600 and 440px at 1280×720, while retaining the fixed no-reflow artwork stage.

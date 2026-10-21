@@ -625,5 +625,15 @@ class AlpineSetupTests(unittest.TestCase):
             self.assertIn("dtoverlay=vc4-kms-dsi-ili9881-7inch\n", boot)
             for flag in ("swapxy", "invx", "invy"): self.assertNotIn(flag, boot)
 
+    def test_original_display_touch_rule_receives_saved_rotation(self):
+        import sys
+        spec = importlib.util.spec_from_file_location("input_mapping_original", ROOT / "appliance/alpine/input_mapping.py")
+        mapping = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"setup_service": module}): spec.loader.exec_module(mapping)
+        rule = mapping.mapping_rule("DSI-1", "180", "original")
+        self.assertIn('ATTRS{name}=="raspberrypi-ts"', rule)
+        self.assertIn('ATTRS{name}=="*ft5x06*"', rule)
+        self.assertEqual(rule.count('LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1"'), 3)
+
 
 if __name__ == "__main__": unittest.main()
