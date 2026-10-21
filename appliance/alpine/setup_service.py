@@ -628,6 +628,24 @@ class Setup:
             if not state.get("complete"): raise ValueError("Finish setup before controlling the display.")
             display_power(self.root, action != "display_off", data.get("brightness", 100))
             return {"ok": True, "powered": action != "display_off"}
+        if action in {"leds_enable", "leds_disable"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing status lights.")
+            enabled = action == "leds_enable"
+            found = False
+            for led in (self.root / "sys/class/leds").glob("*"):
+                if led.name.lower() not in {"act", "pwr", "led0", "led1"}: continue
+                found = True
+                trigger = led / "trigger"; brightness = led / "brightness"
+                if trigger.exists():
+                    try: trigger.write_text("mmc0" if enabled and led.name.lower() in {"act", "led0"} else "default-on" if enabled else "none", encoding="ascii")
+                    except OSError: pass
+                if brightness.exists():
+                    try: brightness.write_text("1" if enabled else "0", encoding="ascii")
+                    except OSError: pass
+            if not found: raise ValueError("Compatible Raspberry Pi status lights were not found.")
+            marker = self.root / "var/lib/pi-home/leds-enabled"; marker.parent.mkdir(parents=True, exist_ok=True)
+            atomic(marker, "true\n" if enabled else "false\n")
+            return {"ok": True, "enabled": enabled}
         if action == "set_display":
             if not state.get("complete"): raise ValueError("Finish setup before changing the display.")
             profile = str(data.get("profile", "")); orientation = str(data.get("orientation", "")); mounting = str(data.get("mounting", "standard"))

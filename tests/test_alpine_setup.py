@@ -515,6 +515,20 @@ class AlpineSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "between 10 and 100"):
             self.setup.handle({"action": "set_brightness", "brightness": 0})
 
+    def test_status_light_switch_updates_hardware_and_saved_state(self):
+        for name in ("led0", "led1"):
+            led = self.root / "sys/class/leds" / name; led.mkdir(parents=True)
+            (led / "trigger").write_text("none"); (led / "brightness").write_text("1")
+        self.setup.save({"complete": True})
+        self.setup.handle({"action": "leds_disable"})
+        self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
+        self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "none")
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
+        self.setup.handle({"action": "leds_enable"})
+        self.assertEqual((self.root / "sys/class/leds/led0/trigger").read_text(), "mmc0")
+        self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "default-on")
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "true\n")
+
     def test_dsi_orientation_only_selects_current_dsi_mode(self):
         spec = importlib.util.spec_from_file_location("orientation", ROOT / "appliance/alpine/setup_orientation.py")
         orientation = importlib.util.module_from_spec(spec); spec.loader.exec_module(orientation)

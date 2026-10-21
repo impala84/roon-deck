@@ -34,7 +34,7 @@ ALPINE_SYSTEM_ACTIONS = {
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
     "device_credentials", "install_tools", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
-    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure",
+    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable",
 }
 SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
     "leds_enable", "leds_disable",

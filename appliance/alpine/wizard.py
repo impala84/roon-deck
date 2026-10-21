@@ -237,4 +237,12 @@ class Wizard(Gtk.Application):
         self.async_call({"action": "finish", "username": username, "password": password, "confirmation": confirmation, "ssh": ssh}, saved)
 
 
-if __name__ == "__main__": Wizard().run(None)
+def setup_complete(path=Path("/var/lib/pi-home-setup/progress.json")):
+    """Avoid presenting a completed wizard while the slower Pi 3 boots."""
+    try:
+        return bool(json.loads(path.read_text(encoding="utf-8")).get("complete"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+
+
+if __name__ == "__main__" and not setup_complete(): Wizard().run(None)

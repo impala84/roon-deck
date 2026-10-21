@@ -570,10 +570,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 109))
         discovery = native_method("discovery_grid_metrics", {"Gdk": gdk})
         self.assertEqual(discovery(owner, "recent"), (3, 184))
-        self.assertEqual(discovery(owner, "releases"), (3, 190))
+        self.assertEqual(discovery(owner, "releases"), (4, 175))
         source = SOURCE.read_text(encoding="utf-8")
         self.assertIn('.compact-landscape .settings-page .settings-action { min-height: 46px;', source)
-        self.assertIn('utility_size = 30 if compact_landscape else 38', source)
+        self.assertIn('utility_size = 26 if original_landscape else 30 if compact_landscape else 38', source)
+        self.assertIn('.original-landscape .browser-filter { min-height: 39px;', source)
 
     def test_daily_lazy_load_uses_each_horizontal_viewport(self):
         source=SOURCE.read_text(encoding="utf-8")

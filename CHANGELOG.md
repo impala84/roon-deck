@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.1 Alpine — 22 October 2026
+
+- Give the original 800×480 Touch Display a dedicated density profile with a smaller, higher utility row, larger top navigation, compact shared left-rail rhythm, four-column New Releases and denser Browse, Daily, Genre, loading and Surprise layouts.
+- Keep the complete Now Playing layout allocated behind BlueOS source pages so returning to Roon cannot flash full-width transport controls while artwork loads.
+- Use one-percent BlueOS input volume steps, tint the RoonDeck wordmark correctly in Mint, and make the Raspberry Pi status-light switch control the Alpine hardware helper rather than merely changing saved UI state.
+- Skip the completed setup wizard before it creates a window, preventing the transient Welcome screen during slow Raspberry Pi 3 boots.
+
 ## 1.1.6 Alpine — 21 October 2026
 
 - Rotate every libinput-classified touchscreen event node when the explicitly selected display profile is the original Raspberry Pi Touch Display, rather than relying on kernel-driver-specific device names.

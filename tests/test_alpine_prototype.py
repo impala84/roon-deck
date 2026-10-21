@@ -48,7 +48,7 @@ class AlpinePrototypeTests(unittest.TestCase):
     def test_unsupported_privileged_actions_fail_without_queuing(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}):
             state = Path(folder)
-            for action in ("leds_enable",):
+            for action in ("set_rotation",):
                 with self.assertRaisesRegex(ValueError, "unavailable in Alpine Beta"):
                     write_control_request(state, {"action": action})
             self.assertEqual(list(state.iterdir()), [])
