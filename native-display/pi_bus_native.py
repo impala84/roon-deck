@@ -654,7 +654,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .compact-detail .detail-rule { margin: 7px 0; }
 .compact-detail .detail-footer { padding: 10px 20px 20px; }
 .compact-detail .detail-footer .detail-primary-action { min-height: 56px; font-size: 21px; }
-.album-focus-detail .detail-panel { padding: 18px 20px 14px; }
+.album-focus-detail .detail-panel { padding: 10px 20px 13px; }
 .album-focus-detail .detail-entity { padding: 0; }
 .album-focus-detail .detail-album-card { padding: 0; }
 .album-focus-detail .detail-artwork-frame { margin: 0; }
