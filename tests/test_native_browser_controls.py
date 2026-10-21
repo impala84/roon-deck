@@ -479,7 +479,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_landscape_now_playing_artwork_does_not_shrink_below_profile_size(self):
         size = native_method("now_playing_artwork_size")
-        self.assertEqual(size(800, 480, False), 324)
+        self.assertEqual(size(800, 480, False), 320)
         self.assertEqual(size(1024, 600, False), 360)
         self.assertEqual(size(1280, 720, False), 440)
 

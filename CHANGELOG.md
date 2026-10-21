@@ -2,7 +2,7 @@
 
 ## 1.1.4 Alpine — 21 October 2026
 
-- Restore the intended Now Playing cover scale at every 7-inch landscape resolution: 324px at 800×480, 360px at 1024×600 and 440px at 1280×720, while retaining the fixed no-reflow artwork stage.
+- Restore the intended Now Playing cover scale at every 7-inch landscape resolution: 320px at 800×480, 360px at 1024×600 and 440px at 1280×720, while retaining the fixed no-reflow artwork stage.
 
 ## 1.1.3 Alpine — 21 October 2026
 
