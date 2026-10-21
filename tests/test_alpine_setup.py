@@ -631,9 +631,9 @@ class AlpineSetupTests(unittest.TestCase):
         mapping = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {"setup_service": module}): spec.loader.exec_module(mapping)
         rule = mapping.mapping_rule("DSI-1", "180", "original")
-        self.assertIn('ATTRS{name}=="raspberrypi-ts"', rule)
-        self.assertIn('ATTRS{name}=="*ft5x06*"', rule)
-        self.assertEqual(rule.count('LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1"'), 3)
+        self.assertNotIn('ATTRS{name}', rule)
+        self.assertIn('ENV{ID_INPUT_TOUCHSCREEN}=="1"', rule)
+        self.assertEqual(rule.count('LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1"'), 1)
 
 
 if __name__ == "__main__": unittest.main()

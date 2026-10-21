@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.6 Alpine — 21 October 2026
+
+- Rotate every libinput-classified touchscreen event node when the explicitly selected display profile is the original Raspberry Pi Touch Display, rather than relying on kernel-driver-specific device names.
+- Retain the name-scoped calibration rules for Touch Display 2 models so unrelated external touch devices remain untouched.
+
 ## 1.1.5 Alpine — 21 October 2026
 
 - Restore the dominant 540px Now Playing cover on 1280-wide landscape touchscreens without changing the Original Display's 320px cover allocation.
