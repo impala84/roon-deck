@@ -4,5 +4,9 @@ set -eu
 # First boot stays native for orientation selection. Later boots use the saved
 # picture rotation alongside the boot overlay's matching touch rotation.
 python3 /opt/pi-home/appliance/alpine/setup_orientation.py
-python3 /opt/pi-home/appliance/alpine/wizard.py
+# Do not initialise GTK for the first-boot wizard on an installed appliance.
+# The durable marker avoids a transient Welcome window while the Pi 3 is busy.
+if [ ! -e /var/lib/pi-home/setup-complete ] && ! grep -Eq '"complete"[[:space:]]*:[[:space:]]*true' /var/lib/pi-home-setup/progress.json 2>/dev/null; then
+    python3 /opt/pi-home/appliance/alpine/wizard.py
+fi
 exec /opt/pi-home/scripts/pi-bus-cage-launch

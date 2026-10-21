@@ -239,6 +239,8 @@ class Wizard(Gtk.Application):
 
 def setup_complete(path=Path("/var/lib/pi-home-setup/progress.json")):
     """Avoid presenting a completed wizard while the slower Pi 3 boots."""
+    if Path("/var/lib/pi-home/setup-complete").exists():
+        return True
     try:
         return bool(json.loads(path.read_text(encoding="utf-8")).get("complete"))
     except (OSError, ValueError, TypeError, json.JSONDecodeError):

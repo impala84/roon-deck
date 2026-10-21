@@ -672,14 +672,14 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
    rules out of the 1024x600 and larger landscape layouts. */
 .original-landscape .page { padding: 5px 12px 5px; }
 .original-landscape .discover-toolbar { min-height: 44px; margin-bottom: 5px; padding-top: 0; }
-.original-landscape .discover-utility { min-width: 42px; min-height: 38px; padding: 0; }
+.original-landscape .discover-utility { min-width: 34px; min-height: 34px; padding: 0; }
 .original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 2px; font-size: 11px; letter-spacing: .7px; }
 .original-landscape .discover-toolbar .roon-subnav button { border-bottom-width: 2px; }
 .original-landscape .browser-sidebar { min-width: 116px; padding: 4px 6px 2px 0; }
 .original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; }
 .original-landscape .browser-back { min-height: 38px; margin-top: 6px; }
 .original-landscape .browser-main { padding-left: 0; }
-.original-landscape .browser-cover-grid { padding: 1px 1px 10px; }
+.original-landscape .browser-cover-grid { padding: 1px 12px 10px 1px; }
 .original-landscape .browser-cover-card { padding: 2px; }
 .original-landscape .browser-cover-title { padding-top: 4px; font-size: 13px; }
 .original-landscape .browser-cover-title.tile { padding: 5px 4px 6px; font-size: 15px; line-height: 1.05; }
@@ -697,25 +697,34 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .loading-notice { font-size: 15px; }
 .original-landscape .surprise-action { min-width: 62px; min-height: 62px; padding: 5px; }
 .original-landscape .surprise-caption { font-size: 14px; }
-.original-landscape .surprise-title { font-size: 24px; line-height: 1.05; }
+.original-landscape .surprise-title { margin-top: 2px; font-size: 24px; line-height: 1.05; }
 .original-landscape .surprise-artist { font-size: 17px; }
 .original-landscape .now-playing-content { margin-top: 0; margin-bottom: 0; }
 .original-landscape .roon-title { font-size: 34px; }
-.original-landscape .source-step { min-width: 78px; min-height: 78px; border-radius: 39px; font-size: 38px; }
-.original-landscape .source-volume { font-size: 92px; }
-.original-landscape .settings-page { padding: 5px 12px; }
-.original-landscape .settings-card { padding: 5px 8px; border: 0; background: transparent; }
+.original-landscape .now-mute { min-width: 54px; padding-left: 8px; padding-right: 8px; }
+.original-landscape .volume-step { min-width: 36px; min-height: 36px; border-radius: 18px; }
+.original-landscape .source-title { font-size: 22px; font-weight: 600; }
+.original-landscape .source-step { min-width: 62px; min-height: 62px; border-radius: 31px; font-size: 32px; }
+.original-landscape .source-volume { font-size: 98px; font-weight: 430; }
+.original-landscape .settings-page { padding: 10px 12px 6px; }
+.original-landscape .settings-card { padding: 7px 8px; border: 0; background: transparent; }
 .original-landscape .settings-controls { padding: 0; }
 .original-landscape .settings-column { padding: 0 3px; }
 .original-landscape .settings-page .setting-line,
-.original-landscape .settings-page .settings-select { min-height: 31px; padding: 1px 8px; }
-.original-landscape .settings-page .settings-theme-choice { min-height: 28px; padding-top: 1px; padding-bottom: 1px; }
+.original-landscape .settings-page .settings-select { min-height: 34px; padding: 2px 8px; }
+.original-landscape .settings-page .settings-theme-choice { min-height: 31px; padding-top: 2px; padding-bottom: 2px; }
 .original-landscape .settings-page .settings-action { min-height: 41px; }
 .original-landscape .settings-header .settings-utilities button { min-height: 34px; }
 .original-landscape .brightness-setting { padding: 2px 0; }
-.original-landscape .artist-profile { padding-top: 3px; padding-bottom: 2px; }
+.original-landscape .artist-profile { padding: 3px 10px 4px 0; }
 .original-landscape .artist-name { font-size: 25px; }
 .original-landscape .artist-play { min-height: 43px; margin-top: 4px; padding-top: 6px; padding-bottom: 6px; }
+.original-landscape.compact-detail .detail-header { min-height: 54px; padding: 5px 20px 0; }
+.original-landscape.compact-detail .detail-close { min-width: 44px; min-height: 44px; }
+.original-landscape.compact-detail .detail-close-glyph { min-width: 36px; min-height: 36px; }
+.original-landscape.compact-detail .detail-panel { padding-top: 3px; }
+.original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
+.original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -987,20 +996,22 @@ class Display(Gtk.Application):
         previous = getattr(self, "responsive_portrait", None)
         self.responsive_portrait = portrait
         self.viewport_width, self.viewport_height = width, height
+        original_landscape = not portrait and width <= 820 and height <= 500
         for control in (self.source_down, self.source_up):
-            control.set_size_request(64 if portrait and width < 600 else 112, 64 if portrait and width < 600 else 112)
-        self.source_volume.set_size_request(180 if portrait and width < 600 else 230, -1)
+            source_size = 64 if portrait and width < 600 else 62 if original_landscape else 112
+            control.set_size_request(source_size, source_size)
+        self.source_volume.set_size_request(180 if portrait and width < 600 else 170 if original_landscape else 230, -1)
         large_display = min(width, height) >= 1000
         (self.window.add_css_class if large_display else self.window.remove_css_class)("large-display")
         (self.window.add_css_class if portrait and width >= 1000 else self.window.remove_css_class)("large-portrait")
         compact_landscape = not portrait and (height <= 600 or width < 1000)
-        original_landscape = not portrait and width <= 820 and height <= 500
         for css_class, enabled in (("portrait", portrait), ("display-landscape", not portrait), ("compact-landscape", compact_landscape), ("original-landscape", original_landscape), ("compact-portrait", portrait and width < 600), ("high-resolution", max(width, height) >= 1200), ("touch-landscape", width >= 1200 and not portrait)):
             (self.window.add_css_class if enabled else self.window.remove_css_class)(css_class)
         utility_size = 26 if original_landscape else 30 if compact_landscape else 38
         for icon in getattr(self, "utility_icons", []):
-            if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(utility_size)
-            else: icon.set_size_request(utility_size, utility_size)
+            icon_size = 22 if original_landscape and icon is getattr(self, "music_clock_icon", None) else utility_size
+            if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(icon_size)
+            else: icon.set_size_request(icon_size, icon_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
         self.now_playing_content.set_margin_top(3 if not portrait and width >= 1200 else 8)
@@ -1090,7 +1101,7 @@ class Display(Gtk.Application):
         self.detail_album_card.set_spacing(28 if album_focus_detail else 8)
         self.detail_album_content.set_hexpand(album_focus_detail)
         self.detail_album_content.set_valign(Gtk.Align.START)
-        detail_size = max(180, min(round((width - 100) / 2), 500)) if portrait else (max(240, min(round(width * .37), height - 190, 500)) if album_focus_detail else max(220, min(round((width - 260) / 2), height - 300, 460)))
+        detail_size = max(180, min(round((width - 100) / 2), 500)) if portrait else (320 if original_landscape else max(240, min(round(width * .37), height - 190, 500)) if album_focus_detail else max(220, min(round((width - 260) / 2), height - 300, 460)))
         self.detail_album_artwork.set_size_request(detail_size, detail_size)
         self.detail_artist_artwork.set_size_request(detail_size, detail_size)
         for viewport in (self.detail_album_artwork_frame, self.detail_artist_artwork_frame):
@@ -1101,8 +1112,9 @@ class Display(Gtk.Application):
         for label in (self.detail_artist_writeup, self.detail_writeup):
             label.set_lines(5 if album_focus_detail else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail else Pango.EllipsizeMode.NONE)
+        self.detail_facts.set_visible(not original_landscape)
         self.detail_tracks.set_visible(False)
-        close_size = 48 if album_focus_detail else 72 if min(width, height) >= 1000 else 56
+        close_size = 44 if original_landscape else 48 if album_focus_detail else 72 if min(width, height) >= 1000 else 56
         self.detail_close.set_size_request(close_size, close_size)
         self.detail_close.set_halign(Gtk.Align.CENTER); self.detail_close.set_valign(Gtk.Align.CENTER)
         if previous is not None and previous != portrait:
@@ -1352,9 +1364,9 @@ class Display(Gtk.Application):
         self.settings_daily.set_hexpand(portrait)
         self.settings_controls.set_spacing(20 if portrait else 18 if compact else round(width * .052))
         if hasattr(self, "settings_appearance"):
-            self.settings_appearance.set_spacing(6 if original else 12)
-            self.settings_daily.set_spacing(8 if original else 16)
-            self.settings_display_column.set_spacing(8 if original else 16)
+            self.settings_appearance.set_spacing(8 if original else 12)
+            self.settings_daily.set_spacing(10 if original else 16)
+            self.settings_display_column.set_spacing(10 if original else 16)
         self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_actions.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         if hasattr(self, "touch_bus_pair"):
@@ -2384,7 +2396,7 @@ class Display(Gtk.Application):
         if self.discovery_section == "daily" and not portrait_grid:
             columns, size = self.browser_grid_metrics(); size = min(212, size)
             if getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500:
-                size = max(128, size)
+                size = max(136, size)
         else:
             columns, size = self.discovery_grid_metrics(self.discovery_section)
         content = self.discovery_list
@@ -2404,7 +2416,7 @@ class Display(Gtk.Application):
             visible_items = list(items)
             original = not portrait_grid and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             column_spacing = 14 if original and self.discovery_section == "releases" else 30 if portrait_grid or self.discovery_section == "releases" else 18 if daily else 24
-            grid = Gtk.Grid(column_spacing=column_spacing, row_spacing=14 if original else 18 if daily else 20); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(True); grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
+            grid = Gtk.Grid(column_spacing=column_spacing, row_spacing=14 if original else 18 if daily else 20); grid.set_column_homogeneous(original and self.discovery_section == "releases"); grid.set_halign(Gtk.Align.FILL if original and self.discovery_section == "releases" else Gtk.Align.START); grid.set_hexpand(True); grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
             track = ElasticCarouselTrack() if daily and not portrait_grid else None
             section_cards = []
             if track: track.add_css_class("daily-track"); track.set_margin_end(0)
@@ -2614,14 +2626,14 @@ class Display(Gtk.Application):
         if not profile: return
         portrait = getattr(self, "responsive_portrait", False)
         original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-        panel.set_size_request(-1 if portrait else 230 if original else 260, -1)
-        if portrait:
+        panel.set_size_request(-1 if portrait or original else 260, -1)
+        if portrait or original:
             panel.set_orientation(Gtk.Orientation.HORIZONTAL)
-            panel.set_spacing(28)
+            panel.set_spacing(18 if original else 28)
             self.browser_artist_scroll.set_vexpand(False)
             self.browser_artist_scroll.set_valign(Gtk.Align.START)
             self.browser_artist_scroll.set_propagate_natural_height(True)
-            self.browser_artist_scroll.set_min_content_height(240)
+            self.browser_artist_scroll.set_min_content_height(176 if original else 240)
         else:
             panel.set_orientation(Gtk.Orientation.VERTICAL)
             self.browser_artist_scroll.set_vexpand(True)
@@ -2642,6 +2654,13 @@ class Display(Gtk.Application):
             square.set_valign(Gtk.Align.CENTER)
             self.browser_artist_scroll.set_min_content_height(size + 40)
             self.browser_artist_scroll.set_max_content_height(size + 40)
+        elif original:
+            square = Gtk.ScrolledWindow()
+            square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+            square.set_propagate_natural_width(False); square.set_propagate_natural_height(False)
+            square.set_min_content_width(170); square.set_max_content_width(170)
+            square.set_min_content_height(170); square.set_max_content_height(170)
+            square.set_size_request(170, 170)
         else:
             square = Gtk.AspectFrame(xalign=.5, yalign=.5, ratio=1, obey_child=False)
             square.set_size_request(170 if original else 200, 170 if original else 200)
@@ -2656,13 +2675,13 @@ class Display(Gtk.Application):
         details.set_valign(Gtk.Align.CENTER)
         details.set_hexpand(True)
         panel.append(details)
-        title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
+        title = self.label(name, "artist-name", 0 if portrait or original else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
         summary_slot.artist_summary_lines = 2 if original else 5
         self.load_artist_notes(name, summary_slot)
         if play_action:
             play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
-            play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)
+            play.set_halign(Gtk.Align.START if portrait or original else Gtk.Align.CENTER); details.append(play)
 
     def load_artist_notes(self, name, slot):
         status = self.label("Loading artist summary…", "queue-meta"); status.set_wrap(True); slot.append(status)
@@ -2758,6 +2777,13 @@ class Display(Gtk.Application):
             available = width - margin * 2 - (80 if not genres and (self.browser_state or {}).get("alpha_scrub") else 0)
             gap = 30
             return 3, max(48, (available - gap * 2) // 3)
+        viewport_height = getattr(self, "viewport_height", None)
+        original = width <= 820 and viewport_height is not None and viewport_height <= 500
+        if original:
+            # Measured 800px budget includes page (24), the rail's realised
+            # 122px, 44px scrubber, scroller chrome and the grid safety gutter.
+            available = max(140, width - 244)
+            return 4, max(64, (available - 12 * 3) // 4)
         available = max(140, width - 266)
         columns = 4 if width < 1000 and width > 600 else min(5 if genres else 4, max(1, available // 140))
         size = max(64, min(212, (available - 16 * (columns - 1)) // columns - 12))
@@ -3113,20 +3139,22 @@ class Display(Gtk.Application):
             items = [item for item in items if item is not artist_play]
         self.browser_list.set_valign(Gtk.Align.START if data.get("layout") == "list" else Gtk.Align.FILL)
         browser_content = self.browser_artist_scroll.get_parent()
-        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
+        original_artist = bool(data.get("artist_profile")) and not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and (getattr(self, "responsive_portrait", False) or original_artist) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = data.get("layout") or "list"
         if items and data.get("surprise_preview"):
-            album = items[0]; preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
-            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if getattr(self, "responsive_portrait", False) else 12)
+            album = items[0]
             monitor = Gdk.Display.get_default().get_monitors().get_item(0)
             screen_width = monitor.get_geometry().width if monitor else 800
             portrait = getattr(self, "responsive_portrait", False)
             large_display = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
             compact_landscape = not portrait and getattr(self, "viewport_width", 800) < 1000
             original = compact_landscape and screen_width <= 820
-            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 330 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 72 if original else 90 if compact_landscape else 135)))
+            preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
+            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 0 if original else 12)
+            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 330 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 45 if original else 90 if compact_landscape else 135)))
             picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
             square = Gtk.ScrolledWindow(); square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); square.set_propagate_natural_width(False); square.set_propagate_natural_height(False); square.set_min_content_width(size); square.set_max_content_width(size); square.set_min_content_height(size); square.set_max_content_height(size); square.set_size_request(size, size); square.set_halign(Gtk.Align.CENTER); square.set_child(picture)
             stage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL, spacing=38 if portrait else 40); stage.set_halign(Gtk.Align.CENTER); stage.set_valign(Gtk.Align.CENTER)
@@ -3157,6 +3185,10 @@ class Display(Gtk.Application):
         elif items and layout in {"covers", "tiles"}:
             portrait = getattr(self, "responsive_portrait", False)
             grid = Gtk.Grid(column_spacing=24 if portrait else 16, row_spacing=18 if portrait else 24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(True); grid.set_halign(Gtk.Align.FILL); grid.set_hexpand(True); columns = 5 if layout == "tiles" and active_section == "genres" else 4
+            original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+            if original:
+                grid.set_column_spacing(12); grid.set_row_spacing(12)
+                grid.set_halign(Gtk.Align.START); grid.set_hexpand(False)
             if portrait:
                 grid.set_column_spacing(30)
                 grid.set_row_spacing(30)

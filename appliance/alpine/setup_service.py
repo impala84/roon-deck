@@ -26,6 +26,35 @@ ROON_BRIDGE_URL = "https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.ta
 UPDATE_CHECK_CRON = "0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check"
 
 
+def apply_status_lights(root, enabled):
+    """Apply and verify the persisted LED preference against every Pi alias."""
+    root = Path(root)
+    found = []
+    failures = []
+    for led in (root / "sys/class/leds").glob("*"):
+        if led.name.lower() not in {"act", "pwr", "led0", "led1"}: continue
+        found.append(led.name)
+        trigger = led / "trigger"; brightness = led / "brightness"
+        try:
+            if trigger.exists():
+                if enabled:
+                    choices = trigger.read_text(encoding="ascii", errors="ignore").replace("[", "").replace("]", "").split()
+                    preferred = ("mmc0", "disk-activity", "activity") if led.name.lower() in {"act", "led0"} else ("default-on", "input")
+                    trigger.write_text(next((item for item in preferred if item in choices), preferred[0]), encoding="ascii")
+                else:
+                    trigger.write_text("none", encoding="ascii")
+            if brightness.exists():
+                maximum = led / "max_brightness"
+                on_value = maximum.read_text(encoding="ascii").strip() if enabled and maximum.exists() else "1" if enabled else "0"
+                brightness.write_text(on_value, encoding="ascii")
+                if not enabled and brightness.read_text(encoding="ascii").strip() != "0": failures.append(led.name)
+        except OSError:
+            failures.append(led.name)
+    if not found: raise ValueError("Compatible Raspberry Pi status lights were not found.")
+    if failures: raise ValueError("The Raspberry Pi status lights could not be changed: " + ", ".join(sorted(set(failures))))
+    return found
+
+
 def ensure_daily_update_check(root=Path("/")):
     """Install one quiet 03:00 release check without disturbing other jobs."""
     path = Path(root) / "etc/crontabs/root"
@@ -395,6 +424,10 @@ class Setup:
         self.update_process = None
         self.progress = self.root / "var/lib/pi-home-setup/progress.json"
         self.progress.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        led_preference = self.root / "var/lib/pi-home/leds-enabled"
+        if led_preference.exists():
+            try: apply_status_lights(self.root, led_preference.read_text(encoding="ascii").strip() == "true")
+            except (OSError, ValueError): pass
 
     def roon_state(self):
         try:
@@ -631,18 +664,7 @@ class Setup:
         if action in {"leds_enable", "leds_disable"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing status lights.")
             enabled = action == "leds_enable"
-            found = False
-            for led in (self.root / "sys/class/leds").glob("*"):
-                if led.name.lower() not in {"act", "pwr", "led0", "led1"}: continue
-                found = True
-                trigger = led / "trigger"; brightness = led / "brightness"
-                if trigger.exists():
-                    try: trigger.write_text("mmc0" if enabled and led.name.lower() in {"act", "led0"} else "default-on" if enabled else "none", encoding="ascii")
-                    except OSError: pass
-                if brightness.exists():
-                    try: brightness.write_text("1" if enabled else "0", encoding="ascii")
-                    except OSError: pass
-            if not found: raise ValueError("Compatible Raspberry Pi status lights were not found.")
+            apply_status_lights(self.root, enabled)
             marker = self.root / "var/lib/pi-home/leds-enabled"; marker.parent.mkdir(parents=True, exist_ok=True)
             atomic(marker, "true\n" if enabled else "false\n")
             return {"ok": True, "enabled": enabled}
@@ -914,6 +936,8 @@ class Setup:
             state["ssh"] = bool(data.get("ssh", True)); state["username"] = username
             self.run(["rc-service", "pi-home-api", "restart"])
             state["complete"] = True
+            (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
+            atomic(self.root / "var/lib/pi-home/setup-complete", "true\n", 0o600)
         else: raise ValueError("Unknown setup action.")
         self.save(state)
         return {"ok": True, "progress": state}

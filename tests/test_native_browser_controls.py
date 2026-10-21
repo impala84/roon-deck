@@ -566,8 +566,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))
         monitors = SimpleNamespace(get_n_items=lambda: 1, get_item=lambda _index: monitor)
         gdk = SimpleNamespace(Display=SimpleNamespace(get_default=lambda: SimpleNamespace(get_monitors=lambda: monitors)))
-        owner = SimpleNamespace(responsive_portrait=False)
-        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 109))
+        owner = SimpleNamespace(responsive_portrait=False, viewport_height=480)
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 130))
         discovery = native_method("discovery_grid_metrics", {"Gdk": gdk})
         self.assertEqual(discovery(owner, "recent"), (3, 184))
         self.assertEqual(discovery(owner, "releases"), (4, 175))
@@ -575,6 +575,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.compact-landscape .settings-page .settings-action { min-height: 46px;', source)
         self.assertIn('utility_size = 26 if original_landscape else 30 if compact_landscape else 38', source)
         self.assertIn('.original-landscape .browser-filter { min-height: 39px;', source)
+        session = (SOURCE.parents[1] / "appliance/alpine/display-session").read_text(encoding="utf-8")
+        self.assertIn('/var/lib/pi-home/setup-complete', session)
+        self.assertIn('"complete"[[:space:]]*:[[:space:]]*true', session)
 
     def test_daily_lazy_load_uses_each_horizontal_viewport(self):
         source=SOURCE.read_text(encoding="utf-8")
@@ -847,7 +850,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('art_slot.set_max_content_width(84)', code)
         self.assertIn('"ARTIST ALBUMS", "browser-section"', code)
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
-        self.assertIn('play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)', code)
+        self.assertIn('play.set_halign(Gtk.Align.START if portrait or original else Gtk.Align.CENTER); details.append(play)', code)
 
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):
         code = SOURCE.read_text(encoding='utf-8')

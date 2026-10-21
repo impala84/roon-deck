@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.3 Alpine — 22 October 2026
+
+- Recompose Original Display artist browsing as a compact horizontal artist header followed by a full-width album list, and enlarge Browse covers while reserving a real gutter for the alphabet scrubber.
+- Rebalance the Original Display clock, Daily carousel, equal-width New Releases grid, Surprise preview, album fact sheet, Now Playing volume row, source controls and Settings spacing.
+- Persist setup completion outside the transient wizard progress file so completed appliances never initialise the Welcome window during boot.
+- Reapply the saved Raspberry Pi LED preference whenever the privileged helper starts and report hardware write failures instead of silently claiming success.
+
 ## 1.1.7-beta.2 Alpine — 22 October 2026
 
 - Give the original 800×480 Touch Display a dedicated density profile with a smaller, higher utility row, larger top navigation, compact shared left-rail rhythm, four-column New Releases and denser Browse, Daily, Genre, loading and Surprise layouts.

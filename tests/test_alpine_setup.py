@@ -41,6 +41,7 @@ class AlpineSetupTests(unittest.TestCase):
         boot = (self.root / "boot/config.txt").read_text()
         self.assertIn("ili79600-10-1inch\n", boot); self.assertNotIn("swapxy", boot); self.assertIn("kernel=vmlinuz-rpi", boot)
         self.assertNotIn("password", self.setup.progress.read_text())
+        self.assertEqual((self.root / "var/lib/pi-home/setup-complete").read_text(), "true\n")
         env = self.root / "etc/pi-home/secrets.env"
         self.assertIn("ADMIN_PASSWORD=my-private-password", env.read_text()); self.assertEqual(env.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.run.call_args.args[0], ["rc-service", "pi-home-api", "restart"])
@@ -528,6 +529,15 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual((self.root / "sys/class/leds/led0/trigger").read_text(), "mmc0")
         self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "default-on")
         self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "true\n")
+
+    def test_disabled_status_lights_are_reapplied_when_helper_restarts(self):
+        for name in ("led0", "led1"):
+            led = self.root / "sys/class/leds" / name; led.mkdir(parents=True)
+            (led / "trigger").write_text("none"); (led / "brightness").write_text("1")
+        marker = self.root / "var/lib/pi-home/leds-enabled"; marker.parent.mkdir(parents=True); marker.write_text("false\n")
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
+        self.assertEqual((self.root / "sys/class/leds/led1/brightness").read_text(), "0")
 
     def test_dsi_orientation_only_selects_current_dsi_mode(self):
         spec = importlib.util.spec_from_file_location("orientation", ROOT / "appliance/alpine/setup_orientation.py")
