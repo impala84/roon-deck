@@ -457,6 +457,12 @@ display.artwork.set_filename(str(fixture_art("now-playing", "NOW PLAYING")))
 display.adapt_display()
 display.render_bluos_inputs({"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}]}, True)
 capture("now-playing")
+if (screen_width, screen_height) == (800, 480):
+    assert display.artwork_button.get_width() == 320, display.artwork_button.get_width()
+    assert display.artwork_button.get_height() == 320, display.artwork_button.get_height()
+if (screen_width, screen_height) == (1280, 720):
+    assert display.artwork_button.get_width() == 540, display.artwork_button.get_width()
+    assert display.artwork_button.get_height() == 540, display.artwork_button.get_height()
 display.detail_artist_profile_name = "Emancipator"
 display.detail_artist_profile = {"full_writeup": "Emancipator is an American electronic producer known for richly layered downtempo compositions.", "source": "Wikipedia", "type": "Person", "area": "Portland", "country": "US", "formed": "2003", "genres": ["downtempo", "electronic"]}
 display.render_details({"status":"ready", "album":"Soon It Will Be Cold Enough", "artist":"Emancipator", "subtitle":"2006", "metadata":{"full_writeup":"The debut album blends acoustic instrumentation, field recordings and patient electronic rhythms into a cinematic whole.", "writeup_source":"Wikipedia", "release_date":"2006-01-17", "genres":["Electronic", "Downtempo"], "type":"Album", "label":"Loci Records", "format":"CD", "track_count":3}, "tracks":[{"title":"Eve"},{"title":"Soon It Will Be Cold Enough"},{"title":"First Snow"}]})

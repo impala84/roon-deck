@@ -37,7 +37,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         if width<600: window.add_css_class("compact-portrait")
     elif width>=1200: window.add_css_class("touch-landscape")
     display.configure_settings_layout(width,height)
-    expected_logo_height = 44 if max(width,height)>=1600 else 43 if width>=1200 and width>height else 24 if height>width and width<600 else 30 if height>width else 32
+    expected_logo_height = 44 if max(width,height)>=1600 else 43 if width>=1200 and width>height else 24 if height>width and width<600 else 30 if height>width else 26 if (width,height)==(800,480) else 32
     logo_width, logo_height = display.settings_wordmark.get_size_request()
     assert logo_height == expected_logo_height, (width,height,logo_height)
     assert logo_width < width * .35, (width,height,logo_width)
@@ -66,6 +66,10 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     assert max(theme_widths)-min(theme_widths)<=1, theme_widths
     if width==1280 and height==720:
         assert display.settings_daily.get_width() <= width // 2, display.settings_daily.get_width()
+    if width==800 and height==480:
+        assert display.settings_wordmark.get_height() == 26
+        assert max(row.get_width() for row in rows) <= width // 2
+        assert sum(actions) <= width
     assert window.get_width() == width and window.get_height() == height, (width,height,window.get_width(),window.get_height())
     output=os.environ.get("PI_HOME_SCREENSHOT_DIR")
     if output:
