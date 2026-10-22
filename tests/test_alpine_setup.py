@@ -528,6 +528,7 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
         self.assertIn("dtparam=act_led_trigger=none", (boot / "config.txt").read_text())
         self.assertIn("dtparam=pwr_led_trigger=none", (boot / "config.txt").read_text())
+        self.assertIn("[all]", (boot / "config.txt").read_text())
         self.setup.handle({"action": "leds_enable"})
         self.assertEqual((self.root / "sys/class/leds/led0/trigger").read_text(), "mmc0")
         self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "default-on")
@@ -542,6 +543,23 @@ class AlpineSetupTests(unittest.TestCase):
         module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
         self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
         self.assertEqual((self.root / "sys/class/leds/led1/brightness").read_text(), "0")
+
+    def test_completed_install_without_led_marker_defaults_off(self):
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True); (boot / "config.txt").write_text("[pi4]\narm_boost=1\n")
+        complete = self.root / "var/lib/pi-home/setup-complete"; complete.parent.mkdir(parents=True); complete.write_text("true\n")
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
+        config = (boot / "config.txt").read_text()
+        self.assertIn("[all]\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none", config)
+
+    def test_status_lights_are_retried_after_boot_drivers_settle(self):
+        with patch.object(module.time, "sleep") as sleep, patch.object(
+            module, "apply_status_lights", side_effect=[ValueError("not ready"), ["ACT", "PWR"], ["ACT", "PWR"]]
+        ) as apply:
+            module.reapply_status_lights(self.root, False, delays=(1, 2, 3))
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2, 3])
+        self.assertEqual(apply.call_count, 3)
+        apply.assert_called_with(self.root, False, persist=False)
 
     def test_completed_legacy_setup_gets_durable_boot_marker(self):
         progress = self.root / "var/lib/pi-home-setup/progress.json"

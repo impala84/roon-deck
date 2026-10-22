@@ -14,6 +14,7 @@ import socket
 import struct
 import subprocess
 import threading
+import time
 import tempfile
 import tarfile
 import urllib.request
@@ -35,14 +36,18 @@ def persist_status_light_boot(root, enabled):
     text = config.read_text(encoding="utf-8")
     text = re.sub(rf"\n?{re.escape(LED_CONFIG_BEGIN)}.*?{re.escape(LED_CONFIG_END)}\n?", "\n", text, flags=re.S).rstrip() + "\n"
     if not enabled:
-        text += f"{LED_CONFIG_BEGIN}\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none\n{LED_CONFIG_END}\n"
+        # config.txt may finish inside a model-specific section.  Always reset
+        # to [all], otherwise an update can appear to save the preference while
+        # silently applying it only to another Raspberry Pi model.
+        text += f"{LED_CONFIG_BEGIN}\n[all]\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none\n{LED_CONFIG_END}\n"
     atomic(config, text)
 
 
-def apply_status_lights(root, enabled):
+def apply_status_lights(root, enabled, persist=True):
     """Apply and verify the persisted LED preference against every Pi alias."""
     root = Path(root)
-    persist_status_light_boot(root, enabled)
+    if persist:
+        persist_status_light_boot(root, enabled)
     found = []
     failures = []
     for led in (root / "sys/class/leds").glob("*"):
@@ -67,6 +72,16 @@ def apply_status_lights(root, enabled):
     if not found: raise ValueError("Compatible Raspberry Pi status lights were not found.")
     if failures: raise ValueError("The Raspberry Pi status lights could not be changed: " + ", ".join(sorted(set(failures))))
     return found
+
+
+def reapply_status_lights(root, enabled, delays=(2, 8, 20)):
+    """Reassert the preference after udev and the firmware LED driver settle."""
+    for delay in delays:
+        time.sleep(delay)
+        try:
+            apply_status_lights(root, enabled, persist=False)
+        except (OSError, ValueError):
+            continue
 
 
 def ensure_daily_update_check(root=Path("/")):
@@ -446,9 +461,17 @@ class Setup:
                     atomic(complete_marker, "true\n", 0o600)
             except (OSError, ValueError, TypeError, json.JSONDecodeError): pass
         led_preference = self.root / "var/lib/pi-home/leds-enabled"
+        if not led_preference.exists() and complete_marker.exists():
+            led_preference.parent.mkdir(parents=True, exist_ok=True)
+            atomic(led_preference, "false\n", 0o600)
         if led_preference.exists():
-            try: apply_status_lights(self.root, led_preference.read_text(encoding="ascii").strip() == "true")
+            enabled = led_preference.read_text(encoding="ascii").strip() == "true"
+            # Persist first, even if sysfs LEDs have not appeared yet.
+            persist_status_light_boot(self.root, enabled)
+            try: apply_status_lights(self.root, enabled)
             except (OSError, ValueError): pass
+            if self.root == Path("/"):
+                threading.Thread(target=reapply_status_lights, args=(self.root, enabled), daemon=True).start()
 
     def roon_state(self):
         try:

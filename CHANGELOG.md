@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.8 Alpine — 23 October 2026
+
+- Default completed Alpine installations without a saved status-light setting to
+  the documented off state, including devices upgraded from older releases.
+- Write the ACT/PWR boot parameters in an explicit `[all]` section so a preceding
+  model-specific section cannot silently scope them to the wrong Raspberry Pi.
+- Reapply the saved LED state after udev and the firmware LED driver have settled,
+  preventing their boot-time triggers from restoring the red and green lights.
+
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 
 - Expands and top-aligns the original-display Browse viewport across albums, artists, genres, playlists and their detail pages, with the sidebar, artwork grid and scrubber sharing one top edge.
