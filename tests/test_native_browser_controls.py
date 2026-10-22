@@ -567,7 +567,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         monitors = SimpleNamespace(get_n_items=lambda: 1, get_item=lambda _index: monitor)
         gdk = SimpleNamespace(Display=SimpleNamespace(get_default=lambda: SimpleNamespace(get_monitors=lambda: monitors)))
         owner = SimpleNamespace(responsive_portrait=False, viewport_height=480)
-        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 130))
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 128))
         discovery = native_method("discovery_grid_metrics", {"Gdk": gdk})
         self.assertEqual(discovery(owner, "recent"), (3, 184))
         self.assertEqual(discovery(owner, "releases"), (4, 175))

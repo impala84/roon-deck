@@ -187,6 +187,22 @@ def activate(target):
     temporary.replace(APP)
 
 
+def migrate_completed_setup():
+    """Give pre-marker installations the root-readable boot completion flag."""
+    marker = STATE / "setup-complete"
+    if marker.exists(): return False
+    legacy = STATE.with_name("pi-home-setup") / "progress.json"
+    try:
+        complete = bool(json.loads(legacy.read_text(encoding="utf-8")).get("complete"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    if not complete: return False
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    temporary = marker.with_suffix(".tmp")
+    temporary.write_text("true\n", encoding="ascii"); temporary.chmod(0o600); temporary.replace(marker)
+    return True
+
+
 def healthy(expected_sha=None):
     for _ in range(30):
         try:
@@ -284,6 +300,7 @@ def update():
         APP.rename(previous)
     try:
         activate(target)
+        migrate_completed_setup()
         shutil.copyfile(target / "appliance/alpine/display-launch", "/usr/local/bin/pi-home-display-launch")
         Path("/usr/local/bin/pi-home-display-launch").chmod(0o755)
         status("Update · Restarting and checking RoonDeck…")

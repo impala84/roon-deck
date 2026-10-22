@@ -24,11 +24,25 @@ SOCKET = "/run/pi-home-setup.sock"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
 ROON_BRIDGE_URL = "https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.tar.bz2"
 UPDATE_CHECK_CRON = "0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check"
+LED_CONFIG_BEGIN = "# BEGIN ROONDECK STATUS LIGHTS"
+LED_CONFIG_END = "# END ROONDECK STATUS LIGHTS"
+
+
+def persist_status_light_boot(root, enabled):
+    """Make the off preference effective before Linux LED triggers start."""
+    config = Path(root) / "boot/config.txt"
+    if not config.exists(): return
+    text = config.read_text(encoding="utf-8")
+    text = re.sub(rf"\n?{re.escape(LED_CONFIG_BEGIN)}.*?{re.escape(LED_CONFIG_END)}\n?", "\n", text, flags=re.S).rstrip() + "\n"
+    if not enabled:
+        text += f"{LED_CONFIG_BEGIN}\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none\n{LED_CONFIG_END}\n"
+    atomic(config, text)
 
 
 def apply_status_lights(root, enabled):
     """Apply and verify the persisted LED preference against every Pi alias."""
     root = Path(root)
+    persist_status_light_boot(root, enabled)
     found = []
     failures = []
     for led in (root / "sys/class/leds").glob("*"):
@@ -424,6 +438,13 @@ class Setup:
         self.update_process = None
         self.progress = self.root / "var/lib/pi-home-setup/progress.json"
         self.progress.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        complete_marker = self.root / "var/lib/pi-home/setup-complete"
+        if not complete_marker.exists():
+            try:
+                if json.loads(self.progress.read_text(encoding="utf-8")).get("complete"):
+                    complete_marker.parent.mkdir(parents=True, exist_ok=True)
+                    atomic(complete_marker, "true\n", 0o600)
+            except (OSError, ValueError, TypeError, json.JSONDecodeError): pass
         led_preference = self.root / "var/lib/pi-home/leds-enabled"
         if led_preference.exists():
             try: apply_status_lights(self.root, led_preference.read_text(encoding="ascii").strip() == "true")

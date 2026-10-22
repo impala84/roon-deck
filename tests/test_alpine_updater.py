@@ -110,6 +110,16 @@ class AlpineUpdaterTests(unittest.TestCase):
             with patch.object(updater.subprocess, "run", side_effect=subprocess.TimeoutExpired("pip", 300)), self.assertRaisesRegex(RuntimeError, "timed out"):
                 updater.run(["pip", "install"])
 
+    def test_completed_pre_marker_installation_is_migrated_before_display_restart(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(updater, "STATE", Path(folder) / "pi-home"):
+            legacy = Path(folder) / "pi-home-setup" / "progress.json"
+            legacy.parent.mkdir(parents=True); legacy.write_text('{"complete": true}')
+            self.assertTrue(updater.migrate_completed_setup())
+            marker = Path(folder) / "pi-home" / "setup-complete"
+            self.assertEqual(marker.read_text(), "true\n")
+            self.assertEqual(marker.stat().st_mode & 0o777, 0o600)
+            self.assertFalse(updater.migrate_completed_setup())
+
     def test_only_successful_fixed_branch_builds_are_accepted(self):
         sha = "a" * 40
         valid = {"workflow_runs": [{"head_sha": sha, "head_branch": updater.BRANCH, "conclusion": "success", "event": "push", "head_repository": {"full_name": "impala84/roon-deck"}}]}

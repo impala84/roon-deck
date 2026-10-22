@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.4 Alpine — 22 October 2026
+
+- Correct the original-display Search rail alignment and give the alphabet scrubber enough width to show complete letters.
+- Make the compact artist summary and its albums one continuous scrolling list, and remove the stray Surprise rail item from nested artist-album routes.
+- Fit Surprise Me fully above navigation, let Daily carousels bleed to the right edge, and reduce compact Play Album/Artist/Mix controls.
+- Move Browse Artist Albums beneath the album write-up on the compact detail view and enlarge the source volume value and step controls.
+- Migrate completed older installations to the durable setup marker before the display restarts, preventing the first-boot wizard from flashing after an update.
+- Persist the disabled ACT/PWR LED triggers in `config.txt` as well as applying them live, so the preference survives the Pi firmware and kernel boot sequence.
+
 ## 1.1.7-beta.3 Alpine — 22 October 2026
 
 - Recompose Original Display artist browsing as a compact horizontal artist header followed by a full-width album list, and enlarge Browse covers while reserving a real gutter for the alphabet scrubber.

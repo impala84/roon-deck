@@ -691,7 +691,8 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .discovery-card .queue-subtitle { font-size: 13px; line-height: 1.05; }
 .original-landscape .daily-card .queue-title { font-size: 18px; }
 .original-landscape .daily-card .queue-subtitle { font-size: 14px; }
-.original-landscape .daily-track { padding-left: 6px; }
+.original-landscape .daily-track { padding-left: 6px; padding-right: 0; }
+.original-landscape .daily-scroll { margin-right: -12px; }
 .original-landscape .recommendation-heading { margin-top: 8px; }
 .original-landscape .loading-dots { font-size: 24px; }
 .original-landscape .loading-notice { font-size: 15px; }
@@ -704,8 +705,8 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .now-mute { min-width: 54px; padding-left: 8px; padding-right: 8px; }
 .original-landscape .volume-step { min-width: 36px; min-height: 36px; border-radius: 18px; }
 .original-landscape .source-title { font-size: 22px; font-weight: 600; }
-.original-landscape .source-step { min-width: 62px; min-height: 62px; border-radius: 31px; font-size: 32px; }
-.original-landscape .source-volume { font-size: 98px; font-weight: 430; }
+.original-landscape .source-step { min-width: 72px; min-height: 72px; border-radius: 36px; font-size: 38px; }
+.original-landscape .source-volume { font-size: 112px; font-weight: 400; }
 .original-landscape .settings-page { padding: 10px 12px 6px; }
 .original-landscape .settings-card { padding: 7px 8px; border: 0; background: transparent; }
 .original-landscape .settings-controls { padding: 0; }
@@ -718,13 +719,15 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .brightness-setting { padding: 2px 0; }
 .original-landscape .artist-profile { padding: 3px 10px 4px 0; }
 .original-landscape .artist-name { font-size: 25px; }
-.original-landscape .artist-play { min-height: 43px; margin-top: 4px; padding-top: 6px; padding-bottom: 6px; }
+.original-landscape .artist-play { min-height: 38px; margin-top: 3px; padding: 4px 17px 4px 12px; font-size: 16px; }
+.original-landscape .queue-pill { min-height: 38px; padding: 4px 14px; font-size: 15px; }
 .original-landscape.compact-detail .detail-header { min-height: 54px; padding: 5px 20px 0; }
 .original-landscape.compact-detail .detail-close { min-width: 44px; min-height: 44px; }
 .original-landscape.compact-detail .detail-close-glyph { min-width: 36px; min-height: 36px; }
 .original-landscape.compact-detail .detail-panel { padding-top: 3px; }
 .original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
 .original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
+.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 5px; padding: 4px 12px; font-size: 14px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -881,7 +884,7 @@ class Display(Gtk.Application):
             for name in css.split(): widget.add_css_class(name)
         large = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
         original = getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-        image = FamilyIcon(icon, (64 if large else 34 if original else 42) if "surprise-action" in css else 40 if original and "source-step" in css else 46 if "source-step" in css else 34, filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css); widget.set_child(image)
+        image = FamilyIcon(icon, (64 if large else 34 if original else 42) if "surprise-action" in css else 44 if original and "source-step" in css else 46 if "source-step" in css else 34, filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css); widget.set_child(image)
         caption = {"previous": "Previous track", "next": "Next track", "play": "Play", "pause": "Pause", "refresh": "Refresh", "remove": "Volume down", "add": "Add"}.get(image.icon_name, image.icon_name.title())
         widget.set_tooltip_text(caption)
         widget.update_property([Gtk.AccessibleProperty.LABEL], [caption])
@@ -1002,9 +1005,9 @@ class Display(Gtk.Application):
         self.viewport_width, self.viewport_height = width, height
         original_landscape = not portrait and width <= 820 and height <= 500
         for control in (self.source_down, self.source_up):
-            source_size = 64 if portrait and width < 600 else 62 if original_landscape else 112
+            source_size = 64 if portrait and width < 600 else 72 if original_landscape else 112
             control.set_size_request(source_size, source_size)
-        self.source_volume.set_size_request(180 if portrait and width < 600 else 170 if original_landscape else 230, -1)
+        self.source_volume.set_size_request(180 if portrait and width < 600 else 190 if original_landscape else 230, -1)
         large_display = min(width, height) >= 1000
         (self.window.add_css_class if large_display else self.window.remove_css_class)("large-display")
         (self.window.add_css_class if portrait and width >= 1000 else self.window.remove_css_class)("large-portrait")
@@ -1072,7 +1075,7 @@ class Display(Gtk.Application):
         self.portrait_music_tabs.set_margin_end(24 if portrait else 0)
         self.portrait_music_tabs.set_margin_bottom((16 if width < 600 else 24) if portrait else 0)
         self.browser_body.set_margin_end(0)
-        self.browser_scrubber.set_size_request(40 if original_landscape else 52 if portrait or compact_landscape else 74, -1)
+        self.browser_scrubber.set_size_request(54 if original_landscape else 52 if portrait or compact_landscape else 74, -1)
         self.browser_scrubber.set_margin_end(0 if portrait or compact_landscape else 18)
         self.browser_search_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait and width < 700 else Gtk.Orientation.HORIZONTAL)
         self.discovery_body.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
@@ -1105,6 +1108,9 @@ class Display(Gtk.Application):
         self.detail_album_card.set_spacing(28 if album_focus_detail else 8)
         self.detail_album_content.set_hexpand(album_focus_detail)
         self.detail_album_content.set_valign(Gtk.Align.START)
+        self.detail_album_action.set_visible(original_landscape)
+        self.detail_browse_action.set_visible(not original_landscape)
+        self.detail_footer.set_visible(not original_landscape)
         detail_size = max(180, min(round((width - 100) / 2), 500)) if portrait else (320 if original_landscape else max(240, min(round(width * .37), height - 190, 500)) if album_focus_detail else max(220, min(round((width - 260) / 2), height - 300, 460)))
         self.detail_album_artwork.set_size_request(detail_size, detail_size)
         self.detail_artist_artwork.set_size_request(detail_size, detail_size)
@@ -1254,7 +1260,9 @@ class Display(Gtk.Application):
         for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: self.request_browser("section", section=value), "browser-filter"); button.get_child().set_xalign(0); self.browser_section_buttons[section] = button; sidebar.append(button)
         self.browser_search_button = self.button("SEARCH", self.show_browser_search, "browser-filter"); self.browser_search_button.get_child().set_xalign(0); sidebar.append(self.browser_search_button)
-        self.browser_surprise_button = self.button("SURPRISE!", lambda *_: self.request_browser("surprise"), "browser-filter"); self.browser_surprise_button.get_child().set_xalign(0); self.browser_surprise_button.add_css_class("browser-surprise"); sidebar.append(self.browser_surprise_button)
+        # Surprise is a top-level Discover destination.  Keep no sixth rail
+        # item that can leak back into album/artist navigation after reparenting.
+        self.browser_surprise_button = self.button("SURPRISE!", lambda *_: self.request_browser("surprise"), "browser-filter"); self.browser_surprise_button.set_visible(False)
         self.browser_back = self.button("BACK", lambda *_: self.request_browser("back"), "browser-back"); self.browser_back.set_visible(False); self.browser_back.set_halign(Gtk.Align.START); self.browser_back.set_valign(Gtk.Align.END)
         self.browser_sort_order = "title"
         self.browser_sort = self.button("Sort: Title, A to Z", self.show_browser_sort, "browser-filter browser-sort")
@@ -1272,9 +1280,10 @@ class Display(Gtk.Application):
         previous_scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
         previous_scroll.connect("scroll", self.browser_previous_scroll); browser_scroll.add_controller(previous_scroll)
         previous_drag = Gtk.GestureDrag.new(); previous_drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); previous_drag.connect("drag-update", lambda _gesture, x, y: self.browser_previous_scroll(None, 0, -1) if y > 30 and y > abs(x) * 2 else None); previous_drag.connect("drag-end", self.browser_swipe_back); browser_scroll.add_controller(previous_drag)
-        content = Gtk.Box(spacing=2); content.set_vexpand(True); content.set_hexpand(True)
+        content = Gtk.Box(spacing=2); content.set_vexpand(True); content.set_hexpand(True); self.browser_content = content
         content.set_margin_top(16)
         self.browser_artist_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.browser_artist_panel.add_css_class("artist-profile"); self.browser_artist_panel.set_visible(False)
+        self.browser_artist_inline_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.browser_artist_inline_panel.add_css_class("artist-profile"); self.browser_artist_inline_panel.set_visible(False)
         self.browser_artist_scroll = Gtk.ScrolledWindow(); self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_min_content_height(1); self.browser_artist_scroll.set_size_request(-1, 1); self.browser_artist_scroll.set_child(self.browser_artist_panel); self.browser_artist_scroll.set_visible(False); content.append(self.browser_artist_scroll); content.append(browser_scroll)
         # Independent result scrollers must not be nested in the ordinary
         # browser viewport: that viewport measures them at minimum height.
@@ -1288,7 +1297,7 @@ class Display(Gtk.Application):
         search_nav = Gtk.Box(spacing=2); search_nav.add_css_class("browser-sidebar"); self.search_nav = search_nav
         for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: (self.set_roon_view("browse"), self.request_browser("section", section=value)), "browser-filter"); button.get_child().set_xalign(0); search_nav.append(button)
-        search_active = self.button("SEARCH", lambda *_: None, "browser-filter"); search_active.add_css_class("active"); search_nav.append(search_active); search_panel.append(search_nav)
+        search_active = self.button("SEARCH", lambda *_: None, "browser-filter"); search_active.add_css_class("active"); search_active.get_child().set_xalign(0); search_nav.append(search_active); search_panel.append(search_nav)
         search_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_main.set_hexpand(True); search_main.set_vexpand(True); self.search_main = search_main
         self.search_results_scroll = Gtk.ScrolledWindow(); self.search_results_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.search_results_scroll.set_vexpand(True); self.search_results_scroll.set_hexpand(True); self.search_results_scroll.set_propagate_natural_width(False); self.search_results_scroll.set_propagate_natural_height(False); self.search_results_scroll.set_min_content_height(1); self.search_results_scroll.set_visible(False); search_main.append(self.search_results_scroll)
         self.browser_search_timer = None
@@ -1333,7 +1342,7 @@ class Display(Gtk.Application):
         self.detail_source = self.label("", "detail-source"); detail_content.append(self.detail_source)
         self.detail_facts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); self.detail_facts.add_css_class("detail-facts"); detail_content.append(self.detail_facts)
         album_rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); album_rule.add_css_class("detail-rule"); album_rule.set_visible(False); detail_content.append(album_rule)
-        self.detail_album_action = self.button("ARTIST ALBUMS", self.browse_detail_artist, "detail-action"); self.detail_album_action.set_visible(False); detail_content.append(self.detail_album_action)
+        self.detail_album_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action"); self.detail_album_action.set_visible(False); self.detail_album_action.set_halign(Gtk.Align.START); detail_content.append(self.detail_album_action)
         self.detail_tracks = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); self.detail_tracks.add_css_class("detail-tracks")
         detail_scroll = Gtk.ScrolledWindow(); detail_scroll.add_css_class("queue-scroll"); detail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_scroll.set_kinetic_scrolling(True); detail_scroll.set_overlay_scrolling(True); detail_scroll.set_propagate_natural_height(True); detail_scroll.set_max_content_height(210); detail_scroll.set_child(self.detail_tracks); detail_content.append(detail_scroll)
         elastic_vertical_scroll(detail_scroll)
@@ -1346,7 +1355,7 @@ class Display(Gtk.Application):
         close_glyph = Gtk.CenterBox(); close_glyph.add_css_class("detail-close-glyph"); close_glyph.set_size_request(48, 48); close_glyph.set_center_widget(FamilyIcon("close", 34, stroke_width=3)); close.set_child(close_glyph)
         close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
         detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
-        detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
+        detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_footer = detail_footer; self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
         root = Gtk.Overlay(); root.set_child(page); root.add_overlay(takeover); return root
 
     def build_home(self):
@@ -2623,13 +2632,16 @@ class Display(Gtk.Application):
             self.request_browser("back")
 
     def render_artist_profile(self, profile, play_action=None):
-        panel = self.browser_artist_panel
-        while child := panel.get_first_child(): panel.remove(child)
-        panel.set_visible(bool(profile))
-        self.browser_artist_scroll.set_visible(bool(profile))
-        if not profile: return
         portrait = getattr(self, "responsive_portrait", False)
         original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        panel = self.browser_artist_inline_panel if original else self.browser_artist_panel
+        inactive = self.browser_artist_panel if original else self.browser_artist_inline_panel
+        inactive.set_visible(False)
+        if original and profile and panel.get_parent() is None: self.browser_list.append(panel)
+        while child := panel.get_first_child(): panel.remove(child)
+        panel.set_visible(bool(profile))
+        self.browser_artist_scroll.set_visible(bool(profile) and not original)
+        if not profile: return
         panel.set_size_request(-1 if portrait or original else 260, -1)
         if portrait or original:
             panel.set_orientation(Gtk.Orientation.HORIZONTAL)
@@ -2785,8 +2797,8 @@ class Display(Gtk.Application):
         original = width <= 820 and viewport_height is not None and viewport_height <= 500
         if original:
             # Measured 800px budget includes page (24), the rail's realised
-            # 122px, 44px scrubber, scroller chrome and the grid safety gutter.
-            available = max(140, width - 244)
+            # 122px, the full 54px scrubber, scroller chrome and safety gutter.
+            available = max(140, width - 252)
             return 4, max(64, (available - 12 * 3) // 4)
         available = max(140, width - 266)
         columns = 4 if width < 1000 and width > 600 else min(5 if genres else 4, max(1, available // 140))
@@ -3103,6 +3115,9 @@ class Display(Gtk.Application):
             self.browser_sort_order = data.get("sort_order", "title")
             self.browser_sort.get_child().set_text({"title":"Sort: Title, A to Z", "reverse":"Sort: Title, Z to A", "artist":"Sort: Artist, A to Z"}.get(self.browser_sort_order, "Sort: Title, A to Z"))
         active_section = "surprise" if data.get("surprise_preview") else (data.get("section") or "albums")
+        original_view = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        self.browser_content.set_margin_top(0 if data.get("surprise_preview") and original_view else 16)
+        self.browser_scroll.set_margin_bottom(0 if data.get("surprise_preview") and original_view else 10)
         from_discover = self.discovery_active and self.discovery_browser_origin
         self.browser_sidebar.set_visible(not data.get("surprise_preview") and not from_discover)
         self.browser_discovery_sidebar.set_visible(from_discover)
@@ -3118,9 +3133,9 @@ class Display(Gtk.Application):
             else: button.remove_css_class("active")
         message = data.get("message") or (data.get("error") if isinstance(data.get("error"), str) else "") or ""; self.browser_message.set_text(message); self.browser_message.set_visible(bool(message))
         self.browser_pictures = {}; self.browser_artwork_keys = []; self.browser_cards = []
+        while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
         artist_play = next((item for item in data.get("items", []) if item.get("action") and item.get("title", "").strip().lower() == "play artist"), None) if data.get("artist_profile") else None
         self.render_artist_profile(data.get("artist_profile"), artist_play)
-        while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
         items = data.get("items") or []
         grouped_results = bool(data.get("search_routes"))
         grouped_search = grouped_results and not getattr(self, "responsive_portrait", False)
@@ -3158,7 +3173,7 @@ class Display(Gtk.Application):
             original = compact_landscape and screen_width <= 820
             preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
             preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 0 if original else 12)
-            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 330 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 45 if original else 90 if compact_landscape else 135)))
+            size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 350 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 92 if original else 90 if compact_landscape else 135)))
             picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
             square = Gtk.ScrolledWindow(); square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); square.set_propagate_natural_width(False); square.set_propagate_natural_height(False); square.set_min_content_width(size); square.set_max_content_width(size); square.set_min_content_height(size); square.set_max_content_height(size); square.set_size_request(size, size); square.set_halign(Gtk.Align.CENTER); square.set_child(picture)
             stage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL, spacing=38 if portrait else 40); stage.set_halign(Gtk.Align.CENTER); stage.set_valign(Gtk.Align.CENTER)

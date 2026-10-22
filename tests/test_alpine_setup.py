@@ -517,6 +517,7 @@ class AlpineSetupTests(unittest.TestCase):
             self.setup.handle({"action": "set_brightness", "brightness": 0})
 
     def test_status_light_switch_updates_hardware_and_saved_state(self):
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True); (boot / "config.txt").write_text("dtoverlay=vc4-kms-v3d\n")
         for name in ("led0", "led1"):
             led = self.root / "sys/class/leds" / name; led.mkdir(parents=True)
             (led / "trigger").write_text("none"); (led / "brightness").write_text("1")
@@ -525,10 +526,13 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
         self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "none")
         self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
+        self.assertIn("dtparam=act_led_trigger=none", (boot / "config.txt").read_text())
+        self.assertIn("dtparam=pwr_led_trigger=none", (boot / "config.txt").read_text())
         self.setup.handle({"action": "leds_enable"})
         self.assertEqual((self.root / "sys/class/leds/led0/trigger").read_text(), "mmc0")
         self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "default-on")
         self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "true\n")
+        self.assertNotIn("ROONDECK STATUS LIGHTS", (boot / "config.txt").read_text())
 
     def test_disabled_status_lights_are_reapplied_when_helper_restarts(self):
         for name in ("led0", "led1"):
@@ -538,6 +542,12 @@ class AlpineSetupTests(unittest.TestCase):
         module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
         self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
         self.assertEqual((self.root / "sys/class/leds/led1/brightness").read_text(), "0")
+
+    def test_completed_legacy_setup_gets_durable_boot_marker(self):
+        progress = self.root / "var/lib/pi-home-setup/progress.json"
+        progress.parent.mkdir(parents=True, exist_ok=True); progress.write_text('{"complete": true}')
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "var/lib/pi-home/setup-complete").read_text(), "true\n")
 
     def test_dsi_orientation_only_selects_current_dsi_mode(self):
         spec = importlib.util.spec_from_file_location("orientation", ROOT / "appliance/alpine/setup_orientation.py")

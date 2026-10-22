@@ -434,6 +434,7 @@ if screen_height > screen_width:
         gate.set()
         native.post_json = original_post_json
 
+display.set_roon_view("browse")
 display.render_browser({"status": "ready", "section": "albums", "layout": "covers", "surprise_preview": True, "items": [{"title": "Based on a True Story", "subtitle": "Fat Freddy's Drop", "item_key": "surprise", "image_key": "surprise-art"}]})
 for picture in display.browser_pictures.get("surprise-art", []): picture.set_filename(str(fixture_art("surprise-art", "SURPRISE")))
 capture("surprise")
@@ -474,7 +475,11 @@ takeover_bounds = display.detail_takeover.compute_bounds(window)[1]
 assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_bounds.get_x(), takeover_bounds.get_y())
 assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
 assert display.detail_close.get_visible()
-assert display.detail_browse_action.get_visible()
+if (screen_width, screen_height) == (800, 480):
+    assert display.detail_album_action.get_visible()
+    assert not display.detail_browse_action.get_visible()
+else:
+    assert display.detail_browse_action.get_visible()
 assert display.detail_close.get_width() == display.detail_close.get_height(), (display.detail_close.get_width(), display.detail_close.get_height())
 if screen_width == 1280 and screen_height == 720:
     assert display.compact_detail
@@ -660,7 +665,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.3 Alpine")
+display.device_status.set_text("v1.1.7-beta.4 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
