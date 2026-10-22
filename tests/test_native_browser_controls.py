@@ -198,7 +198,7 @@ class LayoutWidget:
         raise AttributeError(name)
 
 
-LAYOUT_GTK = SimpleNamespace(Box=LayoutWidget, Picture=LayoutWidget, ScrolledWindow=LayoutWidget, Button=LayoutWidget, Orientation=SimpleNamespace(VERTICAL="vertical"), Align=SimpleNamespace(START="start", END="end", CENTER="center"), PolicyType=SimpleNamespace(NEVER="never"), ContentFit=SimpleNamespace(COVER="cover"))
+LAYOUT_GTK = SimpleNamespace(Box=LayoutWidget, Picture=LayoutWidget, ScrolledWindow=LayoutWidget, Button=LayoutWidget, Orientation=SimpleNamespace(VERTICAL="vertical"), Align=SimpleNamespace(START="start", END="end", CENTER="center"), PolicyType=SimpleNamespace(NEVER="never", AUTOMATIC="automatic", EXTERNAL="external"), ContentFit=SimpleNamespace(COVER="cover"))
 
 
 class NativeBrowserControlsTests(unittest.TestCase):
@@ -334,6 +334,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_now_playing_title_and_artist_fill_their_column_before_centering(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL)', code)
+        self.assertIn('self.title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); self.title.set_lines(2); self.title.set_ellipsize(Pango.EllipsizeMode.END)', code)
         self.assertIn('self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL)', code)
 
     def test_display_runtime_publishes_the_resolved_source_revision(self):
@@ -479,7 +480,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_landscape_now_playing_artwork_does_not_shrink_below_profile_size(self):
         size = native_method("now_playing_artwork_size")
-        self.assertEqual(size(800, 480, False), 320)
+        self.assertEqual(size(800, 480, False), 327)
         self.assertEqual(size(1024, 600, False), 360)
         self.assertEqual(size(1280, 720, False), 540)
 
@@ -532,10 +533,12 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_loading_lives_in_right_content_without_replacing_sidebar(self):
         owner=SimpleNamespace(discovery_request=1,discovery_active=True,roon_views=SimpleNamespace(get_visible_child_name=lambda:"discover"),discovery_signature=None,discovery_list=LayoutWidget(),sync_discovery_sidebar=Mock(),label=lambda text,style:LayoutWidget(text=text,style=style))
         owner.discovery_body = LayoutWidget()
+        owner.discovery_scroll = LayoutWidget()
+        owner.roon_page = LayoutWidget()
         owner.settings_data = {}
         owner.window = SimpleNamespace(has_css_class=lambda _: False)
         owner.loading_notice = lambda: LayoutWidget(text="Loading…", style="loading-notice")
-        native_method("render_discover",{"json":__import__("json")})(owner,1,{"status":"loading"})
+        native_method("render_discover",{"json":__import__("json"), "Gtk":LAYOUT_GTK})(owner,1,{"status":"loading"})
         self.assertEqual(owner.discovery_list.children[0].properties,{"text":"Loading…","style":"loading-notice"})
         owner.sync_discovery_sidebar.assert_called_once()
 

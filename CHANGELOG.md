@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.5 Alpine — 22 October 2026
+
+- Cap Now Playing track titles at two lines with end ellipsis across every display size, preventing long names from pushing progress, transport and volume controls below the viewport.
+- Move the original 7-inch Surprise Me composition slightly lower and extend Daily carousels through the final scrollbar gutter so artwork visibly bleeds to the physical right edge.
+- Enlarge original 7-inch Now Playing artwork to 327 pixels while keeping its lower-left visual anchor.
+
 ## 1.1.7-beta.4 Alpine — 22 October 2026
 
 - Correct the original-display Search rail alignment and give the alphabet scrubber enough width to show complete letters.

@@ -10,7 +10,7 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 
 OUTPUT = Path(os.environ.get("PI_HOME_SCREENSHOT_DIR", "/screenshots"))
@@ -152,6 +152,12 @@ daily = {
 }
 render("daily", daily)
 capture("daily-mixes")
+if (screen_width, screen_height) == (800, 480):
+    assert display.discovery_scroll.get_policy()[1] == Gtk.PolicyType.EXTERNAL
+    assert display.roon_page.has_css_class("daily-edge")
+    for row in display.discovery_daily_sections.values():
+        bounds = row.compute_bounds(page)[1]
+        assert bounds.get_x() + bounds.get_width() >= screen_width - 1, (bounds.get_x(), bounds.get_width())
 if screen_width >= 1200 and screen_height < screen_width:
     recommendation_row = display.discovery_daily_sections["recommendations"]
     track = recommendation_row.get_child()
@@ -439,6 +445,10 @@ display.render_browser({"status": "ready", "section": "albums", "layout": "cover
 for picture in display.browser_pictures.get("surprise-art", []): picture.set_filename(str(fixture_art("surprise-art", "SURPRISE")))
 capture("surprise")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height(), screen_width, screen_height)
+if (screen_width, screen_height) == (800, 480):
+    preview = display.browser_list.get_first_child()
+    assert preview.get_margin_top() == 6
+    assert preview.get_spacing() == 3
 if screen_height > screen_width:
     stage = display.browser_list.get_first_child().get_first_child()
     assert stage.get_orientation() == Gtk.Orientation.VERTICAL
@@ -459,11 +469,21 @@ display.adapt_display()
 display.render_bluos_inputs({"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}]}, True)
 capture("now-playing")
 if (screen_width, screen_height) == (800, 480):
-    assert display.artwork_button.get_width() == 320, display.artwork_button.get_width()
-    assert display.artwork_button.get_height() == 320, display.artwork_button.get_height()
+    assert display.artwork_button.get_width() == 327, display.artwork_button.get_width()
+    assert display.artwork_button.get_height() == 327, display.artwork_button.get_height()
+    assert display.artwork_button.get_valign() == Gtk.Align.END
+    assert display.artwork_button.get_margin_bottom() == 0
+    assert display.discover_toolbar.get_margin_bottom() == 1
 if (screen_width, screen_height) == (1280, 720):
     assert display.artwork_button.get_width() == 540, display.artwork_button.get_width()
     assert display.artwork_button.get_height() == 540, display.artwork_button.get_height()
+display.title.set_text("Medley: I Remember You / My Melancholy Baby / Old Folks / They Can't Take That Away From Me / Just Friends / My Little Suede Shoes / Star Eyes (Rudy Van Gelder Remaster)")
+settle()
+capture("now-playing-long-title")
+assert display.title.get_lines() == 2
+assert display.title.get_ellipsize() == Pango.EllipsizeMode.END
+assert display.title.get_height() <= (132 if max(screen_width, screen_height) >= 1200 else 90), display.title.get_height()
+assert display.volume_row.compute_bounds(window)[1].get_y() + display.volume_row.get_height() < display.music_navigation.compute_bounds(window)[1].get_y()
 display.detail_artist_profile_name = "Emancipator"
 display.detail_artist_profile = {"full_writeup": "Emancipator is an American electronic producer known for richly layered downtempo compositions.", "source": "Wikipedia", "type": "Person", "area": "Portland", "country": "US", "formed": "2003", "genres": ["downtempo", "electronic"]}
 display.render_details({"status":"ready", "album":"Soon It Will Be Cold Enough", "artist":"Emancipator", "subtitle":"2006", "metadata":{"full_writeup":"The debut album blends acoustic instrumentation, field recordings and patient electronic rhythms into a cinematic whole.", "writeup_source":"Wikipedia", "release_date":"2006-01-17", "genres":["Electronic", "Downtempo"], "type":"Album", "label":"Loci Records", "format":"CD", "track_count":3}, "tracks":[{"title":"Eve"},{"title":"Soon It Will Be Cold Enough"},{"title":"First Snow"}]})
@@ -665,7 +685,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.4 Alpine")
+display.device_status.set_text("v1.1.7-beta.5 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

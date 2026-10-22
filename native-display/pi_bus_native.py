@@ -692,7 +692,10 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .daily-card .queue-title { font-size: 18px; }
 .original-landscape .daily-card .queue-subtitle { font-size: 14px; }
 .original-landscape .daily-track { padding-left: 6px; padding-right: 0; }
-.original-landscape .daily-scroll { margin-right: -12px; }
+.original-landscape .daily-scroll { margin-right: -4px; }
+.original-landscape .roon-page.daily-edge { padding-right: 0; }
+.original-landscape .roon-page.daily-edge .discover-toolbar,
+.original-landscape .roon-page.daily-edge > .nav { margin-right: 12px; }
 .original-landscape .recommendation-heading { margin-top: 8px; }
 .original-landscape .loading-dots { font-size: 24px; }
 .original-landscape .loading-notice { font-size: 15px; }
@@ -783,6 +786,8 @@ def now_playing_artwork_size(width: int, height: int, portrait: bool, reserved: 
         # The 1280-wide landscape display was designed around a dominant
         # 540px cover. Do not let unrelated detail-view sizing reduce it.
         return min(540, max(480, height - 180))
+    if width <= 820 and height <= 500:
+        return 327
     # The original 800×480 and intermediate 1024×600 landscape profiles need
     # an explicit floor. The old 280px cap fought the 320px CSS minimum and the
     # fixed viewport clipped the cover, making it visibly shrink after reflow.
@@ -1086,6 +1091,8 @@ class Display(Gtk.Application):
         # titles must shrink the artwork instead of expanding the window.
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
         artwork_size = now_playing_artwork_size(width, height, portrait, reserved)
+        self.artwork_button.set_valign(Gtk.Align.END if original_landscape else Gtk.Align.CENTER)
+        self.artwork_button.set_margin_bottom(0)
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
         self.volume_row.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.FILL)
         self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1, -1)
@@ -1173,7 +1180,7 @@ class Display(Gtk.Application):
         page.append(self.navigation("bus")); return page
 
     def build_roon(self):
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); page.add_css_class("page"); page.add_css_class("roon-page")
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); page.add_css_class("page"); page.add_css_class("roon-page"); self.roon_page = page
         self.zone = self.label("ROON NOW PLAYING", "eyebrow"); self.roon_clock = self.label("--:--", "clock", 1)
         header_overlay = Gtk.Overlay(); header_overlay.add_css_class("roon-header"); header_overlay.set_child(self.header(self.zone, self.roon_clock)); self.music_header_overlay = header_overlay
         subnav = Gtk.Box(spacing=12); subnav.add_css_class("roon-subnav"); subnav.set_halign(Gtk.Align.CENTER); subnav.set_valign(Gtk.Align.START); self.roon_subnav = subnav
@@ -1222,7 +1229,7 @@ class Display(Gtk.Application):
         self.artwork_viewport = Gtk.ScrolledWindow(); self.artwork_viewport.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.artwork_viewport.set_propagate_natural_width(False); self.artwork_viewport.set_propagate_natural_height(False); self.artwork_viewport.set_child(self.artwork)
         artwork_button = Gtk.Button(); artwork_button.add_css_class("artwork-button"); artwork_button.set_halign(Gtk.Align.CENTER); artwork_button.set_valign(Gtk.Align.CENTER); artwork_button.set_child(self.artwork_viewport); artwork_button.connect("clicked", lambda *_: self.set_roon_view("details")); content.append(artwork_button); self.artwork_button = artwork_button
         centre = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); centre.set_valign(Gtk.Align.CENTER); centre.set_hexpand(True); self.now_playing_centre = centre
-        self.title = self.label("Waiting for Roon…", "roon-title", .5); self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL); self.title.set_wrap(True); self.title.set_lines(2); self.title.set_justify(Gtk.Justification.CENTER)
+        self.title = self.label("Waiting for Roon…", "roon-title", .5); self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL); self.title.set_wrap(True); self.title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); self.title.set_lines(2); self.title.set_ellipsize(Pango.EllipsizeMode.END); self.title.set_justify(Gtk.Justification.CENTER)
         self.artist = self.label("Enable RoonDeck in Roon", "roon-artist", .5); self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL); self.artist.set_wrap(True); self.artist.set_justify(Gtk.Justification.CENTER); centre.append(self.title); centre.append(self.artist)
         self.progress = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 1); self.progress.add_css_class("progress"); self.progress.set_draw_value(False); self.progress.set_sensitive(False); self.progress.connect("value-changed", self.change_seek); centre.append(self.progress)
         times = Gtk.Box(); self.elapsed = self.label("0:00", "time"); self.remaining = self.label("−0:00", "time", 1); self.remaining.set_hexpand(True); times.append(self.elapsed); times.append(self.remaining); centre.append(times); self.roon_times = times
@@ -2279,6 +2286,10 @@ class Display(Gtk.Application):
         if name in {"now", "queue", "source", "details"}:
             self.discovery_active = False; self.discovery_request += 1
         exploring = self.discovery_active and name in {"discover", "browse", "search"}
+        original_landscape = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        daily_edge = original_landscape and self.discovery_active and getattr(self, "discovery_section", "") == "daily" and name == "discover"
+        (self.roon_page.add_css_class if daily_edge else self.roon_page.remove_css_class)("daily-edge")
+        self.discover_toolbar.set_margin_bottom(1 if original_landscape and name == "now" else 14)
         self.sync_music_navigation(name)
         for button in self.roon_nav_buttons:
             if exploring: button.remove_css_class("active")
@@ -2394,6 +2405,9 @@ class Display(Gtk.Application):
         self.discovery_cards = []
         self.discovery_card_scrollers = {}
         self.sync_discovery_sidebar()
+        original_daily = not portrait_grid and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500 and getattr(self, "discovery_section", "") == "daily"
+        (self.roon_page.add_css_class if original_daily else self.roon_page.remove_css_class)("daily-edge")
+        self.discovery_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if original_daily else Gtk.PolicyType.AUTOMATIC)
         self.discovery_body.set_margin_end(0 if portrait_grid or getattr(self, "discovery_section", "") == "daily" else 28 if getattr(self, "viewport_width", 800) >= 1200 else 0)
         self.discovery_list.set_margin_top(10 if portrait_grid and self.discovery_section == "releases" else 5 if not portrait_grid and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"} else 0)
         if data.get("status") != "ready":
@@ -3171,8 +3185,8 @@ class Display(Gtk.Application):
             large_display = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
             compact_landscape = not portrait and getattr(self, "viewport_width", 800) < 1000
             original = compact_landscape and screen_width <= 820
-            preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
-            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 0 if original else 12)
+            preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
+            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 6 if original else 12)
             size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 350 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 92 if original else 90 if compact_landscape else 135)))
             picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
             square = Gtk.ScrolledWindow(); square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); square.set_propagate_natural_width(False); square.set_propagate_natural_height(False); square.set_min_content_width(size); square.set_max_content_width(size); square.set_min_content_height(size); square.set_max_content_height(size); square.set_size_request(size, size); square.set_halign(Gtk.Align.CENTER); square.set_child(picture)
