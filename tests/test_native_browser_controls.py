@@ -403,6 +403,18 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('"details"', view_code)
         self.assertIn('self.browse_last_interaction = self.last_interaction', code.split('def note_activity', 1)[1].split('def ', 1)[0])
 
+    def test_browse_return_timer_resets_during_kinetic_scrolling(self):
+        now = [1234.0]
+        owner = SimpleNamespace(
+            stack=SimpleNamespace(get_visible_child_name=lambda: "roon"),
+            roon_views=SimpleNamespace(get_visible_child_name=lambda: "browse"),
+            browse_last_interaction=1.0,
+        )
+        native_method("note_browse_scroll", {"time": SimpleNamespace(monotonic=lambda: now[0])})(owner)
+        self.assertEqual(owner.browse_last_interaction, 1234.0)
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertEqual(code.count('get_vadjustment().connect("value-changed", self.note_browse_scroll)'), 2)
+
     def test_discover_navigation_resumes_the_existing_browse_state(self):
         buttons = {name: LayoutWidget() for name in ("recent", "browse", "daily")}
         owner = SimpleNamespace(discovery_section="browse", browser_state={"title":"Albums"},

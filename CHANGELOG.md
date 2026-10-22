@@ -20,6 +20,9 @@
   You and Added/Listened share the same top edge and usable viewport height.
 - Standardise original-display navigation typography at 13px across the top tabs
   and left-side Browse, Daily and Recent controls.
+- Reset the configurable return-to-Now-Playing timer whenever Browse or Discover
+  actually scrolls, including kinetic gestures consumed below the window event
+  controller, so active browsing is no longer interrupted.
 
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 

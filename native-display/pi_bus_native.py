@@ -1237,6 +1237,7 @@ class Display(Gtk.Application):
         self.discovery_scroll.add_css_class("discovery-scroll")
         self.discovery_scroll.set_margin_bottom(10)
         self.discovery_list.connect_scroll(self.discovery_scroll)
+        self.discovery_scroll.get_vadjustment().connect("value-changed", self.note_browse_scroll)
         self.discovery_scroll.get_vadjustment().connect("value-changed", self.discovery_scrolled)
         self.discovery_body = Gtk.Box(spacing=0); self.discovery_body.set_vexpand(True); self.discovery_body.set_hexpand(True)
         self.discovery_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); self.discovery_sidebar.add_css_class("browser-sidebar"); self.discovery_sidebar.add_css_class("discovery-sidebar"); self.discovery_sidebar.set_vexpand(True)
@@ -1299,6 +1300,7 @@ class Display(Gtk.Application):
         self.browser_message = self.label("", "browser-message"); self.browser_message.set_ellipsize(Pango.EllipsizeMode.END); self.browser_message.set_visible(False); browser_main.append(self.browser_message)
         self.browser_list = ElasticVerticalTrack(spacing=2); self.browser_list.add_css_class("queue-list")
         browser_scroll = Gtk.ScrolledWindow(); browser_scroll.add_css_class("queue-scroll"); browser_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); browser_scroll.set_kinetic_scrolling(True); browser_scroll.set_overlay_scrolling(True); browser_scroll.set_propagate_natural_height(False); browser_scroll.set_propagate_natural_width(False); browser_scroll.set_min_content_height(1); browser_scroll.set_size_request(-1, 1); browser_scroll.set_vexpand(True); browser_scroll.set_hexpand(True); browser_scroll.set_child(self.browser_list); self.browser_scroll = browser_scroll
+        browser_scroll.get_vadjustment().connect("value-changed", self.note_browse_scroll)
         browser_scroll.get_vadjustment().connect("value-changed", self.browser_scrolled)
         self.browser_list.connect_scroll(browser_scroll)
         browser_scroll.set_margin_bottom(10)
@@ -2539,6 +2541,15 @@ class Display(Gtk.Application):
         for value, button in getattr(self, "discovery_sidebar_buttons", {}).items():
             if value == active: button.add_css_class("active")
             else: button.remove_css_class("active")
+
+    def note_browse_scroll(self, *_):
+        # Kinetic scrolling can consume the underlying touch sequence before
+        # the window-level legacy controller sees it. Treat actual viewport
+        # movement as browsing activity so the return timer cannot interrupt
+        # someone who is actively moving through a list.
+        if (self.stack.get_visible_child_name() == "roon"
+                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+            self.browse_last_interaction = time.monotonic()
 
     def discovery_secondary_navigation(self):
         if self.discovery_section == "recent":
