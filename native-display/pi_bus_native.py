@@ -248,6 +248,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .touch-landscape .home-tile { border-width: 2px; }
 .touch-landscape .bus-page { padding-top: 10px; }.touch-landscape .bus-footer .muted { color: #68736f; }.touch-landscape .service-no { opacity: .82; }
 .touch-landscape .home-name { font-size: 24px; }.touch-landscape .home-state { font-size: 17px; }
+.home-device-button.scene-action.activated { color: #6ed9ae; }
 .touch-landscape .home-page { padding-top: 10px; }
 .touch-landscape .roon-page { padding-top: 8px; }
 .touch-landscape .roon-subnav button { min-height: 42px; padding: 2px 14px 4px; }
@@ -346,6 +347,7 @@ CSS += b"""
 .theme-roon .progress highlight, .theme-roon .volume highlight, .theme-roon .home-level highlight { background: #9868F9; }
 .theme-roon .home-tile.on { background: #302b44; border-color: #9868F9; }
 .theme-roon .home-tile.on button, .theme-roon .boot-logo, .theme-roon .surprise-action { color: #9868F9; }
+.theme-roon .home-device-button.scene-action.activated { color: #9868F9; }
 .theme-roon .surprise-action, .theme-roon .queue-art { background: #292929; }
 .theme-roon .clock { color: #bbb; }
 .theme-roon .browser-tile-icon, .theme-roon .browser-home-icon, .theme-roon .browser-section { color: #9868F9; }
@@ -2079,11 +2081,17 @@ class Display(Gtk.Application):
             if state in {"on", "open", "playing"}: box.add_css_class("on")
             control_row = Gtk.Box(spacing=5); control_row.set_vexpand(True)
             domain = entity.get("domain", "switch")
+            scene = domain == "scene"
+            if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"
             icon_size = 108 if self.window.has_css_class("high-resolution") else 72
             if portrait: icon_size = max(64, min(240, round((self.window.get_height() - 190) / max(4, len(entities)) * .7)))
             icon_slot = icon_size; icon_size = round(icon_size * .75)
-            icon = FamilyIcon(domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size); icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
-            button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not portrait); button.set_vexpand(True); button.set_child(icon); button.connect("clicked", self.toggle_home, entity.get("entity_id", "")); control_row.append(button)
+            icon = FamilyIcon("check" if scene else domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size); icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
+            button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not portrait); button.set_vexpand(True); button.set_child(icon)
+            if scene:
+                button.add_css_class("scene-action"); button.set_sensitive(bool(entity.get("available", True))); button.connect("clicked", self.activate_home_scene, entity.get("entity_id", ""))
+            else: button.connect("clicked", self.toggle_home, entity.get("entity_id", ""))
+            control_row.append(button)
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); details.set_hexpand(True); details.set_valign(Gtk.Align.CENTER)
             if entity.get("supports_level"):
                 level = entity.get("percentage")
@@ -2092,7 +2100,9 @@ class Display(Gtk.Application):
             if domain in {"switch", "input_boolean"}:
                 swipe = Gtk.GestureSwipe(); swipe.connect("swipe", self.swipe_home_switch, entity.get("entity_id", "")); button.add_controller(swipe)
             box.append(control_row)
-            name = self.label(entity.get("name", "Device"), "home-name", 0 if portrait else .5); name.set_wrap(True); name.set_lines(2); (details if portrait else box).append(name); (details if portrait else box).append(self.label(detail, "home-state", 0 if portrait else .5))
+            name = self.label(entity.get("name", "Device"), "home-name", 0 if portrait else .5); name.set_wrap(True); name.set_lines(2); (details if portrait else box).append(name)
+            state_label = self.label(detail, "home-state", 0 if portrait else .5); (details if portrait else box).append(state_label)
+            if scene: button.scene_status_label = state_label
             if portrait: box.append(details)
             self.home_grid.attach(box, 0 if portrait else index % 4, index if portrait else index // 4, 1, 1)
 
@@ -3798,6 +3808,19 @@ class Display(Gtk.Application):
         threading.Thread(target=save, daemon=True).start()
     def toggle_home(self, _button, entity_id):
         if entity_id: threading.Thread(target=post_json, args=(BUS + "/api/device/home-toggle", {"entity_id": entity_id}), daemon=True).start()
+    def activate_home_scene(self, button, entity_id):
+        if not entity_id: return
+        button.add_css_class("activated"); button.set_sensitive(False); button.scene_status_label.set_text("ACTIVATING…")
+        def send():
+            result = post_json(BUS + "/api/device/home-toggle", {"entity_id": entity_id})
+            def finish():
+                button.scene_status_label.set_text("ACTIVATED" if result and not result.get("error") else "COULD NOT ACTIVATE")
+                GLib.timeout_add(900, self.reset_home_scene, button)
+                return False
+            GLib.idle_add(finish)
+        threading.Thread(target=send, daemon=True).start()
+    def reset_home_scene(self, button):
+        button.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text("TAP TO ACTIVATE"); return False
     def swipe_home_switch(self, _gesture, velocity_x, _velocity_y, entity_id):
         if entity_id and abs(velocity_x) > 80:
             threading.Thread(target=post_json, args=(BUS + "/api/device/home-state", {"entity_id": entity_id, "enabled": velocity_x > 0}), daemon=True).start()

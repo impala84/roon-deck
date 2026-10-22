@@ -7,10 +7,18 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from pi_bus_time_display.config import Config, load_config
-from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
+from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_activate, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
 
 
 class DisplayModeTests(unittest.TestCase):
+    def test_home_assistant_scene_configuration_is_allowed_and_still_bounded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_entities=("scene.bedroom_energize", "scene.bedroom_ruby_romance")))
+            self.assertEqual(load_config(path).home_assistant_entities, ("scene.bedroom_energize", "scene.bedroom_ruby_romance"))
+            write_config(path, Config(home_assistant_entities=("lock.front_door",)))
+            with self.assertRaisesRegex(ValueError, "Unsupported Home Assistant entity"):
+                load_config(path)
     def test_browsing_return_timeout_persists_and_validates(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"
@@ -509,6 +517,13 @@ class DisplayModeTests(unittest.TestCase):
         with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
             home_assistant_set_state(Config(), "switch.pi_hole", False)
             request.assert_called_once_with(Config(), "/api/services/switch/turn_off", {"entity_id": "switch.pi_hole"})
+
+    def test_home_scene_uses_momentary_turn_on_service(self):
+        with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
+            home_assistant_activate(Config(), "scene.bedroom_energize")
+            request.assert_called_once_with(Config(), "/api/services/scene/turn_on", {"entity_id": "scene.bedroom_energize"})
+        with self.assertRaisesRegex(ValueError, "not a scene"):
+            home_assistant_activate(Config(), "switch.bedroom")
 
 
 if __name__ == "__main__":

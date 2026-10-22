@@ -16,3 +16,4 @@ header{padding-right:160px}
 @media(min-width:701px),(orientation:landscape){#clock{font-size:clamp(30px,4.7vw,50px)}}
 .web-nav{grid-template-columns:repeat(4,minmax(0,1fr))}.web-nav a{min-width:0}.web-nav a[hidden]{display:none!important}.web-nav:has(a[hidden]){grid-template-columns:repeat(3,minmax(0,1fr))}
 svg.pi-icon{stroke-width:2}
+.entity.scene.activated{border-color:var(--mint);color:var(--ink)}.entity button:disabled{cursor:default;opacity:.48}.entity.scene.activated button{color:var(--mint);opacity:1}

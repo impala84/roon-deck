@@ -674,7 +674,7 @@ else:
 
 home = display.build_home(); window.set_child(home)
 display.settings_data["display_theme"] = "roon"
-display.render_home({"status": "ok", "entities": [{"entity_id": f"{domain}.fixture{index}", "domain": domain, "name": name, "state": "on", "supports_level": domain in ("fan", "light"), "percentage": 50} for index, (domain, name) in enumerate((("fan", "Living Room Fan"), ("light", "Living Room"), ("switch", "Pi-Hole Master"), ("switch", "Pi-Hole Slave")))]})
+display.render_home({"status": "ok", "entities": [{"entity_id": f"{domain}.fixture{index}", "domain": domain, "name": name, "state": "on", "available": True, "supports_level": domain in ("fan", "light"), "percentage": 50} for index, (domain, name) in enumerate((("fan", "Living Room Fan"), ("light", "Living Room"), ("switch", "Pi-Hole Master"), ("switch", "Pi-Hole Slave"), ("scene", "Bedroom Energize"), ("scene", "Bedroom Ruby Romance")))]})
 capture("home")
 assert not display.home_status.get_visible()
 assert abs(display.home_grid.get_first_child().compute_bounds(home)[1].get_y() - bus_content_top) <= 1
@@ -685,7 +685,7 @@ assert abs(home_clock_bounds.get_y() - bus_clock_top) <= 1
 assert home.get_first_child().get_first_child().get_tooltip_text() == "Settings"
 assert home.get_first_child().get_last_child().get_child() is display.home_clock
 icon = display.home_grid.get_first_child().get_first_child().get_first_child().get_child()
-original_icon_size = max(64, min(240, round((screen_height - 190) / 4 * .7))) if screen_height > screen_width else 108 if max(screen_width, screen_height) >= 1200 else 72
+original_icon_size = max(64, min(240, round((screen_height - 190) / 6 * .7))) if screen_height > screen_width else 108 if max(screen_width, screen_height) >= 1200 else 72
 assert icon.get_pixel_size() == round(original_icon_size * .75)
 assert icon.get_width() >= original_icon_size
 if screen_height > screen_width:
@@ -694,7 +694,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.11 Alpine")
+display.device_status.set_text("v1.1.7-beta.12 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

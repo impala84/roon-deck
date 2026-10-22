@@ -28,7 +28,7 @@ function musicBrainzJson(path) {
     return new Promise((resolve, reject) => {
       const request = https.get({
         hostname: 'musicbrainz.org', path, timeout: 6000,
-        headers: {'Accept': 'application/json', 'User-Agent': 'RoonDeck/1.1.7-beta.11 (https://github.com/impala84/roon-deck)'}
+        headers: {'Accept': 'application/json', 'User-Agent': 'RoonDeck/1.1.7-beta.12 (https://github.com/impala84/roon-deck)'}
       }, response => {
         let body = '';
         response.setEncoding('utf8');
@@ -52,7 +52,7 @@ function externalText(url, redirects = 0) {
   const allowed = target.hostname === 'wikipedia.org' || target.hostname.endsWith('.wikipedia.org') || target.hostname === 'bandcamp.com' || target.hostname.endsWith('.bandcamp.com') || (target.hostname === 'www.wikidata.org' && /^\/wiki\/Special:EntityData\/Q\d+\.json$/.test(target.pathname));
   if (!allowed || target.protocol !== 'https:') return Promise.reject(new Error('Unsupported metadata source'));
   return new Promise((resolve, reject) => {
-    const request = https.get(target, {timeout: 7000, headers: {'Accept': 'text/html,application/json', 'User-Agent': 'RoonDeck/1.1.7-beta.11 (https://github.com/impala84/roon-deck)'}}, response => {
+    const request = https.get(target, {timeout: 7000, headers: {'Accept': 'text/html,application/json', 'User-Agent': 'RoonDeck/1.1.7-beta.12 (https://github.com/impala84/roon-deck)'}}, response => {
       let body = '';
       response.setEncoding('utf8');
       response.on('data', chunk => { body += chunk; if (body.length > 2 * 1024 * 1024) request.destroy(new Error('Metadata response too large')); });

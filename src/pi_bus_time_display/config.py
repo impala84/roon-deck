@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import tomllib
+
+HOME_ASSISTANT_DOMAINS = {"fan", "light", "scene", "switch", "input_boolean"}
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -107,6 +109,9 @@ def load_config(path: Path) -> Config:
         raise ValueError("daytime_inactivity_seconds must be between 0 and 7200")
     if len(config.home_assistant_entities) > 8:
         raise ValueError("A maximum of eight Home Assistant entities can be shown")
+    unsupported = [item for item in config.home_assistant_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
+    if unsupported:
+        raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
     if config.bluos_player_address and any(char.isspace() for char in config.bluos_player_address):
         raise ValueError("BluOS player address cannot contain spaces")
     if config.openobserve_url and not config.openobserve_url.startswith(("http://", "https://")):

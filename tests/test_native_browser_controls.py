@@ -513,6 +513,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
         request_update = code[code.index('    def _request_update(self):'):code.index('    def request_display_settings', code.index('    def _request_update(self):'))]
         self.assertNotIn('self.update_status_seen = True', request_update)
         self.assertIn('self.last_system_fetch = 0', request_update)
+        self.assertIn('scene = domain == "scene"', code)
+        self.assertIn('button.connect("clicked", self.activate_home_scene', code)
+        self.assertIn('button.scene_status_label.set_text("ACTIVATED"', code)
 
     def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
         code = SOURCE.read_text(encoding="utf-8")

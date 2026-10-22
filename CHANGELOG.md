@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.12 Alpine — 23 October 2026
+
+- Add allow-listed Home Assistant scenes alongside lights, fans, switches and
+  input booleans while preserving the existing eight-entity display order.
+- Resolve scene friendly names through the existing server-side state poll and
+  activate them with `scene.turn_on`, without exposing Home Assistant tokens.
+- Present scenes as stateless touchscreen and web actions with immediate,
+  temporary Activated feedback, disabled unavailable states and no false toggle.
+
 ## 1.1.7-beta.11 Alpine — 23 October 2026
 
 - Replace Browse Artist Albums' Search-preview route with a fresh

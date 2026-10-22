@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
-from .config import Config, load_config, load_env
+from .config import Config, HOME_ASSISTANT_DOMAINS, load_config, load_env
 from .domain import normalise
 from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
@@ -266,6 +266,12 @@ def home_assistant_set_state(config: Config, entity_id: str, enabled: bool) -> o
     return home_assistant_request(config, f"/api/services/{domain}/{service}", {"entity_id": entity_id})
 
 
+def home_assistant_activate(config: Config, entity_id: str) -> object:
+    if entity_id.split(".", 1)[0] != "scene":
+        raise ValueError("This entity is not a scene")
+    return home_assistant_request(config, "/api/services/scene/turn_on", {"entity_id": entity_id})
+
+
 def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserveLogger | None = None) -> None:
     last_status: str | None = None
     while not stop.is_set():
@@ -291,6 +297,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
                     "percentage": attributes.get("percentage"), "brightness": attributes.get("brightness"),
+                    "action": domain == "scene", "available": item.get("state") not in {"unavailable", "unknown"},
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))
                         or (domain == "light" and attributes.get("supported_color_modes") not in (None, [], ["onoff"]))
@@ -1220,7 +1227,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         self.send_json(400, b'{"error":"Entity is not available on this display"}')
                         return
                     domain = entity_id.split(".", 1)[0]
-                    if domain not in {"fan", "light", "switch", "input_boolean"}:
+                    if domain not in HOME_ASSISTANT_DOMAINS:
                         self.send_json(400, b'{"error":"This entity type cannot be toggled"}')
                         return
                     try:
@@ -1228,6 +1235,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                             home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                         elif self.path == "/api/device/home-state":
                             home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                        elif domain == "scene":
+                            home_assistant_activate(state.config, entity_id)
                         else:
                             home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})
                     except (OSError, ValueError, urllib.error.URLError) as exc:
@@ -1249,6 +1258,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                     elif self.path == "/api/home/state":
                         home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                    elif domain == "scene":
+                        home_assistant_activate(state.config, entity_id)
                     else:
                         home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})
                     self.send_json(200, b'{"ok":true}')
@@ -1370,7 +1381,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 requested_home_entities = values("home_assistant_entities", current.home_assistant_entities)
                 if len(requested_home_entities) > 8:
                     raise ValueError("Choose no more than eight Home Assistant entities")
-                unsupported = [item for item in requested_home_entities if item.split(".", 1)[0] not in {"fan", "light", "switch", "input_boolean"}]
+                unsupported = [item for item in requested_home_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
                 if unsupported:
                     raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
                 home_url = str(data.get("home_assistant_url", current.home_assistant_url)).strip()

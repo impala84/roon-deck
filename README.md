@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current Alpine stable release is **1.1.6**. The **1.1.7-beta.11** Pi 3 update-progress fix and recent Browse corrections are available to Beta-channel devices through the online updater. The latest complete flashable image remains available from the 1.1.4 release for clean installations.
+The current Alpine stable release is **1.1.6**. The **1.1.7-beta.12** Home Assistant scene support and recent Browse corrections are available to Beta-channel devices through the online updater. The latest complete flashable image remains available from the 1.1.4 release for clean installations.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
@@ -20,7 +20,7 @@ beta.14 and older appliances can cross to the renamed channel safely.
 - Queue, library browsing, combined library/connected TIDAL search and Surprise playback, through Roon's official extension API. Catalogue availability depends on the connected Roon Server.
 - Optional BluOS amplifier/source controls, separate from Roon playback.
 - Optional Singapore LTA arrivals: up to four service rows and three arrivals per service.
-- Optional Home Assistant controls for up to eight allow-listed `fan`, `light`, `switch` and `input_boolean` entities.
+- Optional Home Assistant controls for up to eight allow-listed `fan`, `light`, `scene`, `switch` and `input_boolean` entities.
 - Fresh Mint and Roon-inspired themes, shared across touchscreen and web.
 - Shared Landscape/Portrait display settings with panel-aware rotation and responsive native GTK layouts from 480×800 through 1920×1200.
 - Scheduled sleep, touch wake, brightness/orientation controls and playback-aware wake behaviour. TV/record inputs do not independently hold the display awake.
