@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roon-deck"
-version = "1.1.7-beta.8"
+version = "1.1.7-beta.9"
 description = "RoonDeck, an independent Raspberry Pi touchscreen for Roon"
 requires-python = ">=3.11"
 license = {text = "MIT"}

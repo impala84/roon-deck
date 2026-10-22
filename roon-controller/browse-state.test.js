@@ -59,6 +59,24 @@ test('artist links use fresh exact-match core keys and preserve artist profile',
   assert.equal([...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-')).length, 1, 'the previous artist hierarchy is discarded');
 });
 
+test('artist album clicks resolve a fresh artist session before opening the exact album', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) { calls.push(options.item_key); done(false, {action:'list', list:{title:'Wanted Album', level:4}}); },
+    load(_options, done) { done(false, {list:{title:'Wanted Album',level:4},items:[{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',subtitle:'Artist',item_key:'song'}]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('stale-artist', {hierarchy:'search', level:3, artist_profile:{name:'Artist'}, items:[{title:'Wanted Album',image_key:'cover',item_key:'stale-album'}]});
+  manager.activeSessions.set(safeSession('touch'), 'stale-artist');
+  manager.openArtist = async base => {
+    manager.activeSessions.set(base, 'fresh-artist');
+    return manager.save('fresh-artist', {hierarchy:'search',level:3,artist_profile:{name:'Artist'},items:[{title:'Wanted Album',image_key:'cover',item_key:'fresh-album'}],has_more:false});
+  };
+  const result = await manager.run('touch', 'open', {item_key:'stale-album'});
+  assert.equal(calls[0], 'fresh-album');
+  assert.equal(result.album_profile.name, 'Wanted Album');
+});
+
 test('successful queue actions return from the popup to album tracks without replaying the action', async () => {
   const calls = [];
   const service = {

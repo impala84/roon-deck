@@ -222,7 +222,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .arrival-sub { color: #7f8b87; font-size: 10px; font-weight: 650; }.muted { color: #78837f; font-size: 11px; font-weight: 400; }
 .nav { padding-top: 3px; }.nav button { min-width: 0; min-height: 40px; border: 0; border-bottom: 5px solid transparent; border-radius: 0; background: transparent; color: #7f8b87; font-size: 14px; font-weight: 700; }
 .nav button.active { border-bottom-color: #6ed9ae; background: transparent; color: #dfe4e1; }.artwork { border-radius: 12px; }.roon-title { font-size: 35px; font-weight: 620; }.roon-artist { color: #b6c0bc; font-size: 18px; }
-.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 76px; padding: 10px 28px 0; background: #000; }.detail-close { min-width: 56px; min-height: 56px; border: 2px solid #9868F9; border-radius: 50%; padding: 0; background: transparent; color: #fff; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 12px 34px 24px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #9868F9; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork-frame, .detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 20px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 500; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #858b89; font-size: 15px; font-weight: 500; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #2d2943; color: #9868F9; font-size: 19px; font-weight: 750; }.detail-footer { padding: 10px 28px 28px; background: #000; }.detail-footer .detail-primary-action { min-height: 68px; margin: 0; background: #9868F9; color: #111; font-size: 26px; font-weight: 800; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; }.detail-track-no { color: #9868F9; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
+.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 76px; padding: 10px 28px 0; background: #000; }.detail-close { min-width: 56px; min-height: 56px; border: 2px solid #6ed9ae; border-radius: 50%; padding: 0; background: transparent; color: #fff; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 12px 34px 24px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #6ed9ae; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork-frame, .detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 20px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 500; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #858b89; font-size: 15px; font-weight: 500; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #173a30; color: #6ed9ae; font-size: 19px; font-weight: 750; }.detail-footer { padding: 10px 28px 28px; background: #000; }.detail-footer .detail-primary-action { min-height: 68px; margin: 0; background: #6ed9ae; color: #111; font-size: 26px; font-weight: 800; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; }.detail-track-no { color: #6ed9ae; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
 .roon-subnav { margin-top: 0; }.roon-subnav button { min-height: 29px; padding: 4px 13px 2px; border-radius: 0; border-top: 3px solid transparent; background: transparent; color: #68736f; font-size: 10px; font-weight: 750; letter-spacing: 1px; }.roon-subnav button.active { border-top-color: #5bcbd6; color: #f4f0e6; }
 .source-view { padding: 8px; }.source-title { font-size: 25px; font-weight: 700; }.source-volume { font-size: 104px; font-weight: 620; font-variant-numeric: tabular-nums; }.source-step { min-width: 92px; min-height: 92px; border-radius: 46px; background: #18211f; color: #f4f0e6; font-size: 45px; }.source-mute { min-width: 92px; min-height: 38px; border-radius: 8px; background: #18211f; color: #dfe4e1; font-size: 11px; font-weight: 750; }
 .queue-scroll { background: transparent; }.queue-scroll scrollbar { opacity: 0; min-width: 0; min-height: 0; }.queue-list { padding: 5px 8px 8px; }.queue-row { min-height: 78px; padding: 7px 11px; border-radius: 8px; background: transparent; color: #f4f0e6; }.queue-row:hover, .queue-row:active, .queue-row.current { background: #121e1c; }.queue-row.previous { opacity: .5; }.queue-art { min-width: 66px; min-height: 66px; border-radius: 6px; background: #18211f; }.queue-art-stack { min-width: 66px; min-height: 66px; }.queue-play-badge { min-width: 34px; min-height: 34px; border-radius: 17px; background: rgba(8,13,12,.82); color: #6ed9ae; }.queue-title { color: #f4f0e6; font-size: 20px; font-weight: 650; }.queue-meta { color: #84908c; font-size: 15px; }.queue-duration { color: #aab4b0; font-size: 18px; font-variant-numeric: tabular-nums; }.queue-empty { color: #78837f; font-size: 15px; padding: 60px 0; }
@@ -326,8 +326,10 @@ CSS += b"""
 .settings-select popover listview row label { color: #f2f0f4; }
 .settings-select popover listview row:selected { background: #403c55; color: #f2f0f4; }
 .settings-select popover listview row:selected label { color: #f2f0f4; }
-.artist-play, .theme-roon .artist-play { margin-top: 12px; padding: 12px 30px 12px 20px; border: 0; border-radius: 999px; background: #9868F9; color: #111; font-size: 20px; font-weight: 800; }
-.artist-play:hover, .artist-play:active, .artist-play:focus, .theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; color: #111; }
+.artist-play { margin-top: 12px; padding: 12px 30px 12px 20px; border: 0; border-radius: 999px; background: #6ed9ae; color: #111; font-size: 20px; font-weight: 800; }
+.artist-play:hover, .artist-play:active, .artist-play:focus { background: #83e6bd; color: #111; }
+.theme-roon .artist-play { background: #9868F9; }
+.theme-roon .artist-play:hover, .theme-roon .artist-play:active, .theme-roon .artist-play:focus { background: #a77cff; }
 .queue-pill, .theme-roon .queue-pill { min-height: 52px; padding: 10px 22px; border: 2px solid #55515d; border-radius: 999px; background: transparent; color: #ddd; font-size: 18px; font-weight: 700; }
 .queue-pill:hover, .queue-pill:active, .queue-pill:focus, .theme-roon .queue-pill:hover, .theme-roon .queue-pill:active, .theme-roon .queue-pill:focus { border-color: #77717f; background: #222; color: #fff; }
 .artist-albums-heading { font-size: 16px; font-weight: 750; }
@@ -351,6 +353,15 @@ CSS += b"""
 .theme-roon .roon-artist, .theme-roon .detail-artist, .theme-roon .surprise-artist, .theme-roon .surprise-caption, .theme-roon .queue-meta, .theme-roon .queue-duration, .theme-roon .muted, .theme-roon .home-state, .theme-roon .settings-diagnostic, .theme-roon .time, .theme-roon .browser-filter { color: #aaa; }
 .theme-roon .browser-filter.active { color: #9868F9; }
 .theme-roon .detail-takeover { background: rgba(21,21,21,.96); }
+.theme-roon .detail-close, .theme-roon .detail-close-glyph { border-color: #9868F9; }
+.theme-roon .detail-section-label, .theme-roon .detail-track-no, .theme-roon .recommendation-heading,
+.theme-roon .discover-utility, .theme-roon .browser-sort, .theme-roon .volume-step,
+.theme-roon .track-menu-action { color: #9868F9; }
+.theme-roon .detail-action { background: #2d2943; color: #9868F9; }
+.theme-roon .detail-footer .detail-primary-action,
+.theme-roon .track-menu-action.primary-play { background: #9868F9; color: #111; }
+.theme-roon popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
+.theme-roon popover.sort-menu .track-menu-action.active { box-shadow: inset 3px 0 #9868F9; }
 .discovery-card, .discovery-card:hover, .discovery-card:active { padding: 4px; background: transparent; background-image: none; box-shadow: none; }
 .discovery-card .queue-title { font-size: 18px; }.discovery-card .queue-subtitle { font-size: 14px; color: #aaa; }
 .daily-card .queue-title { font-size: 20px; }.daily-card .queue-subtitle { font-size: 16px; }
@@ -359,13 +370,13 @@ CSS += b"""
 .daily-track { padding: 0 0 4px 10px; }
 .daily-track .queue-title { margin-top: 5px; }
 .daily-heading { margin: 2px 7px 0 7px; }
-.recommendation-heading { margin: 12px 7px -8px 17px; color: #9868F9; font-size: 14px; font-weight: 780; letter-spacing: 1px; }
+.recommendation-heading { margin: 12px 7px -8px 17px; color: #6ed9ae; font-size: 14px; font-weight: 780; letter-spacing: 1px; }
 .confirm-shade { background: rgba(5,5,7,.82); }
 .confirm-card { min-width: 390px; padding: 28px; border-radius: 14px; background: #242329; border: 1px solid #4a4752; }
 .confirm-title { font-size: 28px; font-weight: 760; color: #fff; }
 .confirm-copy { font-size: 17px; color: #bbb; }
 .confirm-cancel, .confirm-reboot { min-height: 54px; padding: 8px 22px; border-radius: 8px; font-size: 17px; font-weight: 700; }
-.confirm-cancel { background: #343338; color: #fff; }.confirm-reboot { background: #9868F9; color: #fff; }
+.confirm-cancel { background: #343338; color: #fff; }.confirm-reboot { background: #6ed9ae; color: #101714; }
 .loading-notice { font-size: 14px; font-weight: normal; color: #aaa; background: transparent; padding: 4px 0; }
 .touch-landscape .roon-page { padding-right: 0; }
 .touch-landscape .roon-header, .touch-landscape .roon-page .nav, .touch-landscape .now-playing-content, .touch-landscape .queue-scroll, .touch-landscape .source-view { margin-right: 28px; }
@@ -457,7 +468,7 @@ CSS += b"""
 .portrait.compact-portrait .roon-subnav button { font-size: 12px; min-height: 32px; letter-spacing: .4px; }
 .portrait.compact-portrait .browser-filter { font-size: 12px; min-height: 40px; padding: 4px 6px; }
 .portrait .discover-toolbar { padding: 4px 0 0; }
-.discover-utility { background: transparent; border: 0; padding: 0; min-width: 36px; min-height: 42px; color: #9868F9; }
+.discover-utility { background: transparent; border: 0; padding: 0; min-width: 36px; min-height: 42px; color: #6ed9ae; }
 .discover-sleep { color: #888; }
 .display-landscape .discover-toolbar { padding-top: 4px; }
 .display-landscape .discover-toolbar .roon-subnav button { border-top: 0; border-bottom: 3px solid transparent; padding-bottom: 0; }
@@ -555,7 +566,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display .browser-back { min-width: 132px; min-height: 64px; padding: 10px 20px; }
 .portrait .browser-back { min-height: 38px; padding: 4px 16px; }
 .portrait.large-portrait .browser-back { min-height: 52px; }
-.browser-sort { min-height: 48px; padding: 8px 12px; border-radius: 8px; background: #282828; color: #9868F9; }
+.browser-sort { min-height: 48px; padding: 8px 12px; border-radius: 8px; background: #282828; color: #6ed9ae; }
 .browser-sort:hover { background: #303033; }
 .large-display .home-name { font-size: 34px; }
 .large-display .home-state { font-size: 24px; }
@@ -613,23 +624,25 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .high-resolution .detail-heading { font-size: 36px; }
 .compact-detail .detail-heading { font-size: 24px; }
 .detail-close { border: 0; background: transparent; color: #fff; }
-.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #fff; }
+.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .compact-detail .detail-header { min-height: 68px; padding-top: 10px; padding-bottom: 10px; }
 .compact-detail .detail-close-glyph { min-width: 40px; min-height: 40px; }
 .detail-source { margin-top: 4px; margin-bottom: 14px; }
 .detail-facts { padding-top: 0; }
-.primary-play, .theme-roon .primary-play { background: #9868F9; color: #111; font-weight: 800; }
-.primary-play:hover, .primary-play:active, .primary-play:focus, .theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; color: #111; }
+.primary-play { background: #6ed9ae; color: #111; font-weight: 800; }
+.primary-play:hover, .primary-play:active, .primary-play:focus { background: #83e6bd; color: #111; }
+.theme-roon .primary-play { background: #9868F9; }
+.theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; }
 .surprise-action.primary-play, .theme-roon .surprise-action.primary-play { border-radius: 50%; }
-.volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #9868F9; }
+.volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #6ed9ae; }
 .large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
-.track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #292929; color: #9868F9; font-size: 18px; }
+.track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #18211f; color: #6ed9ae; font-size: 18px; }
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
-.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #9868F9; color: #111; }
+.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
 popover.sort-menu .track-menu-action { background: transparent; }
-popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
-popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #9868F9; }
+popover.sort-menu .track-menu-action:hover { background: rgba(110,217,174,.12); }
+popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #6ed9ae; }
 .large-display .track-menu-action { min-height: 64px; font-size: 24px; }
 .compact-landscape popover.track-menu > contents { padding: 7px; border-radius: 10px; }
 .compact-landscape .track-menu-action { min-height: 42px; padding: 5px 12px; font-size: 16px; }
@@ -674,12 +687,12 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .discover-toolbar { min-height: 44px; margin-bottom: 5px; padding-top: 0; }
 .original-landscape .roon-page.now-layout .discover-toolbar { min-height: 40px; }
 .original-landscape .discover-utility { min-width: 34px; min-height: 34px; padding: 0; }
-.original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 0; font-size: 13px; letter-spacing: .45px; }
+.original-landscape .roon-subnav button { min-height: 34px; padding: 3px 8px 0; font-size: 14px; letter-spacing: .2px; }
 .original-landscape .discover-toolbar .roon-subnav button { border-bottom-width: 2px; }
 .original-landscape .browser-sidebar { min-width: 116px; padding: 4px 6px 2px 0; }
 .original-landscape .browser-sidebar.library-sidebar { margin-top: -12px; }
 .original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }
-.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 13px; }
+.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; letter-spacing: .2px; }
 .original-landscape .browser-back { min-height: 38px; margin-top: 6px; }
 .original-landscape .browser-main { margin-top: -16px; margin-bottom: -10px; padding-left: 0; }
 .original-landscape .browser-cover-grid { padding: 1px 12px 10px 1px; }
@@ -737,7 +750,8 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape.compact-detail .detail-writeup { font-size: 16px; line-height: 1.25; }
 .original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
 .original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
-.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #9868F9; color: #111; font-size: 14px; font-weight: 800; }
+.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111; font-size: 14px; font-weight: 800; }
+.original-landscape.theme-roon.compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -1321,7 +1335,7 @@ class Display(Gtk.Application):
         content.append(self.browser_scrubber); browser_main.append(content); browser_body.append(browser_main)
         self.roon_views.add_named(browser, "browse")
         search_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_panel.add_css_class("browser-search-panel"); self.browser_search_panel = search_panel
-        search_nav = Gtk.Box(spacing=2); search_nav.add_css_class("browser-sidebar"); self.search_nav = search_nav
+        search_nav = Gtk.Box(spacing=2); search_nav.add_css_class("browser-sidebar"); search_nav.add_css_class("library-sidebar"); self.search_nav = search_nav
         for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: (self.set_roon_view("browse"), self.request_browser("section", section=value)), "browser-filter"); button.get_child().set_xalign(0); search_nav.append(button)
         search_active = self.button("SEARCH", lambda *_: None, "browser-filter"); search_active.add_css_class("active"); search_active.get_child().set_xalign(0); search_nav.append(search_active); search_panel.append(search_nav)
@@ -2547,8 +2561,10 @@ class Display(Gtk.Application):
         # the window-level legacy controller sees it. Treat actual viewport
         # movement as browsing activity so the return timer cannot interrupt
         # someone who is actively moving through a list.
-        if (self.stack.get_visible_child_name() == "roon"
-                and self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
+        stack = getattr(self, "stack", None)
+        roon_views = getattr(self, "roon_views", None)
+        if (stack and roon_views and stack.get_visible_child_name() == "roon"
+                and roon_views.get_visible_child_name() in {"discover", "browse", "search"}):
             self.browse_last_interaction = time.monotonic()
 
     def discovery_secondary_navigation(self):
@@ -3055,7 +3071,7 @@ class Display(Gtk.Application):
         original_tile = (not getattr(self, "responsive_portrait", False)
                          and getattr(self, "viewport_width", 800) <= 820
                          and getattr(self, "viewport_height", 480) <= 500)
-        separated_genre_tile = original_tile or (
+        separated_label_tile = original_tile or (
             not getattr(self, "responsive_portrait", False)
             and getattr(self, "system_data", {}).get("display_profile") in {"touch2-7", "touch2-5-7"})
         artwork = Gtk.Overlay(); picture = Gtk.Picture(); picture.add_css_class("browser-cover-art"); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER); artwork.set_child(picture)
@@ -3070,17 +3086,15 @@ class Display(Gtk.Application):
             texture = self.queue_thumbnail_cache.get(key)
             if texture: picture.set_paintable(texture)
         elif tile_kind:
-            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * .65))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.18 if separated_genre_tile and tile_kind == "genres" else .12))); artwork.add_overlay(icon)
+            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * (.58 if tile_kind == "playlists" else .65)))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.18 if separated_label_tile else .12))); artwork.add_overlay(icon)
         if show_labels:
             title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5); title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
-            if tile_kind == "genres":
+            if tile_kind in {"genres", "playlists"}:
                 content.remove(title); title.add_css_class("tile"); title.set_wrap(True); title.set_lines(2); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_halign(Gtk.Align.FILL); title.set_valign(Gtk.Align.END); artwork.add_overlay(title)
-                title.set_margin_bottom(6 if separated_genre_tile else max(12, round(size * .075)))
-            elif tile_kind == "playlists":
-                title.set_wrap(True); title.set_lines(2); title.set_max_width_chars(18); title.set_justify(Gtk.Justification.CENTER); title.set_size_request(-1, 42)
+                title.set_margin_bottom(6 if separated_label_tile else max(12, round(size * .075)))
             if item.get("subtitle") and not tile_kind:
                 subtitle = self.label(item.get("subtitle"), "browser-cover-subtitle", .5); subtitle.set_max_width_chars(22); subtitle.set_ellipsize(Pango.EllipsizeMode.END); content.append(subtitle)
-        caption_height = 96 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 60
+        caption_height = 0 if tile_kind in {"genres", "playlists"} else 96 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 60
         shell = Gtk.ScrolledWindow(); shell.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); shell.set_propagate_natural_width(False); shell.set_propagate_natural_height(False); shell.set_min_content_width(size); shell.set_max_content_width(size); shell.set_min_content_height(size + (caption_height if show_labels else 0)); shell.set_max_content_height(size + (caption_height if show_labels else 0)); shell.set_child(content)
         button = Gtk.Button(); button.add_css_class("browser-cover-card"); button.set_child(shell); button.set_sensitive(bool(item.get("item_key"))); button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
 

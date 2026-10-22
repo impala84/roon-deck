@@ -142,6 +142,11 @@ class BrowseManager {
       } else if (command === 'current' && !this.activeSessions.has(session) && !this.sessions.has(session)) {
         active = `${session}-albums`; this.activeSessions.set(session, active);
       }
+      const state = this.sessions.get(active);
+      const selected = command === 'open' ? state?.items?.find(item => String(item.item_key) === String(data.item_key)) : null;
+      if (selected && !selected.action && state?.artist_profile?.name) {
+        return this.openArtistAlbum(session, state.artist_profile.name, selected);
+      }
       return this._run(active, command, data);
     });
     this.pending.set(session, current);
@@ -553,6 +558,30 @@ class BrowseManager {
     const target = route?.session || session;
     this.activeSessions.set(baseSession, target);
     return this._run(target, 'open', {item_key:route?.key || artist.item_key});
+  }
+
+  async openArtistAlbum(baseSession, artistName, selected) {
+    // Album keys inherit the artist browse session. Resolve the artist again
+    // before opening an album so a stale Roon stack can never pair a new artist
+    // heading with an old artist's album key.
+    let artist = await this.openArtist(baseSession, artistName);
+    const session = this.activeSessions.get(baseSession);
+    if (!session || artist?.error) return artist;
+    const sameAlbum = item => !item.action && item.title === selected.title &&
+      (!selected.image_key || !item.image_key || item.image_key === selected.image_key);
+    let album = artist.items?.find(sameAlbum);
+    while (!album && artist.has_more) {
+      artist = await this.loadMore(this.service(), session);
+      album = artist.items?.find(sameAlbum);
+    }
+    if (!album?.item_key) return this.save(session, {...artist, error:true, message:'That album is no longer available for this artist.'});
+    const opened = await this._run(session, 'open', {item_key:album.item_key});
+    const actual = String(opened?.album_profile?.name || opened?.title || '').trim();
+    if (actual && actual !== selected.title) {
+      const restored = await this._run(session, 'back', {});
+      return this.save(session, {...restored, error:true, message:'Roon returned a different album. Please try again.'});
+    }
+    return opened;
   }
 }
 

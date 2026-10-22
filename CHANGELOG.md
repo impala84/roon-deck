@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.7-beta.9 Alpine — 23 October 2026
+
+- Remove Roon-purple leakage from the Fresh Mint native interface, including
+  Surprise Me, play actions, album details, sort menus and volume controls,
+  while retaining explicit purple overrides throughout the Roon theme.
+- Restore the original-display Browse Artist Albums action to the same bright
+  purple background and black text used by the Roon theme on other displays.
+- Give the original-display top and side navigation labels more vertical
+  presence with 14px type and tighter tracking, keeping both menus consistent.
+- Re-resolve the selected artist in a fresh Roon session before opening one of
+  its albums, and reject any mismatched album response instead of displaying it.
+- Match playlist cards to genre tiles across landscape displays, with the name
+  inside the lower edge and a smaller, visually centred playlist symbol.
+- Apply the standard Browse sidebar alignment to the original-display Search
+  keyboard so its menu begins on the same baseline as every library page.
+
 ## 1.1.7-beta.8 Alpine — 23 October 2026
 
 - Default completed Alpine installations without a saved status-light setting to

@@ -375,8 +375,18 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_original_genre_tiles_separate_icon_and_bottom_label(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('get("display_profile") in {"touch2-7", "touch2-5-7"}', code)
-        self.assertIn('.18 if separated_genre_tile and tile_kind == "genres" else .12', code)
-        self.assertIn('title.set_margin_bottom(6 if separated_genre_tile else', code)
+        self.assertIn('.18 if separated_label_tile else .12', code)
+        self.assertIn('title.set_margin_bottom(6 if separated_label_tile else', code)
+
+    def test_playlist_tiles_share_genre_caption_layout_and_compact_icon(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('if tile_kind in {"genres", "playlists"}:', code)
+        self.assertIn('.58 if tile_kind == "playlists" else .65', code)
+        self.assertIn('caption_height = 0 if tile_kind in {"genres", "playlists"}', code)
+
+    def test_search_uses_the_same_sidebar_alignment_class_as_browse(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('search_nav.add_css_class("browser-sidebar"); search_nav.add_css_class("library-sidebar")', code)
 
     def test_empty_activity_event_does_not_raise_or_change_state(self):
         owner = SimpleNamespace(last_interaction=123)
@@ -445,12 +455,12 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('"artist-play primary-play" if action == "play"', code)
         self.assertIn('"artist-play primary-play")', code)
-        self.assertIn('.artist-play, .theme-roon .artist-play', code)
-        self.assertIn('background: #9868F9; color: #111', code)
+        self.assertIn('.artist-play { margin-top: 12px;', code)
+        self.assertIn('.theme-roon .artist-play { background: #9868F9;', code)
 
     def test_selected_soft_pill_actions_use_filled_play_and_outlined_queue(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('border-radius: 999px; background: #9868F9', code)
+        self.assertIn('border-radius: 999px; background: #6ed9ae', code)
         self.assertIn('primary_play = name == "play" and "primary-play" in css', code)
         self.assertIn('filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css', code)
         self.assertIn('"queue-pill")', code)
@@ -469,7 +479,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):', code)
         self.assertIn('close_artwork.connect("released", lambda *_: self.set_roon_view("now"))', code)
-        self.assertIn('border-radius: 8px; background: #9868F9', code)
+        self.assertIn('border-radius: 8px; background: #6ed9ae', code)
+        self.assertIn('.theme-roon .track-menu-action.primary-play { background: #9868F9; color: #111;', code)
 
     def test_detail_copy_order_and_compact_identity_are_consistent(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -487,14 +498,16 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
         self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
         self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
-        self.assertIn('.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #fff; }', code)
+        self.assertIn('.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }', code)
+        self.assertIn('.theme-roon .detail-close, .theme-roon .detail-close-glyph { border-color: #9868F9; }', code)
 
     def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)', code)
         self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
-        self.assertIn('.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #9868F9; color: #111;', code)
+        self.assertIn('.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
+        self.assertIn('.original-landscape.theme-roon.compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
 
     def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -886,8 +899,23 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertEqual(code.count('add_css_class("discovery-sidebar")'), 2)
         self.assertIn('.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }', code)
-        self.assertIn('.original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 0; font-size: 13px;', code)
-        self.assertIn('.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 13px;', code)
+        self.assertIn('.original-landscape .roon-subnav button { min-height: 34px; padding: 3px 8px 0; font-size: 14px; letter-spacing: .2px;', code)
+        self.assertIn('.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; letter-spacing: .2px;', code)
+
+    def test_mint_defaults_do_not_contain_roon_purple(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        allowed = ("theme-roon", "library-pulse-roon", 'accent="#9868F9"',
+                   'replace("#9868F9", accent)', 'accent = "#9868F9"',
+                   "alpha(#9868F9")
+        leaked = [line.strip() for line in code.splitlines()
+                  if any(token in line.lower() for token in ("#9868f9", "#a77cff", "152,104,249"))
+                  and not any(marker in line for marker in allowed)]
+        self.assertEqual(leaked, [])
+
+    def test_scroll_activity_hook_is_safe_in_visual_review_harness(self):
+        owner = SimpleNamespace()
+        native_method("note_browse_scroll", {"time": SimpleNamespace(monotonic=lambda: 1)})(owner)
+        self.assertFalse(hasattr(owner, "browse_last_interaction"))
 
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):
         code = SOURCE.read_text(encoding='utf-8')
