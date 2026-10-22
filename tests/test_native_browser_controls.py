@@ -506,8 +506,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)', code)
         self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
-        self.assertIn('.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
-        self.assertIn('.original-landscape.theme-roon.compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
+        self.assertIn('.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
+        self.assertIn('.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
+        self.assertIn('title.set_xalign(.5); title.set_justify(Gtk.Justification.CENTER)', code)
+        self.assertIn('if name == "browse": button.add_css_class("active")', code)
 
     def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
         code = SOURCE.read_text(encoding="utf-8")

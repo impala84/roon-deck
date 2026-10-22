@@ -77,6 +77,27 @@ test('artist album clicks resolve a fresh artist session before opening the exac
   assert.equal(result.album_profile.name, 'Wanted Album');
 });
 
+test('artist navigation rejects albums belonging to a different artist', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  manager.search = async (_service, _zone, session) => manager.save(session, {
+    hierarchy:'search', items:[
+      {title:'ARTISTS',hint:'header'},
+      {title:'Sonny Clark',item_key:'artist-key'}
+    ], search_routes:{'artist-key':{session:'artist-results',key:'fresh-key'}}
+  });
+  manager._run = async session => manager.save(session, {
+    hierarchy:'search', artist_profile:{name:'Sonny Clark'}, items:[
+      {title:'Play Artist',subtitle:'',action:true,item_key:'play'},
+      {title:'Cool Struttin\'',subtitle:'Sonny Clark',item_key:'correct'},
+      {title:'The 2nd Law',subtitle:'Muse',item_key:'wrong'},
+      {title:'Unknown local album',subtitle:'',item_key:'local'}
+    ]
+  });
+  const result = await manager.openArtist('pihome-touch', 'Sonny Clark');
+  assert.deepEqual(result.items.map(item => item.title), ['Play Artist', 'Cool Struttin\'', 'Unknown local album']);
+  assert.equal(result.error, false);
+});
+
 test('successful queue actions return from the popup to album tracks without replaying the action', async () => {
   const calls = [];
   const service = {

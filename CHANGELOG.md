@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.7-beta.10 Alpine — 23 October 2026
+
+- Centre both one-line and wrapped two-line labels at the base of Genre and
+  Playlist tiles across the supported display profiles.
+- Correct the original seven-inch Roon-theme selector so Browse Artist Albums
+  uses the bright accent background with black text.
+- Reject cross-artist album rows when a Roon Core returns the global album
+  collection underneath an artist heading, rather than presenting wrong albums.
+- Select Browse in the top Discover navigation whenever Browse Artist Albums is
+  opened from Now Playing, clearing any stale Surprise Me or New Releases state.
+
 ## 1.1.7-beta.9 Alpine — 23 October 2026
 
 - Remove Roon-purple leakage from the Fresh Mint native interface, including

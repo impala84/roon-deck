@@ -83,6 +83,13 @@ function withAlbumArtist(items) {
   return items.map(item => item.action ? item : {...item, title: String(item.title || '').replace(/^\s*(?:\d+\s*[-/]\s*\d+[.\s]+|\d+\.\s+)/, ''), subtitle: albumArtist || item.subtitle});
 }
 
+function sameArtistLabel(value, artistName) {
+  const clean = text => String(text || '').replace(/\[\[\d+\|([^\]]+)\]\]/g, '$1').trim().toLowerCase();
+  const artist = clean(artistName);
+  const label = clean(value).split(/\s*(?:,|\bfeat\.?\b|\bfeaturing\b)\s*/i)[0];
+  return !label || label === artist;
+}
+
 function rootItems(items) {
   const wanted = ['library', 'playlists', 'genres'];
   const available = items.filter(item => item.hint !== 'header');
@@ -557,7 +564,19 @@ class BrowseManager {
     const route = results.search_routes?.[artist.item_key];
     const target = route?.session || session;
     this.activeSessions.set(baseSession, target);
-    return this._run(target, 'open', {item_key:route?.key || artist.item_key});
+    const opened = await this._run(target, 'open', {item_key:route?.key || artist.item_key});
+    if (!opened?.artist_profile || opened.artist_profile.name.toLowerCase() !== name.toLowerCase()) return opened;
+    // Some Core versions occasionally return the global album collection while
+    // retaining the requested artist heading. Never present those unrelated
+    // albums as the artist's catalogue. Blank subtitles are retained because
+    // local imports do not always expose an album artist in Browse.
+    const items = (opened.items || []).filter(item => item.action || item.hint === 'header' || sameArtistLabel(item.subtitle, name));
+    const rejected = (opened.items || []).length - items.length;
+    return rejected ? this.save(target, {
+      ...opened, items, count: items.length,
+      message: items.some(item => !item.action && item.hint !== 'header') ? opened.message : 'Roon did not return this artist’s albums. Please try again.',
+      error: !items.some(item => !item.action && item.hint !== 'header')
+    }) : opened;
   }
 
   async openArtistAlbum(baseSession, artistName, selected) {
@@ -585,4 +604,4 @@ class BrowseManager {
   }
 }
 
-module.exports = {BrowseManager, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage};
+module.exports = {BrowseManager, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, sameArtistLabel, withAlbumArtist, withFallbackImage};

@@ -750,8 +750,8 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape.compact-detail .detail-writeup { font-size: 16px; line-height: 1.25; }
 .original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
 .original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
-.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111; font-size: 14px; font-weight: 800; }
-.original-landscape.theme-roon.compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }
+.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111; font-size: 14px; font-weight: 800; }
+.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -2366,6 +2366,9 @@ class Display(Gtk.Application):
         if not artist: return
         self.discovery_browser_origin = False
         self.discovery_active = True; self.discovery_section = "browse"
+        for name, button in self.discover_tabs.items():
+            if name == "browse": button.add_css_class("active")
+            else: button.remove_css_class("active")
         self.set_roon_view("browse")
         self.request_browser("artist", name=artist)
 
@@ -3090,7 +3093,7 @@ class Display(Gtk.Application):
         if show_labels:
             title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5); title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
             if tile_kind in {"genres", "playlists"}:
-                content.remove(title); title.add_css_class("tile"); title.set_wrap(True); title.set_lines(2); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_halign(Gtk.Align.FILL); title.set_valign(Gtk.Align.END); artwork.add_overlay(title)
+                content.remove(title); title.add_css_class("tile"); title.set_wrap(True); title.set_lines(2); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(.5); title.set_justify(Gtk.Justification.CENTER); title.set_halign(Gtk.Align.FILL); title.set_valign(Gtk.Align.END); artwork.add_overlay(title)
                 title.set_margin_bottom(6 if separated_label_tile else max(12, round(size * .075)))
             if item.get("subtitle") and not tile_kind:
                 subtitle = self.label(item.get("subtitle"), "browser-cover-subtitle", .5); subtitle.set_max_width_chars(22); subtitle.set_ellipsize(Pango.EllipsizeMode.END); content.append(subtitle)
