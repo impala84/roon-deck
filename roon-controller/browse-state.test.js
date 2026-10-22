@@ -39,12 +39,14 @@ test('album detail exposes one cover and honest optional metadata without alteri
 });
 
 test('artist links use fresh exact-match core keys and preserve artist profile', async () => {
+  const searchSessions = [];
   const service = {
     browse(options, done) { assert.equal(options.item_key, 'fresh-artist'); done(false, {action:'list', list:{title:'Example Artist', level:2}}); },
     load(options, done) { done(false, {list:{title:'Example Artist', level:2}, items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',item_key:'album'}]}); },
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   manager.search = async (_service, _zone, session, name, source, category) => {
+    searchSessions.push(session);
     assert.equal(name, 'Example Artist');
     assert.equal(source, 'all');
     assert.equal(category, 'artists', 'artist navigation must not wait for unrelated album/track previews');
@@ -52,6 +54,9 @@ test('artist links use fresh exact-match core keys and preserve artist profile',
   };
   const result = await manager.run('links', 'artist', {name:'Example Artist'});
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
+  await manager.run('links', 'artist', {name:'Example Artist'});
+  assert.equal(new Set(searchSessions).size, 2, 'each artist link must use a fresh Roon hierarchy');
+  assert.equal([...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-')).length, 1, 'the previous artist hierarchy is discarded');
 });
 
 test('successful queue actions return from the popup to album tracks without replaying the action', async () => {

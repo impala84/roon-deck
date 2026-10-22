@@ -853,6 +853,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('art_slot.set_max_content_width(84)', code)
         self.assertIn('"ARTIST ALBUMS", "browser-section"', code)
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
+        self.assertIn('thumb_size = 88 if original_artist_albums', code)
+        self.assertIn('.original-landscape .artist-album-title { font-size: 18px;', code)
         self.assertIn('play.set_halign(Gtk.Align.START if portrait or original else Gtk.Align.CENTER); details.append(play)', code)
 
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):

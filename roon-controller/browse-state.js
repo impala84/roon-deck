@@ -101,6 +101,7 @@ class BrowseManager {
     this.lastSurprises = new Map();
     this.surpriseOrigins = new Map();
     this.artistContexts = new Map();
+    this.artistRequestId = 0;
     this.searchSources = new Map();
     this.sortedCollections = new Map();
   }
@@ -531,7 +532,15 @@ class BrowseManager {
     const service = this.service(), zone = this.zone();
     if (!service || !zone || !name) return {status:'unavailable', items:[], can_back:false};
     // Resolve a fresh core-owned key; track subtitles aren't durable artist IDs.
-    const session = `${baseSession}-artist-link`;
+    // Never reuse a Roon search hierarchy for a detail-sheet artist link.
+    // Roon item keys and the backing browse stack are session-scoped; reusing
+    // this session could retain the previous artist's album collection while
+    // showing the newly requested artist heading.
+    const prefix = `${baseSession}-artist-link-`;
+    for (const collection of [this.sessions, this.sections, this.searchSources]) {
+      for (const key of collection.keys()) if (key.startsWith(prefix)) collection.delete(key);
+    }
+    const session = `${prefix}${++this.artistRequestId}`;
     this.sections.set(session, 'search'); this.activeSessions.set(baseSession, session);
     const results = await this.search(service, zone, session, name, 'all', 'artists');
     let group = '';

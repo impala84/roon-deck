@@ -8,6 +8,11 @@
   model-specific section cannot silently scope them to the wrong Raspberry Pi.
 - Reapply the saved LED state after udev and the firmware LED driver have settled,
   preventing their boot-time triggers from restoring the red and green lights.
+- Give every Album & Artist “Browse Artist Albums” action a fresh Roon browse
+  hierarchy, preventing a previous artist's retained album list appearing beneath
+  the newly selected artist.
+- Reduce artist-album thumbnails from 132px to 88px and their titles from 24px to
+  18px on the original 800×480 display so more albums fit in the viewport.
 
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 
