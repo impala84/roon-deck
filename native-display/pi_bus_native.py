@@ -686,7 +686,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .browser-cover-title { padding-top: 4px; font-size: 13px; }
 .original-landscape .browser-cover-title.tile { padding: 5px 4px 6px; font-size: 15px; line-height: 1.05; }
 .original-landscape .browser-cover-subtitle { font-size: 10px; }
-.original-landscape .artist-album-title { font-size: 18px; line-height: 1.05; }
+.original-landscape .artist-album-title { font-size: 20px; }
 .original-landscape .browser-scrubber scale { padding: 5px; }
 .original-landscape .browser-scrub-letter { min-width: 28px; min-height: 28px; font-size: 14px; }
 .original-landscape .discovery-scroll { margin-bottom: 2px; }
@@ -3282,7 +3282,7 @@ class Display(Gtk.Application):
                     # or the number of rows from enlarging album thumbnails.
                     artist_albums = bool(data.get("artist_profile"))
                     original_artist_albums = artist_albums and not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-                    thumb_size = 88 if original_artist_albums else (210 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 132) if artist_albums else (116 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 84)
+                    thumb_size = 84 if original_artist_albums else (210 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 132) if artist_albums else (116 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 84)
                     art_slot = Gtk.ScrolledWindow(); art_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); art_slot.set_propagate_natural_width(False); art_slot.set_propagate_natural_height(False); art_slot.set_min_content_width(thumb_size); art_slot.set_max_content_width(thumb_size); art_slot.set_min_content_height(thumb_size); art_slot.set_max_content_height(thumb_size); art_slot.set_size_request(thumb_size, thumb_size); art_slot.set_halign(Gtk.Align.START); art_slot.set_valign(Gtk.Align.CENTER); art_slot.set_child(picture); row.append(art_slot)
                     self.browser_artwork_keys.append(key)
                     if key:

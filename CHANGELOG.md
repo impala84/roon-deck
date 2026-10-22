@@ -11,8 +11,8 @@
 - Give every Album & Artist “Browse Artist Albums” action a fresh Roon browse
   hierarchy, preventing a previous artist's retained album list appearing beneath
   the newly selected artist.
-- Reduce artist-album thumbnails from 132px to 88px and their titles from 24px to
-  18px on the original 800×480 display so more albums fit in the viewport.
+- Match original-display artist-album rows to the album track-list scale, using
+  the same 84px media tile, 20px title and 15px secondary text.
 - Keep the original-display Album & Artist sheet on one fixed page: clamp long
   descriptions, suppress redundant encoded artist metadata, remove its scrollbar,
   and use the standard purple/black Browse Artist Albums action styling.
