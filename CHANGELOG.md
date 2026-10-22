@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.7 Alpine — 22 October 2026
+
+- Expands and top-aligns the original-display Browse viewport across albums, artists, genres, playlists and their detail pages, with the sidebar, artwork grid and scrubber sharing one top edge.
+- Enlarges Album & Artist artwork to a 380px square with matching 20px left and bottom margins, and reduces the close glyph by 15%.
+- Rebalances original-display Now Playing artwork, tightens navigation underline spacing, and restores comfortable spacing between Surprise Me artwork and its album/artist captions.
+
 ## 1.1.7-beta.6 Alpine — 22 October 2026
 
 - Enlarges the original 7-inch Now Playing artwork upward and rightward while preserving its bottom-left anchor.

@@ -453,6 +453,8 @@ if (screen_width, screen_height) == (800, 480):
     preview = display.browser_list.get_first_child()
     assert preview.get_margin_top() == 18
     assert preview.get_spacing() == 0
+    surprise_title = preview.get_first_child().get_next_sibling()
+    assert surprise_title.get_margin_top() == 14
 if screen_height > screen_width:
     stage = display.browser_list.get_first_child().get_first_child()
     assert stage.get_orientation() == Gtk.Orientation.VERTICAL
@@ -476,7 +478,7 @@ if (screen_width, screen_height) == (800, 480):
     assert display.artwork_button.get_width() == 335, display.artwork_button.get_width()
     assert display.artwork_button.get_height() == 335, display.artwork_button.get_height()
     assert display.artwork_button.get_valign() == Gtk.Align.END
-    assert display.artwork_button.get_margin_bottom() == 8
+    assert display.artwork_button.get_margin_bottom() == 16
     assert display.discover_toolbar.get_margin_bottom() == 1
 if (screen_width, screen_height) == (1280, 720):
     assert display.artwork_button.get_width() == 540, display.artwork_button.get_width()
@@ -502,6 +504,9 @@ assert display.detail_close.get_visible()
 if (screen_width, screen_height) == (800, 480):
     assert display.detail_album_action.get_visible()
     assert not display.detail_browse_action.get_visible()
+    assert display.detail_album_artwork_frame.get_width() == 380
+    assert display.detail_close_glyph.get_width() < 48
+    assert display.detail_close_icon.get_pixel_size() == 29
 else:
     assert display.detail_browse_action.get_visible()
 assert display.detail_close.get_width() == display.detail_close.get_height(), (display.detail_close.get_width(), display.detail_close.get_height())
@@ -689,7 +694,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.6 Alpine")
+display.device_status.set_text("v1.1.7-beta.7 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
