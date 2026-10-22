@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.7-beta.11 Alpine — 23 October 2026
+
+- Replace Browse Artist Albums' Search-preview route with a fresh
+  Library → Artists lookup, scanning the exact library collection and opening
+  only the selected artist's session-owned key.
+- Restore the black Play Now triangle on the Roon-theme Surprise Me screen;
+  the icon had inherited the same purple as its circular background.
+- Keep the touchscreen update status active on slower Raspberry Pi 3 hardware
+  until the updater itself reports progress, preventing an overlapping stale
+  `Ready` poll from replacing Queued/Downloading/Installing messages with the
+  version label and dropping back to slow polling.
+
 ## 1.1.7-beta.10 Alpine — 23 October 2026
 
 - Centre both one-line and wrapped two-line labels at the base of Genre and

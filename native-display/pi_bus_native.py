@@ -631,8 +631,8 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .detail-facts { padding-top: 0; }
 .primary-play { background: #6ed9ae; color: #111; font-weight: 800; }
 .primary-play:hover, .primary-play:active, .primary-play:focus { background: #83e6bd; color: #111; }
-.theme-roon .primary-play { background: #9868F9; }
-.theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; }
+.theme-roon .primary-play { background: #9868F9; color: #111; }
+.theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; color: #111; }
 .surprise-action.primary-play, .theme-roon .surprise-action.primary-play { border-radius: 50%; }
 .volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #6ed9ae; }
 .large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
@@ -3907,7 +3907,11 @@ class Display(Gtk.Application):
         queued = bool(result and result.get("queued", True))
         GLib.idle_add(self.device_status.set_text, "Update · Queued…" if queued else ("Update already running…" if result else "Could not start update"))
         if result:
-            self.update_status_seen = True
+            # The POST confirms only that the helper was queued. On a slower
+            # Pi, an overlapping system poll can still contain the old Ready
+            # state. Do not treat progress as observed until apply() receives
+            # a real Update · status, or that stale response will end fast
+            # polling and replace the queued message with the version label.
             self.last_system_fetch = 0
             GLib.idle_add(self.start_poll)
         else:

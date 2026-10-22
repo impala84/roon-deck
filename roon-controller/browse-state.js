@@ -83,13 +83,6 @@ function withAlbumArtist(items) {
   return items.map(item => item.action ? item : {...item, title: String(item.title || '').replace(/^\s*(?:\d+\s*[-/]\s*\d+[.\s]+|\d+\.\s+)/, ''), subtitle: albumArtist || item.subtitle});
 }
 
-function sameArtistLabel(value, artistName) {
-  const clean = text => String(text || '').replace(/\[\[\d+\|([^\]]+)\]\]/g, '$1').trim().toLowerCase();
-  const artist = clean(artistName);
-  const label = clean(value).split(/\s*(?:,|\bfeat\.?\b|\bfeaturing\b)\s*/i)[0];
-  return !label || label === artist;
-}
-
 function rootItems(items) {
   const wanted = ['library', 'playlists', 'genres'];
   const available = items.filter(item => item.hint !== 'header');
@@ -543,40 +536,41 @@ class BrowseManager {
   async openArtist(baseSession, name) {
     const service = this.service(), zone = this.zone();
     if (!service || !zone || !name) return {status:'unavailable', items:[], can_back:false};
-    // Resolve a fresh core-owned key; track subtitles aren't durable artist IDs.
-    // Never reuse a Roon search hierarchy for a detail-sheet artist link.
-    // Roon item keys and the backing browse stack are session-scoped; reusing
-    // this session could retain the previous artist's album collection while
-    // showing the newly requested artist heading.
+    // Resolve the artist from Library > Artists, never from Search. Some Core
+    // versions let a Search preview retain the requested artist heading while
+    // its next route points at the global Albums collection. Browse keys and
+    // stacks are session-scoped, so start a clean library hierarchy every time.
     const prefix = `${baseSession}-artist-link-`;
     for (const collection of [this.sessions, this.sections, this.searchSources]) {
       for (const key of collection.keys()) if (key.startsWith(prefix)) collection.delete(key);
     }
     const session = `${prefix}${++this.artistRequestId}`;
-    this.sections.set(session, 'search'); this.activeSessions.set(baseSession, session);
-    const results = await this.search(service, zone, session, name, 'all', 'artists');
-    let group = '';
-    const artist = results.items.find(item => {
-      if (item.hint === 'header') { group = item.title; return false; }
-      return group === 'ARTISTS' && item.title.toLowerCase() === name.toLowerCase();
+    this.activeSessions.set(baseSession, session);
+    let artists = await this.openSection(service, zone, session, 'artists');
+    if (artists.error) return artists;
+    const wanted = name.trim().toLocaleLowerCase();
+    let artist = artists.items.find(item => !item.action && item.title.trim().toLocaleLowerCase() === wanted);
+    // The library can contain thousands of artists and the first Browse page
+    // is only 30 rows. Scan the same level in bounded chunks to obtain the
+    // exact key owned by this fresh session.
+    for (let offset = 0; !artist && offset < Math.min(artists.count, 10000); offset += 200) {
+      const loaded = await request(service, 'load', {hierarchy:'browse', multi_session_key:session, level:artists.level, offset, count:200});
+      const match = (loaded.items || []).find(item => String(item.title || '').trim().toLocaleLowerCase() === wanted);
+      if (match) artist = publicItem(match);
+    }
+    if (!artist?.item_key) return this.save(session, {
+      ...artists, items:[], count:0, has_more:false, error:true,
+      message:`${name} is not available in Library Artists.`
     });
-    if (!artist) return results;
-    const route = results.search_routes?.[artist.item_key];
-    const target = route?.session || session;
-    this.activeSessions.set(baseSession, target);
-    const opened = await this._run(target, 'open', {item_key:route?.key || artist.item_key});
-    if (!opened?.artist_profile || opened.artist_profile.name.toLowerCase() !== name.toLowerCase()) return opened;
-    // Some Core versions occasionally return the global album collection while
-    // retaining the requested artist heading. Never present those unrelated
-    // albums as the artist's catalogue. Blank subtitles are retained because
-    // local imports do not always expose an album artist in Browse.
-    const items = (opened.items || []).filter(item => item.action || item.hint === 'header' || sameArtistLabel(item.subtitle, name));
-    const rejected = (opened.items || []).length - items.length;
-    return rejected ? this.save(target, {
-      ...opened, items, count: items.length,
-      message: items.some(item => !item.action && item.hint !== 'header') ? opened.message : 'Roon did not return this artist’s albums. Please try again.',
-      error: !items.some(item => !item.action && item.hint !== 'header')
-    }) : opened;
+    // _run derives the profile from the selected row, so retain just the exact
+    // library item in the current section state before opening its key.
+    artists = this.save(session, {...artists, items:[artist], offset:0, has_more:false});
+    const opened = await this._run(session, 'open', {item_key:artist.item_key});
+    if (opened?.artist_profile?.name?.trim().toLocaleLowerCase() !== wanted) {
+      return this.save(session, {...opened, items:[], count:0, has_more:false, error:true,
+        message:'Roon did not open the selected artist. Please try again.'});
+    }
+    return opened;
   }
 
   async openArtistAlbum(baseSession, artistName, selected) {
@@ -604,4 +598,4 @@ class BrowseManager {
   }
 }
 
-module.exports = {BrowseManager, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, sameArtistLabel, withAlbumArtist, withFallbackImage};
+module.exports = {BrowseManager, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage};

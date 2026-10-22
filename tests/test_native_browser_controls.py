@@ -510,6 +510,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
         self.assertIn('title.set_xalign(.5); title.set_justify(Gtk.Justification.CENTER)', code)
         self.assertIn('if name == "browse": button.add_css_class("active")', code)
+        request_update = code[code.index('    def _request_update(self):'):code.index('    def request_display_settings', code.index('    def _request_update(self):'))]
+        self.assertNotIn('self.update_status_seen = True', request_update)
+        self.assertIn('self.last_system_fetch = 0', request_update)
 
     def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
         code = SOURCE.read_text(encoding="utf-8")

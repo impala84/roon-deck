@@ -38,24 +38,30 @@ test('album detail exposes one cover and honest optional metadata without alteri
   assert.equal(menu.album_profile, undefined);
 });
 
-test('artist links use fresh exact-match core keys and preserve artist profile', async () => {
-  const searchSessions = [];
+test('artist links use a fresh Library Artists key and never enter Search', async () => {
+  const calls = [];
   const service = {
-    browse(options, done) { assert.equal(options.item_key, 'fresh-artist'); done(false, {action:'list', list:{title:'Example Artist', level:2}}); },
-    load(options, done) { done(false, {list:{title:'Example Artist', level:2}, items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',item_key:'album'}]}); },
+    browse(options, done) {
+      calls.push({...options});
+      assert.equal(options.hierarchy, 'browse');
+      if (options.pop_all) return done(false, {action:'list',list:{title:'Browse',level:0,count:1}});
+      if (options.item_key === 'library') return done(false, {action:'list',list:{title:'Library',level:1,count:1}});
+      if (options.item_key === 'artists') return done(false, {action:'list',list:{title:'Artists',level:2,count:250}});
+      assert.equal(options.item_key, 'fresh-artist');
+      done(false, {action:'list', list:{title:'Example Artist', level:3,count:2}});
+    },
+    load(options, done) {
+      if (options.level === 0) return done(false, {items:[{title:'Library',item_key:'library'}]});
+      if (options.level === 1) return done(false, {items:[{title:'Artists',item_key:'artists'}]});
+      if (options.level === 2) return done(false, {list:{title:'Artists',level:2,count:250},items:options.offset === 200 ? [{title:'Example Artist',item_key:'fresh-artist',image_key:'portrait'}] : []});
+      done(false, {list:{title:'Example Artist', level:3,count:2}, items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',subtitle:'Example Artist',item_key:'album'}]});
+    },
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
-  manager.search = async (_service, _zone, session, name, source, category) => {
-    searchSessions.push(session);
-    assert.equal(name, 'Example Artist');
-    assert.equal(source, 'all');
-    assert.equal(category, 'artists', 'artist navigation must not wait for unrelated album/track previews');
-    return manager.save(session, {hierarchy:'search', level:1, items:[{title:'ARTISTS',hint:'header'},{title:'Example Artist',item_key:'fresh-artist',image_key:'portrait'}]});
-  };
   const result = await manager.run('links', 'artist', {name:'Example Artist'});
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
+  assert.ok(calls.every(call => call.hierarchy === 'browse'));
   await manager.run('links', 'artist', {name:'Example Artist'});
-  assert.equal(new Set(searchSessions).size, 2, 'each artist link must use a fresh Roon hierarchy');
   assert.equal([...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-')).length, 1, 'the previous artist hierarchy is discarded');
 });
 
@@ -75,27 +81,6 @@ test('artist album clicks resolve a fresh artist session before opening the exac
   const result = await manager.run('touch', 'open', {item_key:'stale-album'});
   assert.equal(calls[0], 'fresh-album');
   assert.equal(result.album_profile.name, 'Wanted Album');
-});
-
-test('artist navigation rejects albums belonging to a different artist', async () => {
-  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
-  manager.search = async (_service, _zone, session) => manager.save(session, {
-    hierarchy:'search', items:[
-      {title:'ARTISTS',hint:'header'},
-      {title:'Sonny Clark',item_key:'artist-key'}
-    ], search_routes:{'artist-key':{session:'artist-results',key:'fresh-key'}}
-  });
-  manager._run = async session => manager.save(session, {
-    hierarchy:'search', artist_profile:{name:'Sonny Clark'}, items:[
-      {title:'Play Artist',subtitle:'',action:true,item_key:'play'},
-      {title:'Cool Struttin\'',subtitle:'Sonny Clark',item_key:'correct'},
-      {title:'The 2nd Law',subtitle:'Muse',item_key:'wrong'},
-      {title:'Unknown local album',subtitle:'',item_key:'local'}
-    ]
-  });
-  const result = await manager.openArtist('pihome-touch', 'Sonny Clark');
-  assert.deepEqual(result.items.map(item => item.title), ['Play Artist', 'Cool Struttin\'', 'Unknown local album']);
-  assert.equal(result.error, false);
 });
 
 test('successful queue actions return from the popup to album tracks without replaying the action', async () => {
