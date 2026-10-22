@@ -374,8 +374,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_original_genre_tiles_separate_icon_and_bottom_label(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('.18 if original_tile and tile_kind == "genres" else .12', code)
-        self.assertIn('title.set_margin_bottom(6 if original_tile else', code)
+        self.assertIn('get("display_profile") in {"touch2-7", "touch2-5-7"}', code)
+        self.assertIn('.18 if separated_genre_tile and tile_kind == "genres" else .12', code)
+        self.assertIn('title.set_margin_bottom(6 if separated_genre_tile else', code)
 
     def test_empty_activity_event_does_not_raise_or_change_state(self):
         owner = SimpleNamespace(last_interaction=123)

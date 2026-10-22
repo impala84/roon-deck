@@ -25,8 +25,8 @@
   controller, so active browsing is no longer interrupted.
 - Fall back to Wikipedia artist summaries when MusicBrainz search or artist-detail
   requests are temporarily unavailable, instead of displaying a false “no summary”.
-- Separate original-display genre symbols from their captions by moving icons up
-  and anchoring labels closer to the bottom of each tile.
+- Separate original and Touch 2 seven-inch genre symbols from their captions by
+  moving icons up and anchoring labels closer to the bottom of each tile.
 
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 

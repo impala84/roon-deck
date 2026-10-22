@@ -3055,6 +3055,9 @@ class Display(Gtk.Application):
         original_tile = (not getattr(self, "responsive_portrait", False)
                          and getattr(self, "viewport_width", 800) <= 820
                          and getattr(self, "viewport_height", 480) <= 500)
+        separated_genre_tile = original_tile or (
+            not getattr(self, "responsive_portrait", False)
+            and getattr(self, "system_data", {}).get("display_profile") in {"touch2-7", "touch2-5-7"})
         artwork = Gtk.Overlay(); picture = Gtk.Picture(); picture.add_css_class("browser-cover-art"); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER); artwork.set_child(picture)
         if not tile_kind:
             self.set_browser_placeholder(picture, artist=(self.browser_state or {}).get("section") == "artists")
@@ -3067,12 +3070,12 @@ class Display(Gtk.Application):
             texture = self.queue_thumbnail_cache.get(key)
             if texture: picture.set_paintable(texture)
         elif tile_kind:
-            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * .65))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.18 if original_tile and tile_kind == "genres" else .12))); artwork.add_overlay(icon)
+            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * .65))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.18 if separated_genre_tile and tile_kind == "genres" else .12))); artwork.add_overlay(icon)
         if show_labels:
             title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5); title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
             if tile_kind == "genres":
                 content.remove(title); title.add_css_class("tile"); title.set_wrap(True); title.set_lines(2); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_halign(Gtk.Align.FILL); title.set_valign(Gtk.Align.END); artwork.add_overlay(title)
-                title.set_margin_bottom(6 if original_tile else max(12, round(size * .075)))
+                title.set_margin_bottom(6 if separated_genre_tile else max(12, round(size * .075)))
             elif tile_kind == "playlists":
                 title.set_wrap(True); title.set_lines(2); title.set_max_width_chars(18); title.set_justify(Gtk.Justification.CENTER); title.set_size_request(-1, 42)
             if item.get("subtitle") and not tile_kind:
