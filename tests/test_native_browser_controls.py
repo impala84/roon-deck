@@ -471,6 +471,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
         self.assertIn('.detail-close-glyph { border: 2px solid #9868F9; border-radius: 50%; background: transparent; color: #fff; }', code)
 
+    def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)', code)
+        self.assertIn('label.set_lines(4 if original_landscape else 5 if album_focus_detail', code)
+        self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
+        self.assertIn('.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #9868F9; color: #111;', code)
+
     def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.artwork.set_can_shrink(True)', code)

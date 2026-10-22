@@ -732,9 +732,11 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape.compact-detail .detail-close { min-width: 37px; min-height: 37px; }
 .original-landscape.compact-detail .detail-close-glyph { min-width: 31px; min-height: 31px; }
 .original-landscape.compact-detail .detail-panel { padding-top: 3px; padding-bottom: 6px; }
+.original-landscape.compact-detail .detail-album-content { margin: 0; }
+.original-landscape.compact-detail .detail-writeup { font-size: 16px; line-height: 1.25; }
 .original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
 .original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
-.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 5px; padding: 4px 12px; font-size: 14px; }
+.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #9868F9; color: #111; font-size: 14px; font-weight: 800; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -1124,6 +1126,7 @@ class Display(Gtk.Application):
         self.detail_album_card.set_spacing(28 if album_focus_detail else 8)
         self.detail_album_content.set_hexpand(album_focus_detail)
         self.detail_album_content.set_valign(Gtk.Align.START)
+        self.detail_album_content.set_spacing(6 if original_landscape else 8)
         self.detail_album_action.set_visible(original_landscape)
         self.detail_browse_action.set_visible(not original_landscape)
         self.detail_footer.set_visible(not original_landscape)
@@ -1136,8 +1139,10 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(5 if album_focus_detail else 3 if compact_detail else -1)
+            label.set_lines(4 if original_landscape else 5 if album_focus_detail else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail else Pango.EllipsizeMode.NONE)
+        self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)
+        self.detail_sheet.set_kinetic_scrolling(not original_landscape)
         self.detail_facts.set_visible(not original_landscape)
         self.detail_tracks.set_visible(False)
         close_size = 37 if original_landscape else 48 if album_focus_detail else 72 if min(width, height) >= 1000 else 56
@@ -1352,7 +1357,7 @@ class Display(Gtk.Application):
         self.detail_album_artwork_frame = Gtk.ScrolledWindow(); self.detail_album_artwork_frame.add_css_class("detail-artwork-frame"); self.detail_album_artwork_frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.detail_album_artwork_frame.set_halign(Gtk.Align.CENTER); self.detail_album_artwork_frame.set_child(self.detail_album_artwork); album_card.append(self.detail_album_artwork_frame)
         for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):
             close_artwork = Gtk.GestureClick(); close_artwork.connect("released", lambda *_: self.set_roon_view("now")); artwork_frame.add_controller(close_artwork)
-        detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.detail_album_content = detail_content
+        detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); detail_content.add_css_class("detail-album-content"); self.detail_album_content = detail_content
         detail_content.append(self.label("ALBUM", "detail-section-label"))
         self.detail_title = self.label("Nothing playing", "detail-title"); self.detail_title.set_wrap(True); self.detail_title.set_lines(2); self.detail_title.set_ellipsize(Pango.EllipsizeMode.END); detail_content.append(self.detail_title)
         self.detail_artist = self.label("", "detail-artist"); self.detail_artist.set_wrap(True); detail_content.append(self.detail_artist)
@@ -1373,7 +1378,7 @@ class Display(Gtk.Application):
         close = Gtk.Button(); close.add_css_class("detail-close"); close.set_size_request(72, 72); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER)
         close_glyph = Gtk.CenterBox(); close_glyph.add_css_class("detail-close-glyph"); close_glyph.set_size_request(48, 48); close_glyph.set_halign(Gtk.Align.CENTER); close_glyph.set_valign(Gtk.Align.CENTER); close_icon = FamilyIcon("close", 34, stroke_width=3); close_glyph.set_center_widget(close_icon); close.set_child(close_glyph); self.detail_close_glyph = close_glyph; self.detail_close_icon = close_icon
         close.connect("clicked", lambda *_: self.set_roon_view("now")); close.set_tooltip_text("Close album and artist information"); close.update_property([Gtk.AccessibleProperty.LABEL], ["Close album and artist information"]); self.detail_close = close; detail_header.append(close); takeover.append(detail_header)
-        detail_sheet = Gtk.ScrolledWindow(); detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_propagate_natural_height(False); detail_sheet.set_min_content_height(1); detail_sheet.set_size_request(-1, 1); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
+        detail_sheet = Gtk.ScrolledWindow(); self.detail_sheet = detail_sheet; detail_sheet.add_css_class("detail-sheet-scroll"); detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); detail_sheet.set_kinetic_scrolling(True); detail_sheet.set_overlay_scrolling(True); detail_sheet.set_propagate_natural_height(False); detail_sheet.set_min_content_height(1); detail_sheet.set_size_request(-1, 1); detail_sheet.set_vexpand(True); detail_sheet.set_child(detail_panel); elastic_vertical_scroll(detail_sheet); takeover.append(detail_sheet)
         detail_footer = Gtk.Box(); detail_footer.add_css_class("detail-footer"); self.detail_footer = detail_footer; self.detail_browse_action = self.button("BROWSE ARTIST ALBUMS", self.browse_detail_artist, "detail-action detail-primary-action"); self.detail_browse_action.set_hexpand(True); self.detail_browse_action.get_child().set_width_chars(1); self.detail_browse_action.get_child().set_ellipsize(Pango.EllipsizeMode.END); detail_footer.append(self.detail_browse_action); takeover.append(detail_footer); takeover.set_visible(False); self.detail_takeover = takeover
         root = Gtk.Overlay(); root.set_child(page); root.add_overlay(takeover); return root
 
@@ -3388,7 +3393,7 @@ class Display(Gtk.Application):
         self.detail_artist_action.set_sensitive(bool(details.get("artist")))
         self.detail_album_action.set_sensitive(bool(details.get("artist")))
         self.detail_browse_action.set_sensitive(bool(details.get("artist")))
-        subtitle = details.get("subtitle") or ""
+        subtitle = re.sub(r"\[\[\d+\|([^\]]+)\]\]", r"\1", details.get("subtitle") or "")
         if subtitle.strip().casefold() == (details.get("artist") or "").strip().casefold(): subtitle = ""
         detail_subtitle = "Loading…" if details.get("status") == "loading" else subtitle
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
