@@ -674,12 +674,12 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .discover-toolbar { min-height: 44px; margin-bottom: 5px; padding-top: 0; }
 .original-landscape .roon-page.now-layout .discover-toolbar { min-height: 40px; }
 .original-landscape .discover-utility { min-width: 34px; min-height: 34px; padding: 0; }
-.original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 0; font-size: 11px; letter-spacing: .7px; }
+.original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 0; font-size: 13px; letter-spacing: .45px; }
 .original-landscape .discover-toolbar .roon-subnav button { border-bottom-width: 2px; }
 .original-landscape .browser-sidebar { min-width: 116px; padding: 4px 6px 2px 0; }
 .original-landscape .browser-sidebar.library-sidebar { margin-top: -12px; }
 .original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }
-.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; }
+.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 13px; }
 .original-landscape .browser-back { min-height: 38px; margin-top: 6px; }
 .original-landscape .browser-main { margin-top: -16px; margin-bottom: -10px; padding-left: 0; }
 .original-landscape .browser-cover-grid { padding: 1px 12px 10px 1px; }
@@ -1140,7 +1140,7 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(4 if original_landscape else 5 if album_focus_detail else 3 if compact_detail else -1)
+            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail else Pango.EllipsizeMode.NONE)
         self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)
         self.detail_sheet.set_kinetic_scrolling(not original_landscape)

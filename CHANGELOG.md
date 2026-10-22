@@ -18,6 +18,8 @@
   and use the standard purple/black Browse Artist Albums action styling.
 - Align the original-display Daily and Recent sidebars with Browse so Mixes/For
   You and Added/Listened share the same top edge and usable viewport height.
+- Standardise original-display navigation typography at 13px across the top tabs
+  and left-side Browse, Daily and Recent controls.
 
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 

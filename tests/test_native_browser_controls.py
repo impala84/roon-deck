@@ -474,7 +474,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)', code)
-        self.assertIn('label.set_lines(4 if original_landscape else 5 if album_focus_detail', code)
+        self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
         self.assertIn('.original-landscape.compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #9868F9; color: #111;', code)
 
@@ -868,6 +868,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertEqual(code.count('add_css_class("discovery-sidebar")'), 2)
         self.assertIn('.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }', code)
+        self.assertIn('.original-landscape .roon-subnav button { min-height: 33px; padding: 3px 8px 0; font-size: 13px;', code)
+        self.assertIn('.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 13px;', code)
 
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):
         code = SOURCE.read_text(encoding='utf-8')
