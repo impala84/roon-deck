@@ -678,6 +678,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .discover-toolbar .roon-subnav button { border-bottom-width: 2px; }
 .original-landscape .browser-sidebar { min-width: 116px; padding: 4px 6px 2px 0; }
 .original-landscape .browser-sidebar.library-sidebar { margin-top: -12px; }
+.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }
 .original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; }
 .original-landscape .browser-back { min-height: 38px; margin-top: 6px; }
 .original-landscape .browser-main { margin-top: -16px; margin-bottom: -10px; padding-left: 0; }
@@ -1238,7 +1239,7 @@ class Display(Gtk.Application):
         self.discovery_list.connect_scroll(self.discovery_scroll)
         self.discovery_scroll.get_vadjustment().connect("value-changed", self.discovery_scrolled)
         self.discovery_body = Gtk.Box(spacing=0); self.discovery_body.set_vexpand(True); self.discovery_body.set_hexpand(True)
-        self.discovery_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); self.discovery_sidebar.add_css_class("browser-sidebar"); self.discovery_sidebar.set_vexpand(True)
+        self.discovery_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); self.discovery_sidebar.add_css_class("browser-sidebar"); self.discovery_sidebar.add_css_class("discovery-sidebar"); self.discovery_sidebar.set_vexpand(True)
         self.discovery_body.append(self.discovery_sidebar); self.discovery_body.append(self.discovery_scroll)
         self.roon_views.add_named(self.discovery_body, "discover")
         content = Gtk.Box(spacing=26); content.add_css_class("now-playing-content"); content.set_vexpand(True); content.set_margin_start(8); content.set_margin_end(8); content.set_margin_top(8); content.set_margin_bottom(8); self.now_playing_content = content
@@ -1292,7 +1293,7 @@ class Display(Gtk.Application):
         self.browser_sort = self.button("Sort: Title, A to Z", self.show_browser_sort, "browser-filter browser-sort")
         self.browser_sort.set_visible(False)
         self.browser_sidebar = sidebar; browser_body.append(sidebar)
-        self.browser_discovery_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); self.browser_discovery_sidebar.add_css_class("browser-sidebar"); self.browser_discovery_sidebar.set_vexpand(True); self.browser_discovery_sidebar.set_visible(False); browser_body.append(self.browser_discovery_sidebar)
+        self.browser_discovery_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); self.browser_discovery_sidebar.add_css_class("browser-sidebar"); self.browser_discovery_sidebar.add_css_class("discovery-sidebar"); self.browser_discovery_sidebar.set_vexpand(True); self.browser_discovery_sidebar.set_visible(False); browser_body.append(self.browser_discovery_sidebar)
         browser_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); browser_main.add_css_class("browser-main"); browser_main.set_vexpand(True); browser_main.set_hexpand(True)
         sidebar.set_vexpand(True); spacer = Gtk.Box(); spacer.set_vexpand(True); self.browser_sidebar_spacer = spacer; sidebar.append(spacer); sidebar.append(self.browser_sort); sidebar.append(self.browser_back)
         self.browser_message = self.label("", "browser-message"); self.browser_message.set_ellipsize(Pango.EllipsizeMode.END); self.browser_message.set_visible(False); browser_main.append(self.browser_message)

@@ -864,6 +864,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
         self.assertIn('play.set_halign(Gtk.Align.START if portrait or original else Gtk.Align.CENTER); details.append(play)', code)
 
+    def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertEqual(code.count('add_css_class("discovery-sidebar")'), 2)
+        self.assertIn('.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }', code)
+
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):
         code = SOURCE.read_text(encoding='utf-8')
         self.assertIn('inactivity_due = bool(not playing and inactivity_seconds', code)

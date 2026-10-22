@@ -16,6 +16,8 @@
 - Keep the original-display Album & Artist sheet on one fixed page: clamp long
   descriptions, suppress redundant encoded artist metadata, remove its scrollbar,
   and use the standard purple/black Browse Artist Albums action styling.
+- Align the original-display Daily and Recent sidebars with Browse so Mixes/For
+  You and Added/Listened share the same top edge and usable viewport height.
 
 ## 1.1.7-beta.7 Alpine — 22 October 2026
 
