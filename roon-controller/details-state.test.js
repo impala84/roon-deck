@@ -48,6 +48,15 @@ test('artist background can use a clearly musical Wikipedia page when MusicBrain
   assert.match(result.writeup, /French music duo/);
 });
 
+test('artist background falls back to Wikipedia when MusicBrainz is unavailable', async () => {
+  const result = await loadArtistProfile('Oasis', async()=>{ throw Error('MusicBrainz unavailable'); }, async url => {
+    if (url.includes('(band)')) return JSON.stringify({type:'standard',title:'Oasis (band)',description:'English rock band',extract:'Oasis are an English rock band formed in Manchester in 1991.'});
+    return JSON.stringify({type:'standard',title:'Oasis',description:'Fertile area in a desert',extract:'An oasis is a fertile area in a desert.'});
+  });
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /English rock band/);
+});
+
 test('playingMetadata reads three-line Roon metadata', () => {
   assert.deepEqual(playingMetadata({now_playing: {three_line: {line1: 'Track', line2: 'Artist', line3: 'Album'}, image_key: 'art'}}),
     {track: 'Track', artist: 'Artist', album: 'Album', image_key: 'art', key: 'artist|album'});

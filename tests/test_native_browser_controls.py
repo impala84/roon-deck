@@ -372,6 +372,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
             self.assertNotIn('<text', path.read_text())
         self.assertEqual(method(SimpleNamespace(), 'Any playlist', 'playlists'), 'playlist')
 
+    def test_original_genre_tiles_separate_icon_and_bottom_label(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('.18 if original_tile and tile_kind == "genres" else .12', code)
+        self.assertIn('title.set_margin_bottom(6 if original_tile else', code)
+
     def test_empty_activity_event_does_not_raise_or_change_state(self):
         owner = SimpleNamespace(last_interaction=123)
         self.assertFalse(native_method("note_activity")(owner, None, None))

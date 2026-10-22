@@ -105,7 +105,12 @@ async function loadArtistProfile(name, fetchJson = musicBrainzJson, fetchText = 
   const empty = {name, writeup: '', source: '', type: '', area: '', country: '', formed: '', ended: '', genres: []};
   const escaped = String(name || '').slice(0, 200).replace(/["\\]/g, ' ');
   if (!escaped.trim()) return empty;
-  const search = await fetchJson('/ws/2/artist/?query=' + encodeURIComponent('artist:"' + escaped + '"') + '&fmt=json&limit=10');
+  let search;
+  try {
+    search = await fetchJson('/ws/2/artist/?query=' + encodeURIComponent('artist:"' + escaped + '"') + '&fmt=json&limit=10');
+  } catch (_) {
+    return {...empty, ...await loadWikipediaArtistWriteup(name, fetchText)};
+  }
   const exact = (search.artists || []).filter(artist => clean(artist.name) === clean(name));
   const candidate = chooseArtistCandidate(exact);
   // Do not show the biography of an unrelated same-name artist.
@@ -113,7 +118,12 @@ async function loadArtistProfile(name, fetchJson = musicBrainzJson, fetchText = 
     const fallback = await loadWikipediaArtistWriteup(name, fetchText);
     return {...empty, ...fallback};
   }
-  const artist = await fetchJson('/ws/2/artist/' + candidate.id + '?inc=url-rels+tags&fmt=json');
+  let artist;
+  try {
+    artist = await fetchJson('/ws/2/artist/' + candidate.id + '?inc=url-rels+tags&fmt=json');
+  } catch (_) {
+    return {...empty, ...await loadWikipediaArtistWriteup(name, fetchText)};
+  }
   const wikiData = relationResources(artist).find(resource=>/^https:\/\/www.wikidata.org\/wiki\/Q\d+$/.test(resource));
   if (wikiData && !relationResources(artist).some(resource=>resource.includes('.wikipedia.org/wiki/'))) {
     try {
