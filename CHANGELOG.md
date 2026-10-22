@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.6 Alpine — 22 October 2026
+
+- Enlarges the original 7-inch Now Playing artwork upward and rightward while preserving its bottom-left anchor.
+- Reduces the original-display music clock by 10%, removes the final Daily carousel edge gutter, and lowers the complete Surprise Me composition for better vertical balance.
+
 ## 1.1.7-beta.5 Alpine — 22 October 2026
 
 - Cap Now Playing track titles at two lines with end ellipsis across every display size, preventing long names from pushing progress, transport and volume controls below the viewport.

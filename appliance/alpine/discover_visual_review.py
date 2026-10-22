@@ -155,6 +155,10 @@ capture("daily-mixes")
 if (screen_width, screen_height) == (800, 480):
     assert display.discovery_scroll.get_policy()[1] == Gtk.PolicyType.EXTERNAL
     assert display.roon_page.has_css_class("daily-edge")
+    outer_bounds = display.discovery_scroll.compute_bounds(page)[1]
+    # Overscan the viewport beyond the panel edge so the physical GTK clip,
+    # including its hidden scrollbar allocation, cannot leave a black gutter.
+    assert outer_bounds.get_x() + outer_bounds.get_width() >= screen_width + 10, (outer_bounds.get_x(), outer_bounds.get_width())
     for row in display.discovery_daily_sections.values():
         bounds = row.compute_bounds(page)[1]
         assert bounds.get_x() + bounds.get_width() >= screen_width - 1, (bounds.get_x(), bounds.get_width())
@@ -447,8 +451,8 @@ capture("surprise")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height(), screen_width, screen_height)
 if (screen_width, screen_height) == (800, 480):
     preview = display.browser_list.get_first_child()
-    assert preview.get_margin_top() == 6
-    assert preview.get_spacing() == 3
+    assert preview.get_margin_top() == 18
+    assert preview.get_spacing() == 0
 if screen_height > screen_width:
     stage = display.browser_list.get_first_child().get_first_child()
     assert stage.get_orientation() == Gtk.Orientation.VERTICAL
@@ -469,10 +473,10 @@ display.adapt_display()
 display.render_bluos_inputs({"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}]}, True)
 capture("now-playing")
 if (screen_width, screen_height) == (800, 480):
-    assert display.artwork_button.get_width() == 327, display.artwork_button.get_width()
-    assert display.artwork_button.get_height() == 327, display.artwork_button.get_height()
+    assert display.artwork_button.get_width() == 335, display.artwork_button.get_width()
+    assert display.artwork_button.get_height() == 335, display.artwork_button.get_height()
     assert display.artwork_button.get_valign() == Gtk.Align.END
-    assert display.artwork_button.get_margin_bottom() == 0
+    assert display.artwork_button.get_margin_bottom() == 8
     assert display.discover_toolbar.get_margin_bottom() == 1
 if (screen_width, screen_height) == (1280, 720):
     assert display.artwork_button.get_width() == 540, display.artwork_button.get_width()
@@ -685,7 +689,7 @@ if screen_height > screen_width:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.5 Alpine")
+display.device_status.set_text("v1.1.7-beta.6 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

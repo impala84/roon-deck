@@ -694,6 +694,7 @@ popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px
 .original-landscape .daily-track { padding-left: 6px; padding-right: 0; }
 .original-landscape .daily-scroll { margin-right: -4px; }
 .original-landscape .roon-page.daily-edge { padding-right: 0; }
+.original-landscape .roon-page.daily-edge .discovery-scroll { margin-right: -16px; }
 .original-landscape .roon-page.daily-edge .discover-toolbar,
 .original-landscape .roon-page.daily-edge > .nav { margin-right: 12px; }
 .original-landscape .recommendation-heading { margin-top: 8px; }
@@ -787,7 +788,9 @@ def now_playing_artwork_size(width: int, height: int, portrait: bool, reserved: 
         # 540px cover. Do not let unrelated detail-view sizing reduce it.
         return min(540, max(480, height - 180))
     if width <= 820 and height <= 500:
-        return 327
+        # Grow into the unused space above while the 8px lower inset keeps the
+        # existing bottom-left anchor and the 480px window strictly bounded.
+        return 335
     # The original 800×480 and intermediate 1024×600 landscape profiles need
     # an explicit floor. The old 280px cap fought the 320px CSS minimum and the
     # fixed viewport clipped the cover, making it visibly shrink after reflow.
@@ -938,7 +941,7 @@ class Display(Gtk.Application):
         # settings glyph at the same allocation. Give it its final compact size
         # immediately; the first responsive pass can run before this header is
         # constructed on the original 800x480 display.
-        size = 22 if clock and compact else 30 if compact else 38
+        size = 20 if clock and compact else 30 if compact else 38
         if not clock:
             icon = FamilyIcon("settings", size)
             icon.add_css_class("settings-icon")
@@ -948,7 +951,8 @@ class Display(Gtk.Application):
         icon = Gtk.DrawingArea(); icon.set_size_request(size, size)
         self.utility_icons = getattr(self, "utility_icons", []) + [icon]
         def draw(_area, cr, width, height):
-            cr.save(); cr.translate(width / 2, height / 2); scale = 1.12 * min(width, height) / 38; cr.scale(scale, scale)
+            original_clock = clock and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+            cr.save(); cr.translate(width / 2, height / 2); scale = (1.008 if original_clock else 1.12) * min(width, height) / 38; cr.scale(scale, scale)
             colour = (.53, .55, .56) if clock else ((.506, .478, .922) if self.settings_data.get("display_theme") == "roon" else (.431, .851, .682))
             cr.set_source_rgb(*colour); cr.set_line_width(2); cr.set_line_join(1); cr.set_line_cap(1)
             if clock:
@@ -1021,13 +1025,13 @@ class Display(Gtk.Application):
             (self.window.add_css_class if enabled else self.window.remove_css_class)(css_class)
         utility_size = 26 if original_landscape else 30 if compact_landscape else 38
         for icon in getattr(self, "utility_icons", []):
-            icon_size = 22 if original_landscape and icon is getattr(self, "music_clock_icon", None) else utility_size
+            icon_size = 20 if original_landscape and icon is getattr(self, "music_clock_icon", None) else utility_size
             if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(icon_size)
             else: icon.set_size_request(icon_size, icon_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
-        self.now_playing_content.set_margin_top(3 if not portrait and width >= 1200 else 8)
-        self.now_playing_content.set_margin_bottom(3 if not portrait and width >= 1200 else 8)
+        self.now_playing_content.set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
+        self.now_playing_content.set_margin_bottom(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
         self.now_playing_centre.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
         if hasattr(self, "volume_row"):
             mute_parent = self.mute.get_parent()
@@ -1092,7 +1096,7 @@ class Display(Gtk.Application):
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
         artwork_size = now_playing_artwork_size(width, height, portrait, reserved)
         self.artwork_button.set_valign(Gtk.Align.END if original_landscape else Gtk.Align.CENTER)
-        self.artwork_button.set_margin_bottom(0)
+        self.artwork_button.set_margin_bottom(8 if original_landscape else 0)
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
         self.volume_row.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.FILL)
         self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1, -1)
@@ -3185,8 +3189,8 @@ class Display(Gtk.Application):
             large_display = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
             compact_landscape = not portrait and getattr(self, "viewport_width", 800) < 1000
             original = compact_landscape and screen_width <= 820
-            preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
-            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 6 if original else 12)
+            preview = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0 if original else 12); preview.set_halign(Gtk.Align.CENTER); preview.set_hexpand(True)
+            preview.set_margin_top(round(getattr(self, "viewport_height", 1280) * .05) if portrait else 18 if original else 12)
             size = max(100, min(760 if large_display else 480, screen_width - (96 if portrait else 350 if original else 360 if compact_landscape else 400), self.browser_scroll.get_allocated_height() - (640 if large_display and portrait else 500 if portrait else 92 if original else 90 if compact_landscape else 135)))
             picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
             square = Gtk.ScrolledWindow(); square.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); square.set_propagate_natural_width(False); square.set_propagate_natural_height(False); square.set_min_content_width(size); square.set_max_content_width(size); square.set_min_content_height(size); square.set_max_content_height(size); square.set_size_request(size, size); square.set_halign(Gtk.Align.CENTER); square.set_child(picture)

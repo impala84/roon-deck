@@ -480,14 +480,14 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_landscape_now_playing_artwork_does_not_shrink_below_profile_size(self):
         size = native_method("now_playing_artwork_size")
-        self.assertEqual(size(800, 480, False), 327)
+        self.assertEqual(size(800, 480, False), 335)
         self.assertEqual(size(1024, 600, False), 360)
         self.assertEqual(size(1280, 720, False), 540)
 
     def test_touch_landscape_trims_surrounding_margins_instead_of_cover(self):
         code = SOURCE.read_text()
-        self.assertIn('set_margin_top(3 if not portrait and width >= 1200 else 8)', code)
-        self.assertIn('set_margin_bottom(3 if not portrait and width >= 1200 else 8)', code)
+        self.assertIn('set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)', code)
+        self.assertIn('set_margin_bottom(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)', code)
 
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = SOURCE.read_text(encoding="utf-8")
