@@ -252,7 +252,21 @@ display.render_discover(display.discovery_request, {"status": "ready", "mix": {"
     "items": [item("Is This The End?", "Creed", 91, "track")]})
 capture("mix-detail")
 mix_controls = display.discovery_list.get_first_child().get_next_sibling()
-assert mix_controls.get_first_child().get_child().get_first_child().icon_name == "play"
+assert mix_controls.get_first_child().get_first_child().get_child().get_first_child().icon_name == "play"
+if screen_width == 1280 and screen_height == 720:
+    assert mix_controls.get_first_child().get_width() == mix_controls.get_last_child().get_width(), (mix_controls.get_first_child().get_width(), mix_controls.get_last_child().get_width())
+mix_track = mix_controls.get_next_sibling()
+display.browser_action_anchor = mix_track
+display.render_browser({"status":"ready", "layout":"list", "action_menu":True, "discovery_track_actions":True, "items":[{"title":"Play Now", "action":True, "item_key":"play"},{"title":"Queue", "action":True, "item_key":"queue"}]})
+capture("mix-track-actions")
+mix_popup = display.browser_action_popover
+valid, mix_popup_bounds = mix_popup.compute_bounds(page)
+valid_anchor, mix_anchor_bounds = mix_track.compute_bounds(page)
+assert valid and valid_anchor
+assert mix_popup_bounds.get_x() + mix_popup_bounds.get_width() <= screen_width
+assert display.roon_views.get_visible_child_name() == "discover"
+display.browser_action_selected["value"] = True
+mix_popup.unparent(); display.browser_action_popover = None
 display.discovery_mix = ""
 display.discovery_active = True
 display.discovery_section = "browse"
@@ -474,6 +488,22 @@ display.artwork.set_filename(str(fixture_art("now-playing", "NOW PLAYING")))
 display.adapt_display()
 display.render_bluos_inputs({"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}]}, True)
 capture("now-playing")
+if screen_width > screen_height:
+    display.render_bluos_inputs({"inputs": []}, True)
+    settle()
+    visible_music_tabs = []
+    child = display.roon_subnav.get_first_child()
+    while child:
+        if child.get_visible(): visible_music_tabs.append(child)
+        child = child.get_next_sibling()
+    assert visible_music_tabs == [display.now_playing_tab, display.queue_tab], visible_music_tabs
+    first_tab = visible_music_tabs[0].compute_bounds(window)[1]
+    last_tab = visible_music_tabs[-1].compute_bounds(window)[1]
+    group_left = first_tab.get_x(); group_right = last_tab.get_x() + last_tab.get_width()
+    assert abs((group_left + group_right) / 2 - screen_width / 2) <= 3, (group_left, group_right, screen_width)
+    capture("now-playing-bluos-disabled")
+    display.render_bluos_inputs({"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}]}, True)
+    settle()
 if (screen_width, screen_height) == (800, 480):
     assert display.artwork_button.get_width() == 335, display.artwork_button.get_width()
     assert display.artwork_button.get_height() == 335, display.artwork_button.get_height()
@@ -699,7 +729,7 @@ else:
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.14 Alpine")
+display.device_status.set_text("v1.1.7-beta.15 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

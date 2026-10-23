@@ -11,6 +11,26 @@ from pi_bus_time_display.server import State, active_wifi_ssid, automatic_displa
 
 
 class DisplayModeTests(unittest.TestCase):
+    def test_home_assistant_tile_colours_are_persisted_and_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_light_color="#112233", home_assistant_scene_color="#abcdef"))
+            loaded = load_config(path)
+            self.assertEqual(loaded.home_assistant_light_color, "#112233")
+            self.assertEqual(loaded.home_assistant_scene_color, "#abcdef")
+            path.write_text(path.read_text().replace("#112233", "orange"))
+            with self.assertRaisesRegex(ValueError, "tile colours"):
+                load_config(path)
+
+    def test_overnight_wake_schedule_persists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(scheduled_wake_enabled=False, weekend_wake_enabled=True, weekend_wake_time="09:15"))
+            saved = load_config(path)
+            self.assertFalse(saved.scheduled_wake_enabled)
+            self.assertTrue(saved.weekend_wake_enabled)
+            self.assertEqual(saved.weekend_wake_time, "09:15")
+
     def test_home_assistant_title_can_be_custom_or_blank(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"
@@ -438,6 +458,27 @@ class DisplayModeTests(unittest.TestCase):
                 self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, overnight), "/")
             with patch("pi_bus_time_display.server.time.monotonic", return_value=1700):
                 self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, overnight), "/sleep.html")
+
+    def test_scheduled_wake_can_be_disabled_but_tap_and_music_still_wake(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mode = Path(directory) / "display-mode"; mode.write_text("auto\n", encoding="utf-8")
+            now = datetime(2026, 9, 29, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+            state = State(Config(scheduled_wake_enabled=False))
+            with patch("pi_bus_time_display.server.time.monotonic", return_value=1200):
+                self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, now), "/sleep.html")
+                state.awake_until = 1300
+                self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, now), "/")
+            self.assertEqual(automatic_display_target(State(Config(scheduled_wake_enabled=False)), mode, {"zone": {"state": "playing"}}, now), "http://127.0.0.1:8766/")
+
+    def test_weekend_stays_dark_unless_enabled_and_waits_for_weekend_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mode = Path(directory) / "display-mode"; mode.write_text("auto\n", encoding="utf-8")
+            early = datetime(2026, 10, 24, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+            late = datetime(2026, 10, 24, 9, 30, tzinfo=ZoneInfo("Asia/Singapore"))
+            self.assertEqual(automatic_display_target(State(Config()), mode, None, late), "/sleep.html")
+            config = Config(weekend_wake_enabled=True, weekend_wake_time="09:00")
+            self.assertEqual(automatic_display_target(State(config), mode, None, early), "/sleep.html")
+            self.assertEqual(automatic_display_target(State(config), mode, None, late), "/")
 
     def test_manual_view_returns_to_automatic_at_next_schedule_boundary(self):
         with tempfile.TemporaryDirectory() as directory:

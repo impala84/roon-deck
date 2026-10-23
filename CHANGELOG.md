@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.7-beta.15 Alpine — 24 October 2026
+
+- Restores the 1280×720 Touch Display 2 Discover geometry without altering the original 800×480 rules: Daily mixes, mix details, Search, New Releases and genre tiles now use Gen 2-specific spacing and sizing.
+- Makes Play This Mix and Queue This Mix share the same allocated button footprint in landscape and portrait layouts.
+- Replaces Daily Mix track edition-search navigation with an exact, server-side track action menu. Play Now and Queue resolve the selected cached mix track and selected Roon zone without exposing private Roon references to the display.
+- Keeps the selected mix row visible while its action menu opens beside the artwork, avoiding stale album pages and off-screen controls.
+- Aligns 10-inch portrait New Releases with the other portrait Discover sections.
+- Adds Overnight display wake controls to Automation: automatic wake can be disabled for tap-to-wake use, weekends remain dark by default, and an optional separate weekend wake time is available. Morning Buses remains an independent content window.
+- Reflows and re-centres the Now Playing selector immediately when BluOS input tabs or other optional music tabs are removed.
+- Adds web colour pickers for Light, Fan, Switch and Scene Home Assistant tiles, including readable tinted states, matching icons and a one-click defaults reset.
+- Adds regression coverage for Gen 2 layout scoping, exact mix-track actions, disabled scheduled wake, weekend wake timing, tap wake and music wake.
+
 ## 1.1.7-beta.14 Alpine — 23 October 2026
 
 - Make the 10-inch album-sort popup use the same rounded action-menu treatment

@@ -5,6 +5,7 @@ let discoveryMix = '';
 let discoverySignature = '';
 let discoveryRecentMode = 'listened';
 let discoveryPicks = false;
+let discoveryActionKey = '';
 const discoverTabs = [['recent','RECENT','RECENT'],['browse','BROWSE','BROWSE'],['daily','DAILY','DAILY'],['releases','NEW RELEASES','NEW'],['surprise','SURPRISE ME','SURPRISE ME']];
 function responsiveLabel(element,full,compact){const normal=document.createElement('span'),short=document.createElement('span');normal.className='nav-label-full';short.className='nav-label-compact';normal.textContent=full;short.textContent=compact;element.replaceChildren(normal,short);}
 function loadingNotice(){const status=document.createElement('p');status.className='loading-notice';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='Loading…';return status;}
@@ -88,7 +89,13 @@ function renderDiscover(data) {
 async function openDiscoveryItem(key, record=true, section=discoveryMix?'mix':discoveryTab==='recent'&&discoveryRecentMode==='added'?'added':discoveryPicks?'picks':discoveryTab, mix=discoveryMix) {
   const request=++discoveryRequest;clearTimeout(discoveryTimer);
   $('discovery-view').replaceChildren(loadingNotice());
-  try{const response=await fetch(api('/api/discovery/open'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,session:browserSession,section,id:mix})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not open this item');if(request!==discoveryRequest||musicView!=='discover')return;
+  try{const response=await fetch(api('/api/discovery/open'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,session:browserSession,section,id:mix})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not open this item');if(request!==discoveryRequest||musicView!=='discover')return;discoveryActionKey=key;
     setMusicView('browse',false);renderBrowser(data);if(record){const hash=`#discover/item?${new URLSearchParams({key,section,mix})}`;history.pushState(null,'',hash);lastRestoredHash=hash;}
   }catch(error){if(request===discoveryRequest&&musicView==='discover')$('discovery-view').replaceChildren(discoveryMessage(error.message));}
+}
+async function performDiscoveryTrackAction(action) {
+  if(!discoveryActionKey||!['play','queue'].includes(action))return;
+  const response=await fetch(api('/api/discovery/track-action'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:discoveryActionKey,action,nonce:crypto.randomUUID()})});
+  const result=await response.json();if(!response.ok||!result.accepted)throw Error(result.error||'Roon did not confirm the track request.');
+  if(action==='play')setMusicView('now');else openDiscover('daily',discoveryMix,false);
 }

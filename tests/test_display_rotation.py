@@ -99,6 +99,14 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('function resizeMultiline(field)', javascript)
         self.assertIn("home_assistant_entities.addEventListener('input'", javascript)
 
+    def test_home_assistant_tile_colours_use_picker_controls(self):
+        html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
+        javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()
+        for domain in ("light", "fan", "switch", "scene"):
+            self.assertIn(f'name="home_assistant_{domain}_color" type="color"', html)
+            self.assertIn(f"'home_assistant_{domain}_color'", javascript)
+        self.assertIn('id="reset-home-colors"', html)
+
     def test_home_assistant_page_title_is_optional_and_configurable(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
         display = (ROOT / "native-display/pi_bus_native.py").read_text()

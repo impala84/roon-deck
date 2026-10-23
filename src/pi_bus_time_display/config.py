@@ -20,6 +20,9 @@ class Config:
     stale_after_seconds: int = 75
     morning_start: str = "06:00"
     morning_end: str = "10:00"
+    scheduled_wake_enabled: bool = True
+    weekend_wake_enabled: bool = False
+    weekend_wake_time: str = "08:00"
     sleep_start: str = "23:00"
     sleep_end: str = "06:00"
     timezone: str = "Asia/Singapore"
@@ -51,6 +54,10 @@ class Config:
     home_assistant_title: str = "Home Controls"
     home_assistant_url: str = ""
     home_assistant_entities: tuple[str, ...] = ()
+    home_assistant_light_color: str = "#f4c95d"
+    home_assistant_fan_color: str = "#5bcbd6"
+    home_assistant_switch_color: str = "#6ed9ae"
+    home_assistant_scene_color: str = "#6ed9ae"
     openobserve_enabled: bool = False
     openobserve_url: str = ""
     openobserve_org: str = "default"
@@ -112,6 +119,9 @@ def load_config(path: Path) -> Config:
         raise ValueError("A maximum of eight Home Assistant entities can be shown")
     if len(config.home_assistant_title) > 60:
         raise ValueError("Home Assistant title must be 60 characters or fewer")
+    for value in (config.home_assistant_light_color, config.home_assistant_fan_color, config.home_assistant_switch_color, config.home_assistant_scene_color):
+        if len(value) != 7 or value[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in value[1:]):
+            raise ValueError("Home Assistant tile colours must use #RRGGBB")
     unsupported = [item for item in config.home_assistant_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
     if unsupported:
         raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])

@@ -98,6 +98,19 @@ class DiscoveryManager {
     this.actions.set(identity,job);while(this.actions.size>64)this.actions.delete(this.actions.keys().next().value);
     return job;
   }
+  async trackAction(key,zoneId,action,nonce) {
+    if(!this.target)throw Error('Roon is not connected');
+    if(!/^[a-f0-9]{24}$/i.test(key||'')||!/^[a-f0-9]{36}$/i.test(zoneId||'')||!['play','queue'].includes(action)||!/^[a-zA-Z0-9-]{16,64}$/.test(nonce||''))throw Error('Invalid track request');
+    let track=null,mixId='';
+    for(const [cacheKey,cached] of this.cache){const match=(cached.items||[]).find(item=>item.key===key);if(match?.kind==='track'&&cacheKey.startsWith('mix:')){track=match;mixId=cacheKey.slice(4);break;}}
+    if(!track||!mixId)throw Error('This mix track is no longer available');
+    const identity=JSON.stringify([this.target.coreId,key,zoneId,action,nonce]);
+    if(this.actions.has(identity))return this.actions.get(identity);
+    if(this.actionBusy||this.pending.size)throw Error('Discover is busy. Wait for loading to finish.');
+    const target=this.target;this.actionBusy=true;
+    const job=this.run(target,'track-action',mixId,{zoneId,action,track}).then(data=>{if(target!==this.target||!data.accepted)throw Error('The track request could not be confirmed.');return {accepted:true,action:data.action};}).finally(()=>{this.actionBusy=false;});
+    this.actions.set(identity,job);while(this.actions.size>64)this.actions.delete(this.actions.keys().next().value);return job;
+  }
   run(target, section, id, extra={}) {
     return new Promise(resolve => {
       let child, timer, settled = false;

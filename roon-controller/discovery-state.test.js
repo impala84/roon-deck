@@ -60,3 +60,10 @@ test('leaving Daily drops its queued recommendation work instead of delaying the
   manager.home('touch');manager.state('releases','','touch');
   await manager.tail;assert.deepEqual(calls,['releases']);
 });
+test('track actions resolve only an exact cached mix track and use the selected zone',async()=>{
+  const manager=new DiscoveryManager();manager.setTarget({coreId:'core',host:'example'});manager.cache.set('mix:aabb',{items:[{kind:'track',key:'1234567890abcdef12345678',title:'Song',artist:'Artist',album:'Album'}]});
+  let call;manager.run=async(target,section,id,extra)=>(call={target,section,id,extra},{accepted:true,action:extra.action});
+  const result=await manager.trackAction('1234567890abcdef12345678','1234567890abcdef1234567890abcdef1234','queue','1234567890abcdef');
+  assert.equal(result.accepted,true);assert.equal(call.section,'track-action');assert.equal(call.id,'aabb');assert.equal(call.extra.action,'queue');assert.equal(call.extra.track.title,'Song');
+  await assert.rejects(()=>manager.trackAction('abcdefabcdefabcdefabcdef','1234567890abcdef1234567890abcdef1234','play','abcdefabcdefabcd'),/no longer available/);
+});

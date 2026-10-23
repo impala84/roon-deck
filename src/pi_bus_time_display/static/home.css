@@ -17,3 +17,4 @@ header{padding-right:160px}
 .web-nav{grid-template-columns:repeat(4,minmax(0,1fr))}.web-nav a{min-width:0}.web-nav a[hidden]{display:none!important}.web-nav:has(a[hidden]){grid-template-columns:repeat(3,minmax(0,1fr))}
 svg.pi-icon{stroke-width:2}
 .entity.scene.activated{border-color:var(--mint);color:var(--ink)}.entity button:disabled{cursor:default;opacity:.48}.entity.scene.activated button{color:var(--mint);opacity:1}
+.entity.typed{background:color-mix(in srgb,var(--entity-color) 18%,var(--panel));border-color:color-mix(in srgb,var(--entity-color) 58%,var(--line))}.entity.typed svg{color:var(--entity-color)}.entity.typed.on,.entity.typed.activated{background:color-mix(in srgb,var(--entity-color) 34%,var(--panel));border-color:var(--entity-color)}.entity.typed.activated{box-shadow:0 0 18px color-mix(in srgb,var(--entity-color) 70%,transparent)}.entity.typed.on svg,.entity.typed.activated button{color:var(--entity-color)}

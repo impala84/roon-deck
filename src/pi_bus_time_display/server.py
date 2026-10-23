@@ -189,6 +189,15 @@ def within_window(config: Config, now: datetime) -> bool:
     return start <= now.timetz().replace(tzinfo=None) < end
 
 
+def automatic_display_wake_ready(config: Config, now: datetime) -> bool:
+    """Whether the configured morning wake has occurred on this local day."""
+    weekend = now.weekday() >= 5
+    if not config.scheduled_wake_enabled or (weekend and not config.weekend_wake_enabled):
+        return False
+    start = wall_time.fromisoformat(config.weekend_wake_time if weekend else config.sleep_end)
+    return now.timetz().replace(tzinfo=None) >= start
+
+
 def within_sleep_window(config: Config, now: datetime) -> bool:
     current = now.timetz().replace(tzinfo=None)
     start = wall_time.fromisoformat(config.sleep_start)
@@ -337,6 +346,9 @@ def write_config(path: Path, config: Config) -> None:
         f"stale_after_seconds = {config.stale_after_seconds}",
         f"morning_start = {json.dumps(config.morning_start)}",
         f"morning_end = {json.dumps(config.morning_end)}",
+        f"scheduled_wake_enabled = {str(config.scheduled_wake_enabled).lower()}",
+        f"weekend_wake_enabled = {str(config.weekend_wake_enabled).lower()}",
+        f"weekend_wake_time = {json.dumps(config.weekend_wake_time)}",
         f"sleep_start = {json.dumps(config.sleep_start)}",
         f"sleep_end = {json.dumps(config.sleep_end)}",
         f"timezone = {json.dumps(config.timezone)}",
@@ -369,6 +381,10 @@ def write_config(path: Path, config: Config) -> None:
         f"home_assistant_title = {json.dumps(config.home_assistant_title)}",
         f"home_assistant_url = {json.dumps(config.home_assistant_url)}",
         "home_assistant_entities = [" + ", ".join(json.dumps(item) for item in config.home_assistant_entities) + "]",
+        f"home_assistant_light_color = {json.dumps(config.home_assistant_light_color)}",
+        f"home_assistant_fan_color = {json.dumps(config.home_assistant_fan_color)}",
+        f"home_assistant_switch_color = {json.dumps(config.home_assistant_switch_color)}",
+        f"home_assistant_scene_color = {json.dumps(config.home_assistant_scene_color)}",
         f"openobserve_enabled = {str(config.openobserve_enabled).lower()}",
         f"openobserve_url = {json.dumps(config.openobserve_url)}",
         f"openobserve_org = {json.dumps(config.openobserve_org)}",
@@ -517,6 +533,8 @@ def automatic_display_target(state: State, mode_path: Path, roon: dict | None, n
     if not state.config.bus_enabled:
         if state.config.sleep_when_roon_idle: return "/sleep.html"
         return "http://127.0.0.1:8766/" if roon is not None else "/roon-unavailable.html"
+    if not automatic_display_wake_ready(state.config, now):
+        return "/sleep.html"
     if state.config.auto_switch_to_roon:
         return "/"
     if within_window(state.config, now):
@@ -973,7 +991,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "bus_stop_code": config.bus_stop_code, "bus_stop_name": config.bus_stop_name,
                     "services": list(config.services), "walking_minutes": config.walking_minutes,
                     "poll_seconds": config.poll_seconds, "morning_start": config.morning_start,
-                    "morning_end": config.morning_end, "sleep_start": config.sleep_start,
+                    "morning_end": config.morning_end, "scheduled_wake_enabled": config.scheduled_wake_enabled,
+                    "weekend_wake_enabled": config.weekend_wake_enabled, "weekend_wake_time": config.weekend_wake_time,
+                    "sleep_start": config.sleep_start,
                     "sleep_end": config.sleep_end, "roon_display_url": config.roon_display_url,
                     "roon_zone_name": config.roon_zone_name,
                     "roon_display_name": config.roon_display_name,
@@ -1003,6 +1023,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "home_assistant_title": config.home_assistant_title,
                     "home_assistant_url": config.home_assistant_url,
                     "home_assistant_entities": list(config.home_assistant_entities),
+                    "home_assistant_light_color": config.home_assistant_light_color,
+                    "home_assistant_fan_color": config.home_assistant_fan_color,
+                    "home_assistant_switch_color": config.home_assistant_switch_color,
+                    "home_assistant_scene_color": config.home_assistant_scene_color,
                     "has_home_assistant_token": bool(os.getenv("HOME_ASSISTANT_TOKEN")),
                     "openobserve_enabled": config.openobserve_enabled,
                     "openobserve_url": config.openobserve_url,
@@ -1060,7 +1084,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_json(200, body)
                 return
             if self.path == "/api/home/status":
-                self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme}).encode())
+                self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
+                    "tile_colors": {"light": state.config.home_assistant_light_color, "fan": state.config.home_assistant_fan_color,
+                        "switch": state.config.home_assistant_switch_color, "input_boolean": state.config.home_assistant_switch_color,
+                        "scene": state.config.home_assistant_scene_color}}).encode())
                 return
             if self.path == "/api/device/controls":
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
@@ -1407,6 +1434,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     walking_minutes=int(data.get("walking_minutes", current.walking_minutes)), poll_seconds=int(data.get("poll_seconds", current.poll_seconds)),
                     stale_after_seconds=current.stale_after_seconds,
                     morning_start=str(data.get("morning_start", current.morning_start)), morning_end=str(data.get("morning_end", current.morning_end)),
+                    scheduled_wake_enabled=bool(data.get("scheduled_wake_enabled", current.scheduled_wake_enabled)),
+                    weekend_wake_enabled=bool(data.get("weekend_wake_enabled", current.weekend_wake_enabled)),
+                    weekend_wake_time=str(data.get("weekend_wake_time", current.weekend_wake_time)),
                     sleep_start=str(data.get("sleep_start", current.sleep_start)), sleep_end=str(data.get("sleep_end", current.sleep_end)),
                     timezone=current.timezone, roon_display_url=current.roon_display_url,
                     roon_zone_name=str(data.get("roon_zone_name", current.roon_zone_name)).strip(),
@@ -1437,6 +1467,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     home_assistant_title=str(data.get("home_assistant_title", current.home_assistant_title)).strip(),
                     home_assistant_url=home_url,
                     home_assistant_entities=requested_home_entities,
+                    home_assistant_light_color=str(data.get("home_assistant_light_color", current.home_assistant_light_color)),
+                    home_assistant_fan_color=str(data.get("home_assistant_fan_color", current.home_assistant_fan_color)),
+                    home_assistant_switch_color=str(data.get("home_assistant_switch_color", current.home_assistant_switch_color)),
+                    home_assistant_scene_color=str(data.get("home_assistant_scene_color", current.home_assistant_scene_color)),
                     openobserve_enabled=bool(data.get("openobserve_enabled", current.openobserve_enabled)),
                     openobserve_url=openobserve_url,
                     openobserve_org=str(data.get("openobserve_org", current.openobserve_org)).strip(),
@@ -1472,8 +1506,12 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Wake timeout must be between 30 and 7200 seconds")
                 if not (0 <= candidate.daytime_inactivity_seconds <= 7200):
                     raise ValueError("Daytime inactivity timeout must be between 0 and 7200 seconds")
+                for value in (candidate.home_assistant_light_color, candidate.home_assistant_fan_color, candidate.home_assistant_switch_color, candidate.home_assistant_scene_color):
+                    if len(value) != 7 or value[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in value[1:]):
+                        raise ValueError("Home Assistant tile colours must use #RRGGBB")
                 wall_time.fromisoformat(candidate.morning_start)
                 wall_time.fromisoformat(candidate.morning_end)
+                wall_time.fromisoformat(candidate.weekend_wake_time)
                 wall_time.fromisoformat(candidate.sleep_start)
                 wall_time.fromisoformat(candidate.sleep_end)
                 if candidate.openobserve_enabled:

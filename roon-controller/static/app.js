@@ -282,7 +282,7 @@ function browserRow(item) {
   const copy = document.createElement('span'); copy.className = 'browser-copy'; const title = document.createElement('strong'); title.textContent = item.title || 'Untitled'; copy.append(title);
   if (item.subtitle) { const subtitle = document.createElement('small'); subtitle.textContent = item.subtitle; copy.append(subtitle); }
   const arrow = document.createElement('span'); arrow.className = 'browser-arrow'; arrow.textContent = item.duration || '';
-  button.append(artwork, copy, arrow); button.onclick = () => browseCommand('open', {item_key: item.item_key}); return button;
+  button.append(artwork, copy, arrow); button.onclick = () => browserState?.discovery_track_actions ? performDiscoveryTrackAction(item.item_key).catch(error=>{$('browser-message').hidden=false;$('browser-message').textContent=error.message;$('browser-message').classList.add('error');}) : browseCommand('open', {item_key: item.item_key}); return button;
 }
 
 function browserActionIcon(title) {

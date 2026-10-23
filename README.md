@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current Alpine stable release is **1.1.6**. The **1.1.7-beta.14** consistent album-sort menu and recent Home Assistant/Browse corrections are available to Beta-channel devices through the online updater. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
+The current Alpine stable release is **1.1.6**. The **1.1.7-beta.15** Gen 2 Discover layout, exact Daily Mix track actions and display wake scheduling improvements are available to Beta-channel devices through the online updater. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
@@ -108,7 +108,7 @@ Required for Roon: a reachable Roon Server on the local network and extension au
 Optional integrations:
 
 - **Bus Times:** enable **Services → Bus → Show Bus Times**, choose an actual LTA five-digit stop code/service list, and set an LTA AccountKey. Disabling buses hides navigation, stops polling and prevents automatic bus-page selection. LTA outages retain last successful arrivals and mark them stale.
-- **Home:** enable Home Assistant, supply its base URL/token and entity allow-list. Sensitive domains such as locks and alarms are deliberately rejected. Disabling Home hides its navigation.
+- **Home:** enable Home Assistant, supply its base URL/token and entity allow-list, and choose separate tile colours for lights, fans, switches and scenes. Sensitive domains such as locks and alarms are deliberately rejected. Disabling Home hides its navigation.
 - **BluOS:** enable it, discover or enter the player address, and choose visible inputs/names. Opening Now Playing is view-only; pressing Play explicitly reclaims the Roon source.
 - **Logging:** optional OpenObserve connection. It is not required for music or bus/Home operation.
 

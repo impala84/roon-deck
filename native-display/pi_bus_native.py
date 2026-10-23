@@ -388,6 +388,9 @@ CSS += b"""
 .touch-landscape .roon-page { padding-right: 0; }
 .touch-landscape .roon-header, .touch-landscape .roon-page .nav, .touch-landscape .now-playing-content, .touch-landscape .queue-scroll, .touch-landscape .source-view { margin-right: 28px; }
 .touch-landscape .roon-page .browser-view { padding-right: 0; }
+.touch2-7-landscape .search-main { margin-top: 26px; margin-right: 28px; }
+.touch2-7-landscape .mix-controls button { min-height: 64px; }
+.touch2-7-landscape .mix-controls .artist-play { margin-top: 0; }
 .portrait .page { padding: 22px 24px 16px; }
 .portrait .roon-page { padding-right: 24px; }
 .portrait .roon-header, .portrait .roon-page .nav, .portrait .now-playing-content, .portrait .queue-scroll, .portrait .source-view { margin-right: 0; }
@@ -1004,6 +1007,8 @@ class Display(Gtk.Application):
     def do_activate(self):
         provider = Gtk.CssProvider(); provider.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.home_color_provider = Gtk.CssProvider()
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.home_color_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.window = create_display_window(application=self); self.window.set_decorated(False); self.window.set_default_size(800, 480); self.window.fullscreen()
         # Apply saved theme before the first frame, not after an API poll.
         try:
@@ -1049,7 +1054,8 @@ class Display(Gtk.Application):
         (self.window.add_css_class if large_display else self.window.remove_css_class)("large-display")
         (self.window.add_css_class if portrait and width >= 1000 else self.window.remove_css_class)("large-portrait")
         compact_landscape = not portrait and (height <= 600 or width < 1000)
-        for css_class, enabled in (("portrait", portrait), ("display-landscape", not portrait), ("compact-landscape", compact_landscape), ("original-landscape", original_landscape), ("compact-portrait", portrait and width < 600), ("high-resolution", max(width, height) >= 1200), ("touch-landscape", width >= 1200 and not portrait)):
+        touch2_7_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
+        for css_class, enabled in (("portrait", portrait), ("display-landscape", not portrait), ("compact-landscape", compact_landscape), ("original-landscape", original_landscape), ("compact-portrait", portrait and width < 600), ("high-resolution", max(width, height) >= 1200), ("touch-landscape", width >= 1200 and not portrait), ("touch2-7-landscape", touch2_7_landscape)):
             (self.window.add_css_class if enabled else self.window.remove_css_class)(css_class)
         utility_size = 26 if original_landscape else 30 if compact_landscape else 38
         for icon in getattr(self, "utility_icons", []):
@@ -1347,7 +1353,7 @@ class Display(Gtk.Application):
         for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: (self.set_roon_view("browse"), self.request_browser("section", section=value)), "browser-filter"); button.get_child().set_xalign(0); search_nav.append(button)
         search_active = self.button("SEARCH", lambda *_: None, "browser-filter"); search_active.add_css_class("active"); search_active.get_child().set_xalign(0); search_nav.append(search_active); search_panel.append(search_nav)
-        search_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_main.set_hexpand(True); search_main.set_vexpand(True); self.search_main = search_main
+        search_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_main.add_css_class("search-main"); search_main.set_hexpand(True); search_main.set_vexpand(True); self.search_main = search_main
         self.search_results_scroll = Gtk.ScrolledWindow(); self.search_results_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.search_results_scroll.set_vexpand(True); self.search_results_scroll.set_hexpand(True); self.search_results_scroll.set_propagate_natural_width(False); self.search_results_scroll.set_propagate_natural_height(False); self.search_results_scroll.set_min_content_height(1); self.search_results_scroll.set_visible(False); search_main.append(self.search_results_scroll)
         self.browser_search_timer = None
         elastic_vertical_scroll(self.browser_artist_scroll)
@@ -1524,6 +1530,23 @@ class Display(Gtk.Application):
         self.browser_scrubber.queue_draw()
         for pictures in self.discovery_pictures.values():
             for picture in pictures: picture.queue_draw()
+
+    def apply_home_colors(self, config):
+        defaults = {"light": "#f4c95d", "fan": "#5bcbd6", "switch": "#6ed9ae", "scene": "#6ed9ae"}
+        def colour(domain):
+            value = str(config.get(f"home_assistant_{domain}_color", defaults[domain]))
+            return value if len(value) == 7 and value.startswith("#") and all(character in "0123456789abcdefABCDEF" for character in value[1:]) else defaults[domain]
+        def blend(foreground, background, amount):
+            front = tuple(int(foreground[index:index + 2], 16) for index in (1, 3, 5)); back = tuple(int(background[index:index + 2], 16) for index in (1, 3, 5))
+            return "#" + "".join(f"{round(base + (accent - base) * amount):02x}" for accent, base in zip(front, back))
+        rules = []
+        for domain in defaults:
+            accent = colour(domain); idle = blend(accent, "#232228", .18); active = blend(accent, "#232228", .34); border = blend(accent, "#44414c", .58)
+            rules.append(f".home-tile.home-domain-{domain} {{ background: {idle}; border-color: {border}; }}")
+            rules.append(f".home-tile.home-domain-{domain}.on {{ background: {active}; border-color: {accent}; }}")
+            rules.append(f".home-tile.home-domain-{domain} .home-icon, .home-tile.home-domain-{domain}.on .home-device-button {{ color: {accent}; }}")
+            rules.append(f".home-tile.home-domain-{domain}.activated {{ background: {active}; border-color: {accent}; box-shadow: 0 0 18px {accent}; }}")
+        self.home_color_provider.load_from_data("\n".join(rules))
 
     def change_theme(self, selected):
         if getattr(self, "theme_updating", False): return
@@ -1889,6 +1912,7 @@ class Display(Gtk.Application):
                 self.discovery_signature = None
                 self.render_discover(self.discovery_request, self.discovery_data)
             self.apply_theme(config.get("display_theme"))
+            self.apply_home_colors(config)
             for value, button in getattr(self, "touch_background_buttons", {}).items():
                 (button.add_css_class if value == config.get("display_background", "current") else button.remove_css_class)("active")
             for button in self.bus_nav_buttons: button.set_visible(config.get("bus_enabled", True))
@@ -1901,6 +1925,7 @@ class Display(Gtk.Application):
             self.sync_music_navigation(); self.queue_tab.set_visible(config.get("roon_show_queue", True))
             if not config.get("roon_show_queue", True) and self.roon_views.get_visible_child_name() == "queue": self.set_roon_view("now")
             self.browser_tab.set_visible(False)
+            self.refresh_music_subnav_layout()
             if not config.get("roon_show_browser", True) and self.roon_views.get_visible_child_name() in {"browse", "search"}: self.set_roon_view("now")
             show_sleep_clock = config.get("sleep_show_clock", False); self.sleep_clock.set_visible(show_sleep_clock); self.sleep_hint.set_visible(show_sleep_clock)
             home_title = str(config.get("home_assistant_title", "Home Controls")); self.home_title.set_text(home_title); self.home_title.set_visible(bool(home_title))
@@ -2088,6 +2113,7 @@ class Display(Gtk.Application):
             if state in {"on", "open", "playing"}: box.add_css_class("on")
             control_row = Gtk.Box(spacing=5); control_row.set_vexpand(True)
             domain = entity.get("domain", "switch")
+            box.add_css_class("home-domain-switch" if domain == "input_boolean" else f"home-domain-{domain}")
             scene = domain == "scene"
             if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"
             icon_size = 108 if self.window.has_css_class("high-resolution") else 82
@@ -2282,10 +2308,23 @@ class Display(Gtk.Application):
                 button.set_hexpand(getattr(self, "responsive_portrait", False))
                 self.bluos_source_buttons[input_id] = button; self.roon_subnav.append(button)
             self.roon_subnav.append(self.now_playing_tab); self.roon_subnav.append(self.queue_tab); self.roon_subnav.append(self.browser_tab)
+            self.refresh_music_subnav_layout()
         active_id = str((amplifier.get("active_input") or {}).get("id") or "")
         for input_id, button in self.bluos_source_buttons.items():
             if self.requested_audio_view == "source" and input_id == active_id: button.add_css_class("active")
             else: button.remove_css_class("active")
+
+    def refresh_music_subnav_layout(self):
+        """Discard a stale allocation after optional music tabs change."""
+        portrait = getattr(self, "responsive_portrait", False)
+        self.roon_subnav.set_halign(Gtk.Align.FILL if portrait else Gtk.Align.CENTER)
+        self.roon_subnav.set_hexpand(portrait)
+        child = self.roon_subnav.get_first_child()
+        while child:
+            child.set_hexpand(portrait)
+            child = child.get_next_sibling()
+        self.roon_subnav.set_size_request(-1, -1)
+        self.roon_subnav.queue_resize()
 
     def select_bluos_input(self, input_id):
         self.requested_audio_view = "source"; self.set_roon_view("source")
@@ -2477,16 +2516,23 @@ class Display(Gtk.Application):
         (self.roon_page.add_css_class if original_daily else self.roon_page.remove_css_class)("daily-edge")
         self.discovery_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if original_daily else Gtk.PolicyType.AUTOMATIC)
         self.discovery_body.set_margin_end(0 if portrait_grid or getattr(self, "discovery_section", "") == "daily" else 28 if getattr(self, "viewport_width", 800) >= 1200 else 0)
-        self.discovery_list.set_margin_top(10 if portrait_grid and self.discovery_section == "releases" else 5 if not portrait_grid and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"} else 0)
+        gen2_landscape = self.window.has_css_class("touch2-7-landscape")
+        offset_discovery = gen2_landscape and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"}
+        self.discovery_list.set_margin_top(22 if portrait_grid and self.discovery_section == "releases" else 24 if offset_discovery else 5 if not portrait_grid and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"} else 0)
         if data.get("status") != "ready":
             self.discovery_list.append(self.loading_notice() if data.get("status") == "loading" else self.label(data.get("message", "Discover is unavailable."), "browser-message")); return False
         if self.discovery_mix:
             title = self.label((data.get("mix") or {}).get("title", "Your Daily Mix"), "queue-title")
             self.discovery_list.append(title)
-            controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12); controls.add_css_class("mix-controls"); controls.set_homogeneous(True); controls.set_halign(Gtk.Align.START)
+            control_sizes = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
             for action, label in (("play", "PLAY THIS MIX"), ("queue", "QUEUE THIS MIX")):
                 control = self.labelled_icon_button("play" if action == "play" else "playlist", label, lambda _button, value=action: self.request_mix_action(value, controls), "artist-play primary-play" if action == "play" else "queue-pill")
-                controls.append(control)
+                control.set_hexpand(True)
+                slot = Gtk.Box(); slot.set_hexpand(False); slot.append(control)
+                if gen2_landscape: slot.set_size_request(240, 64)
+                control_sizes.add_widget(slot)
+                controls.append(slot)
             self.discovery_list.append(controls)
         if self.discovery_section == "daily" and not portrait_grid:
             columns, size = self.browser_grid_metrics(); size = min(212, size)
@@ -2534,7 +2580,7 @@ class Display(Gtk.Application):
                 # inside a fixed viewport so even very long album names cannot
                 # widen a column or push the following covers off-grid.
                 shell = Gtk.ScrolledWindow(); shell.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); shell.set_propagate_natural_width(False); shell.set_propagate_natural_height(False); shell.set_min_content_width(size); shell.set_max_content_width(size); shell.set_min_content_height(card_height); shell.set_max_content_height(card_height); shell.set_size_request(size, card_height); shell.set_child(body)
-                card.set_child(shell); card.connect("clicked", lambda _button, value=item: self.open_discover("daily", value.get("id", "")) if value.get("kind") == "mix" else self.open_discovery_item(value.get("key")))
+                card.set_child(shell); card.connect("clicked", lambda pressed, value=item: self.open_discover("daily", value.get("id", "")) if value.get("kind") == "mix" else self.open_discovery_item(pressed, value.get("key")))
                 card.set_size_request(size, card_height)
                 if track is not None:
                     track.append(card)
@@ -2655,7 +2701,7 @@ class Display(Gtk.Application):
         subtitle = self.label(item.get("artist") or "Roon", "queue-meta"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); copy.append(subtitle); row.append(copy)
         row.append(self.label(item.get("duration") or "", "browser-arrow", 1))
         button = Gtk.Button(); button.add_css_class("browser-row"); button.set_child(row); button.set_sensitive(bool(item.get("key"))); button.set_vexpand(False); button.set_valign(Gtk.Align.START)
-        button.connect("clicked", lambda *_: self.open_discovery_item(item.get("key")))
+        button.connect("clicked", lambda *_: self.open_discovery_item(button, item.get("key")))
         if key := item.get("artwork_key"):
             key = "discover:" + key; self.discovery_pictures.setdefault(key, []).append(picture); self.discovery_cards.append((button, key))
             if cached := self.queue_thumbnail_cache.get(key): picture.set_paintable(cached)
@@ -2699,13 +2745,30 @@ class Display(Gtk.Application):
             return False
         threading.Thread(target=load, daemon=True).start()
 
-    def open_discovery_item(self, key):
+    def request_discovery_track_action(self, action):
+        key = getattr(self, "discovery_action_key", "")
+        if action not in {"play", "queue"} or not key: return
+        def load():
+            result = post_json(ROON + "/api/discovery/track-action", {"key": key, "action": action, "nonce": str(uuid.uuid4())}, timeout=25.0)
+            GLib.idle_add(finish, result)
+        def finish(result):
+            if result and result.get("accepted"):
+                if action == "play": self.set_roon_view("now")
+                else:
+                    notice = self.label("Queued.", "browser-message"); self.discovery_list.append(notice)
+            else:
+                notice = self.label((result or {}).get("error") or "Roon did not confirm the track request.", "browser-message"); self.discovery_list.append(notice)
+            return False
+        threading.Thread(target=load, daemon=True).start()
+
+    def open_discovery_item(self, anchor, key):
+        if self.discovery_opening: return
         self.discovery_browser_origin = self.discovery_section in {"recent", "daily", "releases"}
         self.discovery_opening = True
+        self.browser_action_anchor = anchor
+        self.discovery_action_key = key
         request = self.discovery_request = self.discovery_request + 1
         self.discovery_signature = None
-        while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
-        self.discovery_list.append(self.loading_notice())
         def load():
             result = post_json(ROON + "/api/discovery/open", {"session": "touch", "key": key}, timeout=20.0)
             GLib.idle_add(self.apply_discovery_item, request, result)
@@ -2717,7 +2780,10 @@ class Display(Gtk.Application):
             while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
             self.discovery_list.append(self.label((data or {}).get("error") or "This item could not be opened. Try again from Discover.", "browser-message")); return False
         self.discovery_opening = False
-        self.set_roon_view("browse"); self.render_browser(data)
+        if data.get("action_menu"):
+            self.render_browser(data)
+        else:
+            self.set_roon_view("browse"); self.render_browser(data)
         return False
 
     def browser_swipe_back(self, _gesture, distance_x, distance_y):
@@ -3118,7 +3184,9 @@ class Display(Gtk.Application):
             texture = self.queue_thumbnail_cache.get(key)
             if texture: picture.set_paintable(texture)
         elif tile_kind:
-            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * (.58 if tile_kind == "playlists" else .65)))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.18 if separated_label_tile else .12))); artwork.add_overlay(icon)
+            gen2_genre = tile_kind == "genres" and self.window.has_css_class("touch2-7-landscape")
+            icon_scale = .56 if gen2_genre else .58 if tile_kind == "playlists" else .65
+            icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * icon_scale))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.26 if gen2_genre else .18 if separated_label_tile else .12))); artwork.add_overlay(icon)
         if show_labels:
             title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5); title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
             if tile_kind in {"genres", "playlists"}:
@@ -3128,7 +3196,9 @@ class Display(Gtk.Application):
                 subtitle = self.label(item.get("subtitle"), "browser-cover-subtitle", .5); subtitle.set_max_width_chars(22); subtitle.set_ellipsize(Pango.EllipsizeMode.END); content.append(subtitle)
         caption_height = 0 if tile_kind in {"genres", "playlists"} else 96 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 60
         shell = Gtk.ScrolledWindow(); shell.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); shell.set_propagate_natural_width(False); shell.set_propagate_natural_height(False); shell.set_min_content_width(size); shell.set_max_content_width(size); shell.set_min_content_height(size + (caption_height if show_labels else 0)); shell.set_max_content_height(size + (caption_height if show_labels else 0)); shell.set_child(content)
-        button = Gtk.Button(); button.add_css_class("browser-cover-card"); button.set_child(shell); button.set_sensitive(bool(item.get("item_key"))); button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
+        button = Gtk.Button(); button.add_css_class("browser-cover-card")
+        if tile_kind: button.add_css_class(f"{tile_kind[:-1]}-tile")
+        button.set_child(shell); button.set_sensitive(bool(item.get("item_key"))); button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
 
     def album_header(self, profile, items):
         header = Gtk.Box(spacing=24); header.add_css_class("album-profile")
@@ -3191,8 +3261,11 @@ class Display(Gtk.Application):
             choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
             selected = {"value": False}
             self.browser_action_selected = selected
+            discovery_actions = bool(data.get("discovery_track_actions"))
             def choose(_button, key):
-                selected["value"] = True; popover.popdown(); self.request_browser("open", item_key=key)
+                selected["value"] = True; popover.popdown()
+                if discovery_actions: self.request_discovery_track_action(key)
+                else: self.request_browser("open", item_key=key)
             for item in data.get("items", []):
                 if item.get("action"):
                     final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist"}
@@ -3200,7 +3273,7 @@ class Display(Gtk.Application):
             def closed(*_):
                 self.browser_action_popover = None
                 popover.unparent()
-                if not selected["value"]: self.request_browser("back")
+                if not selected["value"] and not discovery_actions: self.request_browser("back")
             popover.connect("closed", closed)
             popover.connect("map", lambda widget: GLib.idle_add(self.hide_native_cursor, widget))
             popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)

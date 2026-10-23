@@ -39,6 +39,8 @@ class PortraitRefinementTests(unittest.TestCase):
         self.assertIn('button.scene_tile.add_css_class("activated")', code)
         self.assertIn('button.scene_tile.remove_css_class("activated")', code)
         self.assertIn('.theme-roon .home-tile.activated', code)
+        self.assertIn('box.add_css_class("home-domain-switch" if domain == "input_boolean" else f"home-domain-{domain}")', code)
+        self.assertIn('def apply_home_colors(self, config):', code)
 
     def test_decoded_thumbnail_only_updates_widgets_on_ui_thread(self):
         picture = SimpleNamespace(set_paintable=Mock())
@@ -59,6 +61,22 @@ class PortraitRefinementTests(unittest.TestCase):
         self.assertIn('&size=900', preview)
         self.assertIn('self.preview_artwork_cache.get(key)', preview)
         self.assertIn('self.preview_artwork_cache[key] = texture', preview)
+
+    def test_gen2_daily_and_search_spacing_is_scoped_to_1280_landscape(self):
+        code = SOURCE.read_text()
+        self.assertIn('("touch2-7-landscape", touch2_7_landscape)', code)
+        self.assertIn('.touch2-7-landscape .search-main { margin-top: 26px; margin-right: 28px; }', code)
+        self.assertIn('24 if offset_discovery', code)
+        self.assertIn('gen2_genre = tile_kind == "genres" and self.window.has_css_class("touch2-7-landscape")', code)
+
+    def test_daily_track_action_keeps_its_visible_mix_row_anchor(self):
+        code = SOURCE.read_text()
+        method = code.split('def open_discovery_item', 1)[1].split('def browser_swipe_back', 1)[0]
+        self.assertIn('self.browser_action_anchor = anchor', method)
+        self.assertIn('self.discovery_action_key = key', method)
+        self.assertNotIn('while child := self.discovery_list.get_first_child()', method.split('def apply_discovery_item', 1)[0])
+        self.assertIn('if data.get("action_menu"):\n            self.render_browser(data)', method)
+        self.assertIn('/api/discovery/track-action', code)
 
     def test_large_settings_and_dynamic_play_icon_keep_their_size(self):
         code = SOURCE.read_text()
@@ -242,7 +260,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         for portrait in (True, False):
             owner = SimpleNamespace(responsive_portrait=portrait, roon_subnav=LayoutWidget(),
                 now_playing_tab=LayoutWidget(), queue_tab=LayoutWidget(), browser_tab=LayoutWidget(),
-                requested_audio_view="source", button=lambda *args: LayoutWidget())
+                requested_audio_view="source", button=lambda *args: LayoutWidget(),
+                refresh_music_subnav_layout=Mock())
             method = native_method("render_bluos_inputs")
             method(owner, {"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}],
                 "active_input": {"id": "tv"}}, True)
@@ -250,6 +269,17 @@ class NativeBrowserControlsTests(unittest.TestCase):
                 self.assertEqual(button.properties["hexpand"], (portrait,))
             self.assertIn("active", owner.bluos_source_buttons["tv"].classes)
             self.assertNotIn("active", owner.bluos_source_buttons["rega"].classes)
+            owner.refresh_music_subnav_layout.assert_called_once_with()
+
+    def test_optional_music_tabs_force_the_selector_to_reflow(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        method = code.split("def refresh_music_subnav_layout", 1)[1].split("def select_bluos_input", 1)[0]
+        self.assertIn("self.roon_subnav.set_halign(Gtk.Align.FILL if portrait else Gtk.Align.CENTER)", method)
+        self.assertIn("child.set_hexpand(portrait)", method)
+        self.assertIn("self.roon_subnav.set_size_request(-1, -1)", method)
+        self.assertIn("self.roon_subnav.queue_resize()", method)
+        settings = code.split('self.sync_music_navigation(); self.queue_tab.set_visible', 1)[1].split('if system is not None:', 1)[0]
+        self.assertIn("self.refresh_music_subnav_layout()", settings)
 
     def test_music_clock_redraws_on_minute_change_not_every_tick(self):
         from datetime import datetime
@@ -711,7 +741,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(art.properties["size_request"],(84,84))
         self.assertEqual(owner.discovery_cards,[(row,"discover:art")])
         owner.open_discovery_item.assert_not_called()
-        row.properties["clicked"](); owner.open_discovery_item.assert_called_once_with("track-key")
+        row.properties["clicked"](); owner.open_discovery_item.assert_called_once_with(row,"track-key")
 
     def test_discover_artwork_only_queues_visible_and_nearby_cards(self):
         jobs = Mock()
