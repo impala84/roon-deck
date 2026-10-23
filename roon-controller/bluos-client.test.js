@@ -50,3 +50,16 @@ test('connects for playback and volume when input browsing is unavailable', asyn
   assert.deepEqual(client.publicState().inputs, []);
   assert.equal(client.publicState().volume.value, 22);
 });
+
+test('disabling BluOS immediately clears previously selected inputs', async () => {
+  let config = {enabled: true, address: 'nad.local'};
+  const client = new BluOSClient(() => config, () => {});
+  client.base = 'http://nad.local:11000';
+  client.state = {enabled: true, connected: true, status: 'Connected', player: {name: 'NAD'},
+    inputs: [{id: 'input0', name: 'TV'}], active_input: {id: 'input0', name: 'TV'},
+    playback: {title: 'TV'}, volume: {value: 22}};
+  config = {enabled: false, address: 'nad.local'};
+  await client.refreshConfig();
+  assert.deepEqual(client.publicState(), {enabled: false, connected: false, status: 'Disabled', player: null,
+    inputs: [], active_input: null, playback: null, volume: null});
+});

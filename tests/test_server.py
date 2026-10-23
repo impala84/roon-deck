@@ -7,7 +7,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from pi_bus_time_display.config import Config, load_config
-from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_activate, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
+from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_activate, home_assistant_entity_available, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
 
 
 class DisplayModeTests(unittest.TestCase):
@@ -524,6 +524,12 @@ class DisplayModeTests(unittest.TestCase):
             request.assert_called_once_with(Config(), "/api/services/scene/turn_on", {"entity_id": "scene.bedroom_energize"})
         with self.assertRaisesRegex(ValueError, "not a scene"):
             home_assistant_activate(Config(), "switch.bedroom")
+
+    def test_unactivated_home_scene_remains_available(self):
+        self.assertTrue(home_assistant_entity_available("scene", "unknown"))
+        self.assertTrue(home_assistant_entity_available("scene", "2026-10-23T00:15:00+00:00"))
+        self.assertFalse(home_assistant_entity_available("scene", "unavailable"))
+        self.assertFalse(home_assistant_entity_available("light", "unknown"))
 
 
 if __name__ == "__main__":

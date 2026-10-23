@@ -97,6 +97,7 @@ function configuredBluOS() {
 
 function publicAmplifierState() {
   const state = bluos.publicState(); const config = configuredBluOS(); const visible = new Set(config.visibleInputs || []);
+  if (!config.enabled) return {enabled: false, connected: false, status: 'Disabled', player: null, inputs: [], active_input: null, playback: null, volume: null};
   const aliases = new Map((config.inputNames || []).map(item => { const split = String(item).indexOf('='); return split < 0 ? [item, ''] : [item.slice(0, split), item.slice(split + 1)]; }));
   const named = input => input ? {...input, name: aliases.get(String(input.id)) || input.name} : null;
   return {...state, inputs: (visible.size ? state.inputs.filter(input => visible.has(String(input.id))) : state.inputs).map(named), active_input: named(state.active_input)};

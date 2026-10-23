@@ -272,6 +272,15 @@ def home_assistant_activate(config: Config, entity_id: str) -> object:
     return home_assistant_request(config, "/api/services/scene/turn_on", {"entity_id": entity_id})
 
 
+def home_assistant_entity_available(domain: str, entity_state: object) -> bool:
+    # A scene has no persistent on/off state. Home Assistant commonly reports
+    # an unactivated scene as unknown until it has been run for the first time.
+    # Only its explicit unavailable state should disable the action button.
+    if domain == "scene":
+        return entity_state != "unavailable"
+    return entity_state not in {"unavailable", "unknown"}
+
+
 def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserveLogger | None = None) -> None:
     last_status: str | None = None
     while not stop.is_set():
@@ -297,7 +306,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
                     "percentage": attributes.get("percentage"), "brightness": attributes.get("brightness"),
-                    "action": domain == "scene", "available": item.get("state") not in {"unavailable", "unknown"},
+                    "action": domain == "scene", "available": home_assistant_entity_available(domain, item.get("state")),
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))
                         or (domain == "light" and attributes.get("supported_color_modes") not in (None, [], ["onoff"]))

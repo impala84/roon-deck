@@ -22,6 +22,10 @@ test('source display uses the selected player or zone name, not the protocol bra
   const source=read('app.js'),start=source.indexOf('function sourcePlayerName('),end=source.indexOf('\nfunction renderAmplifier',start);
   const name=vm.runInNewContext(source.slice(start,end)+';sourcePlayerName');assert.equal(name({player:{name:'NAD M33'}},{name:'Living room'}),'NAD M33');assert.equal(name({}, {name:'Living room'}),'Living room');assert.equal(name({},null),'Player');assert.match(read('index.html'),/id="source-zone"/);
 });
+test('disabled BluOS never exposes saved input selections',()=>{
+  const source=fs.readFileSync(path.join(__dirname,'server.js'),'utf8');
+  assert.match(source,/if \(!config\.enabled\) return \{enabled: false, connected: false, status: 'Disabled', player: null, inputs: \[\], active_input: null/);
+});
 test('Recent modes and optional recommendations have restorable URLs and shared desktop typography',()=>{
   assert.match(read('discovery.js'),/Recently Listened/);assert.match(read('discovery.js'),/Recently Added/);assert.match(read('discovery.js'),/FOR YOU/);assert.match(read('app.js'),/params.get\('view'\)==='picks'/);assert.match(read('discovery.css'),/@media\(min-width:901px\)\{#music-nav button,#discover-nav button\{font-size:14px/);
 });

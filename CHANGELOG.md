@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.7-beta.13 Alpine — 23 October 2026
+
+- Keep unactivated Home Assistant scenes actionable when Home Assistant reports
+  their normal initial `unknown` state; only an explicit `unavailable` state now
+  disables a scene button.
+- Hide all previously selected BluOS inputs immediately when BluOS control is
+  disabled, while preserving those saved selections for a future re-enable.
+
 ## 1.1.7-beta.12 Alpine — 23 October 2026
 
 - Add allow-listed Home Assistant scenes alongside lights, fans, switches and
