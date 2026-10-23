@@ -89,6 +89,23 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('watchRoonBridgeInstall()', javascript)
         self.assertIn("data.roon_bridge_operation_status", javascript)
 
+    def test_home_assistant_entities_wrap_and_expand_for_long_lists(self):
+        html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
+        css = (ROOT / "src/pi_bus_time_display/static/admin.css").read_text()
+        javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()
+        self.assertIn('<textarea name="home_assistant_entities" rows="2"', html)
+        self.assertIn('.service-panel textarea{', css)
+        self.assertIn('overflow-wrap:anywhere', css)
+        self.assertIn('function resizeMultiline(field)', javascript)
+        self.assertIn("home_assistant_entities.addEventListener('input'", javascript)
+
+    def test_home_assistant_page_title_is_optional_and_configurable(self):
+        html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
+        display = (ROOT / "native-display/pi_bus_native.py").read_text()
+        self.assertIn('name="home_assistant_title"', html)
+        self.assertIn('leave blank to show no heading', html)
+        self.assertIn('self.home_title.set_visible(bool(home_title))', display)
+
     def test_airplay_endpoint_can_be_installed_named_and_controlled(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
         javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()

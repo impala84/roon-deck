@@ -104,10 +104,10 @@ function publicAmplifierState() {
 }
 
 function selectedZone() {
-  const requested = configuredZoneName();
+  const requested = configuredZoneName().trim();
   const all = [...zones.values()];
-  return all.find(zone => zone.display_name === requested) ||
-    all.find(zone => zone.state === 'playing') || all[0] || null;
+  if (requested) return all.find(zone => zone.display_name === requested) || null;
+  return all.find(zone => zone.state === 'playing') || all[0] || null;
 }
 
 function resumeRoon(zone) {
@@ -125,7 +125,15 @@ function publicState() {
   const labels = {display: configured.displayName, now_playing: configured.nowPlayingName, queue: configured.queueName, browse: 'Browse'};
   labels.display_theme = configured.displayTheme || 'fresh-mint';
   labels.bus_enabled = configured.busEnabled !== false;
-  if (!zone) return {connected: Boolean(core), authorised: Boolean(core), zones: [], zone: null, labels, browser_enabled: configured.browserEnabled, queue: {status: 'unavailable', items: []}, details: {status: 'unavailable'}, amplifier: publicAmplifierState()};
+  if (!zone) {
+    const availableZones = [...zones.values()].map(item => ({id: item.zone_id, name: item.display_name}));
+    const unavailable = core && configured.zoneName.trim() ? {
+      id: null, name: configured.zoneName.trim(), state: 'unavailable', available: false,
+      now_playing: null, seek_position: 0, can_previous: false, can_next: false,
+      can_play: false, can_pause: false, can_seek: false, output: null
+    } : null;
+    return {connected: Boolean(core), authorised: Boolean(core), zones: availableZones, zone: unavailable, labels, browser_enabled: configured.browserEnabled, queue: {status: 'unavailable', items: []}, details: {status: 'unavailable'}, amplifier: publicAmplifierState()};
+  }
   const output = (zone.outputs || []).find(item => item.volume) || (zone.outputs || [])[0] || null;
   return {
     connected: true,

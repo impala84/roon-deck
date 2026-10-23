@@ -142,6 +142,16 @@ function render(next) {
     return;
   }
 
+  if (zone.available === false) {
+    $('zone').textContent = zone.name;
+    setScrollingText($('title'), 'Nothing playing');
+    setScrollingText($('artist'), 'Selected zone is offline');
+    $('art').removeAttribute('src'); $('placeholder').hidden = false;
+    $('previous').disabled = $('play').disabled = $('next').disabled = true;
+    $('volume-panel').hidden = true; $('fixed').hidden = false;
+    return;
+  }
+
   const playing = zone.now_playing || {};
   const lines = playing.three_line || playing.two_line || playing.one_line || {};
   $('zone').textContent = zone.name;

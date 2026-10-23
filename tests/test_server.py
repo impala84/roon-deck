@@ -11,6 +11,13 @@ from pi_bus_time_display.server import State, active_wifi_ssid, automatic_displa
 
 
 class DisplayModeTests(unittest.TestCase):
+    def test_home_assistant_title_can_be_custom_or_blank(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            for title in ("Bedroom", ""):
+                write_config(path, Config(home_assistant_title=title))
+                self.assertEqual(load_config(path).home_assistant_title, title)
+
     def test_home_assistant_scene_configuration_is_allowed_and_still_bounded(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"

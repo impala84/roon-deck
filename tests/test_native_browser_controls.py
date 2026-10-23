@@ -32,6 +32,14 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_home_scene_feedback_centres_labels_and_pulses_the_whole_tile(self):
+        code = SOURCE.read_text()
+        self.assertIn('name.set_justify(Gtk.Justification.LEFT if portrait else Gtk.Justification.CENTER)', code)
+        self.assertIn('button.scene_tile = box', code)
+        self.assertIn('button.scene_tile.add_css_class("activated")', code)
+        self.assertIn('button.scene_tile.remove_css_class("activated")', code)
+        self.assertIn('.theme-roon .home-tile.activated', code)
+
     def test_decoded_thumbnail_only_updates_widgets_on_ui_thread(self):
         picture = SimpleNamespace(set_paintable=Mock())
         texture = object()
@@ -1025,9 +1033,23 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.browser_sort = self.button("Sort: Title, A to Z", self.show_browser_sort', code)
         self.assertIn('self.browser_sort.set_sensitive(False)', code)
         self.assertNotIn('Gtk.DropDown.new_from_strings(["Sort: Title A–Z"', code)
+        self.assertNotIn('popover.sort-menu > contents { margin-top: 8px; background: #000', code)
+        self.assertNotIn('box-shadow: inset 3px 0 #9868F9', code)
+        self.assertIn('popover.sort-menu .track-menu-action.active:focus { background: #9868F9; color: #111; box-shadow: none; }', code)
         web = (SOURCE.parents[1] / 'roon-controller/static/app.js').read_text(encoding='utf-8')
         self.assertIn("const activeSection = data.surprise_preview ? 'surprise'", web)
         self.assertIn('!data.can_back || Boolean(data.surprise_preview)',web)
+
+    def test_six_home_controls_fill_landscape_with_two_tall_tiles_and_a_two_by_two_group(self):
+        code = SOURCE.read_text(encoding='utf-8')
+        self.assertIn('if not portrait and len(entities) == 6:', code)
+        self.assertIn('self.home_grid.attach(box, index, 0, 1, 2)', code)
+        self.assertIn('self.home_grid.attach(box, 2 + (index - 2) % 2, (index - 2) // 2, 1, 1)', code)
+
+    def test_missing_configured_zone_has_an_explicit_quiet_state(self):
+        code = SOURCE.read_text(encoding='utf-8')
+        self.assertIn('if zone.get("available") is False:', code)
+        self.assertIn('self.artist.set_text("Selected zone is offline")', code)
 
     def test_grid_minimums_fit_physical_monitor_without_using_expanded_content(self):
         metrics = native_method("browser_grid_metrics", {"Gdk": SimpleNamespace(Display=SimpleNamespace(get_default=lambda: display))})

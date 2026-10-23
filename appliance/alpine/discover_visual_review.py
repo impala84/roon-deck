@@ -685,16 +685,21 @@ assert abs(home_clock_bounds.get_y() - bus_clock_top) <= 1
 assert home.get_first_child().get_first_child().get_tooltip_text() == "Settings"
 assert home.get_first_child().get_last_child().get_child() is display.home_clock
 icon = display.home_grid.get_first_child().get_first_child().get_first_child().get_child()
-original_icon_size = max(64, min(240, round((screen_height - 190) / 6 * .7))) if screen_height > screen_width else 108 if max(screen_width, screen_height) >= 1200 else 72
+original_icon_size = max(64, min(240, round((screen_height - 190) / 6 * .7))) if screen_height > screen_width else 108 if max(screen_width, screen_height) >= 1200 else 82
 assert icon.get_pixel_size() == round(original_icon_size * .75)
 assert icon.get_width() >= original_icon_size
 if screen_height > screen_width:
     assert display.home_grid.get_first_child().get_orientation() == Gtk.Orientation.HORIZONTAL
+else:
+    first = display.home_grid.get_child_at(0, 0); second = display.home_grid.get_child_at(1, 0)
+    assert display.home_grid.get_child_at(0, 1) is first
+    assert display.home_grid.get_child_at(1, 1) is second
+    assert all(display.home_grid.get_child_at(column, row) not in (first, second) for column in (2, 3) for row in (0, 1))
 
 settings = display.build_settings()
 window.set_child(settings)
 display.configure_settings_layout(screen_width, screen_height)
-display.device_status.set_text("v1.1.7-beta.13 Alpine")
+display.device_status.set_text("v1.1.7-beta.14 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())

@@ -235,7 +235,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .settings-select { min-height: 48px; border-radius: 8px; background: #0d1412; color: #f4f0e6; }.settings-row { padding: 7px 0; }.settings-diagnostic { color: #aab4b0; font-size: 12px; }
 .settings-controls { padding: 4px 0; }.settings-column { padding: 0 5px; }.setting-line { min-height: 52px; padding: 0 12px; border-radius: 8px; background: #0d1412; }.setting-line label { font-size: 14px; font-weight: 650; }.setting-line checkbutton { font-size: 14px; font-weight: 650; }.setting-line checkbutton label { margin-left: 12px; }.setting-line check { min-width: 22px; min-height: 22px; border-radius: 5px; border: 2px solid #61706b; background: #111a18; }.setting-line check:checked { background: #6ed9ae; border-color: #6ed9ae; color: #082018; }
 .brightness-setting { padding-top: 7px; padding-bottom: 7px; }
-.stop-row { margin-bottom: 4px; }.home-grid { padding: 9px 0; }.home-tile { min-height: 120px; border-radius: 20px; padding: 10px 11px 8px; background: #131c1a; border: 1px solid #293633; color: #aab4b0; }.home-tile.on { background: #173229; border-color: #35785f; color: #f4f0e6; }.home-device-button { min-height: 92px; padding: 0; background: transparent; color: #9aaba5; }.home-tile.on .home-device-button { color: #6ed9ae; }.home-icon { opacity: .72; }.home-name { font-size: 15px; font-weight: 700; }.home-state { color: #7f8b87; font-size: 11px; }.home-level { min-width: 28px; min-height: 94px; }.home-level trough { min-width: 7px; border-radius: 4px; background: #303a37; }.home-level highlight { background: #6ed9ae; border-radius: 4px; }.home-level slider { min-width: 20px; min-height: 20px; border-radius: 10px; background: #f4f0e6; }
+.stop-row { margin-bottom: 4px; }.home-grid { padding: 5px 0 1px; }.home-tile { min-height: 112px; border-radius: 20px; padding: 7px 9px 6px; background: #131c1a; border: 1px solid #293633; color: #aab4b0; }.home-tile.on { background: #173229; border-color: #35785f; color: #f4f0e6; }.home-tile.activated { background: #173b31; border-color: #6ed9ae; box-shadow: 0 0 18px rgba(110,217,174,.6); }.home-device-button { min-height: 88px; padding: 0; background: transparent; color: #9aaba5; }.home-tile.on .home-device-button, .home-tile.activated .home-device-button { color: #6ed9ae; }.home-icon { opacity: .82; }.home-name { font-size: 15px; font-weight: 700; }.home-state { color: #7f8b87; font-size: 11px; }.home-level { min-width: 28px; min-height: 88px; }.home-level trough { min-width: 7px; border-radius: 4px; background: #303a37; }.home-level highlight { background: #6ed9ae; border-radius: 4px; }.home-level slider { min-width: 20px; min-height: 20px; border-radius: 10px; background: #f4f0e6; }
 .high-resolution .page { padding: 21px 30px 15px; }.high-resolution .stop, .high-resolution .stop-code { font-size: 38px; }.high-resolution .clock { font-size: 47px; }.high-resolution .eyebrow { font-size: 17px; }.high-resolution .service { border-radius: 20px; padding: 8px 24px; }.high-resolution .service-no, .high-resolution .arrival { font-size: 123px; }.high-resolution .service.compact .service-no, .high-resolution .service.compact .arrival { font-size: 89px; }.high-resolution .service.dense .service-no, .high-resolution .service.dense .arrival { font-size: 68px; }.high-resolution .arrival-sub { font-size: 15px; }.high-resolution .muted { font-size: 16px; }.high-resolution .artwork { min-width: 420px; min-height: 420px; }.high-resolution .roon-title { font-size: 52px; }.high-resolution .roon-artist { font-size: 27px; }.high-resolution .nav button { min-height: 60px; font-size: 21px; }
 .high-resolution .roon-subnav button { min-height: 44px; font-size: 15px; }.high-resolution .transport button { min-width: 75px; min-height: 75px; border-radius: 38px; }.high-resolution .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }.high-resolution .queue-row { min-height: 99px; }.high-resolution .queue-art, .high-resolution .browser-action-icon { min-width: 84px; min-height: 84px; }.high-resolution .queue-title { font-size: 24px; }.high-resolution .queue-meta, .high-resolution .queue-duration { font-size: 18px; }.high-resolution .detail-header { min-height: 92px; padding: 14px 52px 0; }.high-resolution .detail-close { min-width: 72px; min-height: 72px; }.high-resolution .detail-panel { padding: 10px 34px 64px; }.high-resolution .detail-entity { padding: 0 18px; }.high-resolution .detail-section-label { font-size: 18px; }.high-resolution .detail-title { font-size: 45px; }.high-resolution .detail-artist { font-size: 28px; }.high-resolution .detail-writeup { font-size: 24px; }.high-resolution .detail-source { font-size: 15px; }.high-resolution .detail-fact { font-size: 18px; }.high-resolution .detail-action { min-height: 74px; font-size: 23px; }.high-resolution .detail-footer .detail-primary-action { min-height: 82px; font-size: 30px; }.high-resolution .detail-track-title { font-size: 20px; }
 .touch-landscape .page { padding: 18px 28px 14px; }.touch-landscape .service-no, .touch-landscape .arrival { font-size: 138px; }.touch-landscape .service-no { min-width: 205px; }.touch-landscape .arrival-sub { font-size: 17px; }.touch-landscape .stop, .touch-landscape .stop-code { font-size: 42px; }.touch-landscape .clock { font-size: 50px; }.touch-landscape .nav button { min-height: 58px; font-size: 22px; }.touch-landscape .roon-subnav button { min-height: 54px; padding: 8px 18px 5px; font-size: 18px; }.touch-landscape .artwork { min-width: 320px; min-height: 320px; }.touch-landscape .roon-title { font-size: 46px; }.touch-landscape .roon-artist { font-size: 25px; }.touch-landscape .transport button { min-width: 70px; min-height: 70px; border-radius: 35px; }.touch-landscape .transport .play { min-width: 88px; min-height: 88px; border-radius: 44px; }.touch-landscape .settings-title { font-size: 43px; }.touch-landscape .settings-card { padding: 24px 28px; }.touch-landscape .settings-card .muted, .touch-landscape .settings-diagnostic { font-size: 17px; }.touch-landscape .settings-select { min-height: 70px; font-size: 19px; }.touch-landscape .setting-line { min-height: 78px; padding: 0 18px; }.touch-landscape .setting-line label, .touch-landscape .setting-line checkbutton { font-size: 19px; }.touch-landscape .setting-line check { min-width: 30px; min-height: 30px; }.touch-landscape .settings-action { min-height: 74px; font-size: 20px; }.touch-landscape .settings-controls { padding: 12px 0; }.touch-landscape .utility { min-width: 118px; min-height: 52px; font-size: 16px; }
@@ -346,6 +346,8 @@ CSS += b"""
 .theme-roon .progress trough, .theme-roon .volume trough, .theme-roon .home-level trough { background: #45424b; }
 .theme-roon .progress highlight, .theme-roon .volume highlight, .theme-roon .home-level highlight { background: #9868F9; }
 .theme-roon .home-tile.on { background: #302b44; border-color: #9868F9; }
+.theme-roon .home-tile.activated { background: #3b3063; border-color: #9868F9; box-shadow: 0 0 18px rgba(152,104,249,.7); }
+.theme-roon .home-tile.activated .home-device-button { color: #9868F9; }
 .theme-roon .home-tile.on button, .theme-roon .boot-logo, .theme-roon .surprise-action { color: #9868F9; }
 .theme-roon .home-device-button.scene-action.activated { color: #9868F9; }
 .theme-roon .surprise-action, .theme-roon .queue-art { background: #292929; }
@@ -362,8 +364,11 @@ CSS += b"""
 .theme-roon .detail-action { background: #2d2943; color: #9868F9; }
 .theme-roon .detail-footer .detail-primary-action,
 .theme-roon .track-menu-action.primary-play { background: #9868F9; color: #111; }
-.theme-roon popover.sort-menu .track-menu-action:hover { background: rgba(152,104,249,.12); }
-.theme-roon popover.sort-menu .track-menu-action.active { box-shadow: inset 3px 0 #9868F9; }
+.theme-roon popover.sort-menu .track-menu-action:hover,
+.theme-roon popover.sort-menu .track-menu-action:focus { background: #292929; }
+.theme-roon popover.sort-menu .track-menu-action.active,
+.theme-roon popover.sort-menu .track-menu-action.active:hover,
+.theme-roon popover.sort-menu .track-menu-action.active:focus { background: #9868F9; color: #111; box-shadow: none; }
 .discovery-card, .discovery-card:hover, .discovery-card:active { padding: 4px; background: transparent; background-image: none; box-shadow: none; }
 .discovery-card .queue-title { font-size: 18px; }.discovery-card .queue-subtitle { font-size: 14px; color: #aaa; }
 .daily-card .queue-title { font-size: 20px; }.daily-card .queue-subtitle { font-size: 16px; }
@@ -618,7 +623,6 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 
 CSS += b"""
 popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.55); }
-popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px solid #45434e; padding: 8px; }
 .browser-sort, .browser-sort:hover { background: transparent; }
 .detail-header { min-height: 92px; padding-top: 14px; padding-bottom: 14px; }
 .detail-heading { color: #f4f0e6; font-size: 28px; font-weight: 700; }
@@ -642,9 +646,11 @@ popover.sort-menu > contents { margin-top: 8px; background: #000; border: 1px so
 .track-menu-action:hover { background: #34323a; }
 .track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
 .track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
-popover.sort-menu .track-menu-action { background: transparent; }
-popover.sort-menu .track-menu-action:hover { background: rgba(110,217,174,.12); }
-popover.sort-menu .track-menu-action.active { color: #fff; box-shadow: inset 3px 0 #6ed9ae; }
+popover.sort-menu .track-menu-action:hover,
+popover.sort-menu .track-menu-action:focus { background: #18211f; box-shadow: none; }
+popover.sort-menu .track-menu-action.active,
+popover.sort-menu .track-menu-action.active:hover,
+popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: #111; box-shadow: none; }
 .large-display .track-menu-action { min-height: 64px; font-size: 24px; }
 .compact-landscape popover.track-menu > contents { padding: 7px; border-radius: 10px; }
 .compact-landscape .track-menu-action { min-height: 42px; padding: 5px 12px; font-size: 16px; }
@@ -1403,11 +1409,11 @@ class Display(Gtk.Application):
 
     def build_home(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
-        self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.label("Home Controls", "stop"), self.home_clock))
+        self.home_title = self.label("Home Controls", "stop"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
-        scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_propagate_natural_height(False); scroll.set_min_content_height(1); scroll.set_vexpand(True); scroll.set_child(self.home_grid); page.append(scroll)
-        elastic_vertical_scroll(scroll)
+        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); self.home_scroll.set_child(self.home_grid); page.append(self.home_scroll)
+        elastic_vertical_scroll(self.home_scroll)
         page.append(self.navigation("home")); return page
 
     def configure_settings_layout(self, width, height):
@@ -1897,6 +1903,7 @@ class Display(Gtk.Application):
             self.browser_tab.set_visible(False)
             if not config.get("roon_show_browser", True) and self.roon_views.get_visible_child_name() in {"browse", "search"}: self.set_roon_view("now")
             show_sleep_clock = config.get("sleep_show_clock", False); self.sleep_clock.set_visible(show_sleep_clock); self.sleep_hint.set_visible(show_sleep_clock)
+            home_title = str(config.get("home_assistant_title", "Home Controls")); self.home_title.set_text(home_title); self.home_title.set_visible(bool(home_title))
             for button in self.home_nav_buttons: button.set_visible(bool(config.get("home_assistant_enabled") and config.get("home_assistant_entities")))
         if system is not None:
             self.system_data = system
@@ -2065,7 +2072,7 @@ class Display(Gtk.Application):
 
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
-        self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
+        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
         signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
@@ -2083,13 +2090,13 @@ class Display(Gtk.Application):
             domain = entity.get("domain", "switch")
             scene = domain == "scene"
             if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"
-            icon_size = 108 if self.window.has_css_class("high-resolution") else 72
+            icon_size = 108 if self.window.has_css_class("high-resolution") else 82
             if portrait: icon_size = max(64, min(240, round((self.window.get_height() - 190) / max(4, len(entities)) * .7)))
             icon_slot = icon_size; icon_size = round(icon_size * .75)
             icon = FamilyIcon("check" if scene else domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size); icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
             button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not portrait); button.set_vexpand(True); button.set_child(icon)
             if scene:
-                button.add_css_class("scene-action"); button.set_sensitive(bool(entity.get("available", True))); button.connect("clicked", self.activate_home_scene, entity.get("entity_id", ""))
+                button.add_css_class("scene-action"); button.scene_tile = box; button.set_sensitive(bool(entity.get("available", True))); button.connect("clicked", self.activate_home_scene, entity.get("entity_id", ""))
             else: button.connect("clicked", self.toggle_home, entity.get("entity_id", ""))
             control_row.append(button)
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); details.set_hexpand(True); details.set_valign(Gtk.Align.CENTER)
@@ -2100,11 +2107,17 @@ class Display(Gtk.Application):
             if domain in {"switch", "input_boolean"}:
                 swipe = Gtk.GestureSwipe(); swipe.connect("swipe", self.swipe_home_switch, entity.get("entity_id", "")); button.add_controller(swipe)
             box.append(control_row)
-            name = self.label(entity.get("name", "Device"), "home-name", 0 if portrait else .5); name.set_wrap(True); name.set_lines(2); (details if portrait else box).append(name)
+            name = self.label(entity.get("name", "Device"), "home-name", 0 if portrait else .5); name.set_wrap(True); name.set_lines(2); name.set_justify(Gtk.Justification.LEFT if portrait else Gtk.Justification.CENTER); (details if portrait else box).append(name)
             state_label = self.label(detail, "home-state", 0 if portrait else .5); (details if portrait else box).append(state_label)
             if scene: button.scene_status_label = state_label
             if portrait: box.append(details)
-            self.home_grid.attach(box, 0 if portrait else index % 4, index if portrait else index // 4, 1, 1)
+            if not portrait and len(entities) == 6:
+                # Two full-height primary controls plus a compact 2x2 group
+                # use the complete landscape canvas without empty grid cells.
+                if index < 2: self.home_grid.attach(box, index, 0, 1, 2)
+                else: self.home_grid.attach(box, 2 + (index - 2) % 2, (index - 2) // 2, 1, 1)
+            else:
+                self.home_grid.attach(box, 0 if portrait else index % 4, index if portrait else index // 4, 1, 1)
 
     def render_bus(self, data):
         if not data: self.bus_status.set_text("Bus service unavailable"); return
@@ -2233,6 +2246,12 @@ class Display(Gtk.Application):
             else:
                 self.title.set_text("Nothing playing"); self.artist.set_text("No Roon zones are available")
             self.prev.set_sensitive(False); self.play.set_sensitive(False); self.next.set_sensitive(False); self.seek_updating = True; self.progress.set_value(0); self.progress.set_sensitive(False); self.seek_updating = False; self.volume.set_sensitive(False); self.note_missing_artwork(); return
+        if zone.get("available") is False:
+            self.zone.set_text(zone.get("name") or self.settings_data.get("roon_zone_name") or "ROON")
+            self.title.set_text("Nothing playing"); self.artist.set_text("Selected zone is offline")
+            self.prev.set_sensitive(False); self.play.set_sensitive(False); self.next.set_sensitive(False)
+            self.seek_updating = True; self.progress.set_value(0); self.progress.set_sensitive(False); self.seek_updating = False
+            self.volume.set_sensitive(False); self.mute.set_sensitive(False); self.note_missing_artwork(); return
         playing = zone.get("now_playing") or {}; lines = playing.get("three_line") or playing.get("two_line") or playing.get("one_line") or {}
         if not playing.get("image_key"):
             self.note_missing_artwork()
@@ -3810,7 +3829,7 @@ class Display(Gtk.Application):
         if entity_id: threading.Thread(target=post_json, args=(BUS + "/api/device/home-toggle", {"entity_id": entity_id}), daemon=True).start()
     def activate_home_scene(self, button, entity_id):
         if not entity_id: return
-        button.add_css_class("activated"); button.set_sensitive(False); button.scene_status_label.set_text("ACTIVATING…")
+        button.add_css_class("activated"); button.scene_tile.add_css_class("activated"); button.set_sensitive(False); button.scene_status_label.set_text("ACTIVATING…")
         def send():
             result = post_json(BUS + "/api/device/home-toggle", {"entity_id": entity_id})
             def finish():
@@ -3820,7 +3839,7 @@ class Display(Gtk.Application):
             GLib.idle_add(finish)
         threading.Thread(target=send, daemon=True).start()
     def reset_home_scene(self, button):
-        button.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text("TAP TO ACTIVATE"); return False
+        button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text("TAP TO ACTIVATE"); return False
     def swipe_home_switch(self, _gesture, velocity_x, _velocity_y, entity_id):
         if entity_id and abs(velocity_x) > 80:
             threading.Thread(target=post_json, args=(BUS + "/api/device/home-state", {"entity_id": entity_id, "enabled": velocity_x > 0}), daemon=True).start()

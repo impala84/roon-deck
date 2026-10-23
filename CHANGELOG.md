@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.7-beta.14 Alpine — 23 October 2026
+
+- Make the 10-inch album-sort popup use the same rounded action-menu treatment
+  as the rest of RoonDeck, removing its one-off black panel and left stripe.
+- Show one unambiguous filled selection derived from the active sort order, so
+  a sticky touchscreen hover can no longer make Artist appear selected while
+  the collection is actually sorted by title.
+- Keep an explicitly configured Roon zone locked when that endpoint goes
+  offline, showing its quiet unavailable state instead of borrowing playback
+  from another visible zone.
+- Use all available landscape space for six Home Assistant controls: two
+  full-height primary tiles beside a 2x2 group of the remaining four.
+- Explain under the Roon Bridge controls where Roon's per-output Fixed Volume
+  and Device Volume modes are configured, without pretending to alter the
+  server-owned setting from the endpoint.
+- Let the Home Assistant entity list wrap and grow over multiple lines while
+  preserving the existing comma-separated configuration format.
+- Refine OG7 Home controls so six entities fit above the footer, multi-line
+  labels remain centred, icons are larger, and scene activation briefly pulses
+  the whole tile in purple.
+- Add an optional Home page title setting; it can use custom wording or be left
+  blank while retaining the clock and controls.
+
 ## 1.1.7-beta.13 Alpine — 23 October 2026
 
 - Keep unactivated Home Assistant scenes actionable when Home Assistant reports
