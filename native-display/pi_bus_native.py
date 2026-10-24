@@ -3639,7 +3639,11 @@ class Display(Gtk.Application):
         if summary: facts.append("  ·  ".join(summary))
         for fact in facts:
             label = self.label(fact, "detail-fact"); label.set_wrap(True); self.detail_facts.append(label)
-        self.detail_facts.set_visible(not getattr(self, "album_focus_detail", False))
+        self.detail_facts.set_visible(
+            not getattr(self, "album_focus_detail", False)
+            and not getattr(self, "original_landscape", False)
+            and not getattr(self, "large_detail_portrait", False)
+        )
         while child := self.detail_tracks.get_first_child(): self.detail_tracks.remove(child)
         for index, track in enumerate((details.get("tracks") or [])[:30], 1):
             row = Gtk.Box(spacing=8); row.add_css_class("detail-track"); row.append(self.label(str(index), "detail-track-no")); title = self.label(track.get("title") or "Untitled track", "detail-track-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_hexpand(True); row.append(title); self.detail_tracks.append(row)
