@@ -66,7 +66,7 @@ CAROUSEL_START_INSET = 10
 CAROUSEL_END_SPACE = 30
 
 
-def fade_rgba_pixels(pixels, width, height, rowstride, channels, fade_start_ratio=.72):
+def fade_rgba_pixels(pixels, width, height, rowstride, channels, fade_start_ratio=.52):
     """Copy RGB(A) pixels and smoothly reduce their bottom edge to alpha 0."""
     output_stride = width * 4; output = bytearray(output_stride * height)
     fade_start = round(height * fade_start_ratio)
@@ -806,6 +806,26 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
 .original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111; font-size: 14px; font-weight: 800; }
 .original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }
+.original-landscape .album-focus-detail .detail-section-label { font-size: 14px; letter-spacing: 1.5px; }
+.original-landscape .album-focus-detail .detail-title { font-size: 28px; line-height: 1.08; }
+.original-landscape .album-focus-detail .detail-artist { font-size: 19px; }
+.original-landscape .album-focus-detail .detail-writeup { font-size: 16px; line-height: 1.28; }
+.touch2-7-landscape .album-focus-detail .detail-title { font-size: 32px; line-height: 1.1; }
+.touch2-7-landscape .album-focus-detail .detail-artist { font-size: 22px; }
+.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 18px; line-height: 1.34; }
+.touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
+.interface-smaller .transport button { min-width: 45px; min-height: 45px; border-radius: 23px; }
+.interface-smaller .transport .play { min-width: 61px; min-height: 61px; border-radius: 31px; }
+.interface-larger .transport button { min-width: 56px; min-height: 56px; border-radius: 28px; }
+.interface-larger .transport .play { min-width: 76px; min-height: 76px; border-radius: 38px; }
+.touch-landscape.interface-smaller .transport button { min-width: 63px; min-height: 63px; border-radius: 32px; }
+.touch-landscape.interface-smaller .transport .play { min-width: 79px; min-height: 79px; border-radius: 40px; }
+.touch-landscape.interface-larger .transport button { min-width: 78px; min-height: 78px; border-radius: 39px; }
+.touch-landscape.interface-larger .transport .play { min-width: 98px; min-height: 98px; border-radius: 49px; }
+.interface-smaller .nav button { min-height: 36px; }
+.interface-larger .nav button { min-height: 46px; }
+.touch-landscape.interface-smaller .nav button { min-height: 52px; }
+.touch-landscape.interface-larger .nav button { min-height: 65px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -964,6 +984,7 @@ class Display(Gtk.Application):
         widget = Gtk.Label(label=text, xalign=x)
         if css:
             for name in css.split(): widget.add_css_class(name)
+        self.scale_text_label(widget)
         return widget
 
     def button(self, text, callback, css="utility"):
@@ -971,7 +992,35 @@ class Display(Gtk.Application):
         if css:
             for name in css.split(): widget.add_css_class(name)
         widget.connect("clicked", callback)
+        if isinstance(widget.get_child(), Gtk.Label): self.scale_text_label(widget.get_child())
         return widget
+
+    def scale_text_label(self, widget):
+        """Multiply CSS typography without discarding each label's design size."""
+        if not hasattr(widget, "roondeck_base_attributes"):
+            current = widget.get_attributes()
+            widget.roondeck_base_attributes = current.copy() if current else Pango.AttrList()
+        attributes = widget.roondeck_base_attributes.copy()
+        size = (self.settings_data or {}).get("interface_size", "standard")
+        attributes.insert(Pango.attr_scale_new({"smaller": .9, "larger": 1.12}.get(size, 1.0)))
+        widget.set_attributes(attributes)
+
+    def apply_interface_size(self, value):
+        value = value if value in {"smaller", "standard", "larger"} else "standard"
+        self.settings_data["interface_size"] = value
+        for name in ("interface-smaller", "interface-larger"): self.window.remove_css_class(name)
+        if value != "standard": self.window.add_css_class("interface-" + value)
+        pending = [self.window]
+        while pending:
+            widget = pending.pop()
+            if isinstance(widget, Gtk.Label): self.scale_text_label(widget)
+            child = widget.get_first_child()
+            while child:
+                pending.append(child); child = child.get_next_sibling()
+        factor = {"smaller": .9, "larger": 1.12}.get(value, 1.0)
+        for icon in getattr(self, "utility_icons", []):
+            base = getattr(icon, "roondeck_base_size", None)
+            if base: icon.set_size_request(round(base * factor), round(base * factor))
 
     def icon_button(self, icon, callback, css=""):
         widget = Gtk.Button()
@@ -1031,11 +1080,12 @@ class Display(Gtk.Application):
         size = 20 if clock and compact else 30 if compact else 38
         if not clock:
             icon = FamilyIcon("settings", size)
+            icon.roondeck_base_size = size
             icon.add_css_class("settings-icon")
             self.utility_icons = getattr(self, "utility_icons", []) + [icon]
             return icon
         # Draw outlines directly: symbolic theme recolouring can fill SVG holes.
-        icon = Gtk.DrawingArea(); icon.set_size_request(size, size)
+        icon = Gtk.DrawingArea(); icon.set_size_request(size, size); icon.roondeck_base_size = size
         self.utility_icons = getattr(self, "utility_icons", []) + [icon]
         def draw(_area, cr, width, height):
             original_clock = clock and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
@@ -1286,7 +1336,8 @@ class Display(Gtk.Application):
         stop_heading = Gtk.Box(spacing=14); stop_heading.append(self.stop); stop_heading.append(self.stop_code); page.append(self.header(stop_heading, self.bus_clock))
         self.services = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); self.services.set_vexpand(True)
         self.bus_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); self.bus_content.append(self.services)
-        self.bus_scroll = Gtk.ScrolledWindow(); self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.bus_scroll.set_propagate_natural_height(False); self.bus_scroll.set_propagate_natural_width(False); self.bus_scroll.set_min_content_height(1); self.bus_scroll.set_size_request(-1, 1); self.bus_scroll.set_vexpand(True); self.bus_scroll.set_child(self.bus_content); page.append(self.bus_scroll)
+        self.bus_scroll = Gtk.ScrolledWindow(); self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.bus_scroll.set_kinetic_scrolling(True); self.bus_scroll.set_overlay_scrolling(True); self.bus_scroll.set_propagate_natural_height(False); self.bus_scroll.set_propagate_natural_width(False); self.bus_scroll.set_min_content_height(1); self.bus_scroll.set_size_request(-1, 1); self.bus_scroll.set_vexpand(True); self.bus_scroll.set_child(self.bus_content); page.append(self.bus_scroll)
+        elastic_vertical_scroll(self.bus_scroll)
         footer = Gtk.Box(); footer.add_css_class("bus-footer"); self.bus_status = self.label("Starting", "muted"); self.updated = self.label("", "muted", 1); self.updated.set_hexpand(True); footer.append(self.bus_status); footer.append(self.updated); self.bus_content.append(footer)
         page.append(self.navigation("bus")); return page
 
@@ -1360,14 +1411,16 @@ class Display(Gtk.Application):
         self.volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.volume.add_css_class("volume"); self.volume.set_hexpand(True); self.volume.set_draw_value(False); self.volume.connect("value-changed", self.change_volume); volume_row.append(self.volume)
         self.volume_up = self.icon_button("add", lambda *_: self.step_volume(1), "volume-step"); self.volume_up.set_tooltip_text("Volume up 1%"); volume_row.append(self.volume_up)
         self.volume_value = self.label("—", "time", 1); self.volume_value.add_css_class("volume-number"); volume_row.append(self.volume_value); centre.append(volume_row)
-        content.append(centre); self.roon_views.add_named(content, "now")
+        content.append(centre)
+        now_scroll = Gtk.ScrolledWindow(); now_scroll.add_css_class("now-playing-scroll"); now_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); now_scroll.set_kinetic_scrolling(True); now_scroll.set_overlay_scrolling(True); now_scroll.set_propagate_natural_height(False); now_scroll.set_min_content_height(1); now_scroll.set_size_request(-1, 1); now_scroll.set_vexpand(True); now_scroll.set_child(content); elastic_vertical_scroll(now_scroll); self.now_playing_scroll = now_scroll; self.roon_views.add_named(now_scroll, "now")
         source = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); source.add_css_class("source-view"); source.set_halign(Gtk.Align.CENTER); source.set_valign(Gtk.Align.CENTER); source.set_hexpand(True); source.set_vexpand(True)
         self.source_title = self.label("EXTERNAL INPUT", "source-title", .5); source.append(self.source_title)
         source_volume = Gtk.Box(spacing=28); source_volume.set_halign(Gtk.Align.CENTER); source_volume.set_valign(Gtk.Align.CENTER)
         source_down = self.icon_button("remove", lambda *_: self.step_bluos_volume(-1), "source-step"); self.source_down = source_down; source_down.set_tooltip_text("Volume down"); source_down.set_size_request(112, 112); source_down.set_halign(Gtk.Align.CENTER); source_down.set_valign(Gtk.Align.CENTER); source_volume.append(source_down)
         self.source_volume = self.label("—", "source-volume", .5); self.source_volume.set_size_request(230, -1); source_volume.append(self.source_volume)
         source_up = self.icon_button("add", lambda *_: self.step_bluos_volume(1), "source-step"); self.source_up = source_up; source_up.set_tooltip_text("Volume up"); source_up.set_size_request(112, 112); source_up.set_halign(Gtk.Align.CENTER); source_up.set_valign(Gtk.Align.CENTER); source_volume.append(source_up); source.append(source_volume)
-        self.source_mute = self.button("MUTE", self.toggle_audio_mute, "source-mute"); self.source_mute.set_halign(Gtk.Align.CENTER); source.append(self.source_mute); self.roon_views.add_named(source, "source")
+        self.source_mute = self.button("MUTE", self.toggle_audio_mute, "source-mute"); self.source_mute.set_halign(Gtk.Align.CENTER); source.append(self.source_mute)
+        source_scroll = Gtk.ScrolledWindow(); source_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); source_scroll.set_kinetic_scrolling(True); source_scroll.set_overlay_scrolling(True); source_scroll.set_propagate_natural_height(False); source_scroll.set_min_content_height(1); source_scroll.set_size_request(-1, 1); source_scroll.set_vexpand(True); source_scroll.set_child(source); elastic_vertical_scroll(source_scroll); self.source_scroll = source_scroll; self.roon_views.add_named(source_scroll, "source")
         self.queue_list = ElasticVerticalTrack(spacing=2); self.queue_list.add_css_class("queue-list")
         queue_scroll = Gtk.ScrolledWindow(); queue_scroll.add_css_class("queue-scroll"); queue_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); queue_scroll.set_kinetic_scrolling(True); queue_scroll.set_overlay_scrolling(True); queue_scroll.set_propagate_natural_height(False); queue_scroll.set_propagate_natural_width(False); queue_scroll.set_min_content_height(1); queue_scroll.set_size_request(-1, 1); queue_scroll.set_vexpand(True); queue_scroll.set_hexpand(True); queue_scroll.set_child(self.queue_list); self.queue_scroll = queue_scroll
         queue_scroll.get_vadjustment().connect("value-changed", self.load_visible_queue_artwork)
@@ -1568,6 +1621,7 @@ class Display(Gtk.Application):
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
         brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(True); self.touch_brightness.set_value_pos(Gtk.PositionType.RIGHT); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_row.append(self.touch_brightness); display_column.append(brightness_row)
+        self.touch_interface_size = Gtk.DropDown.new_from_strings(["Interface size · Smaller", "Interface size · Standard", "Interface size · Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); display_column.append(self.touch_interface_size)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); actions.set_valign(Gtk.Align.END); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); actions.append(reboot); card.append(actions); page.append(card)
         return page
@@ -1993,6 +2047,7 @@ class Display(Gtk.Application):
         if isinstance(config, dict) and config:
             grid_changed = self.settings_data.get("portrait_discovery_columns", 2) != config.get("portrait_discovery_columns", 2)
             self.settings_data = config
+            self.apply_interface_size(config.get("interface_size", "standard"))
             if grid_changed and getattr(self, "responsive_portrait", False) and hasattr(self, "discovery_data"):
                 self.discovery_signature = None
                 self.render_discover(self.discovery_request, self.discovery_data)
@@ -2003,6 +2058,9 @@ class Display(Gtk.Application):
             for button in self.bus_nav_buttons: button.set_visible(config.get("bus_enabled", True))
             if hasattr(self, "touch_bus_enabled") and self.touch_bus_enabled.get_active() != config.get("bus_enabled", True):
                 self.bus_visibility_updating = True; self.touch_bus_enabled.set_active(config.get("bus_enabled", True)); self.bus_visibility_updating = False
+            requested_interface_size = {"smaller": 0, "standard": 1, "larger": 2}.get(config.get("interface_size"), 1)
+            if self.touch_interface_size.get_selected() != requested_interface_size:
+                self.interface_size_updating = True; self.touch_interface_size.set_selected(requested_interface_size); self.interface_size_updating = False
             for button in self.roon_nav_buttons: button.set_label("Now Playing")
             self.now_playing_tab.set_label((config.get("roon_now_playing_name") or "Now Playing").upper())
             self.queue_tab.set_label((config.get("roon_queue_name") or "Queue").upper())
@@ -2923,15 +2981,15 @@ class Display(Gtk.Application):
         self.set_browser_placeholder(picture, artist=True)
         name = profile.get("name", "")
         if seven_landscape:
-            hero_width = 330 if original else min(480, round((viewport_width - 250) * .5))
-            # The seven-inch screens have enough vertical room for a less
-            # severe crop. Add roughly half an album-row thumbnail while
-            # preserving the established width and top-weighted focal crop.
-            hero_height = round(hero_width * .68)
+            # Leave real inner space inside each half-width column. The old
+            # fixed 330px original-panel image overflowed its 50% allocation
+            # and squeezed the album column even though the parent was even.
+            hero_width = 304 if original else min(430, round((viewport_width - 310) * .5))
+            hero_height = round(hero_width * .60)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
-            profile_text_height = 118 if original else 190
+            profile_text_height = 136 if original else 196
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
@@ -2978,7 +3036,7 @@ class Display(Gtk.Application):
         title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
         if seven_landscape: title.set_xalign(0)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
-        summary_slot.artist_summary_lines = 2 if original else 3 if seven_landscape else 5
+        summary_slot.artist_summary_lines = 3 if seven_landscape else 5
         summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
         if play_action and not seven_landscape:
@@ -3851,7 +3909,7 @@ class Display(Gtk.Application):
             source = loader.get_pixbuf()
             width, height = source.get_width(), source.get_height()
             if width <= 0 or height <= 0: return None
-            target_ratio = 1 / .68
+            target_ratio = 1 / .60
             if width / height > target_ratio:
                 crop_height = height; crop_width = max(1, round(height * target_ratio))
                 crop_x = max(0, round((width - crop_width) / 2)); crop_y = 0
@@ -3861,12 +3919,12 @@ class Display(Gtk.Application):
                 # Keep faces higher while preserving the exact hero window.
                 crop_y = max(0, round((height - crop_height) * .2))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
-            scaled = cropped.scale_simple(960, 653, GdkPixbuf.InterpType.BILINEAR)
+            scaled = cropped.scale_simple(960, 576, GdkPixbuf.InterpType.BILINEAR)
             # Fade the photograph itself to transparent. Painting a black
             # gradient over it only works on the default black theme and
             # exposes a rectangular edge on user-selected backgrounds.
-            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 653, scaled.get_rowstride(), scaled.get_n_channels())
-            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 653, output_stride)
+            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 576, scaled.get_rowstride(), scaled.get_n_channels())
+            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 576, output_stride)
             return Gdk.Texture.new_for_pixbuf(faded)
         except (GLib.Error, ValueError, TypeError): return None
 
@@ -4076,6 +4134,11 @@ class Display(Gtk.Application):
                 return False
             GLib.idle_add(finish)
         threading.Thread(target=save, daemon=True).start()
+    def change_interface_size(self, dropdown, *_):
+        if getattr(self, "interface_size_updating", False): return
+        values = ("smaller", "standard", "larger"); value = values[min(dropdown.get_selected(), 2)]
+        self.apply_interface_size(value)
+        threading.Thread(target=post_json, args=(f"{BUS}/api/admin/config", {"section": "appearance", "interface_size": value}), kwargs={"timeout": 3}, daemon=True).start()
     def toggle_service(self, button, service):
         threading.Thread(target=post_json, args=(BUS + "/api/device/service-visibility", {"service": service, "enabled": button.get_active()}), daemon=True).start()
     def toggle_bus_visibility(self, button):

@@ -31,6 +31,7 @@ class Config:
     roon_display_name: str = "Roon"
     display_theme: str = "fresh-mint"
     display_background: str = "current"
+    interface_size: str = "standard"
     portrait_discovery_columns: int = 2
     landscape_music_clock: str = "icon"
     roon_now_playing_name: str = "Now Playing"
@@ -105,6 +106,8 @@ def load_config(path: Path) -> Config:
         raise ValueError("display_background must be current or black")
     if config.display_theme not in {"fresh-mint", "roon"}:
         raise ValueError("display_theme must be fresh-mint or roon")
+    if config.interface_size not in {"smaller", "standard", "larger"}:
+        raise ValueError("interface_size must be smaller, standard or larger")
     if not (5 <= config.poll_seconds <= 300):
         raise ValueError("poll_seconds must be between 5 and 300")
     if config.end_action not in {"display", "shutdown", "reboot"}:

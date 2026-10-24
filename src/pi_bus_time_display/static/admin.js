@@ -10,7 +10,7 @@ let activeTab='overview',activeService='bus',activeIntegration='display',toastTi
 const dirtySections=new Set();
 const updateHistory=[];
 const sectionFields={
-  appearance:['display_theme','display_background','portrait_discovery_columns','landscape_music_clock'],
+  appearance:['display_theme','display_background','interface_size','portrait_discovery_columns','landscape_music_clock'],
   automation:['scheduled_wake_enabled','weekend_wake_enabled','weekend_wake_time','sleep_start','sleep_end','outside_hours_wake_minutes','sleep_show_clock','morning_start','morning_end','auto_switch_to_roon','roon_idle_return_minutes','browse_idle_return_minutes','sleep_when_roon_idle','daytime_inactivity_minutes'],
   bus:['bus_enabled','bus_stop_code','bus_stop_name','services','walking_minutes','poll_seconds','lta_account_key'],
   roon:['roon_display_name','roon_now_playing_name','roon_queue_name','roon_zone_name','roon_show_controls','roon_show_clock','roon_show_queue','roon_show_browser','bluos_enabled','bluos_player_address','bluos_visible_inputs','bluos_input_names'],

@@ -227,6 +227,16 @@ class DisplayModeTests(unittest.TestCase):
             write_config(path, Config(display_background="invalid"))
             with self.assertRaises(ValueError): load_config(path)
 
+    def test_interface_size_round_trip_and_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            self.assertEqual(Config().interface_size, "standard")
+            write_config(path, Config(interface_size="larger"))
+            self.assertEqual(load_config(path).interface_size, "larger")
+            self.assertEqual(State(Config(interface_size="larger"), Path(directory)).snapshot()["interface_size"], "larger")
+            write_config(path, Config(interface_size="enormous"))
+            with self.assertRaises(ValueError): load_config(path)
+
     def test_custom_roon_display_name_persists(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"

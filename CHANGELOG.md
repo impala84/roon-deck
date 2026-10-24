@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.43 Alpine — 25 October 2026
+
+- Adds one global interface-size setting with Smaller, Standard and Larger choices, scaling typography, navigation, clocks, utility icons and playback controls together throughout the touchscreen; larger content scrolls rather than clipping behind fixed navigation.
+- Rebalances both seven-inch artist pages with a shorter hero, longer transparent fade, equal artist and album columns and room for three biography lines.
+- Reduces oversized seven-inch Album & Artist detail typography while preserving legibility and aligned content.
+
 ## 1.1.7-beta.42 Alpine — 25 October 2026
 
 - Keeps Roon browsing available while the configured RoonBridge speaker endpoint is powered off, without falling through to another zone.
