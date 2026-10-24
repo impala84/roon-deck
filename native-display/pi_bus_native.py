@@ -1376,7 +1376,7 @@ class Display(Gtk.Application):
         # the minimum size of compact landscape views after navigation.
         self.roon_views.set_hhomogeneous(False); self.roon_views.set_vhomogeneous(False); self.roon_views.set_vexpand(True)
         self.roon_views.set_hhomogeneous(False); self.roon_views.set_vhomogeneous(False)
-        self.discovery_list = ElasticVerticalTrack(spacing=18)
+        self.discovery_list = ElasticVerticalTrack(spacing=18); self.discovery_list.set_vexpand(True)
         self.discovery_scroll = Gtk.ScrolledWindow(); self.discovery_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.discovery_scroll.set_kinetic_scrolling(True); self.discovery_scroll.set_overlay_scrolling(True); self.discovery_scroll.set_propagate_natural_height(False); self.discovery_scroll.set_min_content_height(1); self.discovery_scroll.set_size_request(-1, 1); self.discovery_scroll.set_vexpand(True); self.discovery_scroll.set_hexpand(True); self.discovery_scroll.set_child(self.discovery_list)
         self.discovery_scroll.add_css_class("discovery-scroll")
         self.discovery_scroll.set_margin_bottom(10)
@@ -1444,7 +1444,7 @@ class Display(Gtk.Application):
         browser_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); browser_main.add_css_class("browser-main"); browser_main.set_vexpand(True); browser_main.set_hexpand(True)
         sidebar.set_vexpand(True); spacer = Gtk.Box(); spacer.set_vexpand(True); self.browser_sidebar_spacer = spacer; sidebar.append(spacer); sidebar.append(self.browser_sort); sidebar.append(self.browser_back)
         self.browser_message = self.label("", "browser-message"); self.browser_message.set_ellipsize(Pango.EllipsizeMode.END); self.browser_message.set_visible(False); browser_main.append(self.browser_message)
-        self.browser_list = ElasticVerticalTrack(spacing=2); self.browser_list.add_css_class("queue-list")
+        self.browser_list = ElasticVerticalTrack(spacing=2); self.browser_list.set_vexpand(True); self.browser_list.add_css_class("queue-list")
         browser_scroll = Gtk.ScrolledWindow(); browser_scroll.add_css_class("queue-scroll"); browser_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); browser_scroll.set_kinetic_scrolling(True); browser_scroll.set_overlay_scrolling(True); browser_scroll.set_propagate_natural_height(False); browser_scroll.set_propagate_natural_width(False); browser_scroll.set_min_content_height(1); browser_scroll.set_size_request(-1, 1); browser_scroll.set_vexpand(True); browser_scroll.set_hexpand(True); browser_scroll.set_child(self.browser_list); self.browser_scroll = browser_scroll
         browser_scroll.get_vadjustment().connect("value-changed", self.note_browse_scroll)
         browser_scroll.get_vadjustment().connect("value-changed", self.browser_scrolled)
@@ -3917,7 +3917,7 @@ class Display(Gtk.Application):
                 crop_width = width; crop_height = max(1, round(width / target_ratio))
                 crop_x = 0
                 # Keep faces higher while preserving the exact hero window.
-                crop_y = max(0, round((height - crop_height) * .2))
+                crop_y = max(0, round((height - crop_height) * .4))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
             scaled = cropped.scale_simple(960, 576, GdkPixbuf.InterpType.BILINEAR)
             # Fade the photograph itself to transparent. Painting a black

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.44 Alpine — 25 October 2026
+
+- Raises faces within both seven-inch artist hero frames by shifting the shared low- and high-resolution crop window without changing its dimensions.
+- Centres Browse and Discover loading indicators within the usable content area instead of leaving them close to the top tabs.
+
 ## 1.1.7-beta.43 Alpine — 25 October 2026
 
 - Adds one global interface-size setting with Smaller, Standard and Larger choices, scaling typography, navigation, clocks, utility icons and playback controls together throughout the touchscreen; larger content scrolls rather than clipping behind fixed navigation.
