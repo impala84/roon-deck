@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.46 Alpine — 25 October 2026
+
+- Removes the Roon-theme grey surface from every artist-hero layer so the transparent image fade reaches the selected page background cleanly.
+- Makes both seven-inch artist heroes modestly taller while preserving the approved face weighting and identical low-/high-resolution crop.
+
 ## 1.1.7-beta.45 Alpine — 25 October 2026
 
 - Softens the textured gradient background, reducing its visible haze on seven-inch displays while retaining the selected Roon-style background treatment.

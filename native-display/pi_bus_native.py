@@ -678,7 +678,8 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
 .volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: transparent; }
-.artist-hero-frame, .artist-hero-frame viewport, .artist-hero-image { border-top-left-radius: 8px; border-top-right-radius: 8px; background: transparent; background-image: none; }
+.artist-hero-frame, .artist-hero-frame viewport, .artist-hero-image,
+.theme-roon .artist-hero-frame, .theme-roon .artist-hero-frame viewport, .theme-roon .artist-hero-image { border-top-left-radius: 8px; border-top-right-radius: 8px; background: transparent; background-image: none; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
 .touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
@@ -2985,7 +2986,7 @@ class Display(Gtk.Application):
             # fixed 330px original-panel image overflowed its 50% allocation
             # and squeezed the album column even though the parent was even.
             hero_width = 304 if original else min(430, round((viewport_width - 310) * .5))
-            hero_height = round(hero_width * .60)
+            hero_height = round(hero_width * .64)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
@@ -3909,7 +3910,7 @@ class Display(Gtk.Application):
             source = loader.get_pixbuf()
             width, height = source.get_width(), source.get_height()
             if width <= 0 or height <= 0: return None
-            target_ratio = 1 / .60
+            target_ratio = 1 / .64
             if width / height > target_ratio:
                 crop_height = height; crop_width = max(1, round(height * target_ratio))
                 crop_x = max(0, round((width - crop_width) / 2)); crop_y = 0
@@ -3919,12 +3920,12 @@ class Display(Gtk.Application):
                 # Keep faces higher while preserving the exact hero window.
                 crop_y = max(0, round((height - crop_height) * .4))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
-            scaled = cropped.scale_simple(960, 576, GdkPixbuf.InterpType.BILINEAR)
+            scaled = cropped.scale_simple(960, 614, GdkPixbuf.InterpType.BILINEAR)
             # Fade the photograph itself to transparent. Painting a black
             # gradient over it only works on the default black theme and
             # exposes a rectangular edge on user-selected backgrounds.
-            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 576, scaled.get_rowstride(), scaled.get_n_channels())
-            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 576, output_stride)
+            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 614, scaled.get_rowstride(), scaled.get_n_channels())
+            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 614, output_stride)
             return Gdk.Texture.new_for_pixbuf(faded)
         except (GLib.Error, ValueError, TypeError): return None
 

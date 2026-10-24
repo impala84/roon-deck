@@ -51,11 +51,11 @@ class PortraitRefinementTests(unittest.TestCase):
         self.assertEqual([output[row * stride + 3] for row in range(5)], [255, 255, 255, 128, 0])
         self.assertEqual(output[0:3], bytes([20, 40, 60]))
 
-    def test_both_seven_inch_artist_heroes_use_the_shorter_gradual_fade(self):
+    def test_both_seven_inch_artist_heroes_use_the_taller_gradual_fade(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn("hero_width = 304 if original else", code)
-        self.assertIn("hero_height = round(hero_width * .60)", code)
-        self.assertIn("target_ratio = 1 / .60", code)
+        self.assertIn("hero_height = round(hero_width * .64)", code)
+        self.assertIn("target_ratio = 1 / .64", code)
         self.assertIn("fade_start_ratio=.52", code)
 
     def test_bottom_navigation_holds_the_selected_page_until_backend_confirmation(self):
@@ -1031,7 +1031,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
         self.assertIn('thumb_size = 84 if original_artist_albums', code)
         self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
-        self.assertIn('hero_height = round(hero_width * .60)', code)
+        self.assertIn('hero_height = round(hero_width * .64)', code)
         self.assertIn('overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)', code)
         self.assertIn('details.set_size_request(hero_width - (32 if original else 64), -1)', code)
         self.assertIn('summary_slot.artist_summary_lines = 3 if seven_landscape else 5', code)
@@ -1045,14 +1045,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.queue_thumbnail_source.pop(old, None)', code)
         self.assertIn('needs_image = key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)', code)
         self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
-        self.assertIn('target_ratio = 1 / .60', code)
+        self.assertIn('target_ratio = 1 / .64', code)
         self.assertIn('crop_y = max(0, round((height - crop_height) * .4))', code)
         self.assertIn('self.discovery_list = ElasticVerticalTrack(spacing=18); self.discovery_list.set_vexpand(True)', code)
         self.assertIn('self.browser_list = ElasticVerticalTrack(spacing=2); self.browser_list.set_vexpand(True)', code)
-        self.assertIn('cropped.scale_simple(960, 576', code)
+        self.assertIn('cropped.scale_simple(960, 614', code)
         self.assertIn('fade_rgba_pixels(', code)
         self.assertIn('GdkPixbuf.Pixbuf.new_from_bytes', code)
         self.assertIn('.artist-hero-frame viewport, .artist-hero-image', code)
+        self.assertIn('.theme-roon .artist-hero-frame viewport, .theme-roon .artist-hero-image', code)
         self.assertIn('.artist-overlay-info { padding: 58px 16px 12px; background: transparent;', code)
         self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px;', code)
         self.assertIn('layout = "list" if data.get("artist_profile")', code)
