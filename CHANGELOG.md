@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.51 Alpine — 25 October 2026
+
+- Retains the beta.50 seven-inch polish while bounding the new split Play Album control inside the narrow legacy portrait album column.
+
 ## 1.1.7-beta.50 Alpine — 25 October 2026
 
 - Darkens the Roon gradient and makes Larger scale album titles, artists, summaries, Back, Settings dropdowns, clocks and shared page headings consistently.

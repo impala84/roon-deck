@@ -3483,7 +3483,12 @@ class Display(Gtk.Application):
             split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
             menu = self.button("▾", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
-            menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu); copy.append(split)
+            menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
+            if getattr(self, "responsive_portrait", False) and width < 600:
+                play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+                play_slot.set_propagate_natural_width(False); play_slot.set_propagate_natural_height(True)
+                play_slot.set_max_content_width(max(150, width - size - 68)); play_slot.set_child(split); copy.append(play_slot)
+            else: copy.append(split)
         if review := profile.get("review"):
             summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
         else:
