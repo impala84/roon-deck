@@ -4,6 +4,7 @@
 
 - Rebalances the 10-inch portrait Album & Artist sheet with larger headings and close control, tighter body leading, bounded write-ups and no low-value technical fact blocks.
 - Places the release year in the album eyebrow and equalises both heading regions so the artist and album write-ups always begin on the same baseline.
+- Follows the configured room by its stable Roon output identity in either grouping direction and carries the current track across Roon's transient metadata gap while a new group forms.
 
 ## 1.1.7-beta.32 Alpine — 24 October 2026
 

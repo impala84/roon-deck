@@ -37,6 +37,7 @@ let transport = null;
 let imageService = null;
 let browseService = null;
 let zones = new Map();
+const rememberedOutputIds = new Map();
 let queueItems = [];
 let queueHistory = [];
 let queueZoneId = null;
@@ -103,18 +104,39 @@ function publicAmplifierState() {
   return {...state, inputs: (visible.size ? state.inputs.filter(input => visible.has(String(input.id))) : state.inputs).map(named), active_input: named(state.active_input)};
 }
 
+function rememberZoneOutputs(entries) {
+  for (const zone of entries || []) {
+    const outputs = zone?.outputs || [];
+    for (const output of outputs) if (output?.display_name && output?.output_id) rememberedOutputIds.set(output.display_name, output.output_id);
+    if (zone?.display_name && outputs.length === 1 && outputs[0]?.output_id) rememberedOutputIds.set(zone.display_name, outputs[0].output_id);
+  }
+}
+
+function carryGroupedPlayback(previousZones) {
+  for (const [zoneId, zone] of zones) {
+    if (zone?.state !== 'playing' || zone.now_playing) continue;
+    const outputIds = new Set((zone.outputs || []).map(output => output?.output_id).filter(Boolean));
+    const previous = (previousZones || []).find(candidate => candidate?.now_playing && candidate.state === 'playing' &&
+      (candidate.outputs || []).some(output => outputIds.has(output?.output_id)));
+    if (previous) zones.set(zoneId, {...previous, ...zone, now_playing: previous.now_playing,
+      seek_position: zone.seek_position ?? previous.seek_position ?? previous.now_playing?.seek_position ?? 0});
+  }
+}
+
 function selectedZone() {
   const requested = configuredZoneName().trim();
   const all = [...zones.values()];
+  const remembered = rememberedOutputIds.get(requested);
   if (requested) return all.find(zone => zone.display_name === requested ||
-    (zone.outputs || []).some(output => output.display_name === requested)) || null;
+    (zone.outputs || []).some(output => output.display_name === requested || (remembered && output.output_id === remembered))) || null;
   return all.find(zone => zone.state === 'playing') || all[0] || null;
 }
 
 function selectedOutput(zone) {
   const outputs = zone?.outputs || [];
   const requested = configuredZoneName().trim();
-  return (requested ? outputs.find(output => output.display_name === requested) : null) ||
+  const remembered = rememberedOutputIds.get(requested);
+  return (requested ? outputs.find(output => output.display_name === requested || (remembered && output.output_id === remembered)) : null) ||
     outputs.find(output => output.volume) || outputs[0] || null;
 }
 
@@ -173,10 +195,16 @@ function mergeZones(command, data) {
   // The Roon SDK closes subscriptions without a payload on disconnect.
   // Ignore that notification; core_unpaired owns connection-state cleanup.
   if (!data || typeof data !== 'object') return;
+  const previousZones = [...zones.values()];
+  rememberZoneOutputs(previousZones);
+  rememberZoneOutputs(data.zones || []);
+  rememberZoneOutputs(data.zones_added || []);
+  rememberZoneOutputs(data.zones_changed || []);
   if (command === 'Subscribed') zones = new Map((data.zones || []).map(zone => [zone.zone_id, zone]));
   for (const zone of data.zones_added || []) zones.set(zone.zone_id, zone);
   for (const zone of data.zones_changed || []) zones.set(zone.zone_id, {...zones.get(zone.zone_id), ...zone});
   for (const zone of data.zones_removed || []) zones.delete(typeof zone === 'string' ? zone : zone.zone_id);
+  carryGroupedPlayback(previousZones);
   ensureQueueSubscription();
   ensureDetails();
   broadcast();
@@ -286,6 +314,7 @@ const roon = new RoonApi({
     library.setTarget(null);
     details = {status: 'unavailable'}; detailsKey = ''; detailsRequest += 1;
     zones.clear();
+    rememberedOutputIds.clear();
     status.set_status('Waiting for Roon authorisation', false);
     broadcast();
   }
