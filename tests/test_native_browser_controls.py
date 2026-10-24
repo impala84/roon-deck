@@ -936,6 +936,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertNotIn('artist_bio', code)
         self.assertNotIn('get_json', code)
         self.assertIn('self.render_artist_profile(data.get("artist_profile"), artist_play)', SOURCE.read_text(encoding="utf-8"))
+        self.assertIn('"Play Artist Radio"', SOURCE.read_text(encoding="utf-8"))
         web = (SOURCE.parents[1] / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn('renderArtistProfile(data.artist_profile, artistPlay)', web)
         self.assertNotIn('Artist background is unavailable.', web)

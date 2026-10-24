@@ -106,8 +106,16 @@ function publicAmplifierState() {
 function selectedZone() {
   const requested = configuredZoneName().trim();
   const all = [...zones.values()];
-  if (requested) return all.find(zone => zone.display_name === requested) || null;
+  if (requested) return all.find(zone => zone.display_name === requested ||
+    (zone.outputs || []).some(output => output.display_name === requested)) || null;
   return all.find(zone => zone.state === 'playing') || all[0] || null;
+}
+
+function selectedOutput(zone) {
+  const outputs = zone?.outputs || [];
+  const requested = configuredZoneName().trim();
+  return (requested ? outputs.find(output => output.display_name === requested) : null) ||
+    outputs.find(output => output.volume) || outputs[0] || null;
 }
 
 function resumeRoon(zone) {
@@ -134,7 +142,7 @@ function publicState() {
     } : null;
     return {connected: Boolean(core), authorised: Boolean(core), zones: availableZones, zone: unavailable, labels, browser_enabled: configured.browserEnabled, queue: {status: 'unavailable', items: []}, details: {status: 'unavailable'}, amplifier: publicAmplifierState()};
   }
-  const output = (zone.outputs || []).find(item => item.volume) || (zone.outputs || [])[0] || null;
+  const output = selectedOutput(zone);
   return {
     connected: true,
     authorised: true,
@@ -437,7 +445,7 @@ http.createServer(async (request, response) => {
       }
       else if (url.pathname === '/api/seek' && zone.is_seek_allowed) transport.seek(zone, 'absolute', Number(data.seconds));
       else {
-        const output = (zone.outputs || []).find(item => item.output_id === data.output_id) || (zone.outputs || []).find(item => item.volume);
+        const output = (zone.outputs || []).find(item => item.output_id === data.output_id) || selectedOutput(zone);
         if (!output?.volume) return json(response, 409, {error: 'This zone has fixed volume'});
         if (url.pathname === '/api/volume') transport.change_volume(output, 'absolute', Number(data.value));
         else if (url.pathname === '/api/mute') transport.mute(output, output.volume.is_muted ? 'unmute' : 'mute');

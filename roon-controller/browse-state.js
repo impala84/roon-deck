@@ -34,7 +34,8 @@ function isActionItem(item) {
 }
 
 function publicItem(item) {
-  const title = String(item?.title || '');
+  const originalTitle = String(item?.title || '');
+  const title = /^play artist$/i.test(originalTitle.trim()) ? 'Play Artist Radio' : originalTitle;
   return {
     title, subtitle: String(item?.subtitle || '').replace(/\[\[\d+\|([^\]]+)\]\]/g, '$1'),
     image_key: item?.image_key || null, item_key: item?.item_key || null,
@@ -193,6 +194,15 @@ class BrowseManager {
         playbackCompleted = true;
       }
     }
+    // Roon exposes Play Artist as a menu containing Shuffle and Start Radio.
+    // The UI names the actual outcome and executes Start Radio immediately.
+    if (opened?.action && /^play artist radio$/i.test(opened.title.trim()) && result.action === 'list' && !result.is_error) {
+      const menu = await request(service, 'load', {hierarchy, multi_session_key: session, level: result.list.level, offset: 0, count: 30});
+      const startRadio = menu.items?.find(item => /^start radio$/i.test(String(item.title || '').trim()) && isActionItem(item));
+      if (!startRadio?.item_key) return this.save(session, {...state, error:true, message:'Artist Radio is unavailable for this artist.'});
+      result = await request(service, 'browse', {...options, item_key:startRadio.item_key});
+      playbackCompleted = !result.is_error;
+    }
     let next = await this.follow(service, session, hierarchy, result, opened?.image_key || (opened?.action ? state?.fallback_image_key : null) || result.list?.image_key || null);
     // Search can return a one-album wrapper before the actual track list.
     // Roon does not consistently preserve the result title on that wrapper,
@@ -206,12 +216,12 @@ class BrowseManager {
         next = this.save(session, {...next, skipped_album_preview: true});
       }
     }
-    if (((state?.section === 'artists' && state.section_root) || next.items?.some(item => item.action && /^play artist$/i.test(item.title))) && opened && !opened.action && result.action === 'list' && !next.error) {
+    if (((state?.section === 'artists' && state.section_root) || next.items?.some(item => item.action && /^play artist(?: radio)?$/i.test(item.title))) && opened && !opened.action && result.action === 'list' && !next.error) {
       this.artistContexts.set(session + ':' + next.title, {name:opened.title,image_key:opened.image_key});
       while (this.artistContexts.size > 64) this.artistContexts.delete(this.artistContexts.keys().next().value);
       return this.save(session, {...next, artist_profile:{name:opened.title,image_key:opened.image_key}});
     }
-    if (opened?.action && /^play(?: (now|album|from here))?$/i.test(opened.title.trim()) && !result.is_error && (playbackCompleted || result.action !== 'list')) return {...this.save(session, {...next, message: ''}), navigate: 'now'};
+    if (opened?.action && (/^play(?: (now|album|from here))?$/i.test(opened.title.trim()) || /^play artist radio$/i.test(opened.title.trim())) && !result.is_error && (playbackCompleted || result.action !== 'list')) return {...this.save(session, {...next, message: ''}), navigate: 'now'};
     return next;
   }
 
@@ -442,7 +452,7 @@ class BrowseManager {
       fallback_image_key: fallbackImageKey, message, error: false,
       ...(albumProfile ? {album_profile: albumProfile} : {}),
       action_menu: normalised.length > 0 && normalised.every(item => item.action || item.hint === 'header') && normalised.some(item => /^play now$/i.test(item.title)),
-      ...(normalised.some(item => /^play artist$/i.test(item.title)) && this.artistContexts.has(session + ':' + list.title) ? {artist_profile:this.artistContexts.get(session + ':' + list.title)} : {}),
+      ...(normalised.some(item => /^play artist(?: radio)?$/i.test(item.title)) && this.artistContexts.has(session + ':' + list.title) ? {artist_profile:this.artistContexts.get(session + ':' + list.title)} : {}),
       ...presentation
     });
   }

@@ -2849,7 +2849,7 @@ class Display(Gtk.Application):
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
             overlay_info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); overlay_info.add_css_class("artist-overlay-info"); overlay_info.set_halign(Gtk.Align.FILL); overlay_info.set_valign(Gtk.Align.END)
             if play_action:
-                overlay_play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play artist-overlay-play")
+                overlay_play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play artist-overlay-play")
                 overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)
             artwork_area.add_overlay(overlay_info); panel.append(artwork_area)
         else:
@@ -2888,7 +2888,7 @@ class Display(Gtk.Application):
         summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
         if play_action and not seven_landscape:
-            play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
+            play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
             play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)
 
     def load_artist_notes(self, name, slot, seed=None):
@@ -3307,7 +3307,7 @@ class Display(Gtk.Application):
                 else: self.request_browser("open", item_key=key)
             for item in data.get("items", []):
                 if item.get("action"):
-                    final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist"}
+                    final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist", "play artist radio"}
                     choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); choices.append(choice)
             def closed(*_):
                 self.browser_action_popover = None
@@ -3343,7 +3343,7 @@ class Display(Gtk.Application):
         message = data.get("message") or (data.get("error") if isinstance(data.get("error"), str) else "") or ""; self.browser_message.set_text(message); self.browser_message.set_visible(bool(message))
         self.browser_pictures = {}; self.browser_artwork_keys = []; self.browser_cards = []; self.artist_hero_keys = set()
         while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
-        artist_play = next((item for item in data.get("items", []) if item.get("action") and item.get("title", "").strip().lower() == "play artist"), None) if data.get("artist_profile") else None
+        artist_play = next((item for item in data.get("items", []) if item.get("action") and item.get("title", "").strip().lower() in {"play artist", "play artist radio"}), None) if data.get("artist_profile") else None
         self.render_artist_profile(data.get("artist_profile"), artist_play)
         items = data.get("items") or []
         grouped_results = bool(data.get("search_routes"))
