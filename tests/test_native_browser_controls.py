@@ -528,13 +528,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('getattr(self, "album_focus_detail", False)', code)
         self.assertIn('.compact-detail .detail-title { font-size: 30px; }', code)
         self.assertIn('.compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }', code)
-        self.assertIn('.album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }', code)
+        self.assertIn('.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.4; }', code)
+        self.assertIn('.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px;', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
         self.assertIn('detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
-        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle) and not getattr(self, "album_focus_detail", False))', code)
+        self.assertIn('detail_subtitle = released[:4] if released else ""', code)
+        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle) and not (getattr(self, "album_focus_detail", False)', code)
         self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
         self.assertIn('.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }', code)
         self.assertIn('.theme-roon .detail-close, .theme-roon .detail-close-glyph { border-color: #9868F9; }', code)

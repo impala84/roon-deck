@@ -347,10 +347,10 @@ for key, pictures in display.browser_pictures.items():
     for picture in pictures: picture.set_filename(str(fixture_art(key, key.upper())))
 capture("artist-profile")
 if screen_height > screen_width:
-    assert display.browser_artist_panel.get_orientation() == Gtk.Orientation.VERTICAL
+    assert display.browser_artist_panel.get_orientation() == Gtk.Orientation.HORIZONTAL
     portrait_art = display.browser_artist_panel.get_first_child()
-    assert portrait_art.get_width() <= screen_width * .8, portrait_art.get_width()
-    assert abs(portrait_art.get_height() - round(portrait_art.get_width() * 9 / 16)) <= 2, (portrait_art.get_width(), portrait_art.get_height())
+    assert portrait_art.get_width() <= screen_width * (.4 if screen_width >= 1000 else .36), portrait_art.get_width()
+    assert portrait_art.get_height() == portrait_art.get_width()
     artist_bounds = display.browser_artist_scroll.compute_bounds(page)[1]
     albums_bounds = display.browser_scroll.compute_bounds(page)[1]
     assert albums_bounds.get_y() >= artist_bounds.get_y() + artist_bounds.get_height()
@@ -548,7 +548,10 @@ if screen_width == 1280 and screen_height == 720:
     assert not display.detail_artist_card.get_visible()
     assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
     assert display.detail_album_artwork.get_width() == 620, display.detail_album_artwork.get_width()
-    assert not display.detail_subtitle.get_visible()
+    assert display.detail_subtitle.get_visible()
+    assert display.detail_subtitle.get_text() == "2006"
+    assert not display.detail_source.get_visible()
+    assert not display.detail_facts.get_visible()
     art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
     copy_bounds = display.detail_album_content.compute_bounds(display.detail_takeover)[1]
     assert art_bounds.get_x() == 20, art_bounds.get_x()

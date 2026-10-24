@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.17 Alpine — 24 October 2026
+
+- Restores the established artist layout on both 10-inch orientations and limits the wide faded hero treatment to the two seven-inch landscape profiles.
+- Widens the Touch Display 2 seven-inch artist column, returns space to album titles and reduces its album thumbnails so names are no longer needlessly truncated.
+- Reuses artist summaries already returned with a page and retries transient empty artist-information responses before showing a temporary-unavailable message.
+- Matches the compact Touch Display 2 Album & Artist action to the original display: bright purple, black text and fully rounded, with larger write-up and button text.
+- Shows only the album year beneath the artist on that compact sheet and removes the source label and low-value technical metadata.
+- Makes Fixed Volume smaller, lighter, darker, more widely tracked and slightly lower beneath the transport controls.
+
 ## 1.1.7-beta.16 Alpine — 24 October 2026
 
 - Starts Daily Mix playback at the tapped track while retaining the remainder of the mix as Roon's queue; Queue still adds only the selected track.
