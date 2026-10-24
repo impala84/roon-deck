@@ -208,7 +208,7 @@ test('search album wrappers open the tracks directly and Back skips the wrapper 
     },
     load(options, done) {
       const stack = paths.get(options.multi_session_key), title = stack.at(-1);
-      const items = title === 'Search' ? [{title:'Albums',item_key:'albums'}] : title === 'Albums' ? [{title:'Example',item_key:'album-hit',image_key:'cover'}] : title === 'Preview' ? [{title:'Example',item_key:'album-details',image_key:'cover'}] : [{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',item_key:'song'}];
+      const items = title === 'Search' ? [{title:'Albums',item_key:'albums'}] : title === 'Albums' ? [{title:'Example',item_key:'album-hit',image_key:'cover'}] : title === 'Preview' ? [{title:'Example (Album)',item_key:'album-details',image_key:'cover'}] : [{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',item_key:'song'}];
       done(false, {list:{title,level:stack.length-1,count:items.length},items});
     }
   };
@@ -218,6 +218,19 @@ test('search album wrappers open the tracks directly and Back skips the wrapper 
   assert.equal(album.title, 'Tracks'); assert.equal(album.skipped_album_preview, true); assert.equal(played, false);
   assert.equal((await manager.run('wrapper', 'back')).title, 'Albums');
   assert.equal((await manager.run('wrapper', 'back')).items[0].title, 'ALBUMS');
+});
+
+test('a real one-track album is not mistaken for a search wrapper', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) { calls.push(options.item_key); done(false, {action:'list',list:{title:'Album',level:3}}); },
+    load(_options, done) { done(false, {list:{title:'Album',level:3,count:2},items:[{title:'Play Album',hint:'action',item_key:'play'},{title:'Only Song',item_key:'song'}]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('pihome-single', {hierarchy:'search',title:'Albums',level:2,items:[{title:'Single',item_key:'album'}]});
+  const result = await manager.run('single', 'open', {item_key:'album'});
+  assert.deepEqual(calls, ['album']);
+  assert.equal(result.items.find(item => item.title === 'Only Song').item_key, 'song');
 });
 
 function fakeService() {

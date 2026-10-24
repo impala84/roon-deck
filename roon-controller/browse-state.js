@@ -195,10 +195,12 @@ class BrowseManager {
     }
     let next = await this.follow(service, session, hierarchy, result, opened?.image_key || (opened?.action ? state?.fallback_image_key : null) || result.list?.image_key || null);
     // Search can return a one-album wrapper before the actual track list.
-    // Follow only an exact, non-action album match; never auto-run Play Album.
+    // Roon does not consistently preserve the result title on that wrapper,
+    // so identify it by structure: one ordinary child and no actions. Never
+    // auto-run Play Album or mistake a real track list for the wrapper.
     if (command === 'open' && hierarchy === 'search' && /^albums$/i.test(state?.title || '') && opened && !opened.action && !next.error && next.items?.length === 1) {
       const child = next.items[0];
-      if (!child.action && child.item_key && child.title === opened.title) {
+      if (!child.action && child.hint !== 'header' && child.item_key && !next.items.some(item => item.action)) {
         const tracks = await request(service, 'browse', {...options, item_key: child.item_key});
         next = await this.follow(service, session, hierarchy, tracks, child.image_key);
         next = this.save(session, {...next, skipped_album_preview: true});

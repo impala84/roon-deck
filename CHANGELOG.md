@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.24 Alpine — 24 October 2026
+
+- Opens albums selected from an artist profile directly at their tracks instead of stopping at Roon's redundant one-album wrapper page.
+- Detects the wrapper by its non-action structure rather than unreliable title matching, while leaving genuine album track lists and playback actions untouched.
+
 ## 1.1.7-beta.23 Alpine — 24 October 2026
 
 - Keeps the validated fixed 16:9 artist hero, equal columns, action placement and complete summary layout while shifting only the pixels inside the hero crop upward.
