@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.7-beta.25 Alpine — 24 October 2026
+
+- Fixes intermittent empty Browse Artist Albums results by matching equivalent artist credits such as “&” and “and”, while continuing to use Roon catalogue search rather than limiting results to the local library.
+- Opens an artist album with the fresh catalogue-session key, preventing stale selections from producing `InvalidItemKey`.
+- Expands the seven-inch artist profile viewport, removes its unnecessary inner scrollbar and hides repeated Wikipedia/source labels throughout artist and album detail views.
+- Keeps the artist hero’s top-weighted crop stable when higher-resolution artwork replaces the initial thumbnail.
+- Raises the subdued Fixed Volume label to a legible middle-ground size without restoring its former prominence.
+- Introduces the first CSS cleanup foundation, consolidating redundant overrides and adding a cascade-debt guard for future changes.
+- Renames the native display implementation to RoonDeck while retaining a compatibility launcher for existing installations.
+
 ## 1.1.7-beta.24 Alpine — 24 October 2026
 
 - Opens albums selected from an artist profile directly at their tracks instead of stopping at Roon's redundant one-album wrapper page.
