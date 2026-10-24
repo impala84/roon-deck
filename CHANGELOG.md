@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.40 Alpine — 24 October 2026
+
+- Uses Roon's normal global Albums search as the authoritative connected-service catalogue, opens its full results, filters them to the exact artist and merges them after owned albums.
+- Keeps the direct TIDAL artist route as a supplemental source rather than silently relying on it as the only way to discover non-library releases.
+- Adds coverage proving a globally searched Van Morrison album absent from My Catalog is retained while a similarly named tribute by another artist is rejected.
+- Fails closed when exact artist resolution fails and validates every merged album's artist credit, retaining genuine collaborations while preventing unrelated library search hits from appearing as the selected artist's releases.
+
 ## 1.1.7-beta.39 Alpine — 24 October 2026
 
 - Keeps merged My Catalog and TIDAL artist albums in the visible artist-album list on seven-inch landscape displays instead of misclassifying their route map as a hidden two-column search page.

@@ -81,7 +81,7 @@ test('artist links open the exact global Search artist and retain its core-owned
   assert.ok(calls.some(call => call.hierarchy === 'browse'), 'the connected TIDAL catalogue is queried separately');
   await manager.run('links', 'artist', {name:'Example Artist'});
   const artistSessions = [...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-'));
-  assert.equal(artistSessions.length, 4, 'only the current My Catalog, TIDAL, result and merged hierarchies remain');
+  assert.equal(artistSessions.length, 6, 'only the current artist, global album search, TIDAL and merged hierarchies remain');
   assert.ok(artistSessions.every(key => /-2(?:-|$)/.test(key)), 'the previous artist hierarchies are discarded');
 });
 
@@ -106,17 +106,27 @@ test('artist links never replace a missing global result with a library-only cat
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   const result = await manager.run('fallback', 'artist', {name:'Known Artist'});
-  assert.equal(result.artist_profile, undefined);
+  assert.deepEqual(result.artist_profile, {name:'Known Artist',image_key:null});
+  assert.deepEqual(result.items, [], 'raw search hits must never masquerade as the selected artist catalogue');
   assert.equal(hierarchies[0], 'search');
   assert.equal(hierarchies.includes('browse'), true, 'TIDAL is queried explicitly rather than falling back to Library Artists');
 });
 
 test('artist links merge My Catalog before an explicit TIDAL catalogue and remove duplicates', async () => {
   const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
-  manager.search = async (_service, _zone, session, _name, source) => {
+  manager.search = async (_service, _zone, session, _name, source, category) => {
     if (source === 'tidal') return manager.save(session, {
       hierarchy:'browse', level:2, items:[{title:'Artists',item_key:'tidal-artists'}], has_more:false
     });
+    if (category === 'albums') {
+      manager.save('global-albums', {hierarchy:'search',level:1,title:'Albums',has_more:false,
+        items:[{title:'Astral Weeks',subtitle:'Van Morrison',item_key:'global-astral'},
+          {title:'Veedon Fleece',subtitle:'Van Morrison',item_key:'global-veedon'},
+          {title:'Van Morrison Tribute',subtitle:'Someone Else',item_key:'wrong-artist'}]});
+      return manager.save(session, {hierarchy:'search',level:0,has_more:false,
+        items:[{title:'ALBUMS',hint:'header'},{title:'View all albums',item_key:'all-albums'}],
+        search_routes:{'all-albums':{session:'global-albums'}}});
+    }
     return manager.save(session, {
       hierarchy:'search', level:0,
       items:[{title:'ARTISTS',hint:'header'},{title:'Van Morrison',item_key:'library-preview'}],
@@ -128,7 +138,8 @@ test('artist links merge My Catalog before an explicit TIDAL catalogue and remov
       hierarchy:'search', level:3, artist_profile:{name:'Van Morrison',image_key:'library-portrait'}, has_more:false,
       items:[{title:'Play Artist Radio',action:true,item_key:'library-play'},
         {title:'Astral Weeks',subtitle:'Van Morrison',item_key:'library-astral'},
-        {title:'Moondance',subtitle:'Van Morrison',item_key:'library-moondance'}]
+        {title:'Moondance',subtitle:'Van Morrison',item_key:'library-moondance'},
+        {title:"What's the Story Morning Glory",subtitle:'Oasis',item_key:'wrong-library-album'}]
     });
     if (data.item_key === 'tidal-artists') return manager.save(session, {
       hierarchy:'browse', level:3, items:[{title:'Van Morrison',item_key:'tidal-van'}], has_more:false
@@ -141,11 +152,14 @@ test('artist links merge My Catalog before an explicit TIDAL catalogue and remov
     });
   };
   const result = await manager.run('merged', 'artist', {name:'Van Morrison'});
-  assert.deepEqual(result.items.map(item => item.title), ['Play Artist Radio', 'Astral Weeks', 'Moondance', 'Latest Record']);
+  assert.deepEqual(result.items.map(item => item.title), ['Play Artist Radio', 'Astral Weeks', 'Moondance', 'Veedon Fleece', 'Latest Record']);
   assert.deepEqual(result.artist_profile, {name:'Van Morrison',image_key:'library-portrait'});
-  assert.equal(result.count, 3);
+  assert.equal(result.count, 4);
   assert.equal(Object.values(result.search_routes).some(route => route.session === 'library-artist' && route.key === 'library-astral'), true);
   assert.equal(Object.values(result.search_routes).some(route => /-tidal$/.test(route.session) && route.key === 'tidal-latest'), true);
+  assert.equal(Object.values(result.search_routes).some(route => route.session === 'global-albums' && route.key === 'global-veedon'), true);
+  assert.equal(result.items.some(item => item.title === 'Van Morrison Tribute'), false);
+  assert.equal(result.items.some(item => item.title === "What's the Story Morning Glory"), false);
 });
 
 test('artist catalogue follows the full Albums action instead of keeping four featured releases', async () => {

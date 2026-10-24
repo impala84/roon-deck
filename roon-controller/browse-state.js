@@ -612,11 +612,29 @@ class BrowseManager {
     return {session, state:await this.completeArtistCatalogue(service, session, opened)};
   }
 
+  async searchArtistAlbums(service, zone, session, name) {
+    const results = await this.search(service, zone, session, name, 'all', 'albums');
+    const all = results.items?.find(item => /^view all albums$/i.test(item.title.trim()));
+    const route = all?.item_key ? results.search_routes?.[all.item_key] : null;
+    const targetSession = route?.session || session;
+    let catalogue = route && !route.key ? this.sessions.get(targetSession) : results;
+    if (route?.key) catalogue = await this._run(targetSession, 'open', {item_key:route.key});
+    if (!catalogue || catalogue.error) return null;
+    catalogue = await this.completeArtistPage(service, targetSession, catalogue);
+    const sameArtist = credit => artistCreditMatches(credit, name);
+    const items = (catalogue.items || []).filter(item =>
+      !item.action && item.hint !== 'header' && item.item_key && sameArtist(item.subtitle));
+    if (!items.length) return null;
+    return {session:targetSession, state:this.save(targetSession, {...catalogue, items, has_more:false})};
+  }
+
   mergeArtistCatalogues(session, name, catalogues) {
     const routes = {}, albums = [], seen = new Set();
     let action = null, profile = null, routeIndex = 0;
     for (const catalogue of catalogues.filter(Boolean)) {
       profile ||= catalogue.state.artist_profile;
+      const profileName = catalogue.state.artist_profile?.name;
+      const trustedProfile = profileName && artistCreditMatches(profileName, name) && artistCreditMatches(name, profileName);
       for (const item of catalogue.state.items || []) {
         if (!item.item_key || item.hint === 'header') continue;
         const routedKey = `artist-route-${routeIndex++}`;
@@ -625,6 +643,9 @@ class BrowseManager {
           if (!action && /^play artist(?: radio)?$/i.test(item.title.trim())) action = {...item, item_key:routedKey};
           continue;
         }
+        const creditedArtist = item.subtitle?.trim();
+        const matchingCredit = creditedArtist && artistCreditMatches(creditedArtist, name);
+        if (!matchingCredit && !(trustedProfile && !creditedArtist)) continue;
         const identity = item.title.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
         if (!identity || seen.has(identity)) continue;
         seen.add(identity); albums.push({...item, item_key:routedKey});
@@ -667,6 +688,15 @@ class BrowseManager {
       const opened = await this._run(target, 'open', {item_key:route?.key || artist.item_key});
       library = {session:target, state:await this.completeArtistCatalogue(service, target, opened)};
     }
+    let globalAlbums = null;
+    const albumSearchSession = `${prefix}${request}-albums`;
+    this.sections.set(albumSearchSession, 'search');
+    try {
+      globalAlbums = await this.searchArtistAlbums(service, zone, albumSearchSession, name);
+    } catch (_) {
+      // The artist overview remains usable if global connected-service search
+      // is temporarily unavailable.
+    }
     let tidal = null;
     const tidalSession = `${prefix}${request}-tidal`;
     this.sections.set(tidalSession, 'search');
@@ -677,9 +707,13 @@ class BrowseManager {
       // A disconnected or temporarily unavailable TIDAL service must not hide
       // albums already resolved from My Catalog.
     }
-    if (!library && !tidal) return results;
+    if (!library && !globalAlbums && !tidal) return this.save(mergedSession, {
+      ...results, title:name, artist_profile:{name,image_key:artist?.image_key || null},
+      items:[], count:0, offset:0, has_more:false, search_routes:{}, layout:'list',
+      show_labels:true, message:'No albums were returned for this artist.', error:false
+    });
     this.activeSessions.set(baseSession, mergedSession);
-    return this.mergeArtistCatalogues(mergedSession, name, [library, tidal]);
+    return this.mergeArtistCatalogues(mergedSession, name, [library, globalAlbums, tidal]);
   }
 
   async openLibraryArtist(baseSession, name, session) {
