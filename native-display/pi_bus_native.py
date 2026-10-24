@@ -854,6 +854,8 @@ class Display(Gtk.Application):
         self.state = None
         self.settings_open = False
         self.last_mode = "bus"
+        self.pending_mode = None
+        self.pending_mode_started_at = 0.0
         self.settings_data = {}
         self.image_key = None
         self.image_misses = 0
@@ -2057,6 +2059,17 @@ class Display(Gtk.Application):
         elif target == "/home": desired = "home"; self.set_screen_power(True); self.last_mode = "home"
         elif target == "/" or target.endswith(":8765/"): desired = "bus"; self.set_screen_power(True); self.last_mode = "bus"
         else: desired = "roon"; self.set_screen_power(True); self.last_mode = "roon"
+        if self.pending_mode:
+            if desired == self.pending_mode:
+                self.pending_mode = None; self.pending_mode_started_at = 0.0
+            elif time.monotonic() - self.pending_mode_started_at < 3:
+                # A bottom-nav tap updates locally before the asynchronous
+                # controller request is reflected by the next poll. Keep the
+                # chosen page visible instead of flashing back to the stale
+                # backend page for one frame.
+                desired = self.pending_mode
+            else:
+                self.pending_mode = None; self.pending_mode_started_at = 0.0
         if self.stack.get_visible_child_name() != desired:
             if self.stack.get_visible_child_name() == "boot" and time.monotonic() - self.boot_started_at < 2.5:
                 self.pending_boot_mode = desired
@@ -3800,7 +3813,7 @@ class Display(Gtk.Application):
             threading.Thread(target=post_json, args=(ROON + "/api/queue/play", {"queue_item_id": queue_item_id}), daemon=True).start()
 
     def set_mode(self, mode):
-        started = time.monotonic(); self.settings_open = False; self.last_mode = mode; self.stack.set_visible_child_name(mode); print(f"RoonDeck switched to {mode} in {(time.monotonic() - started) * 1000:.1f}ms", flush=True); threading.Thread(target=post_json, args=(BUS + "/api/admin/display-mode", {"mode": mode}), daemon=True).start()
+        started = time.monotonic(); self.settings_open = False; self.last_mode = mode; self.pending_mode = mode; self.pending_mode_started_at = started; self.stack.set_visible_child_name(mode); print(f"RoonDeck switched to {mode} in {(time.monotonic() - started) * 1000:.1f}ms", flush=True); threading.Thread(target=post_json, args=(BUS + "/api/admin/display-mode", {"mode": mode}), daemon=True).start()
 
     def note_missing_artwork(self):
         self.image_misses += 1

@@ -32,6 +32,12 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_bottom_navigation_holds_the_selected_page_until_backend_confirmation(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('self.pending_mode = mode; self.pending_mode_started_at = started', code)
+        self.assertIn('time.monotonic() - self.pending_mode_started_at < 3', code)
+        self.assertIn('desired = self.pending_mode', code)
+
     def test_home_scene_feedback_centres_labels_and_pulses_the_whole_tile(self):
         code = SOURCE.read_text()
         self.assertIn('name.set_justify(Gtk.Justification.LEFT if portrait else Gtk.Justification.CENTER)', code)
