@@ -38,31 +38,56 @@ test('album detail exposes one cover and honest optional metadata without alteri
   assert.equal(menu.album_profile, undefined);
 });
 
-test('artist links use a fresh Library Artists key and never enter Search', async () => {
+test('artist links use a fresh catalogue search and return albums outside the library', async () => {
   const calls = [];
   const service = {
     browse(options, done) {
       calls.push({...options});
-      assert.equal(options.hierarchy, 'browse');
-      if (options.pop_all) return done(false, {action:'list',list:{title:'Browse',level:0,count:1}});
-      if (options.item_key === 'library') return done(false, {action:'list',list:{title:'Library',level:1,count:1}});
-      if (options.item_key === 'artists') return done(false, {action:'list',list:{title:'Artists',level:2,count:250}});
-      assert.equal(options.item_key, 'fresh-artist');
+      assert.equal(options.hierarchy, 'search');
+      if (options.pop_all) { assert.equal(options.input, 'Example Artist'); return done(false, {action:'list',list:{title:'Search',level:0,count:1}}); }
+      if (options.item_key === 'artists-category') return done(false, {action:'list',list:{title:'Artists',level:1,count:1}});
+      assert.equal(options.item_key, 'catalogue-artist');
       done(false, {action:'list', list:{title:'Example Artist', level:3,count:2}});
     },
     load(options, done) {
-      if (options.level === 0) return done(false, {items:[{title:'Library',item_key:'library'}]});
-      if (options.level === 1) return done(false, {items:[{title:'Artists',item_key:'artists'}]});
-      if (options.level === 2) return done(false, {list:{title:'Artists',level:2,count:250},items:options.offset === 200 ? [{title:'Example Artist',item_key:'fresh-artist',image_key:'portrait'}] : []});
+      if (options.level === 0) return done(false, {list:{title:'Search',level:0,count:1},items:[{title:'Artists',item_key:'artists-category'}]});
+      if (options.level === 1) return done(false, {list:{title:'Artists',level:1,count:1},items:[{title:'Example Artist',item_key:'catalogue-artist',image_key:'portrait'}]});
       done(false, {list:{title:'Example Artist', level:3,count:2}, items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',subtitle:'Example Artist',item_key:'album'}]});
     },
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   const result = await manager.run('links', 'artist', {name:'Example Artist'});
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
-  assert.ok(calls.every(call => call.hierarchy === 'browse'));
+  assert.equal(result.items.find(item => item.title === 'Album').item_key, 'album');
+  assert.ok(calls.every(call => call.hierarchy === 'search'));
   await manager.run('links', 'artist', {name:'Example Artist'});
   assert.equal([...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-')).length, 1, 'the previous artist hierarchy is discarded');
+});
+
+test('artist links fall back to Library Artists only when catalogue search cannot resolve them', async () => {
+  const hierarchies = [];
+  const service = {
+    browse(options, done) {
+      hierarchies.push(options.hierarchy);
+      if (options.hierarchy === 'search') return done(false, {action:'list',list:{title:'Search',level:0,count:0}});
+      if (options.pop_all) return done(false, {action:'list',list:{title:'Browse',level:0,count:1}});
+      if (options.item_key === 'library') return done(false, {action:'list',list:{title:'Library',level:1,count:1}});
+      if (options.item_key === 'artists') return done(false, {action:'list',list:{title:'Artists',level:2,count:1}});
+      return done(false, {action:'list',list:{title:'Known Artist',level:3,count:2}});
+    },
+    load(options, done) {
+      if (options.hierarchy === 'search') return done(false, {list:{title:'Search',level:0,count:0},items:[]});
+      if (options.level === 0) return done(false, {items:[{title:'Library',item_key:'library'}]});
+      if (options.level === 1) return done(false, {items:[{title:'Artists',item_key:'artists'}]});
+      if (options.level === 2) return done(false, {list:{title:'Artists',level:2,count:1},items:[{title:'Known Artist',item_key:'known',image_key:'portrait'}]});
+      return done(false, {list:{title:'Known Artist',level:3,count:2},items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',item_key:'album'}]});
+    }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  const result = await manager.run('fallback', 'artist', {name:'Known Artist'});
+  assert.deepEqual(result.artist_profile, {name:'Known Artist',image_key:'portrait'});
+  assert.equal(hierarchies[0], 'search');
+  assert.ok(hierarchies.includes('browse'));
 });
 
 test('artist album clicks resolve a fresh artist session before opening the exact album', async () => {

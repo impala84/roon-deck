@@ -536,15 +536,46 @@ class BrowseManager {
   async openArtist(baseSession, name) {
     const service = this.service(), zone = this.zone();
     if (!service || !zone || !name) return {status:'unavailable', items:[], can_back:false};
-    // Resolve the artist from Library > Artists, never from Search. Some Core
-    // versions let a Search preview retain the requested artist heading while
-    // its next route points at the global Albums collection. Browse keys and
-    // stacks are session-scoped, so start a clean library hierarchy every time.
     const prefix = `${baseSession}-artist-link-`;
     for (const collection of [this.sessions, this.sections, this.searchSources]) {
       for (const key of collection.keys()) if (key.startsWith(prefix)) collection.delete(key);
     }
-    const session = `${prefix}${++this.artistRequestId}`;
+    const requestId = ++this.artistRequestId;
+    const searchSession = `${prefix}${requestId}-search`;
+    this.activeSessions.set(baseSession, searchSession);
+    try {
+      const wanted = name.trim().toLocaleLowerCase();
+      this.sections.set(searchSession, 'artists');
+      this.searchSources.set(searchSession, 'all');
+      const rootResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:searchSession, zone_or_output_id:zone.zone_id, pop_all:true, input:name});
+      const root = await this.follow(service, searchSession, 'search', rootResult);
+      const category = root.items.find(item => item.item_key && /^artists$/i.test(item.title.trim()));
+      if (!category?.item_key) throw new Error('Roon search did not return an Artists category');
+      const categoryResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:searchSession, zone_or_output_id:zone.zone_id, item_key:category.item_key});
+      let artists = await this.follow(service, searchSession, 'search', categoryResult);
+      let artist = artists.items.find(item => !item.action && item.title.trim().toLocaleLowerCase() === wanted);
+      for (let offset = 0; !artist && offset < Math.min(artists.count, 2000); offset += 200) {
+        const loaded = await request(service, 'load', {hierarchy:'search', multi_session_key:searchSession, level:artists.level, offset, count:200});
+        const match = (loaded.items || []).find(item => String(item.title || '').trim().toLocaleLowerCase() === wanted);
+        if (match) artist = publicItem(match);
+      }
+      if (!artist?.item_key) throw new Error('Roon search did not return an exact artist match');
+      const openedResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:searchSession, zone_or_output_id:zone.zone_id, item_key:artist.item_key});
+      if (openedResult?.action !== 'list' || openedResult.is_error) throw new Error('Roon search could not open the artist');
+      const profile = {name, image_key:artist.image_key || null};
+      this.artistContexts.set(searchSession + ':' + openedResult.list.title, profile);
+      while (this.artistContexts.size > 64) this.artistContexts.delete(this.artistContexts.keys().next().value);
+      const opened = await this.follow(service, searchSession, 'search', openedResult, artist.image_key);
+      return this.save(searchSession, {...opened, section:'artists', artist_profile:profile});
+    } catch (_) {
+      // Older Roon cores can omit catalogue search categories. Retain a
+      // library fallback, but only after the discovery-first route fails.
+      return this.openLibraryArtist(baseSession, name, `${prefix}${requestId}-library`);
+    }
+  }
+
+  async openLibraryArtist(baseSession, name, session) {
+    const service = this.service(), zone = this.zone();
     this.activeSessions.set(baseSession, session);
     let artists = await this.openSection(service, zone, session, 'artists');
     if (artists.error) return artists;

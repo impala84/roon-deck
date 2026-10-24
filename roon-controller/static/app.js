@@ -271,7 +271,9 @@ function browserRow(item) {
   if (item.hint === 'header') {
     const heading = document.createElement('h3'); heading.className = 'browser-section'; heading.textContent = item.title; return heading;
   }
-  const button = document.createElement('button'); button.className = `browser-row${item.action ? ' action' : ''}`; button.disabled = !item.item_key;
+  const button = document.createElement('button');
+  if (item.action && /^play playlist$/i.test(item.title.trim())) { button.className = 'artist-play primary-play browser-primary-action'; button.append(PiHomeIcons.element('play'), document.createTextNode(' Play Playlist')); button.disabled = !item.item_key; button.onclick = () => browseCommand('open', {item_key:item.item_key}); return button; }
+  button.className = `browser-row${item.action ? ' action' : ''}`; button.disabled = !item.item_key;
   const artwork = document.createElement('span'); artwork.className = `browser-art${item.action ? ' action-icon' : ''}`;
   if (item.action) artwork.append(browserActionIcon(item.title));
   else {

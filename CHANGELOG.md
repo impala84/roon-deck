@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.18 Alpine — 24 October 2026
+
+- Makes Browse Artist Albums discovery-first: it resolves an exact artist through Roon catalogue search and lists their available albums even when the artist is absent from the local library, with a library fallback for older cores.
+- Presents Play Playlist as the same prominent rounded primary Play action used by albums, artists and mixes.
+
 ## 1.1.7-beta.17 Alpine — 24 October 2026
 
 - Adds Single colour and Multi-colour modes to Home Assistant tile settings, with a shared preset/custom colour that preserves saved per-device-type colours.

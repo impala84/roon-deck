@@ -3431,6 +3431,9 @@ class Display(Gtk.Application):
                 if grouped_results and not item.get("title", "").startswith("View all "):
                     group_count += 1
                     if group_count > (3 if getattr(self, "responsive_portrait", False) and group_title == "ARTISTS" else 4): continue
+                if item.get("action") and item.get("title", "").strip().lower() == "play playlist":
+                    play_playlist = self.labelled_icon_button("play", "Play Playlist", lambda *_args, key=item.get("item_key"): self.open_browser_item(None, key), "artist-play primary-play browser-primary-action")
+                    play_playlist.set_sensitive(bool(item.get("item_key"))); play_playlist.set_halign(Gtk.Align.START); target.append(play_playlist); continue
                 row = Gtk.Box(spacing=14); row.set_hexpand(True)
                 key = item.get("image_key")
                 if item.get("action"):

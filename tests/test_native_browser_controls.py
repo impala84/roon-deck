@@ -422,6 +422,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.58 if tile_kind == "playlists" else .65', code)
         self.assertIn('caption_height = 0 if tile_kind in {"genres", "playlists"}', code)
 
+    def test_play_playlist_uses_the_primary_play_pill(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        web = (SOURCE.parents[1] / "roon-controller/static/app.js").read_text(encoding="utf-8")
+        self.assertIn('"Play Playlist", lambda *_args', code)
+        self.assertIn('"artist-play primary-play browser-primary-action"', code)
+        self.assertIn("'artist-play primary-play browser-primary-action'", web)
+
     def test_search_uses_the_same_sidebar_alignment_class_as_browse(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('search_nav.add_css_class("browser-sidebar"); search_nav.add_css_class("library-sidebar")', code)
