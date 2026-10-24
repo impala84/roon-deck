@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.49 Alpine — 25 October 2026
+
+- Retains the beta.48 semantic typography and control-scaling cleanup while removing the extra Bus Times header offset that could extend the 1280×720 native layout by eight pixels.
+
 ## 1.1.7-beta.48 Alpine — 25 October 2026
 
 - Consolidates Bus Times, Home, Settings and Album & Artist page headings into one semantic type hierarchy, with profile-specific sizes applied consistently across displays.

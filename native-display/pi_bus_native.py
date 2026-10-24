@@ -831,7 +831,6 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .interface-larger .detail-action { min-height: 70px; padding-top: 10px; padding-bottom: 10px; }
 .touch-landscape.interface-smaller .detail-action { min-height: 46px; }
 .touch-landscape.interface-larger .detail-action { min-height: 65px; }
-.touch-landscape .bus-page .page-header { margin-top: 8px; }
 /* Shared semantic heading tier. Display profiles change geometry, not rank. */
 .page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }
 .stop-code { font-size: 18px; font-weight: 550; }
