@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.38 Alpine — 24 October 2026
+
+- Lets the seven-inch native client wait for the full merged My Catalog and TIDAL artist catalogue on slower Raspberry Pi hardware instead of abandoning the request after 35 seconds.
+- Keeps ordinary browsing, album opening and transport-related requests on their existing short deadlines so the interface remains responsive when a service is unavailable.
+
 ## 1.1.7-beta.37 Alpine — 24 October 2026
 
 - Matches artist identities across punctuation variants such as `Crosby, Stills & Nash` and `Crosby, Stills and Nash`, preventing empty merged album pages.

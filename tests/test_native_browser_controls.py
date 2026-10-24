@@ -32,6 +32,13 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_artist_catalogue_request_waits_for_slow_pi_and_other_navigation_stays_bounded(self):
+        timeout = native_method("browser_request_timeout")
+        self.assertEqual(timeout("artist"), 150.0)
+        self.assertEqual(timeout("search"), 35.0)
+        self.assertEqual(timeout("open"), 15.0)
+        self.assertEqual(timeout("back"), 4.0)
+
     def test_artist_hero_pixel_fade_is_opaque_above_the_fade_and_transparent_at_the_edge(self):
         fade = native_method("fade_rgba_pixels")
         source = bytes([20, 40, 60] * 5)

@@ -844,6 +844,14 @@ def post_json(url: str, data: dict, timeout: float = 1.2):
         return None
 
 
+def browser_request_timeout(action: str) -> float:
+    """Allow catalogue aggregation to finish on slower seven-inch Pis."""
+    if action == "artist": return 150.0
+    if action in {"sort", "jump", "section", "search", "surprise"}: return 35.0
+    if action in {"surprise_play", "open"}: return 15.0
+    return 4.0
+
+
 def get_bytes(url: str, timeout: float = 1.2):
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
@@ -3042,7 +3050,7 @@ class Display(Gtk.Application):
 
     def _request_browser(self, action, payload):
         if action == "current": result = get_json(f"{ROON}/api/browse?session=touch", timeout=3.0)
-        else: result = post_json(ROON + "/api/browse", {"session": "touch", "action": action, **payload}, timeout=35.0 if action in {"sort", "jump", "section", "search", "surprise", "artist"} else 15.0 if action in {"surprise_play", "open"} else 4.0)
+        else: result = post_json(ROON + "/api/browse", {"session": "touch", "action": action, **payload}, timeout=browser_request_timeout(action))
         GLib.idle_add(self.apply_browser_response, result or {"status": "ready", "title": "Browse", "items": [], "message": "Roon Browse did not respond.", "error": True})
 
     def apply_browser_response(self, data):
