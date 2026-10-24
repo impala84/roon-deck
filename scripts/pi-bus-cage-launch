@@ -25,4 +25,4 @@ if [[ -x /usr/bin/wlr-randr && -f ${profile_file} && -f ${transform_file} ]] && 
   done
 fi
 
-exec /opt/pi-bus-time-display/native-display/pi_bus_native.py
+exec /opt/pi-bus-time-display/native-display/roondeck_native.py

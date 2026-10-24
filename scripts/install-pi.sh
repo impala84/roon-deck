@@ -63,6 +63,7 @@ install -m 0644 -o "${desktop_user}" -g "${desktop_user}" /opt/pi-home/native-di
 install -d /usr/share/icons/hicolor/scalable/apps
 install -m 0644 /opt/pi-home/native-display/assets/brand/favicon-dark.svg /usr/share/icons/hicolor/scalable/apps/roondeck.svg
 rm -f "${desktop_home}/.config/autostart/pi-bus-time-display.desktop"
+chmod 0755 /opt/pi-home/native-display/roondeck_native.py
 chmod 0755 /opt/pi-home/native-display/pi_bus_native.py
 chmod 0755 /opt/pi-home/scripts/pi-bus-cage-launch
 usermod -a -G morningbus "${desktop_user}"

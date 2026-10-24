@@ -31,7 +31,7 @@ chown -R morningbus:morningbus /etc/pi-home /var/lib/pi-home
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install --no-build-isolation --no-deps .
 npm --prefix roon-controller ci --omit=dev --no-audit --no-fund
-chmod 755 native-display/pi_bus_native.py scripts/pi-bus-cage-launch
+chmod 755 native-display/roondeck_native.py native-display/pi_bus_native.py scripts/pi-bus-cage-launch
 chmod 755 appliance/alpine/display-session
 cp appliance/alpine/reset-password.py /usr/local/bin/pi-home-reset-password
 chmod 755 /usr/local/bin/pi-home-reset-password

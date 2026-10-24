@@ -15,7 +15,7 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4
 
 class DisplayCaptureTests(unittest.TestCase):
     def test_native_capture_has_parent_paintable_and_cairo_fallbacks(self):
-        source = (Path(__file__).parents[1] / 'native-display' / 'pi_bus_native.py').read_text()
+        source = (Path(__file__).parents[1] / 'native-display' / 'roondeck_native.py').read_text()
         capture = source.split('    def capture_display(self, capture_id, retry=0):', 1)[1].split('    def apply_display_view_request', 1)[0]
         self.assertIn('for strategy in ("parent", "paintable")', capture)
         self.assertIn('Gtk.WidgetPaintable.new(target).snapshot', capture)
@@ -24,7 +24,7 @@ class DisplayCaptureTests(unittest.TestCase):
         self.assertIn('node.draw(context)', capture)
 
     def test_native_capture_waits_for_wake_and_retries_empty_frames(self):
-        source = (Path(__file__).parents[1] / 'native-display' / 'pi_bus_native.py').read_text()
+        source = (Path(__file__).parents[1] / 'native-display' / 'roondeck_native.py').read_text()
         poll = source.split('    def poll(self):', 1)[1].split('    def capture_display', 1)[0]
         self.assertLess(poll.index('GLib.idle_add(self.apply'), poll.index('GLib.timeout_add(350, self.capture_display'))
         capture = source.split('    def capture_display(self, capture_id, retry=0):', 1)[1].split('    def apply_display_view_request', 1)[0]
