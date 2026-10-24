@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.23 Alpine — 24 October 2026
+
+- Keeps the validated fixed 16:9 artist hero, equal columns, action placement and complete summary layout while shifting only the pixels inside the hero crop upward.
+- Pre-crops seven-inch artist artwork to a top-weighted 16:9 texture before display, avoiding the oversized child image that pushed the Play Artist button and biography off-screen in beta.22.
+
 ## 1.1.7-beta.22 Alpine — 24 October 2026
 
 - Replaces centred cover cropping on seven-inch artist heroes with a top-weighted focal crop, retaining only 20% of vertical overflow above the viewport so faces and eyes remain visible.

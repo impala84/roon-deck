@@ -895,6 +895,8 @@ class Display(Gtk.Application):
         self.queue_thumbnail_pending = set()
         self.queue_thumbnail_cache = {}
         self.queue_thumbnail_order = []
+        self.artist_hero_cache = {}
+        self.artist_hero_keys = set()
         self.preview_artwork_cache = {}
         self.queue_pictures = {}
         self.queue_artwork_keys = []
@@ -2841,7 +2843,7 @@ class Display(Gtk.Application):
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
-            picture.artist_crop_viewport = (artwork, hero_width, hero_height)
+            picture.artist_hero = True
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
             overlay_info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); overlay_info.add_css_class("artist-overlay-info"); overlay_info.set_halign(Gtk.Align.FILL); overlay_info.set_valign(Gtk.Align.END)
             if play_action:
@@ -2867,8 +2869,10 @@ class Display(Gtk.Application):
         key = profile.get("image_key")
         if key:
             self.browser_pictures.setdefault(key, []).append(picture); self.browser_artwork_keys.append(key)
-            cached = self.queue_thumbnail_cache.get(key)
-            if cached: self.set_artist_hero_artwork(picture, cached)
+            if seven_landscape: self.artist_hero_keys.add(key)
+            cached = self.artist_hero_cache.get(key) if seven_landscape else self.queue_thumbnail_cache.get(key)
+            cached = cached or self.queue_thumbnail_cache.get(key)
+            if cached: picture.set_paintable(cached)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER); details.set_hexpand(True)
         if seven_landscape:
@@ -3335,7 +3339,7 @@ class Display(Gtk.Application):
             if section == active_section: button.add_css_class("active")
             else: button.remove_css_class("active")
         message = data.get("message") or (data.get("error") if isinstance(data.get("error"), str) else "") or ""; self.browser_message.set_text(message); self.browser_message.set_visible(bool(message))
-        self.browser_pictures = {}; self.browser_artwork_keys = []; self.browser_cards = []
+        self.browser_pictures = {}; self.browser_artwork_keys = []; self.browser_cards = []; self.artist_hero_keys = set()
         while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
         artist_play = next((item for item in data.get("items", []) if item.get("action") and item.get("title", "").strip().lower() == "play artist"), None) if data.get("artist_profile") else None
         self.render_artist_profile(data.get("artist_profile"), artist_play)
@@ -3666,7 +3670,7 @@ class Display(Gtk.Application):
             # Grouped previews are bounded (four rows per group). Load all
             # their artwork rather than consulting the hidden single scroller.
             for key in self.browser_artwork_keys:
-                if key and key not in self.queue_thumbnail_cache and key not in self.queue_thumbnail_pending:
+                if key and (key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)) and key not in self.queue_thumbnail_pending:
                     self.queue_thumbnail_pending.add(key); self.queue_thumbnail_jobs.put(key)
             return False
         cards = getattr(self, "browser_cards", [])
@@ -3676,14 +3680,14 @@ class Display(Gtk.Application):
                 valid, bounds = card.compute_bounds(self.browser_list)
                 if valid and bounds.get_y() + bounds.get_height() >= adjustment.get_value() - 220 and bounds.get_y() <= adjustment.get_value() + adjustment.get_page_size() + 220: keys.append(item.get("image_key"))
             for key in keys:
-                if key and key not in self.queue_thumbnail_cache and key not in self.queue_thumbnail_pending:
+                if key and (key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)) and key not in self.queue_thumbnail_pending:
                     self.queue_thumbnail_pending.add(key); self.queue_thumbnail_jobs.put(key)
             return False
         row_height = 100 if self.window.has_css_class("high-resolution") else 68
         start = max(0, int(adjustment.get_value() / row_height) - 2)
         count = max(8, int(adjustment.get_page_size() / row_height) + 5)
         for key in self.browser_artwork_keys[start:start + count]:
-            if key and key not in self.queue_thumbnail_cache and key not in self.queue_thumbnail_pending:
+            if key and (key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)) and key not in self.queue_thumbnail_pending:
                 self.queue_thumbnail_pending.add(key); self.queue_thumbnail_jobs.put(key)
         return False
 
@@ -3695,7 +3699,8 @@ class Display(Gtk.Application):
             if image:
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
                 self.queue_artwork_light[key] = self.artwork_is_light(image)
-            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True)
+            artist_hero = self.decode_artist_hero_artwork(image) if key in self.artist_hero_keys else None
+            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True, artist_hero)
 
     def artwork_is_light(self, image):
         try:
@@ -3719,25 +3724,27 @@ class Display(Gtk.Application):
         try: return Gdk.Texture.new_from_bytes(GLib.Bytes.new(image))
         except GLib.Error: return None
 
-    def set_artist_hero_artwork(self, picture, texture):
-        """Cover a 16:9 artist hero while preserving more of its upper frame."""
-        picture.set_paintable(texture)
-        crop = getattr(picture, "artist_crop_viewport", None)
-        if not crop: return
-        viewport, viewport_width, viewport_height = crop
-        source_width, source_height = texture.get_width(), texture.get_height()
-        if source_width <= 0 or source_height <= 0: return
-        scale = max(viewport_width / source_width, viewport_height / source_height)
-        render_width, render_height = math.ceil(source_width * scale), math.ceil(source_height * scale)
-        picture.set_can_shrink(False); picture.set_content_fit(Gtk.ContentFit.FILL); picture.set_size_request(render_width, render_height)
-        def position_crop():
-            horizontal, vertical = viewport.get_hadjustment(), viewport.get_vadjustment()
-            horizontal.set_value(max(0, (horizontal.get_upper() - horizontal.get_page_size()) * .5))
-            # Faces are usually in the upper third. Retain the cover crop but
-            # consume only 20% of the vertical overflow above the viewport.
-            vertical.set_value(max(0, (vertical.get_upper() - vertical.get_page_size()) * .2))
-            return False
-        GLib.timeout_add(20, position_crop)
+    def decode_artist_hero_artwork(self, image):
+        """Return a top-weighted 16:9 crop without changing widget geometry."""
+        if not image: return None
+        try:
+            loader = GdkPixbuf.PixbufLoader.new(); loader.write(image); loader.close()
+            source = loader.get_pixbuf()
+            width, height = source.get_width(), source.get_height()
+            if width <= 0 or height <= 0: return None
+            target_ratio = 16 / 9
+            if width / height > target_ratio:
+                crop_height = height; crop_width = max(1, round(height * target_ratio))
+                crop_x = max(0, round((width - crop_width) / 2)); crop_y = 0
+            else:
+                crop_width = width; crop_height = max(1, round(width / target_ratio))
+                crop_x = 0
+                # Keep faces higher while preserving the exact 16:9 window.
+                crop_y = max(0, round((height - crop_height) * .2))
+            cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
+            scaled = cropped.scale_simple(960, 540, GdkPixbuf.InterpType.BILINEAR)
+            return Gdk.Texture.new_for_pixbuf(scaled)
+        except (GLib.Error, ValueError, TypeError): return None
 
     def load_preview_artwork(self, picture, key):
         if cached := self.preview_artwork_cache.get(key):
@@ -3753,7 +3760,7 @@ class Display(Gtk.Application):
             GLib.idle_add(apply, self.decode_artwork(get_bytes(url, timeout=5)))
         threading.Thread(target=load, daemon=True).start()
 
-    def apply_queue_thumbnail(self, key, image, decoded=False):
+    def apply_queue_thumbnail(self, key, image, decoded=False, artist_hero=None):
         self.queue_thumbnail_pending.discard(key)
         if not image:
             failures = getattr(self, "thumbnail_failures", {}); self.thumbnail_failures = failures; failures[key] = failures.get(key, 0) + 1
@@ -3762,19 +3769,19 @@ class Display(Gtk.Application):
         texture = image if decoded else self.decode_artwork(image)
         if texture is None: return False
         self.queue_thumbnail_cache[key] = texture
+        if artist_hero is not None: self.artist_hero_cache[key] = artist_hero
         getattr(self, "thumbnail_failures", {}).pop(key, None)
         if key in self.queue_thumbnail_order: self.queue_thumbnail_order.remove(key)
         self.queue_thumbnail_order.append(key)
         while len(self.queue_thumbnail_order) > 192:
-            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None)
+            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.artist_hero_cache.pop(old, None)
             getattr(self, "queue_artwork_light", {}).pop(old, None)
         for picture in self.queue_pictures.get(key, []): picture.set_paintable(texture)
         for badge in getattr(self, "queue_play_badges", {}).get(key, []):
             if getattr(self, "queue_artwork_light", {}).get(key, False): badge.add_css_class("light-art")
             else: badge.remove_css_class("light-art")
         for picture in self.browser_pictures.get(key, []):
-            if getattr(picture, "artist_crop_viewport", None): self.set_artist_hero_artwork(picture, texture)
-            else: picture.set_paintable(texture)
+            picture.set_paintable(self.artist_hero_cache.get(key, texture) if getattr(picture, "artist_hero", False) else texture)
         for picture in self.discovery_pictures.get(key, []): picture.set_paintable(texture)
         return False
 
