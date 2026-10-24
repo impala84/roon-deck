@@ -3829,7 +3829,21 @@ class Display(Gtk.Application):
                 crop_y = max(0, round((height - crop_height) * .2))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
             scaled = cropped.scale_simple(960, 653, GdkPixbuf.InterpType.BILINEAR)
-            return Gdk.Texture.new_for_pixbuf(scaled)
+            # Fade the photograph itself to transparent. Painting a black
+            # gradient over it only works on the default black theme and
+            # exposes a rectangular edge on user-selected backgrounds.
+            pixels = scaled.get_pixels(); source_stride = scaled.get_rowstride(); channels = scaled.get_n_channels()
+            output_stride = 960 * 4; output = bytearray(output_stride * 653); fade_start = round(653 * .72)
+            for y in range(653):
+                progress = max(0.0, min(1.0, (y - fade_start) / max(1, 652 - fade_start)))
+                opacity = 1.0 - progress * progress * (3.0 - 2.0 * progress)
+                for x in range(960):
+                    source_offset = y * source_stride + x * channels; output_offset = y * output_stride + x * 4
+                    output[output_offset:output_offset + 3] = pixels[source_offset:source_offset + 3]
+                    source_alpha = pixels[source_offset + 3] if channels == 4 else 255
+                    output[output_offset + 3] = round(source_alpha * opacity)
+            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(bytes(output)), GdkPixbuf.Colorspace.RGB, True, 8, 960, 653, output_stride)
+            return Gdk.Texture.new_for_pixbuf(faded)
         except (GLib.Error, ValueError, TypeError): return None
 
     def load_preview_artwork(self, picture, key):

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.36 Alpine — 24 October 2026
+
+- Builds artist album pages from explicit My Catalog and TIDAL searches, keeping owned albums first while adding the connected TIDAL catalogue and removing duplicates.
+- Preserves the originating Roon session for every merged album and Artist Radio action so selections remain valid after the catalogues are combined.
+- Fades the bottom of seven-inch artist hero imagery to true transparency, allowing black, gradient and custom backgrounds to show through naturally.
+
 ## 1.1.7-beta.35 Alpine — 24 October 2026
 
 - Publishes core Now Playing album details and artwork as soon as Roon resolves them, while slower external album notes continue loading in the background.

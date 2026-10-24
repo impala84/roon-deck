@@ -563,6 +563,56 @@ class BrowseManager {
     this.sessions.set(session, state); return state;
   }
 
+  async completeArtistPage(service, session, state, limit = 500) {
+    let complete = state;
+    while (complete?.has_more && complete.items.length < limit) complete = await this.loadMore(service, session);
+    return complete;
+  }
+
+  async openExactTidalArtist(service, session, state, name) {
+    const wanted = name.trim().toLocaleLowerCase();
+    let current = state;
+    // TIDAL commonly returns category rows first. Enter Artists explicitly so
+    // an album sharing the artist's name can never be mistaken for the artist.
+    const category = current.items?.find(item => /^artists?$/i.test(item.title.trim()) && item.item_key);
+    if (category) current = await this._run(session, 'open', {item_key:category.item_key});
+    let artist = current.items?.find(item => !item.action && item.hint !== 'header' && item.title.trim().toLocaleLowerCase() === wanted);
+    while (!artist && current.has_more && current.items.length < 500) {
+      current = await this.loadMore(service, session);
+      artist = current.items?.find(item => !item.action && item.hint !== 'header' && item.title.trim().toLocaleLowerCase() === wanted);
+    }
+    if (!artist?.item_key) return null;
+    const opened = await this._run(session, 'open', {item_key:artist.item_key});
+    return {session, state:await this.completeArtistPage(service, session, opened)};
+  }
+
+  mergeArtistCatalogues(session, name, catalogues) {
+    const routes = {}, albums = [], seen = new Set();
+    let action = null, profile = null, routeIndex = 0;
+    for (const catalogue of catalogues.filter(Boolean)) {
+      profile ||= catalogue.state.artist_profile;
+      for (const item of catalogue.state.items || []) {
+        if (!item.item_key || item.hint === 'header') continue;
+        const routedKey = `artist-route-${routeIndex++}`;
+        routes[routedKey] = {session:catalogue.session, key:item.item_key};
+        if (item.action) {
+          if (!action && /^play artist(?: radio)?$/i.test(item.title.trim())) action = {...item, item_key:routedKey};
+          continue;
+        }
+        const identity = item.title.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+        if (!identity || seen.has(identity)) continue;
+        seen.add(identity); albums.push({...item, item_key:routedKey});
+      }
+    }
+    const base = catalogues.find(Boolean)?.state || {status:'ready', hierarchy:'search', level:0};
+    return this.save(session, {
+      ...base, title:name, artist_profile:profile || {name, image_key:null},
+      items:[...(action ? [action] : []), ...albums], count:albums.length,
+      offset:0, has_more:false, search_routes:routes, layout:'list', show_labels:true,
+      message:'', error:false
+    });
+  }
+
   async openArtist(baseSession, name) {
     const service = this.service(), zone = this.zone();
     if (!service || !zone || !name) return {status:'unavailable', items:[], can_back:false};
@@ -573,19 +623,36 @@ class BrowseManager {
     for (const collection of [this.sessions, this.sections, this.searchSources]) {
       for (const key of collection.keys()) if (key.startsWith(prefix)) collection.delete(key);
     }
-    const session = `${prefix}${++this.artistRequestId}`;
-    this.sections.set(session, 'search'); this.activeSessions.set(baseSession, session);
+    const request = ++this.artistRequestId;
+    const session = `${prefix}${request}-catalogue`;
+    const mergedSession = `${prefix}${request}-merged`;
+    this.sections.set(session, 'search'); this.activeSessions.set(baseSession, mergedSession);
     const results = await this.search(service, zone, session, name, 'all', 'artists');
     let group = '';
     const artist = results.items.find(item => {
       if (item.hint === 'header') { group = item.title; return false; }
       return group === 'ARTISTS' && item.title.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase();
     });
-    if (!artist) return results;
-    const route = results.search_routes?.[artist.item_key];
-    const target = route?.session || session;
-    this.activeSessions.set(baseSession, target);
-    return this._run(target, 'open', {item_key:route?.key || artist.item_key});
+    let library = null;
+    if (artist) {
+      const route = results.search_routes?.[artist.item_key];
+      const target = route?.session || session;
+      const opened = await this._run(target, 'open', {item_key:route?.key || artist.item_key});
+      library = {session:target, state:await this.completeArtistPage(service, target, opened)};
+    }
+    let tidal = null;
+    const tidalSession = `${prefix}${request}-tidal`;
+    this.sections.set(tidalSession, 'search');
+    try {
+      const tidalResults = await this.search(service, zone, tidalSession, name, 'tidal');
+      if (!tidalResults.error) tidal = await this.openExactTidalArtist(service, tidalSession, tidalResults, name);
+    } catch (_) {
+      // A disconnected or temporarily unavailable TIDAL service must not hide
+      // albums already resolved from My Catalog.
+    }
+    if (!library && !tidal) return results;
+    this.activeSessions.set(baseSession, mergedSession);
+    return this.mergeArtistCatalogues(mergedSession, name, [library, tidal]);
   }
 
   async openLibraryArtist(baseSession, name, session) {
