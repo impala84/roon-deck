@@ -1074,7 +1074,8 @@ class Display(Gtk.Application):
             (self.window.add_css_class if enabled else self.window.remove_css_class)(css_class)
         utility_size = 26 if original_landscape else 30 if compact_landscape else 38
         for icon in getattr(self, "utility_icons", []):
-            icon_size = 20 if original_landscape and icon is getattr(self, "music_clock_icon", None) else utility_size
+            clock_icon = icon is getattr(self, "music_clock_icon", None)
+            icon_size = 20 if original_landscape and clock_icon else 42 if large_display and clock_icon else utility_size
             if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(icon_size)
             else: icon.set_size_request(icon_size, icon_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
@@ -2367,7 +2368,7 @@ class Display(Gtk.Application):
         full = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000 and self.settings_data.get("landscape_music_clock", "icon") == "full"
         child = self.music_full_clock if full else self.music_clock_icon
         if self.music_clock_button.get_child() is not child: self.music_clock_button.set_child(child)
-        reserve = 140 if full else 36
+        reserve = 140 if full else 44 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 36
         self.music_settings_button.get_child().set_halign(Gtk.Align.START)
         self.music_settings_button.set_size_request(reserve, -1)
         self.music_clock_button.set_size_request(reserve, -1)

@@ -6,6 +6,7 @@
 - Rebalances the seven-inch Gen 2 artist page into even artist and album columns so album artwork and titles have usable space.
 - Restores the album-detail Browse Artist Albums action to a rounded rectangle instead of a pill.
 - Reduces Fixed Volume to a small, low-contrast status label with more separation from the transport controls.
+- Enlarges the 10-inch music clock icon by 10% without changing either seven-inch display profile.
 
 ## 1.1.7-beta.18 Alpine — 24 October 2026
 
