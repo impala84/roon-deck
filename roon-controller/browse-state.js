@@ -33,6 +33,18 @@ function isActionItem(item) {
   return item?.hint === 'action' || /^(play (now|album|playlist|artist|genre|from here)|add next|queue|start radio|shuffle)$/i.test(String(item?.title || '').trim());
 }
 
+function artistCreditMatches(value, artist) {
+  const identity = text => String(text || '').toLocaleLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(/\s+/)
+    .filter(token => token && token !== 'the' && token !== 'and')
+    .join(' ');
+  const wanted = identity(artist);
+  return Boolean(wanted) && [String(value || ''), ...String(value || '').split(/\s*[,;]\s*/)]
+    .some(credit => identity(credit) === wanted);
+}
+
 function publicItem(item) {
   const originalTitle = String(item?.title || '');
   const title = /^play artist$/i.test(originalTitle.trim()) ? 'Play Artist Radio' : originalTitle;
@@ -118,7 +130,14 @@ class BrowseManager {
       if (command === 'surprise_play') return this.playSurprise(session);
       if (command === 'artist') return this.openArtist(session, String(data.name || '').slice(0, 500));
       let active = this.activeSessions.get(session) || session;
-      const preview = this.sessions.get(active)?.search_routes?.[data.item_key];
+      const activeState = this.sessions.get(active);
+      const selectedArtistAlbum = command === 'open'
+        ? activeState?.items?.find(item => String(item.item_key) === String(data.item_key))
+        : null;
+      if (selectedArtistAlbum && !selectedArtistAlbum.action && activeState?.artist_profile?.name) {
+        return this.openArtistAlbum(session, activeState.artist_profile.name, selectedArtistAlbum);
+      }
+      const preview = activeState?.search_routes?.[data.item_key];
       if (command === 'open' && preview) {
         this.activeSessions.set(session, preview.session);
         if (!preview.key) return this.sessions.get(preview.session);
@@ -144,10 +163,6 @@ class BrowseManager {
         active = `${session}-albums`; this.activeSessions.set(session, active);
       }
       const state = this.sessions.get(active);
-      const selected = command === 'open' ? state?.items?.find(item => String(item.item_key) === String(data.item_key)) : null;
-      if (selected && !selected.action && state?.artist_profile?.name) {
-        return this.openArtistAlbum(session, state.artist_profile.name, selected);
-      }
       return this._run(active, command, data);
     });
     this.pending.set(session, current);
@@ -592,11 +607,10 @@ class BrowseManager {
       if (!albumCategory?.item_key) throw new Error('Roon search did not return an Albums category');
       const albumCategoryResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, item_key:albumCategory.item_key});
       let albumResults = await this.follow(service, albumSession, 'search', albumCategoryResult);
-      const exactArtist = value => String(value || '').split(/\s*,\s*/).some(part => part.trim().toLocaleLowerCase() === wanted);
-      let albums = albumResults.items.filter(item => !item.action && exactArtist(item.subtitle));
+      let albums = albumResults.items.filter(item => !item.action && artistCreditMatches(item.subtitle, name));
       for (let offset = PAGE_SIZE; offset < Math.min(albumResults.count, 2000); offset += 200) {
         const loaded = await request(service, 'load', {hierarchy:'search', multi_session_key:albumSession, level:albumResults.level, offset, count:200});
-        albums.push(...(loaded.items || []).map(publicItem).filter(item => !item.action && exactArtist(item.subtitle)));
+        albums.push(...(loaded.items || []).map(publicItem).filter(item => !item.action && artistCreditMatches(item.subtitle, name)));
       }
       const routes = {};
       albums = albums.map((album, index) => {
@@ -661,14 +675,19 @@ class BrowseManager {
       album = artist.items?.find(sameAlbum);
     }
     if (!album?.item_key) return this.save(session, {...artist, error:true, message:'That album is no longer available for this artist.'});
-    const opened = await this._run(session, 'open', {item_key:album.item_key});
+    const route = artist.search_routes?.[album.item_key];
+    if (route?.session) this.activeSessions.set(baseSession, route.session);
+    const opened = route?.key
+      ? await this._run(route.session, 'open', {item_key:route.key})
+      : await this._run(session, 'open', {item_key:album.item_key});
     const actual = String(opened?.album_profile?.name || opened?.title || '').trim();
     if (actual && actual !== selected.title) {
-      const restored = await this._run(session, 'back', {});
-      return this.save(session, {...restored, error:true, message:'Roon returned a different album. Please try again.'});
+      const openedSession = route?.session || session;
+      const restored = await this._run(openedSession, 'back', {});
+      return this.save(openedSession, {...restored, error:true, message:'Roon returned a different album. Please try again.'});
     }
     return opened;
   }
 }
 
-module.exports = {BrowseManager, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage};
+module.exports = {BrowseManager, artistCreditMatches, browserLayout, formatDuration, isActionItem, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage};

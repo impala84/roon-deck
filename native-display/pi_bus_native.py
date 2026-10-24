@@ -652,7 +652,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
-.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 12px; font-weight: 350; letter-spacing: 2px; }
+.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
 .artist-hero-frame { border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
@@ -2906,7 +2906,6 @@ class Display(Gtk.Application):
                 summary = self.label(profile.get("full_writeup") or profile.get("writeup") or "Artist summary is temporarily unavailable.", "queue-meta")
                 summary.add_css_class("artist-bio")
                 summary.set_wrap(True); summary.set_lines(getattr(slot, "artist_summary_lines", 5)); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(getattr(slot, "artist_summary_chars", 52)); slot.append(summary)
-                if profile.get("source"): slot.append(self.label(profile["source"], "artist-source"))
                 return False
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
@@ -3282,7 +3281,6 @@ class Display(Gtk.Application):
                 summary = self.label(notes.get("writeup") or "No album summary is available.", "queue-meta")
                 summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
                 slot.append(summary)
-                if notes.get("source"): slot.append(self.label(notes["source"], "artist-source"))
                 return False
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
@@ -3372,7 +3370,7 @@ class Display(Gtk.Application):
         browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
-        layout = data.get("layout") or "list"
+        layout = "list" if data.get("artist_profile") else (data.get("layout") or "list")
         if items and data.get("surprise_preview"):
             album = items[0]
             monitor = Gdk.Display.get_default().get_monitors().get_item(0)
@@ -3559,8 +3557,7 @@ class Display(Gtk.Application):
         self.detail_artist_name.set_text(details.get("artist") or "Unknown artist")
         profile = self.detail_artist_profile if self.detail_artist_profile_name == (details.get("artist") or "") else {}
         self.detail_artist_writeup.set_text(profile.get("full_writeup") or profile.get("writeup") or "Artist information is unavailable.")
-        artist_source = profile.get("source") or ""; self.detail_artist_source.set_text(f"SOURCE  {artist_source.upper()}" if artist_source else "")
-        self.detail_artist_source.set_visible(bool(artist_source) and not getattr(self, "compact_detail", False))
+        self.detail_artist_source.set_text(""); self.detail_artist_source.set_visible(False)
         while child := self.detail_artist_facts.get_first_child(): self.detail_artist_facts.remove(child)
         artist_facts = []
         if profile.get("type"): artist_facts.append(f"TYPE  {profile['type']}")
@@ -3593,7 +3590,7 @@ class Display(Gtk.Application):
             detail_subtitle = released[:4] if released else ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle) and not (getattr(self, "album_focus_detail", False) and getattr(self, "original_landscape", False)))
         writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
-        source = metadata.get("writeup_source") or ""; self.detail_source.set_text(f"SOURCE  {source.upper()}" if source else ""); self.detail_source.set_visible(bool(source) and not getattr(self, "compact_detail", False) and not getattr(self, "album_focus_detail", False))
+        self.detail_source.set_text(""); self.detail_source.set_visible(False)
         while child := self.detail_facts.get_first_child(): self.detail_facts.remove(child)
         facts = []
         if metadata.get("release_date") or metadata.get("year"): facts.append(f"RELEASED  {metadata.get('release_date') or metadata.get('year')}")
