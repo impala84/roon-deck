@@ -2837,7 +2837,8 @@ class Display(Gtk.Application):
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
-            self.browser_artist_scroll.set_min_content_height(hero_height + 92); self.browser_artist_scroll.set_max_content_height(hero_height + 118)
+            profile_text_height = 118 if original else 190
+            self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)

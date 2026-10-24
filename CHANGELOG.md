@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.21 Alpine — 24 October 2026
+
+- Corrects the seven-inch Gen 2 artist-profile viewport height so the enlarged three-line artist summary and source are fully visible instead of being clipped by the previous compact allowance.
+- Keeps the independent, tighter Gen 1 height allowance unchanged.
+
 ## 1.1.7-beta.20 Alpine — 24 October 2026
 
 - Makes artist and album results genuine equal-width columns on both seven-inch landscape displays.
