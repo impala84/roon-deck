@@ -1198,6 +1198,7 @@ class Display(Gtk.Application):
         self.detail_browse_action.set_visible(not album_focus_detail)
         self.detail_footer.set_visible(not album_focus_detail)
         detail_size = max(180, min(round((width - 100) / 2), 500)) if portrait else (380 if original_landscape else max(240, min(round(width * .5), height - 100, 620)) if album_focus_detail else max(220, min(round((width - 260) / 2), height - 300, 460)))
+        self.detail_heading_width = detail_size
         self.detail_album_artwork.set_size_request(detail_size, detail_size)
         self.detail_artist_artwork.set_size_request(detail_size, detail_size)
         for viewport in (self.detail_album_artwork_frame, self.detail_artist_artwork_frame):
@@ -3621,7 +3622,11 @@ class Display(Gtk.Application):
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
         for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, -1)
         if getattr(self, "large_detail_portrait", False):
-            heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, -1)[1] for heading in (self.detail_artist_name, self.detail_title))
+            # Measure against the real card width. An unconstrained measure can
+            # claim an album title fits on one line, only for GTK to wrap it
+            # after allocation and push the album write-up below the artist's.
+            heading_width = max(1, getattr(self, "detail_heading_width", 500))
+            heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1] for heading in (self.detail_artist_name, self.detail_title))
             for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, heading_height)
         writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
         self.detail_source.set_text(""); self.detail_source.set_visible(False)
