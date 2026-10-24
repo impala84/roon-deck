@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.35 Alpine — 24 October 2026
+
+- Publishes core Now Playing album details and artwork as soon as Roon resolves them, while slower external album notes continue loading in the background.
+- Prevents the seven-inch native display poll from blocking on artist biography requests, removing the device-specific 20–120 second metadata lag.
+- Makes the seven-inch artist hero roughly half an album thumbnail taller, reducing severe face crops while retaining its width and top-weighted focal treatment.
+
 ## 1.1.7-beta.34 Alpine — 24 October 2026
 
 - Shows an immediate loading indicator while Browse Artist Albums resolves its catalogue search.

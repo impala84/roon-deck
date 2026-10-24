@@ -931,6 +931,7 @@ class Display(Gtk.Application):
         self.detail_artist_profile_name = None
         self.detail_artist_profile = {}
         self.detail_artist_profile_fetched_at = 0.0
+        self.detail_artist_profile_loading = None
         self.detail_signature = None
         self.bluos_source_buttons = {}
         self.last_display_view_id = None
@@ -1702,6 +1703,23 @@ class Display(Gtk.Application):
             self.polling = True; threading.Thread(target=self.poll, daemon=True).start()
         return True
 
+    def load_detail_artist_profile_async(self, name):
+        if not name or self.detail_artist_profile_loading == name:
+            return
+        self.detail_artist_profile_loading = name
+        self.detail_artist_profile_fetched_at = time.monotonic()
+        def load():
+            profile = get_json(f"{ROON}/api/artist?name={quote(name, safe='')}") or {}
+            def apply_profile():
+                if self.detail_artist_profile_name == name:
+                    self.detail_artist_profile = profile
+                    self.detail_signature = None
+                if self.detail_artist_profile_loading == name:
+                    self.detail_artist_profile_loading = None
+                return False
+            GLib.idle_add(apply_profile)
+        threading.Thread(target=load, daemon=True).start()
+
     def poll(self):
         started = time.monotonic()
         target_response = get_json(BUS + "/api/display-target"); status = get_json(BUS + "/api/status"); roon = get_json(ROON + "/api/state"); device = get_json(BUS + "/api/device/controls") or {}
@@ -1728,10 +1746,11 @@ class Display(Gtk.Application):
         detail_artist = details.get("artist") or ""
         profile_missing = not (self.detail_artist_profile.get("full_writeup") or self.detail_artist_profile.get("writeup"))
         if detail_artist and (detail_artist != self.detail_artist_profile_name or (profile_missing and now - self.detail_artist_profile_fetched_at >= 15)):
-            self.detail_artist_profile_name = detail_artist
-            self.detail_artist_profile = get_json(f"{ROON}/api/artist?name={quote(detail_artist, safe='')}") or {}
-            self.detail_artist_profile_fetched_at = now
-            self.detail_signature = None
+            if detail_artist != self.detail_artist_profile_name:
+                self.detail_artist_profile_name = detail_artist
+                self.detail_artist_profile = {}
+                self.detail_signature = None
+            self.load_detail_artist_profile_async(detail_artist)
         target = target_response.get("target") if isinstance(target_response, dict) else None
         GLib.idle_add(self.apply, target, status, roon, config, system, device, key, None)
         if capture_id and capture_id != getattr(self, "last_capture_id", None):
@@ -2876,7 +2895,10 @@ class Display(Gtk.Application):
         name = profile.get("name", "")
         if seven_landscape:
             hero_width = 330 if original else min(480, round((viewport_width - 250) * .5))
-            hero_height = round(hero_width * 9 / 16)
+            # The seven-inch screens have enough vertical room for a less
+            # severe crop. Add roughly half an album-row thumbnail while
+            # preserving the established width and top-weighted focal crop.
+            hero_height = round(hero_width * .68)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
@@ -3789,24 +3811,24 @@ class Display(Gtk.Application):
         except GLib.Error: return None
 
     def decode_artist_hero_artwork(self, image):
-        """Return a top-weighted 16:9 crop without changing widget geometry."""
+        """Return the top-weighted crop used by the taller seven-inch hero."""
         if not image: return None
         try:
             loader = GdkPixbuf.PixbufLoader.new(); loader.write(image); loader.close()
             source = loader.get_pixbuf()
             width, height = source.get_width(), source.get_height()
             if width <= 0 or height <= 0: return None
-            target_ratio = 16 / 9
+            target_ratio = 1 / .68
             if width / height > target_ratio:
                 crop_height = height; crop_width = max(1, round(height * target_ratio))
                 crop_x = max(0, round((width - crop_width) / 2)); crop_y = 0
             else:
                 crop_width = width; crop_height = max(1, round(width / target_ratio))
                 crop_x = 0
-                # Keep faces higher while preserving the exact 16:9 window.
+                # Keep faces higher while preserving the exact hero window.
                 crop_y = max(0, round((height - crop_height) * .2))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
-            scaled = cropped.scale_simple(960, 540, GdkPixbuf.InterpType.BILINEAR)
+            scaled = cropped.scale_simple(960, 653, GdkPixbuf.InterpType.BILINEAR)
             return Gdk.Texture.new_for_pixbuf(scaled)
         except (GLib.Error, ValueError, TypeError): return None
 

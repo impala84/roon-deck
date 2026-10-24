@@ -377,7 +377,7 @@ async function albumContents(service, zoneId, item, session) {
   };
 }
 
-async function loadDetails(service, zone, enrich = loadMusicBrainzMetadata) {
+async function loadDetails(service, zone, enrich = loadMusicBrainzMetadata, progress = () => {}) {
   const metadata = playingMetadata(zone);
   const base = {status: 'ready', ...metadata, album_image_key: metadata.image_key, artist_image_key: null, subtitle: '', tracks: []};
   if (!service || (!metadata.album && !metadata.artist)) return base;
@@ -397,8 +397,11 @@ async function loadDetails(service, zone, enrich = loadMusicBrainzMetadata) {
     base.tracks = contents.tracks; base.library_status = contents.library_status;
   } catch (_) { base.library_status = 'unknown'; }
   base.metadata = musicBrainzFacts(null, base.tracks.length);
+  base.metadata_pending = true;
+  progress({...base});
   const facts = await enrichment;
   if (facts) base.metadata = {...facts, track_count: facts.track_count || base.tracks.length};
+  base.metadata_pending = false;
   base.metadata_retryable = !facts;
   return base;
 }

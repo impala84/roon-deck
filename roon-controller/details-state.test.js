@@ -141,6 +141,28 @@ test('temporary enrichment failure is marked for a bounded retry', async () => {
   assert.equal(result.status, 'ready'); assert.equal(result.metadata_retryable, true);
 });
 
+test('core album details are published before external enrichment completes', async () => {
+  const service = {browse(_options, callback) { callback('offline'); }};
+  let finishEnrichment;
+  const enrichment = new Promise(resolve => { finishEnrichment = resolve; });
+  let partial;
+  const completed = loadDetails(
+    service,
+    {zone_id: 'zone', now_playing: {three_line: {line1: 'Track', line2: 'Artist', line3: 'Album'}, image_key: 'current'}},
+    () => enrichment,
+    result => { partial = result; }
+  );
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(partial.status, 'ready');
+  assert.equal(partial.album, 'Album');
+  assert.equal(partial.image_key, 'current');
+  assert.equal(partial.metadata_pending, true);
+  finishEnrichment({year: '2001', writeup: 'Finished later.'});
+  const result = await completed;
+  assert.equal(result.metadata_pending, false);
+  assert.equal(result.metadata.year, '2001');
+});
+
 test('MusicBrainz matching requires the exact album and artist', () => {
   const groups = [
     {id: 'wrong', title: 'Chrysalis Deluxe', score: 100, 'artist-credit': [{name: 'Someone Else'}]},

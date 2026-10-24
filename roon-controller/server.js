@@ -224,7 +224,12 @@ function ensureDetails(force = false) {
   if (cached) { details = cached; return; }
   details = {status: 'loading', ...metadata, album_image_key: metadata.image_key, artist_image_key: null, subtitle: '', tracks: []};
   const requestId = ++detailsRequest;
-  loadDetails(browseService, zone).then(result => {
+  const publishPartial = partial => {
+    if (requestId !== detailsRequest || detailsKey !== nextKey) return;
+    details = partial;
+    broadcast();
+  };
+  loadDetails(browseService, zone, undefined, publishPartial).then(result => {
     if (requestId !== detailsRequest || detailsKey !== nextKey) return;
     details = result;
     if (result.metadata_retryable) retryDetails(nextKey);
