@@ -610,7 +610,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
-.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 12px; font-weight: 350; letter-spacing: 2px; }
+.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
 .artist-hero-frame { border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
@@ -853,6 +853,7 @@ class Display(Gtk.Application):
         self.queue_thumbnail_jobs = Queue()
         self.queue_thumbnail_pending = set()
         self.queue_thumbnail_cache = {}
+        self.queue_thumbnail_source = {}
         self.queue_thumbnail_order = []
         self.artist_hero_cache = {}
         self.artist_hero_keys = set()
@@ -2798,7 +2799,8 @@ class Display(Gtk.Application):
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
-            profile_text_height = 118 if original else 190
+            profile_text_height = 118 if original else 230
+            self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
@@ -2811,6 +2813,7 @@ class Display(Gtk.Application):
                 overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)
             artwork_area.add_overlay(overlay_info); panel.append(artwork_area)
         else:
+            self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
             # Keep the established 10-inch composition. The wide, overlaid
             # hero is reserved for the two seven-inch landscape profiles.
             panel.set_size_request(-1 if portrait else 260, -1)
@@ -2831,6 +2834,9 @@ class Display(Gtk.Application):
             self.browser_pictures.setdefault(key, []).append(picture); self.browser_artwork_keys.append(key)
             if seven_landscape: self.artist_hero_keys.add(key)
             cached = self.artist_hero_cache.get(key) if seven_landscape else self.queue_thumbnail_cache.get(key)
+            if seven_landscape and cached is None and (source := self.queue_thumbnail_source.get(key)):
+                cached = self.decode_artist_hero_artwork(source)
+                if cached is not None: self.artist_hero_cache[key] = cached
             cached = cached or self.queue_thumbnail_cache.get(key)
             if cached: picture.set_paintable(cached)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -2864,7 +2870,6 @@ class Display(Gtk.Application):
                 summary = self.label(profile.get("full_writeup") or profile.get("writeup") or "Artist summary is temporarily unavailable.", "queue-meta")
                 summary.add_css_class("artist-bio")
                 summary.set_wrap(True); summary.set_lines(getattr(slot, "artist_summary_lines", 5)); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(getattr(slot, "artist_summary_chars", 52)); slot.append(summary)
-                if profile.get("source"): slot.append(self.label(profile["source"], "artist-source"))
                 return False
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
@@ -3240,7 +3245,6 @@ class Display(Gtk.Application):
                 summary = self.label(notes.get("writeup") or "No album summary is available.", "queue-meta")
                 summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
                 slot.append(summary)
-                if notes.get("source"): slot.append(self.label(notes["source"], "artist-source"))
                 return False
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
@@ -3517,8 +3521,7 @@ class Display(Gtk.Application):
         self.detail_artist_name.set_text(details.get("artist") or "Unknown artist")
         profile = self.detail_artist_profile if self.detail_artist_profile_name == (details.get("artist") or "") else {}
         self.detail_artist_writeup.set_text(profile.get("full_writeup") or profile.get("writeup") or "Artist information is unavailable.")
-        artist_source = profile.get("source") or ""; self.detail_artist_source.set_text(f"SOURCE  {artist_source.upper()}" if artist_source else "")
-        self.detail_artist_source.set_visible(bool(artist_source) and not getattr(self, "compact_detail", False))
+        self.detail_artist_source.set_text(""); self.detail_artist_source.set_visible(False)
         while child := self.detail_artist_facts.get_first_child(): self.detail_artist_facts.remove(child)
         artist_facts = []
         if profile.get("type"): artist_facts.append(f"TYPE  {profile['type']}")
@@ -3551,7 +3554,7 @@ class Display(Gtk.Application):
             detail_subtitle = released[:4] if released else ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle) and not (getattr(self, "album_focus_detail", False) and getattr(self, "original_landscape", False)))
         writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
-        source = metadata.get("writeup_source") or ""; self.detail_source.set_text(f"SOURCE  {source.upper()}" if source else ""); self.detail_source.set_visible(bool(source) and not getattr(self, "compact_detail", False) and not getattr(self, "album_focus_detail", False))
+        self.detail_source.set_text(""); self.detail_source.set_visible(False)
         while child := self.detail_facts.get_first_child(): self.detail_facts.remove(child)
         facts = []
         if metadata.get("release_date") or metadata.get("year"): facts.append(f"RELEASED  {metadata.get('release_date') or metadata.get('year')}")
@@ -3661,7 +3664,7 @@ class Display(Gtk.Application):
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
                 self.queue_artwork_light[key] = self.artwork_is_light(image)
             artist_hero = self.decode_artist_hero_artwork(image) if key in self.artist_hero_keys else None
-            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True, artist_hero)
+            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True, artist_hero, image)
 
     def artwork_is_light(self, image):
         try:
@@ -3686,7 +3689,7 @@ class Display(Gtk.Application):
         except GLib.Error: return None
 
     def decode_artist_hero_artwork(self, image):
-        """Return the same centred 16:9 crop used by the thumbnail hero."""
+        """Return the shared top-weighted 16:9 artist-hero crop."""
         if not image: return None
         try:
             loader = GdkPixbuf.PixbufLoader.new(); loader.write(image); loader.close()
@@ -3700,11 +3703,9 @@ class Display(Gtk.Application):
             else:
                 crop_width = width; crop_height = max(1, round(width / target_ratio))
                 crop_x = 0
-                # Gtk.Picture initially shows the cached thumbnail with a
-                # centred COVER crop. Match that focal window exactly so the
-                # image does not jump when this higher-resolution texture
-                # replaces it.
-                crop_y = max(0, round((height - crop_height) * .5))
+                # Cached thumbnails pass through this same crop before the
+                # high-resolution swap, keeping faces high without a jump.
+                crop_y = max(0, round((height - crop_height) * .2))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
             scaled = cropped.scale_simple(960, 540, GdkPixbuf.InterpType.BILINEAR)
             return Gdk.Texture.new_for_pixbuf(scaled)
@@ -3724,7 +3725,7 @@ class Display(Gtk.Application):
             GLib.idle_add(apply, self.decode_artwork(get_bytes(url, timeout=5)))
         threading.Thread(target=load, daemon=True).start()
 
-    def apply_queue_thumbnail(self, key, image, decoded=False, artist_hero=None):
+    def apply_queue_thumbnail(self, key, image, decoded=False, artist_hero=None, source=None):
         self.queue_thumbnail_pending.discard(key)
         if not image:
             failures = getattr(self, "thumbnail_failures", {}); self.thumbnail_failures = failures; failures[key] = failures.get(key, 0) + 1
@@ -3733,12 +3734,13 @@ class Display(Gtk.Application):
         texture = image if decoded else self.decode_artwork(image)
         if texture is None: return False
         self.queue_thumbnail_cache[key] = texture
+        if source is not None and artist_hero is None: self.queue_thumbnail_source[key] = source
         if artist_hero is not None: self.artist_hero_cache[key] = artist_hero
         getattr(self, "thumbnail_failures", {}).pop(key, None)
         if key in self.queue_thumbnail_order: self.queue_thumbnail_order.remove(key)
         self.queue_thumbnail_order.append(key)
         while len(self.queue_thumbnail_order) > 192:
-            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.artist_hero_cache.pop(old, None)
+            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.queue_thumbnail_source.pop(old, None); self.artist_hero_cache.pop(old, None)
             getattr(self, "queue_artwork_light", {}).pop(old, None)
         for picture in self.queue_pictures.get(key, []): picture.set_paintable(texture)
         for badge in getattr(self, "queue_play_badges", {}).get(key, []):

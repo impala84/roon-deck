@@ -1,7 +1,13 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {BrowseManager, browserLayout, formatDuration, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage} = require('./browse-state');
+const {BrowseManager, artistCreditMatches, browserLayout, formatDuration, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage} = require('./browse-state');
+
+test('artist album credits tolerate ampersands, conjunctions and leading articles', () => {
+  assert.equal(artistCreditMatches('Tommy James and The Shondells', 'Tommy James & the Shondells'), true);
+  assert.equal(artistCreditMatches('Guest Singer, The Example Band', 'Example Band'), true);
+  assert.equal(artistCreditMatches('Someone Else', 'Example Band'), false);
+});
 
 test('album sorting loads the whole collection and paginates owned keys without playback', async () => {
   const albums = Array.from({length:65}, (_, i) => ({title:`Album ${65-i}`, subtitle:`Artist ${i%3}`, item_key:`key-${i}`}));
@@ -102,7 +108,7 @@ test('artist links fall back to Library Artists only when catalogue search canno
   assert.ok(hierarchies.includes('browse'));
 });
 
-test('artist album clicks resolve a fresh artist session before opening the exact album', async () => {
+test('artist album clicks resolve a fresh routed session before opening the exact album', async () => {
   const calls = [];
   const service = {
     browse(options, done) { calls.push(options.item_key); done(false, {action:'list', list:{title:'Wanted Album', level:4}}); },
@@ -113,10 +119,12 @@ test('artist album clicks resolve a fresh artist session before opening the exac
   manager.activeSessions.set(safeSession('touch'), 'stale-artist');
   manager.openArtist = async base => {
     manager.activeSessions.set(base, 'fresh-artist');
-    return manager.save('fresh-artist', {hierarchy:'search',level:3,artist_profile:{name:'Artist'},items:[{title:'Wanted Album',image_key:'cover',item_key:'fresh-album'}],has_more:false});
+    manager.save('fresh-albums', {hierarchy:'search',level:1,title:'Albums',items:[{title:'Wanted Album',image_key:'cover',item_key:'fresh-album'}],has_more:false});
+    return manager.save('fresh-artist', {hierarchy:'search',level:3,artist_profile:{name:'Artist'},items:[{title:'Wanted Album',image_key:'cover',item_key:'artist-album-0'}],has_more:false,search_routes:{'artist-album-0':{session:'fresh-albums',key:'fresh-album'}}});
   };
   const result = await manager.run('touch', 'open', {item_key:'stale-album'});
   assert.equal(calls[0], 'fresh-album');
+  assert.equal(manager.activeSessions.get(safeSession('touch')), 'fresh-albums');
   assert.equal(result.album_profile.name, 'Wanted Album');
 });
 
