@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE_SOURCE = ROOT / "native-display" / "pi_bus_native.py"
 BASELINE = ROOT / "tools" / "native_css_conflicts.json"
-MAX_CONFLICTING_SELECTORS = 48
+MAX_CONFLICTING_SELECTORS = 24
 
 
 def embedded_css(source: str) -> str:

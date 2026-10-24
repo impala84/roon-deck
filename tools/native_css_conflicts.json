@@ -1,42 +1,4 @@
 {
-  ".browser-cover-art": {
-    "min-height": [
-      "0",
-      "172px"
-    ],
-    "min-width": [
-      "0",
-      "172px"
-    ]
-  },
-  ".browser-cover-card": {
-    "min-height": [
-      "0",
-      "202px"
-    ],
-    "padding": [
-      "3px",
-      "7px"
-    ]
-  },
-  ".browser-cover-card:active": {
-    "background": [
-      "#18211f",
-      "transparent"
-    ]
-  },
-  ".browser-cover-card:hover": {
-    "background": [
-      "#18211f",
-      "transparent"
-    ]
-  },
-  ".browser-cover-title.tile": {
-    "background": [
-      "linear-gradient(transparent, rgba(5,10,9,.94))",
-      "transparent"
-    ]
-  },
   ".browser-filter": {
     "border-radius": [
       "0",
@@ -61,56 +23,10 @@
       "#f4f0e6"
     ]
   },
-  ".browser-home-card:hover": {
-    "background": [
-      "#19302a",
-      "transparent"
-    ]
-  },
-  ".browser-row:active": {
-    "background": [
-      "#18211f",
-      "transparent"
-    ]
-  },
-  ".browser-row:hover": {
-    "background": [
-      "#18211f",
-      "transparent"
-    ]
-  },
-  ".browser-section": {
-    "font-size": [
-      "12px",
-      "17px"
-    ]
-  },
-  ".browser-sort": {
-    "background": [
-      "#282828",
-      "transparent"
-    ]
-  },
-  ".browser-sort:hover": {
-    "background": [
-      "#303033",
-      "transparent"
-    ]
-  },
   ".bus-page": {
     "padding-top": [
       "%dpx",
       "8px"
-    ]
-  },
-  ".confirm-reboot": {
-    "background": [
-      "#6ed9ae",
-      "#8a5b24"
-    ],
-    "color": [
-      "#101714",
-      "#fff1d2"
     ]
   },
   ".detail-close": {
@@ -139,12 +55,6 @@
       "28px"
     ]
   },
-  ".high-resolution .queue-duration": {
-    "font-size": [
-      "18px",
-      "26px"
-    ]
-  },
   ".large-display .browser-back": {
     "min-height": [
       "64px",
@@ -157,12 +67,6 @@
     "padding": [
       "10px 20px",
       "12px 24px"
-    ]
-  },
-  ".loading-notice": {
-    "font-size": [
-      "14px",
-      "19px"
     ]
   },
   ".portrait .browser-cover-grid": {
@@ -251,74 +155,6 @@
     "padding-top": [
       "15px",
       "24px"
-    ]
-  },
-  ".queue-duration": {
-    "font-size": [
-      "18px",
-      "26px"
-    ]
-  },
-  ".queue-row:active": {
-    "background": [
-      "#121e1c",
-      "transparent"
-    ]
-  },
-  ".queue-row:hover": {
-    "background": [
-      "#121e1c",
-      "transparent"
-    ]
-  },
-  ".service-no": {
-    "font-weight": [
-      "720",
-      "760"
-    ]
-  },
-  ".source-step": {
-    "border-radius": [
-      "46px",
-      "999px"
-    ],
-    "color": [
-      "#f4f0e6",
-      "#fff"
-    ]
-  },
-  ".theme-roon .queue-row:active": {
-    "background": [
-      "#292733",
-      "transparent"
-    ]
-  },
-  ".theme-roon .queue-row:hover": {
-    "background": [
-      "#292733",
-      "transparent"
-    ]
-  },
-  ".theme-roon .source-step": {
-    "color": [
-      "#ddd",
-      "#fff"
-    ]
-  },
-  ".theme-roon .surprise-action": {
-    "background": [
-      "#282828",
-      "#292929"
-    ]
-  },
-  ".touch-landscape .browser-cover-art": {
-    "min-height": [
-      "0",
-      "172px"
-    ],
-    "min-width": [
-      "0",
-      "172px"
     ]
   },
   ".touch-landscape .browser-filter": {
