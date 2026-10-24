@@ -710,7 +710,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .album-focus-detail .detail-entity { padding: 0; }
 .album-focus-detail .detail-album-card { padding: 0; }
 .album-focus-detail .detail-artwork-frame { margin: 0; }
-.album-focus-detail .detail-section-label { margin-top: 0; }
+.album-focus-detail .detail-section-label { margin-top: 0; font-size: 18px; letter-spacing: 1.9px; }
 .album-focus-detail .detail-title { font-size: 36px; }
 .album-focus-detail .detail-artist { font-size: 25px; }
 .album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }
@@ -1207,7 +1207,7 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 12 if large_detail_portrait else 3 if compact_detail else -1)
+            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail or large_detail_portrait else Pango.EllipsizeMode.NONE)
         self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)
         self.detail_sheet.set_kinetic_scrolling(not original_landscape)
@@ -1357,7 +1357,7 @@ class Display(Gtk.Application):
         # Surprise is a top-level Discover destination.  Keep no sixth rail
         # item that can leak back into album/artist navigation after reparenting.
         self.browser_surprise_button = self.button("SURPRISE!", lambda *_: self.request_browser("surprise"), "browser-filter"); self.browser_surprise_button.set_visible(False)
-        self.browser_back = self.button("BACK", lambda *_: self.request_browser("back"), "browser-back"); self.browser_back.set_visible(False); self.browser_back.set_halign(Gtk.Align.START); self.browser_back.set_valign(Gtk.Align.END)
+        self.browser_back = self.button("BACK", self.browser_back_action, "browser-back"); self.browser_back.set_visible(False); self.browser_back.set_halign(Gtk.Align.START); self.browser_back.set_valign(Gtk.Align.END)
         self.browser_sort_order = "title"
         self.browser_sort = self.button("Sort: Title, A to Z", self.show_browser_sort, "browser-filter browser-sort")
         self.browser_sort.set_visible(False)
@@ -2487,6 +2487,11 @@ class Display(Gtk.Application):
     def browse_detail_artist(self, *_):
         artist = (self.detail_artist_profile_name or self.detail_artist.get_text() or "").strip()
         if not artist: return
+        # Global Search is only how Roon resolves the catalogue artist. Keep
+        # that internal stack out of visible navigation and remember the page
+        # beneath the detail sheet as the user's real Back destination.
+        departure = self.roon_views.get_visible_child_name() or "now"
+        self.browser_departure_view = departure if departure in {"now", "queue", "source", "discover", "browse"} else "now"
         self.discovery_browser_origin = False
         self.discovery_active = True; self.discovery_section = "browse"
         for name, button in self.discover_tabs.items():
@@ -2494,6 +2499,15 @@ class Display(Gtk.Application):
             else: button.remove_css_class("active")
         self.set_roon_view("browse")
         self.request_browser("artist", name=artist)
+
+    def browser_back_action(self, *_):
+        departure = getattr(self, "browser_departure_view", None)
+        state = self.browser_state or {}
+        if departure and state.get("artist_profile") and not state.get("album_profile"):
+            self.browser_departure_view = None
+            self.set_roon_view(departure)
+            return
+        self.request_browser("back")
 
     def open_discover(self, section="recent", mix="", picks=False, recent_mode=None):
         if section == "recent": self.discovery_recent_mode = recent_mode or "added"
@@ -2843,7 +2857,7 @@ class Display(Gtk.Application):
 
     def browser_swipe_back(self, _gesture, distance_x, distance_y):
         if distance_x > 90 and distance_x > abs(distance_y) * 2 and (self.browser_state or {}).get("can_back"):
-            self.request_browser("back")
+            self.browser_back_action()
 
     def render_artist_profile(self, profile, play_action=None):
         portrait = getattr(self, "responsive_portrait", False)
@@ -2956,6 +2970,13 @@ class Display(Gtk.Application):
         popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover); self.browser_sort_popover = popover
 
     def request_browser(self, action, **payload):
+        if action == "artist":
+            self.browser_scroll.set_visible(True)
+            self.browser_artist_scroll.set_visible(False); self.browser_search_columns.set_visible(False)
+            self.browser_scrubber.set_visible(False); self.browser_message.set_visible(False)
+            while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
+            self.browser_list.set_orientation(Gtk.Orientation.VERTICAL)
+            self.browser_list.append(self.loading_notice())
         if action == "search":
             self.browser_search_columns.set_visible(False); self.browser_scroll.set_visible(True)
             while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
@@ -2965,7 +2986,7 @@ class Display(Gtk.Application):
             self.browser_search_button.add_css_class("active")
             for button in self.browser_section_buttons.values(): button.remove_css_class("active")
         if self.browser_loading:
-            if action in {"jump", "section", "search", "surprise"}: self.browser_pending_request = (action, payload)
+            if action in {"jump", "section", "search", "surprise", "artist"}: self.browser_pending_request = (action, payload)
             return
         if action == "surprise" and not (self.browser_state or {}).get("surprise_preview"):
             self.browser_section_scrolls[(self.browser_state or {}).get("section", "albums")] = self.browser_scroll.get_vadjustment().get_value()
@@ -3616,9 +3637,9 @@ class Display(Gtk.Application):
         metadata = details.get("metadata") or {}
         released = str(metadata.get("year") or metadata.get("release_date") or "")
         year = released[:4] if released else ""
-        self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "large_detail_portrait", False) and year else "ALBUM")
+        self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "detail_year_only", False) and year else "ALBUM")
         if getattr(self, "detail_year_only", False):
-            detail_subtitle = "" if getattr(self, "large_detail_portrait", False) else year
+            detail_subtitle = ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
         for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, -1)
         if getattr(self, "large_detail_portrait", False):

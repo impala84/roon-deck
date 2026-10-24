@@ -546,6 +546,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.high-resolution.portrait .detail-title { font-size: 49px; }', code)
         self.assertIn('.high-resolution.portrait .detail-section-label { font-size: 22px; letter-spacing: 2.2px; }', code)
         self.assertIn('.high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }', code)
+        self.assertIn('.album-focus-detail .detail-section-label { margin-top: 0; font-size: 18px; letter-spacing: 1.9px; }', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -554,10 +555,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('year = released[:4] if released else ""', code)
         self.assertIn('if getattr(self, "detail_year_only", False):', code)
         self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
-        self.assertIn('self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "large_detail_portrait", False) and year else "ALBUM")', code)
+        self.assertIn('self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "detail_year_only", False) and year else "ALBUM")', code)
         self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
         self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
-        self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail else 12 if large_detail_portrait', code)
+        self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait', code)
         self.assertIn('self.detail_artist_facts.set_visible(not large_detail_portrait)', code)
         self.assertIn('self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)', code)
         self.assertIn('and not getattr(self, "large_detail_portrait", False)', code)
@@ -939,11 +940,32 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_back_swipe_requires_rightward_horizontal_motion_and_back_destination(self):
         swipe = native_method("browser_swipe_back")
         calls = []
-        owner = SimpleNamespace(browser_state={"can_back":True}, request_browser=calls.append)
+        owner = SimpleNamespace(browser_state={"can_back":True}, browser_back_action=lambda: calls.append("back"))
         for x, y in ((150,0),(-150,0),(60,0),(150,120),(0,150)): swipe(owner,None,x,y)
         self.assertEqual(calls, ["back"])
         owner.browser_state = {"can_back":False}; swipe(owner,None,800,0)
         self.assertEqual(calls, ["back"])
+
+    def test_artist_album_back_honours_real_departure_page(self):
+        method = native_method("browser_back_action")
+        owner = SimpleNamespace(browser_departure_view="now", browser_state={"artist_profile":{"name":"The Beatles"}}, set_roon_view=Mock(), request_browser=Mock())
+        method(owner)
+        owner.set_roon_view.assert_called_once_with("now")
+        owner.request_browser.assert_not_called()
+        self.assertIsNone(owner.browser_departure_view)
+        owner.browser_departure_view = "now"; owner.browser_state = {"artist_profile":{"name":"The Beatles"}, "album_profile":{"name":"Abbey Road"}}
+        method(owner)
+        owner.request_browser.assert_called_once_with("back")
+
+    def test_artist_lookup_shows_loading_before_queued_request(self):
+        loading = LayoutWidget(text="Loading…")
+        owner = SimpleNamespace(browser_loading=True, browser_pending_request=None,
+            browser_scroll=LayoutWidget(), browser_artist_scroll=LayoutWidget(), browser_search_columns=LayoutWidget(),
+            browser_scrubber=LayoutWidget(), browser_message=LayoutWidget(), browser_list=LayoutWidget(),
+            loading_notice=lambda: loading)
+        native_method("request_browser", {"Gtk":LAYOUT_GTK})(owner, "artist", name="The Beatles")
+        self.assertEqual(owner.browser_list.children, [loading])
+        self.assertEqual(owner.browser_pending_request, ("artist", {"name":"The Beatles"}))
 
     def test_artist_panel_keeps_portrait_and_name_without_biography(self):
         tree = ast.parse(SOURCE.read_text(encoding="utf-8"))

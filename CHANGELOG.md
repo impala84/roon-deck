@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.34 Alpine — 24 October 2026
+
+- Shows an immediate loading indicator while Browse Artist Albums resolves its catalogue search.
+- Makes Back return to the real departure screen, such as Now Playing, instead of exposing the internal artist-search results page; albums still return to their artist first.
+- Uses the larger `ALBUM · YEAR` eyebrow on seven-inch detail sheets and removes the separate undersized year line.
+- Expands the 10-inch portrait write-up allowance to use the available screen depth.
+
 ## 1.1.7-beta.33 Alpine — 24 October 2026
 
 - Rebalances the 10-inch portrait Album & Artist sheet with larger headings and close control, tighter body leading, bounded write-ups and no low-value technical fact blocks.
