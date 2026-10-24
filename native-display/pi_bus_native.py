@@ -895,6 +895,7 @@ class Display(Gtk.Application):
         self.queue_thumbnail_jobs = Queue()
         self.queue_thumbnail_pending = set()
         self.queue_thumbnail_cache = {}
+        self.queue_thumbnail_source = {}
         self.queue_thumbnail_order = []
         self.artist_hero_cache = {}
         self.artist_hero_keys = set()
@@ -2873,6 +2874,9 @@ class Display(Gtk.Application):
             self.browser_pictures.setdefault(key, []).append(picture); self.browser_artwork_keys.append(key)
             if seven_landscape: self.artist_hero_keys.add(key)
             cached = self.artist_hero_cache.get(key) if seven_landscape else self.queue_thumbnail_cache.get(key)
+            if seven_landscape and cached is None and (source := self.queue_thumbnail_source.get(key)):
+                cached = self.decode_artist_hero_artwork(source)
+                if cached is not None: self.artist_hero_cache[key] = cached
             cached = cached or self.queue_thumbnail_cache.get(key)
             if cached: picture.set_paintable(cached)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -3700,7 +3704,7 @@ class Display(Gtk.Application):
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
                 self.queue_artwork_light[key] = self.artwork_is_light(image)
             artist_hero = self.decode_artist_hero_artwork(image) if key in self.artist_hero_keys else None
-            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True, artist_hero)
+            GLib.idle_add(self.apply_queue_thumbnail, key, self.decode_artwork(image), True, artist_hero, image)
 
     def artwork_is_light(self, image):
         try:
@@ -3760,7 +3764,7 @@ class Display(Gtk.Application):
             GLib.idle_add(apply, self.decode_artwork(get_bytes(url, timeout=5)))
         threading.Thread(target=load, daemon=True).start()
 
-    def apply_queue_thumbnail(self, key, image, decoded=False, artist_hero=None):
+    def apply_queue_thumbnail(self, key, image, decoded=False, artist_hero=None, source=None):
         self.queue_thumbnail_pending.discard(key)
         if not image:
             failures = getattr(self, "thumbnail_failures", {}); self.thumbnail_failures = failures; failures[key] = failures.get(key, 0) + 1
@@ -3769,12 +3773,13 @@ class Display(Gtk.Application):
         texture = image if decoded else self.decode_artwork(image)
         if texture is None: return False
         self.queue_thumbnail_cache[key] = texture
+        if source is not None: self.queue_thumbnail_source[key] = source
         if artist_hero is not None: self.artist_hero_cache[key] = artist_hero
         getattr(self, "thumbnail_failures", {}).pop(key, None)
         if key in self.queue_thumbnail_order: self.queue_thumbnail_order.remove(key)
         self.queue_thumbnail_order.append(key)
         while len(self.queue_thumbnail_order) > 192:
-            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.artist_hero_cache.pop(old, None)
+            old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.artist_hero_cache.pop(old, None); self.queue_thumbnail_source.pop(old, None)
             getattr(self, "queue_artwork_light", {}).pop(old, None)
         for picture in self.queue_pictures.get(key, []): picture.set_paintable(texture)
         for badge in getattr(self, "queue_play_badges", {}).get(key, []):

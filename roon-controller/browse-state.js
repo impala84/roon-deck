@@ -42,7 +42,10 @@ function artistCreditMatches(value, artist) {
     .join(' ');
   const wanted = identity(artist);
   return Boolean(wanted) && [String(value || ''), ...String(value || '').split(/\s*[,;]\s*/)]
-    .some(credit => identity(credit) === wanted);
+    .some(credit => {
+      const candidate = identity(credit);
+      return candidate === wanted || ` ${candidate} `.includes(` ${wanted} `);
+    });
 }
 
 function publicItem(item) {
@@ -607,11 +610,18 @@ class BrowseManager {
       if (!albumCategory?.item_key) throw new Error('Roon search did not return an Albums category');
       const albumCategoryResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, item_key:albumCategory.item_key});
       let albumResults = await this.follow(service, albumSession, 'search', albumCategoryResult);
-      let albums = albumResults.items.filter(item => !item.action && artistCreditMatches(item.subtitle, name));
+      let albumCandidates = albumResults.items.filter(item => !item.action);
       for (let offset = PAGE_SIZE; offset < Math.min(albumResults.count, 2000); offset += 200) {
         const loaded = await request(service, 'load', {hierarchy:'search', multi_session_key:albumSession, level:albumResults.level, offset, count:200});
-        albums.push(...(loaded.items || []).map(publicItem).filter(item => !item.action && artistCreditMatches(item.subtitle, name)));
+        albumCandidates.push(...(loaded.items || []).map(publicItem).filter(item => !item.action));
       }
+      // Search providers are inconsistent here: some return a clean artist
+      // credit, some append years/roles, and some omit the subtitle entirely.
+      // Prefer verified credits, but never turn a valid artist-scoped album
+      // search into an empty page merely because the provider omitted them.
+      const attributableAlbums = albumCandidates.filter(item =>
+        !String(item.subtitle || '').trim() || artistCreditMatches(item.subtitle, name));
+      let albums = attributableAlbums.length ? attributableAlbums : albumCandidates;
       const routes = {};
       albums = albums.map((album, index) => {
         const key = `artist-album-${index}`;

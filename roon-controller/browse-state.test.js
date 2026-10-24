@@ -6,6 +6,7 @@ const {BrowseManager, artistCreditMatches, browserLayout, formatDuration, librar
 test('artist album credits tolerate ampersands, conjunctions and leading articles', () => {
   assert.equal(artistCreditMatches('Tommy James and The Shondells', 'Tommy James & the Shondells'), true);
   assert.equal(artistCreditMatches('Guest Singer, The Example Band', 'Example Band'), true);
+  assert.equal(artistCreditMatches('Third Eye Blind • 1997', 'Third Eye Blind'), true);
   assert.equal(artistCreditMatches('Someone Else', 'Example Band'), false);
 });
 
@@ -61,7 +62,7 @@ test('artist links use a fresh catalogue search and return albums outside the li
       if (path === 'root') return done(false, {list:{title:'Search',level:0,count:2},items:[{title:'Artists',item_key:'artists-category'},{title:'Albums',item_key:'albums-category'}]});
       if (path === 'artists') return done(false, {list:{title:'Artists',level:1,count:1},items:[{title:'Example Artist',item_key:'catalogue-artist',image_key:'portrait'}]});
       if (path === 'albums') return done(false, {list:{title:'Albums',level:1,count:3},items:[
-        {title:'Catalogue Album',subtitle:'Example Artist',item_key:'catalogue-album'},
+        {title:'Catalogue Album',subtitle:'',item_key:'catalogue-album'},
         {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration'},
         {title:'Wrong Artist Album',subtitle:'Someone Else',item_key:'wrong-album'}]});
       done(false, {list:{title:'Example Artist', level:3,count:1}, items:[{title:'Play Artist',hint:'action',item_key:'play'}]});
