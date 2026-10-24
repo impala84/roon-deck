@@ -45,7 +45,7 @@ test('album detail exposes one cover and honest optional metadata without alteri
   assert.equal(menu.album_profile, undefined);
 });
 
-test('artist links use a fresh catalogue search and return albums outside the library', async () => {
+test('artist links reuse global search and preserve its ranked albums outside the library', async () => {
   const calls = [], paths = new Map();
   const service = {
     browse(options, done) {
@@ -73,13 +73,13 @@ test('artist links use a fresh catalogue search and return albums outside the li
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
   assert.equal(result.items.find(item => item.title === 'Catalogue Album').item_key, 'artist-album-0');
   assert.equal(result.items.find(item => item.title === 'Collaboration').item_key, 'artist-album-1');
-  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), false);
+  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), true, 'global search ranking is not replaced by a local credit filter');
   const route = result.search_routes['artist-album-0'];
-  assert.match(route.session, /-albums$/); assert.equal(route.key, 'catalogue-album');
+  assert.match(route.session, /-preview-0$/); assert.equal(route.key, 'catalogue-album');
   assert.ok(calls.every(call => call.hierarchy === 'search'));
   await manager.run('links', 'artist', {name:'Example Artist'});
   const artistSessions = [...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-'));
-  assert.equal(artistSessions.length, 2, 'only the current artist and album-search hierarchies remain');
+  assert.equal(artistSessions.length, 3, 'only the current artist and global album-search hierarchies remain');
   assert.ok(artistSessions.every(key => key.includes('-2-')), 'the previous artist hierarchies are discarded');
 });
 

@@ -597,31 +597,26 @@ class BrowseManager {
       while (this.artistContexts.size > 64) this.artistContexts.delete(this.artistContexts.keys().next().value);
       const opened = await this.follow(service, searchSession, 'search', openedResult, artist.image_key);
 
-      // Roon's Artists search result commonly contains only "Play Artist".
-      // Album discovery is a separate catalogue search category, and its item
-      // keys belong to that separate multi-session hierarchy.  Load it in an
-      // independent session and route the synthetic rows back to those keys.
-      const albumSession = `${prefix}${requestId}-albums`;
-      this.sections.set(albumSession, 'albums');
-      this.searchSources.set(albumSession, 'all');
-      const albumRootResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, pop_all:true, input:name});
-      const albumRoot = await this.follow(service, albumSession, 'search', albumRootResult);
-      const albumCategory = albumRoot.items.find(item => item.item_key && /^albums$/i.test(item.title.trim()));
-      if (!albumCategory?.item_key) throw new Error('Roon search did not return an Albums category');
-      const albumCategoryResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, item_key:albumCategory.item_key});
-      let albumResults = await this.follow(service, albumSession, 'search', albumCategoryResult);
+      // Use the same global Search implementation as the Search screen. Roon
+      // combines library and connected catalogue results in this hierarchy,
+      // with library matches first; a separate hand-built lookup had diverged
+      // from that behaviour and could silently fall back to Library Artists.
+      const albumSearchSession = `${prefix}${requestId}-album-search`;
+      const albumSearch = await this.search(service, zone, albumSearchSession, name, 'all', 'albums');
+      const allAlbumsRoute = Object.entries(albumSearch.search_routes || {})
+        .find(([key]) => key.endsWith('-all'))?.[1];
+      const albumSession = allAlbumsRoute?.session;
+      let albumResults = albumSession ? this.sessions.get(albumSession) : null;
+      if (!albumSession || !albumResults || albumResults.error) throw new Error('Global search did not return an Albums group');
       let albumCandidates = albumResults.items.filter(item => !item.action);
       for (let offset = PAGE_SIZE; offset < Math.min(albumResults.count, 2000); offset += 200) {
         const loaded = await request(service, 'load', {hierarchy:'search', multi_session_key:albumSession, level:albumResults.level, offset, count:200});
         albumCandidates.push(...(loaded.items || []).map(publicItem).filter(item => !item.action));
       }
-      // Search providers are inconsistent here: some return a clean artist
-      // credit, some append years/roles, and some omit the subtitle entirely.
-      // Prefer verified credits, but never turn a valid artist-scoped album
-      // search into an empty page merely because the provider omitted them.
-      const attributableAlbums = albumCandidates.filter(item =>
-        !String(item.subtitle || '').trim() || artistCreditMatches(item.subtitle, name));
-      let albums = attributableAlbums.length ? attributableAlbums : albumCandidates;
+      // These are already the ranked Albums results for the artist query.
+      // Preserve Roon's library/catalogue ordering rather than second-guessing
+      // it with a stricter local credit filter.
+      let albums = albumCandidates;
       const routes = {};
       albums = albums.map((album, index) => {
         const key = `artist-album-${index}`;

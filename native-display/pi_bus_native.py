@@ -3699,7 +3699,7 @@ class Display(Gtk.Application):
             key = self.queue_thumbnail_jobs.get()
             hero_size = 1200 if key in self.artist_hero_keys else 256
             url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size={hero_size}"
-            image = get_bytes(url, timeout=2.5)
+            image = get_bytes(url, timeout=6.0 if key in self.artist_hero_keys else 2.5)
             if image:
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
                 self.queue_artwork_light[key] = self.artwork_is_light(image)
