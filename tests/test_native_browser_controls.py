@@ -967,6 +967,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('source := self.queue_thumbnail_source.get(key)', code)
         self.assertIn('self.queue_thumbnail_source[key] = source', code)
         self.assertIn('self.queue_thumbnail_source.pop(old, None)', code)
+        self.assertIn('needs_image = key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)', code)
         self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
         self.assertIn('crop_y = max(0, round((height - crop_height) * .2))', code)
         self.assertIn('cropped.scale_simple(960, 540', code)

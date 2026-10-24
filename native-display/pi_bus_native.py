@@ -3804,7 +3804,8 @@ class Display(Gtk.Application):
         return False
 
     def retry_visible_thumbnail(self, key):
-        if (self.browser_pictures.get(key) or self.queue_pictures.get(key) or self.discovery_pictures.get(key)) and key not in self.queue_thumbnail_cache and key not in self.queue_thumbnail_pending:
+        needs_image = key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)
+        if (self.browser_pictures.get(key) or self.queue_pictures.get(key) or self.discovery_pictures.get(key)) and needs_image and key not in self.queue_thumbnail_pending:
             self.queue_thumbnail_pending.add(key); self.queue_thumbnail_jobs.put(key)
         return False
 

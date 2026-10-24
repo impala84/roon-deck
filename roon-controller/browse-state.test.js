@@ -45,7 +45,7 @@ test('album detail exposes one cover and honest optional metadata without alteri
   assert.equal(menu.album_profile, undefined);
 });
 
-test('artist links reuse global search and preserve its ranked albums outside the library', async () => {
+test('artist links open the exact global Search artist and retain its core-owned catalogue', async () => {
   const calls = [], paths = new Map();
   const service = {
     browse(options, done) {
@@ -65,25 +65,26 @@ test('artist links reuse global search and preserve its ranked albums outside th
         {title:'Catalogue Album',subtitle:'',item_key:'catalogue-album'},
         {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration'},
         {title:'Wrong Artist Album',subtitle:'Someone Else',item_key:'wrong-album'}]});
-      done(false, {list:{title:'Example Artist', level:3,count:1}, items:[{title:'Play Artist',hint:'action',item_key:'play'}]});
+      done(false, {list:{title:'Example Artist', level:3,count:3}, items:[
+        {title:'Play Artist',hint:'action',item_key:'play'},
+        {title:'Catalogue Album',subtitle:'Example Artist',item_key:'catalogue-album',image_key:'cover'},
+        {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration',image_key:'other'}]});
     },
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   const result = await manager.run('links', 'artist', {name:'Example Artist'});
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
-  assert.equal(result.items.find(item => item.title === 'Catalogue Album').item_key, 'artist-album-0');
-  assert.equal(result.items.find(item => item.title === 'Collaboration').item_key, 'artist-album-1');
-  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), true, 'global search ranking is not replaced by a local credit filter');
-  const route = result.search_routes['artist-album-0'];
-  assert.match(route.session, /-preview-0$/); assert.equal(route.key, 'catalogue-album');
+  assert.equal(result.items.find(item => item.title === 'Catalogue Album').item_key, 'catalogue-album');
+  assert.equal(result.items.find(item => item.title === 'Collaboration').item_key, 'collaboration');
+  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), false);
   assert.ok(calls.every(call => call.hierarchy === 'search'));
   await manager.run('links', 'artist', {name:'Example Artist'});
   const artistSessions = [...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-'));
-  assert.equal(artistSessions.length, 3, 'only the current artist and global album-search hierarchies remain');
-  assert.ok(artistSessions.every(key => key.includes('-2-')), 'the previous artist hierarchies are discarded');
+  assert.equal(artistSessions.length, 2, 'only the current global Search and artist-result hierarchies remain');
+  assert.ok(artistSessions.every(key => /-2(?:-|$)/.test(key)), 'the previous artist hierarchies are discarded');
 });
 
-test('artist links fall back to Library Artists only when catalogue search cannot resolve them', async () => {
+test('artist links never replace a missing global result with a library-only catalogue', async () => {
   const hierarchies = [];
   const service = {
     browse(options, done) {
@@ -104,9 +105,9 @@ test('artist links fall back to Library Artists only when catalogue search canno
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   const result = await manager.run('fallback', 'artist', {name:'Known Artist'});
-  assert.deepEqual(result.artist_profile, {name:'Known Artist',image_key:'portrait'});
+  assert.equal(result.artist_profile, undefined);
   assert.equal(hierarchies[0], 'search');
-  assert.ok(hierarchies.includes('browse'));
+  assert.equal(hierarchies.includes('browse'), false);
 });
 
 test('artist album clicks resolve a fresh routed session before opening the exact album', async () => {
