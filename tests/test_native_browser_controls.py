@@ -950,8 +950,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
         self.assertIn('hero_height = round(hero_width * 9 / 16)', code)
         self.assertIn('overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)', code)
-        self.assertIn('details.set_size_request(hero_width - 32, -1)', code)
-        self.assertIn('summary_slot.artist_summary_lines = 2', code)
+        self.assertIn('details.set_size_request(hero_width - (32 if original else 64), -1)', code)
+        self.assertIn('summary_slot.artist_summary_lines = 2 if original else 3', code)
+        self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
+        self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('background: linear-gradient(to bottom, transparent 0%', code)
 
     def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.20 Alpine — 24 October 2026
+
+- Makes artist and album results genuine equal-width columns on both seven-inch landscape displays.
+- Reorders the artist profile to show Play Artist first, then a larger left-aligned artist name and a larger, more generously spaced biography.
+- Constrains the biography measure inside the image boundary and gives Gen 1 its own tighter 800×480 sizing.
+
 ## 1.1.7-beta.19 Alpine — 24 October 2026
 
 - Fixes Browse Artist Albums by querying Roon's catalogue Albums search separately from the artist result, filtering it to the selected artist and retaining the session-owned keys used to open each album.

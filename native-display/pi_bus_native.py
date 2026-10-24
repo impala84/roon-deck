@@ -656,9 +656,12 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
+.touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
+.touch2-7-landscape .artist-profile .artist-bio { font-size: 19px; line-height: 1.38; }
 .original-landscape .artist-overlay-info { padding: 34px 12px 9px; }
 .original-landscape .artist-overlay-info .artist-name { font-size: 22px; }
 .original-landscape .artist-overlay-play { min-height: 38px; padding: 4px 12px; }
+.original-landscape .artist-profile .artist-bio { font-size: 15px; line-height: 1.25; }
 popover.sort-menu .track-menu-action:hover,
 popover.sort-menu .track-menu-action:focus { background: #18211f; box-shadow: none; }
 popover.sort-menu .track-menu-action.active,
@@ -2817,13 +2820,12 @@ class Display(Gtk.Application):
         portrait = getattr(self, "responsive_portrait", False)
         original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
         seven_landscape = not portrait and getattr(self, "viewport_height", 480) <= 720
-        panel = self.browser_artist_inline_panel if original else self.browser_artist_panel
-        inactive = self.browser_artist_panel if original else self.browser_artist_inline_panel
+        panel = self.browser_artist_panel
+        inactive = self.browser_artist_inline_panel
         inactive.set_visible(False)
-        if original and profile and panel.get_parent() is None: self.browser_list.append(panel)
         while child := panel.get_first_child(): panel.remove(child)
         panel.set_visible(bool(profile))
-        self.browser_artist_scroll.set_visible(bool(profile) and not original)
+        self.browser_artist_scroll.set_visible(bool(profile))
         if not profile: return
         viewport_width = getattr(self, "viewport_width", 800)
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
@@ -2833,14 +2835,13 @@ class Display(Gtk.Application):
             hero_width = 330 if original else min(480, round((viewport_width - 250) * .5))
             hero_height = round(hero_width * 9 / 16)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
-            self.browser_artist_scroll.set_size_request(hero_width + (0 if original else 18), 1)
+            self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
             self.browser_artist_scroll.set_min_content_height(hero_height + 92); self.browser_artist_scroll.set_max_content_height(hero_height + 118)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
             overlay_info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); overlay_info.add_css_class("artist-overlay-info"); overlay_info.set_halign(Gtk.Align.FILL); overlay_info.set_valign(Gtk.Align.END)
-            overlay_title = self.label(name, "artist-name", 0); overlay_title.set_wrap(True); overlay_title.set_max_width_chars(24); overlay_info.append(overlay_title)
             if play_action:
                 overlay_play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play artist-overlay-play")
                 overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)
@@ -2869,13 +2870,14 @@ class Display(Gtk.Application):
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER); details.set_hexpand(True)
         if seven_landscape:
-            details.set_halign(Gtk.Align.START); details.set_size_request(hero_width - 32, -1); details.set_margin_start(16); details.set_margin_end(16)
+            details.set_halign(Gtk.Align.START); details.set_size_request(hero_width - (32 if original else 64), -1); details.set_margin_start(16); details.set_margin_end(16 if original else 48)
+            details.set_margin_top(0 if original else 14)
         panel.append(details)
-        if not seven_landscape:
-            title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
+        title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
+        if seven_landscape: title.set_xalign(0)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
-        summary_slot.artist_summary_lines = 2 if seven_landscape else 5
-        summary_slot.artist_summary_chars = max(28, round((hero_width - 32) / 9)) if seven_landscape else 52
+        summary_slot.artist_summary_lines = 2 if original else 3 if seven_landscape else 5
+        summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
         if play_action and not seven_landscape:
             play = self.labelled_icon_button("play", "Play Artist", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
@@ -2894,6 +2896,7 @@ class Display(Gtk.Application):
                 if slot.get_root() is None: return False
                 while child := slot.get_first_child(): slot.remove(child)
                 summary = self.label(profile.get("full_writeup") or profile.get("writeup") or "Artist summary is temporarily unavailable.", "queue-meta")
+                summary.add_css_class("artist-bio")
                 summary.set_wrap(True); summary.set_lines(getattr(slot, "artist_summary_lines", 5)); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(getattr(slot, "artist_summary_chars", 52)); slot.append(summary)
                 if profile.get("source"): slot.append(self.label(profile["source"], "artist-source"))
                 return False
@@ -3356,8 +3359,9 @@ class Display(Gtk.Application):
             items = [item for item in items if item is not artist_play]
         self.browser_list.set_valign(Gtk.Align.START if data.get("layout") == "list" else Gtk.Align.FILL)
         browser_content = self.browser_artist_scroll.get_parent()
-        original_artist = bool(data.get("artist_profile")) and not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and (getattr(self, "responsive_portrait", False) or original_artist) else Gtk.Orientation.HORIZONTAL)
+        even_artist_columns = bool(data.get("artist_profile")) and not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) < 1500 and getattr(self, "viewport_height", 480) <= 720
+        browser_content.set_homogeneous(even_artist_columns)
+        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = data.get("layout") or "list"
