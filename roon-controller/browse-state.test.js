@@ -128,6 +128,28 @@ test('artist album clicks resolve a fresh routed session before opening the exac
   assert.equal(result.album_profile.name, 'Wanted Album');
 });
 
+test('Play Artist Radio executes Start Radio without exposing the intermediate menu', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) {
+      calls.push(options.item_key);
+      if (options.item_key === 'play-artist') return done(false, {action:'list', list:{title:'Play Artist',level:4,count:2}});
+      if (options.item_key === 'start-radio') return done(false, {action:'message',message:'Radio started'});
+      done('unexpected action');
+    },
+    load(_options, done) { done(false, {items:[
+      {title:'Shuffle',hint:'action',item_key:'shuffle'},
+      {title:'Start Radio',hint:'action',item_key:'start-radio'}
+    ]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('pihome-radio', {hierarchy:'search',level:3,title:'Artist',items:[{title:'Play Artist Radio',action:true,item_key:'play-artist'}],artist_profile:{name:'Artist'}});
+  const result = await manager.run('radio', 'open', {item_key:'play-artist'});
+  assert.deepEqual(calls, ['play-artist', 'start-radio']);
+  assert.equal(result.navigate, 'now');
+  assert.equal(result.items[0].title, 'Play Artist Radio');
+});
+
 test('successful queue actions return from the popup to album tracks without replaying the action', async () => {
   const calls = [];
   const service = {

@@ -367,7 +367,7 @@ function renderArtistProfile(profile, playAction) {
   browseArtwork(artwork, profile.image_key, 400, true); panel.append(artwork);
   const title = document.createElement('h2'); title.textContent = profile.name; panel.append(title);
   if (playAction) {
-    const play = document.createElement('button'); play.className = 'artist-play'; play.append(PiHomeIcons.element('play'), document.createTextNode(' Play Artist'));
+    const play = document.createElement('button'); play.className = 'artist-play'; play.append(PiHomeIcons.element('play'), document.createTextNode(' Play Artist Radio'));
     play.onclick = () => browseCommand('open', {item_key: playAction.item_key}); panel.append(play);
   }
 }
@@ -375,7 +375,7 @@ function renderArtistProfile(profile, playAction) {
 function renderBrowser(data) {
   browserRendering = true; browserState = data; browserLoading = false;
   $('browser-view').classList.toggle('surprise-takeover', Boolean(data.surprise_preview));
-  const artistPlay = data.artist_profile ? data.items?.find(item => item.action && /^play artist$/i.test(item.title.trim())) : null;
+  const artistPlay = data.artist_profile ? data.items?.find(item => item.action && /^play artist(?: radio)?$/i.test(item.title.trim())) : null;
   renderArtistProfile(data.artist_profile, artistPlay);
   document.querySelector('.browser-sidebar').append($('browser-back'));
   $('browser-back').hidden = !data.can_back || Boolean(data.surprise_preview); $('browser-back').disabled = !data.can_back; $('browser-loading-more').hidden = true;

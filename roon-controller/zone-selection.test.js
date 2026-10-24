@@ -25,3 +25,25 @@ test('a blank zone setting continues to follow active playback', () => {
   ];
   assert.equal(select('  ', zones).zone_id, 'playing');
 });
+
+test('a configured output follows its grouped zone', () => {
+  const grouped = {
+    zone_id: 'group', display_name: 'Study + Main', state: 'playing',
+    outputs: [
+      {output_id: 'study-output', display_name: 'Study'},
+      {output_id: 'main-output', display_name: 'Main'}
+    ]
+  };
+  assert.equal(select('Study', [grouped]).zone_id, 'group');
+  assert.equal(select('Main', [grouped]).zone_id, 'group');
+});
+
+test('volume selection stays with the configured output inside a group', () => {
+  const context = vm.createContext({configuredZoneName: () => 'Study'});
+  vm.runInContext(source.slice(start, end), context);
+  const grouped = {outputs: [
+    {output_id: 'main-output', display_name: 'Main', volume: {value: 40}},
+    {output_id: 'study-output', display_name: 'Study', volume: {value: 22}}
+  ]};
+  assert.equal(context.selectedOutput(grouped).output_id, 'study-output');
+});
