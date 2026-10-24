@@ -18,7 +18,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE_SOURCE = ROOT / "native-display" / "pi_bus_native.py"
 BASELINE = ROOT / "tools" / "native_css_conflicts.json"
-MAX_CONFLICTING_SELECTORS = 24
+# Four responsive page rules intentionally repeat declarations. Flattening
+# them changes GTK's minimum-size calculation on the 1280x720 appliance even
+# when the apparent final property values are identical.
+MAX_CONFLICTING_SELECTORS = 4
 
 
 def embedded_css(source: str) -> str:

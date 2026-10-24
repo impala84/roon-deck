@@ -1,38 +1,8 @@
 {
-  ".browser-filter": {
-    "border-radius": [
-      "0",
-      "8px"
-    ],
-    "min-height": [
-      "44px",
-      "58px"
-    ],
-    "padding": [
-      "5px 0",
-      "8px 10px"
-    ]
-  },
-  ".browser-filter.active": {
-    "background": [
-      "#19302a",
-      "transparent"
-    ],
-    "color": [
-      "#6ed9ae",
-      "#f4f0e6"
-    ]
-  },
   ".bus-page": {
     "padding-top": [
       "%dpx",
       "8px"
-    ]
-  },
-  ".detail-close": {
-    "border": [
-      "0",
-      "2px solid #6ed9ae"
     ]
   },
   ".display-landscape .bus-page": {
@@ -55,152 +25,10 @@
       "28px"
     ]
   },
-  ".large-display .browser-back": {
-    "min-height": [
-      "64px",
-      "72px"
-    ],
-    "min-width": [
-      "132px",
-      "150px"
-    ],
-    "padding": [
-      "10px 20px",
-      "12px 24px"
-    ]
-  },
-  ".portrait .browser-cover-grid": {
-    "padding": [
-      "0 0 18px",
-      "0 8px 12px"
-    ]
-  },
-  ".portrait .browser-filter": {
-    "min-height": [
-      "38px",
-      "48px"
-    ],
-    "padding": [
-      "4px 6px",
-      "6px 10px"
-    ]
-  },
-  ".portrait .browser-sidebar": {
-    "padding": [
-      "0 0 14px",
-      "0 0 8px"
-    ]
-  },
-  ".portrait .discover-toolbar .roon-subnav button": {
-    "min-height": [
-      "30px",
-      "38px"
-    ],
-    "padding-bottom": [
-      "0",
-      "1px"
-    ]
-  },
-  ".portrait .recommendation-heading": {
-    "margin-left": [
-      "0",
-      "4px"
-    ]
-  },
-  ".portrait .roon-page": {
-    "padding-right": [
-      "24px",
-      "30px"
-    ],
-    "padding-top": [
-      "6px",
-      "9px"
-    ]
-  },
-  ".portrait .roon-subnav button": {
-    "font-size": [
-      "15px",
-      "16px"
-    ],
-    "min-height": [
-      "32px",
-      "48px"
-    ],
-    "padding": [
-      "2px 2px",
-      "6px 12px"
-    ]
-  },
-  ".portrait .settings-page .settings-title": {
-    "font-size": [
-      "26px",
-      "30px"
-    ]
-  },
-  ".portrait.compact-portrait .settings-page .settings-title": {
-    "font-size": [
-      "22px",
-      "24px"
-    ]
-  },
-  ".portrait.large-portrait .roon-page": {
-    "padding-left": [
-      "30px",
-      "38px"
-    ],
-    "padding-right": [
-      "30px",
-      "38px"
-    ],
-    "padding-top": [
-      "15px",
-      "24px"
-    ]
-  },
-  ".touch-landscape .browser-filter": {
-    "min-height": [
-      "44px",
-      "62px"
-    ]
-  },
   ".touch-landscape .bus-page": {
     "padding-top": [
       "10px",
       "8px"
-    ]
-  },
-  ".touch-landscape .roon-subnav button": {
-    "min-height": [
-      "42px",
-      "54px"
-    ],
-    "padding": [
-      "2px 14px 4px",
-      "8px 18px 5px"
-    ]
-  },
-  ".touch-landscape .settings-page .setting-line": {
-    "min-height": [
-      "62px",
-      "72px"
-    ]
-  },
-  ".touch-landscape .settings-page .settings-card": {
-    "padding": [
-      "0",
-      "8px 10px"
-    ]
-  },
-  ".touch-landscape .stop": {
-    "font-size": [
-      "34px",
-      "42px"
-    ]
-  },
-  ".touch-landscape .stop-code": {
-    "font-size": [
-      "34px",
-      "42px"
     ]
   }
 }

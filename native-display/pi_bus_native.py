@@ -222,11 +222,11 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .arrival-sub { color: #7f8b87; font-size: 10px; font-weight: 650; }.muted { color: #78837f; font-size: 11px; font-weight: 400; }
 .nav { padding-top: 3px; }.nav button { min-width: 0; min-height: 40px; border: 0; border-bottom: 5px solid transparent; border-radius: 0; background: transparent; color: #7f8b87; font-size: 14px; font-weight: 700; }
 .nav button.active { border-bottom-color: #6ed9ae; background: transparent; color: #dfe4e1; }.artwork { border-radius: 12px; }.roon-title { font-size: 35px; font-weight: 620; }.roon-artist { color: #b6c0bc; font-size: 18px; }
-.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 92px; padding: 14px 28px; background: #000; }.detail-close { min-width: 56px; min-height: 56px; border: 2px solid #6ed9ae; border-radius: 50%; padding: 0; background: transparent; color: #fff; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 12px 34px 24px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #6ed9ae; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork-frame, .detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 20px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 500; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #858b89; font-size: 15px; font-weight: 500; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #173a30; color: #6ed9ae; font-size: 19px; font-weight: 750; }.detail-footer { padding: 10px 28px 28px; background: #000; }.detail-footer .detail-primary-action { min-height: 68px; margin: 0; background: #6ed9ae; color: #111; font-size: 26px; font-weight: 800; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; }.detail-track-no { color: #6ed9ae; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
+.artwork-button { padding: 0; border-radius: 12px; background: transparent; }.detail-takeover { padding: 0; background: #000; }.detail-header { min-height: 92px; padding: 14px 28px; background: #000; }.detail-close { min-width: 56px; min-height: 56px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: #fff; }.detail-sheet-scroll { background: #000; }.detail-panel { padding: 12px 34px 24px; }.detail-entity { padding: 0 12px; background: transparent; }.detail-section-label { margin-top: 10px; color: #6ed9ae; font-size: 15px; font-weight: 800; letter-spacing: 2px; }.detail-artwork-frame, .detail-artwork { border-radius: 12px; background: #242424; }.detail-title { font-size: 35px; font-weight: 680; }.detail-artist { color: #b6c0bc; font-size: 22px; }.detail-subtitle { color: #84908c; font-size: 16px; }.detail-writeup { color: #d3d9d6; font-size: 20px; line-height: 1.5; }.detail-source { color: #78837f; font-size: 13px; font-weight: 500; }.detail-facts { padding: 10px 0 14px; }.detail-fact { color: #858b89; font-size: 15px; font-weight: 500; }.detail-action { min-height: 58px; margin-top: 10px; border-radius: 10px; background: #173a30; color: #6ed9ae; font-size: 19px; font-weight: 750; }.detail-footer { padding: 10px 28px 28px; background: #000; }.detail-footer .detail-primary-action { min-height: 68px; margin: 0; background: #6ed9ae; color: #111; font-size: 26px; font-weight: 800; }.detail-tracks { padding-top: 5px; }.detail-track { min-height: 38px; padding: 5px 6px; }.detail-track-no { color: #6ed9ae; font-size: 13px; }.detail-track-title { color: #f4f0e6; font-size: 16px; }
 .roon-subnav { margin-top: 0; }.roon-subnav button { min-height: 29px; padding: 4px 13px 2px; border-radius: 0; border-top: 3px solid transparent; background: transparent; color: #68736f; font-size: 10px; font-weight: 750; letter-spacing: 1px; }.roon-subnav button.active { border-top-color: #5bcbd6; color: #f4f0e6; }
 .source-view { padding: 8px; }.source-title { font-size: 25px; font-weight: 700; }.source-volume { font-size: 104px; font-weight: 620; font-variant-numeric: tabular-nums; }.source-step { min-width: 92px; min-height: 92px; padding: 0; border-radius: 999px; background: #18211f; color: #fff; font-size: 45px; }.source-mute { min-width: 92px; min-height: 38px; border-radius: 8px; background: #18211f; color: #dfe4e1; font-size: 11px; font-weight: 750; }
 .queue-scroll { background: transparent; }.queue-scroll scrollbar { opacity: 0; min-width: 0; min-height: 0; }.queue-list { padding: 5px 8px 8px; }.queue-row { min-height: 78px; padding: 7px 11px; border-radius: 8px; background: transparent; color: #f4f0e6; }.queue-row.current { background: #121e1c; }.queue-row.previous { opacity: .5; }.queue-art { min-width: 66px; min-height: 66px; border-radius: 6px; background: #18211f; }.queue-art-stack { min-width: 66px; min-height: 66px; }.queue-title { color: #f4f0e6; font-size: 20px; font-weight: 650; }.queue-meta { color: #84908c; font-size: 15px; }.queue-duration { min-width: 72px; padding-right: 16px; color: #aab4b0; font-size: 26px; font-variant-numeric: tabular-nums; }.queue-empty { color: #78837f; font-size: 15px; padding: 60px 0; }
-.browser-view { padding: 2px 4px 10px; }.browser-sidebar { min-width: 132px; padding: 4px 5px 4px 0; }.browser-filter { min-height: 58px; padding: 8px 10px; border-radius: 8px; background: transparent; color: #84908c; font-size: 16px; font-weight: 720; }.browser-filter.active { background: #19302a; color: #f4f0e6; }.browser-main { padding-left: 3px; }.browser-back { min-width: 70px; min-height: 40px; margin: 8px 0 0; padding: 4px 10px; border: 0; border-radius: 7px; background: #303030; color: #fff; font-size: 13px; font-weight: 750; }.browser-message { padding: 3px 8px; color: #7f8b87; font-size: 12px; }.browser-row { min-height: 78px; padding: 7px 12px; border-radius: 10px; background: transparent; color: #f4f0e6; }.browser-row:hover, .browser-row:active { background: transparent; box-shadow: none; outline: none; transform: none; transition: none; }.browser-action-icon { min-width: 66px; min-height: 66px; border-radius: 6px; background: #18211f; color: #6ed9ae; }.browser-arrow { min-width: 44px; color: #84908c; font-size: 15px; font-variant-numeric: tabular-nums; }.browser-scrubber { min-width: 64px; padding-left: 3px; }.browser-scrubber scale { min-width: 28px; padding: 8px; }.browser-scrubber trough { min-width: 5px; border: 0; border-radius: 3px; background: #25312e; }.browser-scrubber highlight { background: #25312e; }.browser-scrubber slider { min-width: 18px; min-height: 18px; border: 0; border-radius: 9px; background: #6ed9ae; }.browser-scrub-letter { min-width: 34px; min-height: 34px; background: transparent; color: #6ed9ae; font-size: 16px; font-weight: 800; }.browser-section { padding: 15px 8px 12px; color: #6ed9ae; font-size: 17px; font-weight: 750; letter-spacing: 1px; }
+.browser-view { padding: 2px 4px 10px; }.browser-sidebar { min-width: 132px; padding: 4px 5px 4px 0; }.browser-filter { min-height: 44px; padding: 5px 0; border: 0; border-radius: 0; background: transparent; color: #84908c; font-size: 16px; font-weight: 720; }.browser-filter.active { border: 0; background: transparent; color: #6ed9ae; }.browser-main { padding-left: 3px; }.browser-back { min-width: 70px; min-height: 40px; margin: 8px 0 0; padding: 4px 10px; border: 0; border-radius: 7px; background: #303030; color: #fff; font-size: 13px; font-weight: 750; }.browser-message { padding: 3px 8px; color: #7f8b87; font-size: 12px; }.browser-row { min-height: 78px; padding: 7px 12px; border-radius: 10px; background: transparent; color: #f4f0e6; }.browser-row:hover, .browser-row:active { background: transparent; box-shadow: none; outline: none; transform: none; transition: none; }.browser-action-icon { min-width: 66px; min-height: 66px; border-radius: 6px; background: #18211f; color: #6ed9ae; }.browser-arrow { min-width: 44px; color: #84908c; font-size: 15px; font-variant-numeric: tabular-nums; }.browser-scrubber { min-width: 64px; padding-left: 3px; }.browser-scrubber scale { min-width: 28px; padding: 8px; }.browser-scrubber trough { min-width: 5px; border: 0; border-radius: 3px; background: #25312e; }.browser-scrubber highlight { background: #25312e; }.browser-scrubber slider { min-width: 18px; min-height: 18px; border: 0; border-radius: 9px; background: #6ed9ae; }.browser-scrub-letter { min-width: 34px; min-height: 34px; background: transparent; color: #6ed9ae; font-size: 16px; font-weight: 800; }.browser-section { padding: 15px 8px 12px; color: #6ed9ae; font-size: 17px; font-weight: 750; letter-spacing: 1px; }
 .browser-home-grid, .browser-cover-grid { padding: 3px 3px 18px; }.browser-home-card { min-height: 270px; padding: 22px 14px; border-radius: 14px; background: #131c1a; color: #f4f0e6; }.browser-home-card.compact { min-height: 150px; }.browser-home-card:hover, .browser-home-card:active { background: transparent; box-shadow: none; outline: none; transform: none; transition: none; }.browser-home-icon { color: #6ed9ae; font-size: 64px; font-weight: 350; }.browser-home-title { color: #f4f0e6; font-size: 21px; font-weight: 720; }.browser-cover-card { min-height: 0; padding: 3px; border-radius: 10px; background: transparent; color: #f4f0e6; }.browser-cover-card:hover, .browser-cover-card:active { background: transparent; box-shadow: none; outline: none; transform: none; transition: none; }.browser-cover-art { min-width: 0; min-height: 0; border-radius: 8px; background: #18211f; }.browser-tile-icon { color: #6ed9ae; font-size: 54px; font-weight: 500; }.browser-cover-title { padding-top: 6px; color: #f4f0e6; font-size: 14px; font-weight: 650; }.browser-cover-title.tile { padding: 14px 8px 9px; background: transparent; color: #f4f0e6; font-size: 18px; font-weight: 760; }.browser-cover-subtitle { color: #87928e; font-size: 11px; }
 .transport button { min-width: 50px; min-height: 50px; border-radius: 25px; padding: 0; background: #18211f; color: #e4e7e4; }.transport .play { min-width: 68px; min-height: 68px; border-radius: 34px; background: #285f4d; }
 .progress trough, .volume trough { min-height: 7px; border: 0; box-shadow: none; border-radius: 4px; background: #303a37; }.progress highlight, .volume highlight { border: 0; box-shadow: none; background: #6ed9ae; }.time { color: #87928e; font-size: 12px; }
@@ -238,11 +238,10 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .stop-row { margin-bottom: 4px; }.home-grid { padding: 5px 0 1px; }.home-tile { min-height: 112px; border-radius: 20px; padding: 7px 9px 6px; background: #131c1a; border: 1px solid #293633; color: #aab4b0; }.home-tile.on { background: #173229; border-color: #35785f; color: #f4f0e6; }.home-tile.activated { background: #173b31; border-color: #6ed9ae; box-shadow: 0 0 18px rgba(110,217,174,.6); }.home-device-button { min-height: 88px; padding: 0; background: transparent; color: #9aaba5; }.home-tile.on .home-device-button, .home-tile.activated .home-device-button { color: #6ed9ae; }.home-icon { opacity: .82; }.home-name { font-size: 15px; font-weight: 700; }.home-state { color: #7f8b87; font-size: 11px; }.home-level { min-width: 28px; min-height: 88px; }.home-level trough { min-width: 7px; border-radius: 4px; background: #303a37; }.home-level highlight { background: #6ed9ae; border-radius: 4px; }.home-level slider { min-width: 20px; min-height: 20px; border-radius: 10px; background: #f4f0e6; }
 .high-resolution .page { padding: 21px 30px 15px; }.high-resolution .stop, .high-resolution .stop-code { font-size: 38px; }.high-resolution .clock { font-size: 47px; }.high-resolution .eyebrow { font-size: 17px; }.high-resolution .service { border-radius: 20px; padding: 8px 24px; }.high-resolution .service-no, .high-resolution .arrival { font-size: 123px; }.high-resolution .service.compact .service-no, .high-resolution .service.compact .arrival { font-size: 89px; }.high-resolution .service.dense .service-no, .high-resolution .service.dense .arrival { font-size: 68px; }.high-resolution .arrival-sub { font-size: 15px; }.high-resolution .muted { font-size: 16px; }.high-resolution .artwork { min-width: 420px; min-height: 420px; }.high-resolution .roon-title { font-size: 52px; }.high-resolution .roon-artist { font-size: 27px; }.high-resolution .nav button { min-height: 60px; font-size: 21px; }
 .high-resolution .roon-subnav button { min-height: 44px; font-size: 15px; }.high-resolution .transport button { min-width: 75px; min-height: 75px; border-radius: 38px; }.high-resolution .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }.high-resolution .queue-row { min-height: 99px; }.high-resolution .queue-art, .high-resolution .browser-action-icon { min-width: 84px; min-height: 84px; }.high-resolution .queue-title { font-size: 24px; }.high-resolution .queue-meta { font-size: 18px; }.high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }.high-resolution .detail-close { min-width: 72px; min-height: 72px; }.high-resolution .detail-panel { padding: 10px 34px 64px; }.high-resolution .detail-entity { padding: 0 18px; }.high-resolution .detail-section-label { font-size: 18px; }.high-resolution .detail-title { font-size: 45px; }.high-resolution .detail-artist { font-size: 28px; }.high-resolution .detail-writeup { font-size: 24px; }.high-resolution .detail-source { font-size: 15px; }.high-resolution .detail-fact { font-size: 18px; }.high-resolution .detail-action { min-height: 74px; font-size: 23px; }.high-resolution .detail-footer .detail-primary-action { min-height: 82px; font-size: 30px; }.high-resolution .detail-track-title { font-size: 20px; }
-.touch-landscape .page { padding: 18px 28px 14px; }.touch-landscape .service-no, .touch-landscape .arrival { font-size: 138px; }.touch-landscape .service-no { min-width: 205px; }.touch-landscape .arrival-sub { font-size: 17px; }.touch-landscape .stop, .touch-landscape .stop-code { font-size: 42px; }.touch-landscape .clock { font-size: 50px; }.touch-landscape .nav button { min-height: 58px; font-size: 22px; }.touch-landscape .roon-subnav button { min-height: 54px; padding: 8px 18px 5px; font-size: 18px; }.touch-landscape .artwork { min-width: 320px; min-height: 320px; }.touch-landscape .roon-title { font-size: 46px; }.touch-landscape .roon-artist { font-size: 25px; }.touch-landscape .transport button { min-width: 70px; min-height: 70px; border-radius: 35px; }.touch-landscape .transport .play { min-width: 88px; min-height: 88px; border-radius: 44px; }.touch-landscape .settings-title { font-size: 43px; }.touch-landscape .settings-card { padding: 24px 28px; }.touch-landscape .settings-card .muted, .touch-landscape .settings-diagnostic { font-size: 17px; }.touch-landscape .settings-select { min-height: 70px; font-size: 19px; }.touch-landscape .setting-line { min-height: 78px; padding: 0 18px; }.touch-landscape .setting-line label, .touch-landscape .setting-line checkbutton { font-size: 19px; }.touch-landscape .setting-line check { min-width: 30px; min-height: 30px; }.touch-landscape .settings-action { min-height: 74px; font-size: 20px; }.touch-landscape .settings-controls { padding: 12px 0; }.touch-landscape .utility { min-width: 118px; min-height: 52px; font-size: 16px; }
+.touch-landscape .page { padding: 18px 28px 14px; }.touch-landscape .service-no, .touch-landscape .arrival { font-size: 138px; }.touch-landscape .service-no { min-width: 205px; }.touch-landscape .arrival-sub { font-size: 17px; }.touch-landscape .stop, .touch-landscape .stop-code { font-size: 34px; }.touch-landscape .clock { font-size: 50px; }.touch-landscape .nav button { min-height: 58px; font-size: 22px; }.touch-landscape .roon-subnav button { min-height: 42px; padding: 2px 14px 4px; font-size: 18px; }.touch-landscape .artwork { min-width: 320px; min-height: 320px; }.touch-landscape .roon-title { font-size: 46px; }.touch-landscape .roon-artist { font-size: 25px; }.touch-landscape .transport button { min-width: 70px; min-height: 70px; border-radius: 35px; }.touch-landscape .transport .play { min-width: 88px; min-height: 88px; border-radius: 44px; }.touch-landscape .settings-title { font-size: 43px; }.touch-landscape .settings-card { padding: 24px 28px; }.touch-landscape .settings-card .muted, .touch-landscape .settings-diagnostic { font-size: 17px; }.touch-landscape .settings-select { min-height: 70px; font-size: 19px; }.touch-landscape .setting-line { min-height: 78px; padding: 0 18px; }.touch-landscape .setting-line label, .touch-landscape .setting-line checkbutton { font-size: 19px; }.touch-landscape .setting-line check { min-width: 30px; min-height: 30px; }.touch-landscape .settings-action { min-height: 74px; font-size: 20px; }.touch-landscape .settings-controls { padding: 12px 0; }.touch-landscape .utility { min-width: 118px; min-height: 52px; font-size: 16px; }
 .boot-splash { background: #000; }.boot-wordmark, .settings-wordmark { min-width: 0; min-height: 0; }
 .touch-landscape .header-title { transform: translateY(-5px); }
 .touch-landscape .bus-number-choice { padding-left: 0; padding-right: 0; font-size: 14px; }
-.touch-landscape .stop, .touch-landscape .stop-code { font-size: 34px; }
 .touch-landscape .stop-row { margin-bottom: 14px; }
 .touch-landscape .service { border-width: 2px; padding-top: 11px; padding-bottom: 11px; }
 .touch-landscape .home-tile { border-width: 2px; }
@@ -251,13 +250,12 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .home-device-button.scene-action.activated { color: #6ed9ae; }
 .touch-landscape .home-page { padding-top: 10px; }
 .touch-landscape .roon-page { padding-top: 8px; }
-.touch-landscape .roon-subnav button { min-height: 42px; padding: 2px 14px 4px; }
 .touch-landscape .source-volume { font-size: 220px; font-weight: 450; }.touch-landscape .source-step { min-width: 112px; min-height: 112px; border-radius: 56px; font-size: 58px; }.touch-landscape .source-mute { min-width: 160px; min-height: 62px; font-size: 20px; }
 .touch-landscape .time { font-size: 20px; }.touch-landscape .volume-number { font-size: 26px; }
-.touch-landscape .browser-back { font-size: 15px; }.touch-landscape .browser-filter { min-height: 62px; font-size: 17px; }.touch-landscape .browser-row { min-height: 88px; }.touch-landscape .browser-home-card { min-height: 290px; }.touch-landscape .browser-home-icon { font-size: 78px; }.touch-landscape .browser-home-title { font-size: 26px; }.touch-landscape .browser-cover-title { font-size: 16px; }.touch-landscape .browser-cover-title.tile { font-size: 21px; }.touch-landscape .browser-scrub-letter { font-size: 18px; }
+.touch-landscape .browser-back { font-size: 15px; }.touch-landscape .browser-filter { font-size: 17px; }.touch-landscape .browser-row { min-height: 88px; }.touch-landscape .browser-home-card { min-height: 290px; }.touch-landscape .browser-home-icon { font-size: 78px; }.touch-landscape .browser-home-title { font-size: 26px; }.touch-landscape .browser-cover-title { font-size: 16px; }.touch-landscape .browser-cover-title.tile { font-size: 21px; }.touch-landscape .browser-scrub-letter { font-size: 18px; }
 .touch-landscape .settings-page { padding-top: 18px; padding-bottom: 18px; }.touch-landscape .settings-page button { padding: 8px 20px; }
-.touch-landscape .settings-page .settings-card { padding: 8px 10px; border: 0; background: transparent; }
-.touch-landscape .settings-page .setting-line { min-height: 72px; padding: 5px 18px; }.touch-landscape .settings-page .setting-line checkbutton label { margin-left: 16px; }
+.touch-landscape .settings-page .settings-card { padding: 0; border: 0; background: transparent; }
+.touch-landscape .settings-page .setting-line { min-height: 62px; padding: 5px 18px; }.touch-landscape .settings-page .setting-line checkbutton label { margin-left: 16px; }
 .touch-landscape .settings-page .brightness-setting { padding-top: 6px; padding-bottom: 6px; }
 .touch-landscape .settings-page .settings-select { min-height: 62px; padding: 5px 18px; }
 .touch-landscape .settings-page .settings-diagnostic { line-height: 1.25; }
@@ -268,8 +266,6 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 CSS += b"""
 .clock { font-weight: 300; color: #b4bfba; }
 .stop { color: #f5f1e8; }.stop-code { color: #777; }
-.browser-filter, .touch-landscape .browser-filter { min-height: 44px; padding: 5px 0; border-radius: 0; border: 0; background: transparent; }
-.browser-filter.active, .touch-landscape .browser-filter.active { background: transparent; border: 0; color: #6ed9ae; }
 .theme-roon, .theme-roon .page { background: #151515; color: #f5f5f5; }
 .theme-roon .roon-page { background: linear-gradient(120deg, #242338, #181818 60%, #251c22); }
 .theme-roon .browser-filter.active, .theme-roon .touch-landscape .browser-filter.active { color: #9868F9; }
@@ -379,7 +375,6 @@ CSS += b"""
 .touch2-7-landscape .mix-controls button { min-height: 52px; padding: 8px 18px; }
 .touch2-7-landscape .mix-controls .artist-play { margin-top: 0; }
 .portrait .page { padding: 22px 24px 16px; }
-.portrait .roon-page { padding-right: 24px; }
 .portrait .roon-header, .portrait .roon-page .nav, .portrait .now-playing-content, .portrait .queue-scroll, .portrait .source-view { margin-right: 0; }
 .portrait .now-playing-content { margin: 32px 0 8px 0; }
 .portrait.compact-portrait .now-playing-content { margin-top: 24px; }
@@ -392,9 +387,9 @@ CSS += b"""
 .portrait .transport button { min-width: 64px; min-height: 64px; border-radius: 32px; }
 .portrait .transport .play { min-width: 82px; min-height: 82px; border-radius: 41px; }
 .portrait .nav button { min-height: 58px; font-size: 18px; }
-.portrait .roon-subnav button { min-height: 48px; padding: 6px 12px; font-size: 15px; }
-.portrait .browser-sidebar { padding: 0 0 8px; }
-.portrait .browser-filter { min-height: 48px; padding: 6px 10px; }
+.portrait .roon-subnav button { min-height: 32px; padding: 2px; border-top: 0; border-bottom: 3px solid transparent; font-size: 16px; letter-spacing: .6px; }
+.portrait .browser-sidebar { min-width: 0; padding: 0 0 14px; }
+.portrait .browser-filter { min-height: 38px; padding: 4px 0; font-size: 16px; font-weight: 500; }
 .portrait .browser-back { margin: 0; }
 .portrait .queue-row { min-height: 92px; }
 .portrait .settings-card { padding: 20px; }
@@ -422,22 +417,16 @@ CSS += b"""
 .settings-page .brightness-setting { padding-top: 6px; }
 .settings-page .brightness-setting scale { min-height: 44px; padding: 8px 10px; }
 .touch-landscape .settings-page { padding: 26px 28px; }
-.touch-landscape .settings-page .settings-card { padding: 0; }
 .touch-landscape .settings-page .settings-version { font-size: 17px; }
 .touch-landscape .settings-page .settings-diagnostic { font-size: 17px; }
 .touch-landscape .settings-page .settings-title { font-size: 43px; }
 .touch-landscape .settings-page .settings-controls { padding: 8px 0 0; }
-.touch-landscape .settings-page .setting-line, .touch-landscape .settings-page .settings-select { min-height: 62px; padding: 5px 18px; }
+.touch-landscape .settings-page .settings-select { min-height: 62px; padding: 5px 18px; }
 .touch-landscape .settings-page .brightness-setting { padding: 5px 18px; }
 .touch-landscape .settings-page .settings-action { min-height: 62px; }
-.portrait .settings-page .settings-title { font-size: 26px; }
-.portrait.compact-portrait .settings-page .settings-title { font-size: 22px; }
-.portrait .roon-page { padding-top: 6px; }
-.portrait .roon-subnav button { border-top: 0; border-bottom: 3px solid transparent; min-height: 32px; padding: 2px 2px; letter-spacing: .6px; font-size: 16px; }
 .portrait .browser-view .queue-scroll { margin-right: 0; }
 .portrait .daily-track { padding-left: 0; }
 .bus-footer .muted { color: #888; }
-.portrait .recommendation-heading { margin-left: 4px; }
 .portrait .stop, .portrait .stop-code { font-size: 26px; }
 .portrait.compact-portrait .stop, .portrait.compact-portrait .stop-code { font-size: 22px; }
 .portrait .service { padding: 18px 12px; }
@@ -453,7 +442,6 @@ CSS += b"""
 .portrait .service.compact, .portrait .service.dense { padding: 12px; }
 .portrait .roon-subnav button.active { border-bottom-color: #5bcbd6; }
 .portrait.theme-roon .roon-subnav button.active { border-bottom-color: #9868F9; }
-.portrait .browser-sidebar { min-width: 0; }
 .portrait .service-no { min-width: 0; font-size: 108px; }
 .portrait .arrival { font-size: 96px; }
 .portrait .service.compact .service-no, .portrait .service.dense .service-no { font-size: 58px; }
@@ -463,7 +451,7 @@ CSS += b"""
 .portrait .home-name { font-size: 21px; }
 .portrait .home-state { font-size: 14px; }
 .portrait.compact-portrait .roon-subnav button { font-size: 12px; min-height: 32px; letter-spacing: .4px; }
-.portrait.compact-portrait .browser-filter { font-size: 12px; min-height: 40px; padding: 4px 6px; }
+.portrait.compact-portrait .browser-filter { min-height: 40px; padding: 4px 0; font-size: 12px; }
 .portrait .discover-toolbar { padding: 4px 0 0; }
 .discover-utility { background: transparent; border: 0; padding: 0; min-width: 36px; min-height: 42px; color: #6ed9ae; }
 .discover-sleep { color: #888; }
@@ -475,22 +463,16 @@ CSS += b"""
 .recommendation-album { color: #fff; font-size: 18px; }
 .display-landscape .recommendation-heading, .display-landscape .recommendation-album { margin-left: 10px; margin-right: 0; }
 .display-landscape .discovery-card, .display-landscape .discovery-card:hover, .display-landscape .discovery-card:active { padding: 0; }
-.portrait .discover-toolbar .roon-subnav button { font-weight: 500; letter-spacing: 0; padding: 4px 0; min-height: 38px; }
+.portrait .discover-toolbar .roon-subnav button { min-height: 30px; padding: 4px 0 0; font-weight: 500; letter-spacing: 0; }
 .portrait .discover-toolbar .roon-subnav button.active { color: #fff; }
-.portrait .browser-sidebar { padding: 0 0 14px; }
-.portrait .browser-filter { font-weight: 500; font-size: 16px; padding: 4px 6px; min-height: 38px; }
 .portrait .browser-cover-card { min-height: 0; padding: 0; }
 .portrait .browser-cover-art { min-width: 0; min-height: 0; }
-.portrait .browser-cover-grid { padding: 0 8px 12px; }
 .portrait .queue-list { padding: 0; }
 .portrait .nav button { font-weight: 500; }
 .portrait.compact-portrait .discover-toolbar .roon-subnav button { font-size: 11px; }
-.portrait.compact-portrait .browser-filter { font-size: 12px; }
 .loading-dots { color: #6ed9ae; font-size: 34px; }
 .theme-roon .loading-dots { color: #9868F9; }
-.portrait.large-portrait .roon-page { padding-left: 38px; padding-right: 38px; padding-top: 24px; }
 .portrait.large-portrait .discover-toolbar .roon-subnav button { font-size: 24px; min-height: 52px; }
-.portrait .discover-toolbar .roon-subnav button { min-height: 30px; padding-bottom: 1px; }
 .portrait .browser-view { padding-left: 0; padding-right: 0; }
 .portrait .browser-main { padding-left: 0; }
 .portrait .browser-cover-grid { padding: 0 0 18px; }
@@ -498,19 +480,16 @@ CSS += b"""
 .portrait .browser-search-panel { padding: 2px 0 10px; }
 .portrait .artist-profile { padding: 8px 0 24px; }
 .portrait .recommendation-album { color: #fff; font-size: 18px; }
-.portrait .page, .portrait .roon-page, .portrait.compact-portrait .page,
-.portrait.large-portrait .roon-page { padding-left: 30px; padding-right: 30px; }
-.portrait .discover-toolbar .roon-subnav button { padding-bottom: 0; }
+.portrait .page, .portrait.compact-portrait .page { padding-left: 30px; padding-right: 30px; }
 .portrait .discovery-card { padding: 0; }
 .portrait .recommendation-heading { margin-left: 0; margin-right: 0; }
-.portrait .browser-section, .portrait .browser-row, .portrait .browser-filter,
-.portrait.compact-portrait .browser-filter { padding-left: 0; padding-right: 0; }
+.portrait .browser-section, .portrait .browser-row { padding-left: 0; padding-right: 0; }
 .portrait.compact-portrait .browser-key { min-width: 0; min-height: 32px; padding: 4px; font-size: 14px; }
 .portrait.compact-portrait .browser-search-entry { min-width: 0; min-height: 44px; font-size: 20px; }
 .portrait.large-portrait .browser-filter { font-size: 24px; min-height: 52px; }
 .portrait.large-portrait .browser-cover-grid { padding-left: 0; }
 .portrait.large-portrait .nav button { font-size: 26px; min-height: 72px; }
-.portrait .roon-page { padding-top: 9px; }
+.portrait .roon-page { padding-top: 9px; padding-left: 30px; padding-right: 30px; }
 .portrait .settings-page { padding-top: 17px; }
 .portrait .settings-page .settings-title { font-size: 30px; }
 .portrait .settings-page .settings-version { font-size: 15px; }
@@ -547,7 +526,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .theme-roon .transport button.library-action.library-busy:disabled { color: #9868F9; animation-name: library-pulse-roon; }
 .large-display .transport button { min-width: 120px; min-height: 120px; border-radius: 60px; }
 .large-display .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
-.large-display .utility, .large-display .browser-back { min-width: 150px; min-height: 72px; font-size: 21px; padding: 12px 24px; }
+.large-display .utility { min-width: 150px; min-height: 72px; font-size: 21px; padding: 12px 24px; }
 .large-display .transport button.library-action { min-width: 120px; min-height: 120px; padding: 0; border-radius: 60px; }
 .large-display .settings-page .settings-title { font-size: 44px; }
 .large-display .settings-page .settings-version, .large-display .settings-page .settings-diagnostic { font-size: 23px; }
@@ -558,7 +537,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display.portrait .discover-toolbar .roon-subnav button { padding-left: 5px; padding-right: 5px; }
 .large-display .source-volume { font-size: 400px; font-weight: 300; }
 .large-display .source-mute { min-width: 240px; min-height: 82px; font-size: 26px; }
-.large-display .browser-back { min-width: 132px; min-height: 64px; padding: 10px 20px; }
+.large-display .browser-back { min-width: 132px; min-height: 64px; padding: 10px 20px; font-size: 21px; }
 .portrait .browser-back { min-height: 38px; padding: 4px 16px; }
 .portrait.large-portrait .browser-back { min-height: 52px; }
 .browser-sort { min-height: 48px; padding: 8px 12px; border-radius: 8px; background: transparent; color: #6ed9ae; }
@@ -577,7 +556,7 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display .service-no { font-weight: 300; }
 .large-display.portrait .now-volume-row { margin-top: 30px; }
 .large-display.portrait .now-mute { margin-top: 36px; }
-.portrait.large-portrait .roon-page { padding-top: 15px; }
+.portrait.large-portrait .roon-page { padding-top: 15px; padding-left: 30px; padding-right: 30px; }
 .large-display.display-landscape .roon-page { padding-top: 5px; }
 .compact-portrait .source-step { min-width: 64px; min-height: 64px; border-radius: 32px; }
 .compact-portrait .source-volume { font-size: 84px; }
@@ -614,7 +593,6 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .detail-heading { color: #f4f0e6; font-size: 28px; font-weight: 700; }
 .high-resolution .detail-heading { font-size: 36px; }
 .compact-detail .detail-heading { font-size: 24px; }
-.detail-close { border: 0; background: transparent; color: #fff; }
 .detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .compact-detail .detail-close-glyph { min-width: 40px; min-height: 40px; }
 .detail-source { margin-top: 4px; margin-bottom: 14px; }
