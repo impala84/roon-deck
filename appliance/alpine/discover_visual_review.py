@@ -548,8 +548,8 @@ if screen_width == 1280 and screen_height == 720:
     assert not display.detail_artist_card.get_visible()
     assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
     assert display.detail_album_artwork.get_width() == 620, display.detail_album_artwork.get_width()
-    assert display.detail_subtitle.get_visible()
-    assert display.detail_subtitle.get_text() == "2006"
+    assert not display.detail_subtitle.get_visible()
+    assert display.detail_album_section_label.get_text() == "ALBUM · 2006"
     assert not display.detail_source.get_visible()
     assert not display.detail_facts.get_visible()
     art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
@@ -566,6 +566,17 @@ if screen_width == 1200 and screen_height == 1920:
     album_title_bounds = display.detail_title.compute_bounds(display.detail_takeover)[1]
     assert artist_art_bounds.get_x() == artist_name_bounds.get_x(), (artist_art_bounds.get_x(), artist_name_bounds.get_x())
     assert album_art_bounds.get_x() == album_title_bounds.get_x(), (album_art_bounds.get_x(), album_title_bounds.get_x())
+    assert display.detail_subtitle.get_visible()
+    assert display.detail_subtitle.get_text() == "2006"
+    assert not display.detail_artist_facts.get_visible()
+    assert not display.detail_facts.get_visible()
+    assert display.detail_artist_writeup.get_lines() == 12
+    assert display.detail_writeup.get_lines() == 12
+    artist_writeup_bounds = display.detail_artist_writeup.compute_bounds(display.detail_takeover)[1]
+    album_writeup_bounds = display.detail_writeup.compute_bounds(display.detail_takeover)[1]
+    assert artist_writeup_bounds.get_y() == album_writeup_bounds.get_y(), (artist_writeup_bounds.get_y(), album_writeup_bounds.get_y())
+    assert display.detail_close_glyph.get_width() == 60
+    assert display.detail_close_icon.get_pixel_size() == 40
     action_bounds = display.detail_browse_action.compute_bounds(display.detail_takeover)[1]
     assert round(screen_height - action_bounds.get_y() - action_bounds.get_height()) == 28, (action_bounds.get_y(), action_bounds.get_height())
 display.set_roon_view("now")

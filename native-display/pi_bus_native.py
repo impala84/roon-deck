@@ -632,6 +632,12 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .detail-heading { color: #f4f0e6; font-size: 28px; font-weight: 700; }
 .high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }
 .high-resolution .detail-heading { font-size: 36px; }
+.high-resolution.portrait .detail-title { font-size: 49px; }
+.high-resolution.portrait .detail-artist { font-size: 30px; }
+.high-resolution.portrait .detail-subtitle { margin-top: 2px; color: #96919a; font-size: 21px; }
+.high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }
+.high-resolution.portrait .detail-close { min-width: 88px; min-height: 88px; }
+.high-resolution.portrait .detail-close-glyph { min-width: 60px; min-height: 60px; }
 .compact-detail .detail-heading { font-size: 24px; }
 .detail-close { border: 0; background: transparent; color: #fff; }
 .detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
@@ -1172,9 +1178,12 @@ class Display(Gtk.Application):
         # Compact landscape prioritises the album. Larger portrait and
         # 10-inch landscape displays retain the two-card presentation.
         album_focus_detail = not portrait and height <= 720
+        large_detail_portrait = portrait and max(width, height) >= 1200
         self.compact_detail = compact_detail
         (self.detail_takeover.add_css_class if compact_detail else self.detail_takeover.remove_css_class)("compact-detail")
         self.album_focus_detail = album_focus_detail
+        self.large_detail_portrait = large_detail_portrait
+        self.detail_year_only = album_focus_detail or large_detail_portrait
         self.original_landscape = original_landscape
         (self.detail_takeover.add_css_class if album_focus_detail else self.detail_takeover.remove_css_class)("album-focus-detail")
         self.detail_artist_card.set_visible(not album_focus_detail)
@@ -1196,17 +1205,18 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 3 if compact_detail else -1)
-            label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail else Pango.EllipsizeMode.NONE)
+            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 12 if large_detail_portrait else 3 if compact_detail else -1)
+            label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail or large_detail_portrait else Pango.EllipsizeMode.NONE)
         self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)
         self.detail_sheet.set_kinetic_scrolling(not original_landscape)
-        self.detail_facts.set_visible(not original_landscape)
+        self.detail_artist_facts.set_visible(not large_detail_portrait)
+        self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)
         self.detail_tracks.set_visible(False)
-        close_size = 37 if original_landscape else 48 if album_focus_detail else 72 if min(width, height) >= 1000 else 56
+        close_size = 37 if original_landscape else 48 if album_focus_detail else 88 if large_detail_portrait else 72 if min(width, height) >= 1000 else 56
         self.detail_close.set_size_request(close_size, close_size)
-        glyph_size = 31 if original_landscape else 48
+        glyph_size = 31 if original_landscape else 60 if large_detail_portrait else 48
         self.detail_close_glyph.set_size_request(glyph_size, glyph_size)
-        self.detail_close_icon.set_pixel_size(29 if original_landscape else 34)
+        self.detail_close_icon.set_pixel_size(29 if original_landscape else 40 if large_detail_portrait else 34)
         self.detail_close.set_halign(Gtk.Align.CENTER); self.detail_close.set_valign(Gtk.Align.CENTER)
         if previous is not None and previous != portrait:
             self.home_signature = None; self.discovery_signature = None
@@ -1417,7 +1427,7 @@ class Display(Gtk.Application):
         for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):
             close_artwork = Gtk.GestureClick(); close_artwork.connect("released", lambda *_: self.set_roon_view("now")); artwork_frame.add_controller(close_artwork)
         detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); detail_content.add_css_class("detail-album-content"); self.detail_album_content = detail_content
-        detail_content.append(self.label("ALBUM", "detail-section-label"))
+        self.detail_album_section_label = self.label("ALBUM", "detail-section-label"); detail_content.append(self.detail_album_section_label)
         self.detail_title = self.label("Nothing playing", "detail-title"); self.detail_title.set_wrap(True); self.detail_title.set_lines(2); self.detail_title.set_ellipsize(Pango.EllipsizeMode.END); detail_content.append(self.detail_title)
         self.detail_artist = self.label("", "detail-artist"); self.detail_artist.set_wrap(True); detail_content.append(self.detail_artist)
         self.detail_subtitle = self.label("", "detail-subtitle"); self.detail_subtitle.set_wrap(True); detail_content.append(self.detail_subtitle)
@@ -3602,10 +3612,16 @@ class Display(Gtk.Application):
         self.set_library_busy(self.library_pending or bool(details.get("library_busy")))
         self.set_library_icon(self.library_favorite is True)
         metadata = details.get("metadata") or {}
-        if getattr(self, "album_focus_detail", False):
-            released = str(metadata.get("year") or metadata.get("release_date") or "")
-            detail_subtitle = released[:4] if released else ""
+        released = str(metadata.get("year") or metadata.get("release_date") or "")
+        year = released[:4] if released else ""
+        self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "large_detail_portrait", False) and year else "ALBUM")
+        if getattr(self, "detail_year_only", False):
+            detail_subtitle = "" if getattr(self, "large_detail_portrait", False) else year
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
+        for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, -1)
+        if getattr(self, "large_detail_portrait", False):
+            heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, -1)[1] for heading in (self.detail_artist_name, self.detail_title))
+            for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, heading_height)
         writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
         self.detail_source.set_text(""); self.detail_source.set_visible(False)
         while child := self.detail_facts.get_first_child(): self.detail_facts.remove(child)

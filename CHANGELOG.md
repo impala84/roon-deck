@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.33 Alpine — 24 October 2026
+
+- Rebalances the 10-inch portrait Album & Artist sheet with larger headings and close control, tighter body leading, bounded write-ups and no low-value technical fact blocks.
+- Places the release year in the album eyebrow and equalises both heading regions so the artist and album write-ups always begin on the same baseline.
+
 ## 1.1.7-beta.32 Alpine — 24 October 2026
 
 - Retrieves album write-ups and release years for Roon titles carrying Stereo, Mono, Mix or Edition suffixes by retrying the canonical album title.
