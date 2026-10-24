@@ -232,7 +232,7 @@ class BrowseManager {
     }
     // Play Album can open a second action menu rather than start playback.
     // Complete its Play Now action explicitly, just as the Surprise preview does.
-    if (opened?.action && /^play album$/i.test(opened.title.trim()) && result.action === 'list' && !result.is_error) {
+    if (!data.menu_only && opened?.action && /^play album$/i.test(opened.title.trim()) && result.action === 'list' && !result.is_error) {
       const menu = await request(service, 'load', {hierarchy, multi_session_key: session, level: result.list.level, offset: 0, count: 30});
       const playNow = menu.items?.find(item => /^play now$/i.test(String(item.title || '').trim()) && isActionItem(item));
       if (playNow?.item_key) {

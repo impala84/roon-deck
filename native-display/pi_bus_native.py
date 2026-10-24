@@ -289,7 +289,7 @@ CSS += b"""
 .browser-filter.active, .touch-landscape .browser-filter.active { background: transparent; border: 0; color: #6ed9ae; }
 .browser-back, .touch-landscape .browser-back { min-width: 90px; min-height: 42px; margin: 12px 0 0; padding: 5px 12px; background: #242b28; border: 1px solid #4a514e; border-radius: 10px; color: #d5dcd8; }
 .theme-roon, .theme-roon .page { background: #151515; color: #f5f5f5; }
-.theme-roon .roon-page { background: linear-gradient(120deg, #242338, #181818 60%, #251c22); }
+.theme-roon .roon-page { background: linear-gradient(120deg, #1d1c2d, #121212 62%, #1b1519); }
 .theme-roon .browser-filter.active, .theme-roon .touch-landscape .browser-filter.active { color: #9868F9; }
 .theme-roon .browser-filter, .theme-roon .browser-filter.active { background: transparent; border: 0; }
 .theme-roon .artwork, .theme-roon .queue-art, .theme-roon .browser-cover-art, .theme-roon .browser-action-icon, .theme-roon .surprise-action, .theme-roon .artist-hero-frame { background: #202020; color: #9868F9; }
@@ -843,9 +843,26 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .original-landscape .page-title, .original-landscape .stop,
 .original-landscape .settings-title, .original-landscape .detail-heading { font-size: 23px; }
 .original-landscape .stop-code { font-size: 16px; }
+/* Interface-size variants must affect every shared control family. */
+.interface-larger .browser-back { min-width: 96px; min-height: 52px; padding: 8px 15px; font-size: 16px; }
+.touch-landscape.interface-larger .browser-back { min-width: 112px; min-height: 58px; font-size: 18px; }
+.interface-larger .album-profile .artist-name { font-size: 34px; }
+.interface-larger .album-profile .album-artist { font-size: 26px; }
+.interface-larger .album-profile .queue-meta { font-size: 21px; line-height: 1.35; }
+.interface-larger .settings-select { font-size: 23px; }
+.interface-smaller .settings-select { font-size: 16px; }
+.album-play-split { margin-top: 2px; }
+.album-play-split .artist-play { border-top-right-radius: 0; border-bottom-right-radius: 0; margin: 0; }
+.album-play-menu { min-width: 54px; padding: 0 14px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; font-size: 20px; font-weight: 800; }
+.theme-roon .album-play-menu { background: #9868F9; color: #111; }
+.interface-larger .album-play-menu { min-width: 64px; font-size: 24px; }
+.touch-landscape.seven-inch-settings .settings-page { padding: 14px 28px 12px; }
+.touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
+.touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
+.touch-landscape.seven-inch-settings .settings-action { min-height: 58px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
-CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
+CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
         (Path(__file__).resolve().parent / 'icons/gradient-dither.svg').as_uri()).encode()
 CSS += b"""
 window.background-black, window.background-black .page,
@@ -1020,11 +1037,11 @@ class Display(Gtk.Application):
         attributes = widget.roondeck_base_attributes.copy()
         size = (self.settings_data or {}).get("interface_size", "standard")
         factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)
-        # Bus identifiers are intentionally the largest information on their
-        # page already. They still respond, but at half the global delta so
-        # accessibility sizing does not make Bus Times dwarf every other view.
+        # Route and arrival numerals are intentionally the largest information
+        # on their page already. They still respond, but at half the global
+        # delta; headings and clocks retain the same scale as every other page.
         has_class = getattr(widget, "has_css_class", lambda _name: False)
-        if widget in {getattr(self, name, None) for name in ("bus_clock", "stop", "stop_code")} or has_class("service-no") or has_class("arrival"):
+        if has_class("service-no") or has_class("arrival"):
             factor = 1.0 + (factor - 1.0) * .5
         attributes.insert(Pango.attr_scale_new(factor))
         widget.set_attributes(attributes)
@@ -1598,6 +1615,13 @@ class Display(Gtk.Application):
         if hasattr(self, "touch_bus_pair"):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
             self.touch_bus_heading.set_visible(portrait or width > 1280)
+        seven_inch = not portrait and 1000 <= width < 1500 and height <= 850
+        (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
+        # Profile, mounting and orientation are installation controls. On the
+        # two seven-inch panels they consume most of the daily Settings view,
+        # despite normally being used only once during setup.
+        for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):
+            control.set_visible(not seven_inch)
 
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
@@ -3455,16 +3479,23 @@ class Display(Gtk.Application):
             link = self.button(artist, lambda *_: self.request_browser("artist", name=artist), "album-artist")
             link.get_child().set_wrap(True); link.get_child().set_wrap_mode(Pango.WrapMode.WORD_CHAR); link.get_child().set_max_width_chars(23)
             link.set_halign(Gtk.Align.START); link.set_tooltip_text("View artist"); copy.append(link)
+        if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
+            split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
+            button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
+            menu = self.button("▾", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
+            menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu); copy.append(split)
         if review := profile.get("review"):
             summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
         else:
             summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); copy.append(summary_slot)
             self.load_album_notes(profile, summary_slot)
-        if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
-            button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
-            button.set_halign(Gtk.Align.START); copy.append(button)
         header.append(copy)
         return header
+
+    def open_album_play_menu(self, anchor, item_key):
+        if item_key:
+            self.browser_action_anchor = anchor
+            self.request_browser("open", item_key=item_key, menu_only=True)
 
     def load_album_notes(self, profile, slot):
         album, artist = profile.get("name"), profile.get("artist")

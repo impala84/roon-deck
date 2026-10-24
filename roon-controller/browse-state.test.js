@@ -673,6 +673,26 @@ test('Play Album completes its nested Play Now menu and hands off only on succes
   }
 });
 
+test('Play Album dropdown exposes its native action menu without starting playback', async () => {
+  const calls = [];
+  const service = {
+    browse:(options,cb)=>{calls.push(options.item_key); cb(false,{action:'list',list:{title:'Play Album',level:3,count:4}});},
+    load:(_options,cb)=>cb(false,{list:{title:'Play Album',level:3,count:4},items:[
+      {title:'Play Now',hint:'action',item_key:'now'},
+      {title:'Add Next',hint:'action',item_key:'next'},
+      {title:'Queue',hint:'action',item_key:'queue'},
+      {title:'Start Radio',hint:'action',item_key:'radio'}
+    ]})
+  };
+  const manager = new BrowseManager(()=>service,()=>({zone_id:'zone'}));
+  manager.sessions.set('pihome-test',{hierarchy:'browse',section:'albums',level:2,items:[{title:'Play Album',action:true,item_key:'album-play'}]});
+  const result = await manager.run('test','open',{item_key:'album-play',menu_only:true});
+  assert.deepEqual(calls,['album-play']);
+  assert.equal(result.action_menu,true);
+  assert.deepEqual(result.items.map(item=>item.title),['Play Now','Add Next','Queue','Start Radio']);
+  assert.equal(result.navigate,undefined);
+});
+
 test('successful Play Now returning a track list hands off and retains album artwork', async () => {
   const service = {browse:(_options,cb)=>cb(false,{action:'list',list:{title:'Album',level:2,count:1}}),load:(_options,cb)=>cb(false,{items:[{title:'Song',item_key:'song',hint:'action_list'}]})};
   const manager = new BrowseManager(()=>service,()=>({zone_id:'zone'}));

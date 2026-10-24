@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.50 Alpine — 25 October 2026
+
+- Darkens the Roon gradient and makes Larger scale album titles, artists, summaries, Back, Settings dropdowns, clocks and shared page headings consistently.
+- Places Play Album before the write-up and adds a Roon-style split menu for Play Now, Add Next, Queue and Start Radio while retaining immediate playback on the main button.
+- Simplifies both seven-inch Settings layouts by hiding installation-only profile, orientation, rotation and Apply Display controls, keeping the everyday controls visible without scrolling.
+- Keeps the shared settings/clock screen gutters stable between Discover, Bus Times and Home, while leaving oversized route and arrival numerals as the only moderated scale exception.
+
 ## 1.1.7-beta.49 Alpine — 25 October 2026
 
 - Retains the beta.48 semantic typography and control-scaling cleanup while removing the extra Bus Times header offset that could extend the 1280×720 native layout by eight pixels.

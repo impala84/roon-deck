@@ -606,6 +606,19 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('row = Gtk.Box(spacing=10); row.add_css_class("page-header")', code)
         self.assertIn('self.label("Home Controls", "page-title")', code)
         self.assertIn('settings.set_valign(Gtk.Align.START)', code)
+        scale = code.split('    def scale_text_label', 1)[1].split('    def apply_interface_size', 1)[0]
+        self.assertNotIn('"bus_clock"', scale)
+        self.assertNotIn('"stop"', scale)
+
+    def test_album_actions_and_seven_inch_settings_follow_shared_layout(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        album = code.split('    def album_header(self, profile, items):', 1)[1].split('    def load_album_notes', 1)[0]
+        self.assertLess(album.index('album-play-split'), album.index('if review := profile.get("review")'))
+        self.assertIn('self.request_browser("open", item_key=item_key, menu_only=True)', album)
+        self.assertIn('.interface-larger .album-profile .queue-meta { font-size: 21px;', code)
+        self.assertIn('.touch-landscape.interface-larger .browser-back { min-width: 112px;', code)
+        self.assertIn('for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):', code)
+        self.assertIn('control.set_visible(not seven_inch)', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
         code = SOURCE.read_text(encoding="utf-8")
