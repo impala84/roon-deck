@@ -30,6 +30,14 @@ class NativeCssAuditTests(unittest.TestCase):
         _rules, conflicts = AUDIT.audit()
         self.assertLessEqual(len(conflicts), AUDIT.MAX_CONFLICTING_SELECTORS)
 
+    def test_conflict_fingerprint_rejects_new_values(self):
+        baseline = {".button": {"color": ["red", "blue"]}}
+        current = {".button": {"color": ["red", "green"]}, ".new": {"padding": ["1px", "2px"]}}
+        self.assertEqual(
+            [".button / color: green", ".new / padding: 1px, 2px"],
+            AUDIT.unexpected_conflicts(current, baseline),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

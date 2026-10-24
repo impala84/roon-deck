@@ -1,0 +1,370 @@
+{
+  ".browser-cover-art": {
+    "min-height": [
+      "0",
+      "172px"
+    ],
+    "min-width": [
+      "0",
+      "172px"
+    ]
+  },
+  ".browser-cover-card": {
+    "min-height": [
+      "0",
+      "202px"
+    ],
+    "padding": [
+      "3px",
+      "7px"
+    ]
+  },
+  ".browser-cover-card:active": {
+    "background": [
+      "#18211f",
+      "transparent"
+    ]
+  },
+  ".browser-cover-card:hover": {
+    "background": [
+      "#18211f",
+      "transparent"
+    ]
+  },
+  ".browser-cover-title.tile": {
+    "background": [
+      "linear-gradient(transparent, rgba(5,10,9,.94))",
+      "transparent"
+    ]
+  },
+  ".browser-filter": {
+    "border-radius": [
+      "0",
+      "8px"
+    ],
+    "min-height": [
+      "44px",
+      "58px"
+    ],
+    "padding": [
+      "5px 0",
+      "8px 10px"
+    ]
+  },
+  ".browser-filter.active": {
+    "background": [
+      "#19302a",
+      "transparent"
+    ],
+    "color": [
+      "#6ed9ae",
+      "#f4f0e6"
+    ]
+  },
+  ".browser-home-card:hover": {
+    "background": [
+      "#19302a",
+      "transparent"
+    ]
+  },
+  ".browser-row:active": {
+    "background": [
+      "#18211f",
+      "transparent"
+    ]
+  },
+  ".browser-row:hover": {
+    "background": [
+      "#18211f",
+      "transparent"
+    ]
+  },
+  ".browser-section": {
+    "font-size": [
+      "12px",
+      "17px"
+    ]
+  },
+  ".browser-sort": {
+    "background": [
+      "#282828",
+      "transparent"
+    ]
+  },
+  ".browser-sort:hover": {
+    "background": [
+      "#303033",
+      "transparent"
+    ]
+  },
+  ".bus-page": {
+    "padding-top": [
+      "%dpx",
+      "8px"
+    ]
+  },
+  ".confirm-reboot": {
+    "background": [
+      "#6ed9ae",
+      "#8a5b24"
+    ],
+    "color": [
+      "#101714",
+      "#fff1d2"
+    ]
+  },
+  ".detail-close": {
+    "border": [
+      "0",
+      "2px solid #6ed9ae"
+    ]
+  },
+  ".display-landscape .bus-page": {
+    "padding-left": [
+      "%dpx",
+      "28px"
+    ],
+    "padding-right": [
+      "%dpx",
+      "28px"
+    ]
+  },
+  ".display-landscape .home-page": {
+    "padding-left": [
+      "%dpx",
+      "28px"
+    ],
+    "padding-right": [
+      "%dpx",
+      "28px"
+    ]
+  },
+  ".high-resolution .queue-duration": {
+    "font-size": [
+      "18px",
+      "26px"
+    ]
+  },
+  ".large-display .browser-back": {
+    "min-height": [
+      "64px",
+      "72px"
+    ],
+    "min-width": [
+      "132px",
+      "150px"
+    ],
+    "padding": [
+      "10px 20px",
+      "12px 24px"
+    ]
+  },
+  ".loading-notice": {
+    "font-size": [
+      "14px",
+      "19px"
+    ]
+  },
+  ".portrait .browser-cover-grid": {
+    "padding": [
+      "0 0 18px",
+      "0 8px 12px"
+    ]
+  },
+  ".portrait .browser-filter": {
+    "min-height": [
+      "38px",
+      "48px"
+    ],
+    "padding": [
+      "4px 6px",
+      "6px 10px"
+    ]
+  },
+  ".portrait .browser-sidebar": {
+    "padding": [
+      "0 0 14px",
+      "0 0 8px"
+    ]
+  },
+  ".portrait .discover-toolbar .roon-subnav button": {
+    "min-height": [
+      "30px",
+      "38px"
+    ],
+    "padding-bottom": [
+      "0",
+      "1px"
+    ]
+  },
+  ".portrait .recommendation-heading": {
+    "margin-left": [
+      "0",
+      "4px"
+    ]
+  },
+  ".portrait .roon-page": {
+    "padding-right": [
+      "24px",
+      "30px"
+    ],
+    "padding-top": [
+      "6px",
+      "9px"
+    ]
+  },
+  ".portrait .roon-subnav button": {
+    "font-size": [
+      "15px",
+      "16px"
+    ],
+    "min-height": [
+      "32px",
+      "48px"
+    ],
+    "padding": [
+      "2px 2px",
+      "6px 12px"
+    ]
+  },
+  ".portrait .settings-page .settings-title": {
+    "font-size": [
+      "26px",
+      "30px"
+    ]
+  },
+  ".portrait.compact-portrait .settings-page .settings-title": {
+    "font-size": [
+      "22px",
+      "24px"
+    ]
+  },
+  ".portrait.large-portrait .roon-page": {
+    "padding-left": [
+      "30px",
+      "38px"
+    ],
+    "padding-right": [
+      "30px",
+      "38px"
+    ],
+    "padding-top": [
+      "15px",
+      "24px"
+    ]
+  },
+  ".queue-duration": {
+    "font-size": [
+      "18px",
+      "26px"
+    ]
+  },
+  ".queue-row:active": {
+    "background": [
+      "#121e1c",
+      "transparent"
+    ]
+  },
+  ".queue-row:hover": {
+    "background": [
+      "#121e1c",
+      "transparent"
+    ]
+  },
+  ".service-no": {
+    "font-weight": [
+      "720",
+      "760"
+    ]
+  },
+  ".source-step": {
+    "border-radius": [
+      "46px",
+      "999px"
+    ],
+    "color": [
+      "#f4f0e6",
+      "#fff"
+    ]
+  },
+  ".theme-roon .queue-row:active": {
+    "background": [
+      "#292733",
+      "transparent"
+    ]
+  },
+  ".theme-roon .queue-row:hover": {
+    "background": [
+      "#292733",
+      "transparent"
+    ]
+  },
+  ".theme-roon .source-step": {
+    "color": [
+      "#ddd",
+      "#fff"
+    ]
+  },
+  ".theme-roon .surprise-action": {
+    "background": [
+      "#282828",
+      "#292929"
+    ]
+  },
+  ".touch-landscape .browser-cover-art": {
+    "min-height": [
+      "0",
+      "172px"
+    ],
+    "min-width": [
+      "0",
+      "172px"
+    ]
+  },
+  ".touch-landscape .browser-filter": {
+    "min-height": [
+      "44px",
+      "62px"
+    ]
+  },
+  ".touch-landscape .bus-page": {
+    "padding-top": [
+      "10px",
+      "8px"
+    ]
+  },
+  ".touch-landscape .roon-subnav button": {
+    "min-height": [
+      "42px",
+      "54px"
+    ],
+    "padding": [
+      "2px 14px 4px",
+      "8px 18px 5px"
+    ]
+  },
+  ".touch-landscape .settings-page .setting-line": {
+    "min-height": [
+      "62px",
+      "72px"
+    ]
+  },
+  ".touch-landscape .settings-page .settings-card": {
+    "padding": [
+      "0",
+      "8px 10px"
+    ]
+  },
+  ".touch-landscape .stop": {
+    "font-size": [
+      "34px",
+      "42px"
+    ]
+  },
+  ".touch-landscape .stop-code": {
+    "font-size": [
+      "34px",
+      "42px"
+    ]
+  }
+}

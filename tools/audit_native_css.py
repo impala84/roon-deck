@@ -9,6 +9,7 @@ conflicting selectors from being added unnoticed.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -16,7 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE_SOURCE = ROOT / "native-display" / "pi_bus_native.py"
-MAX_CONFLICTING_SELECTORS = 58
+BASELINE = ROOT / "tools" / "native_css_conflicts.json"
+MAX_CONFLICTING_SELECTORS = 48
 
 
 def embedded_css(source: str) -> str:
@@ -83,12 +85,34 @@ def audit(path: Path = NATIVE_SOURCE) -> tuple[dict[str, list[dict[str, str]]], 
     return rules, conflicting_selectors(rules)
 
 
+def serialise_conflicts(conflicts: dict[str, dict[str, set[str]]]) -> dict[str, dict[str, list[str]]]:
+    return {
+        selector: {prop: sorted(values) for prop, values in sorted(properties.items())}
+        for selector, properties in sorted(conflicts.items())
+    }
+
+
+def unexpected_conflicts(
+    current: dict[str, dict[str, list[str]]], baseline: dict[str, dict[str, list[str]]]
+) -> list[str]:
+    unexpected = []
+    for selector, properties in current.items():
+        for prop, values in properties.items():
+            allowed = set(baseline.get(selector, {}).get(prop, []))
+            extra = set(values) - allowed
+            if extra:
+                unexpected.append(f"{selector} / {prop}: {', '.join(sorted(extra))}")
+    return unexpected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if cascade debt increases")
+    parser.add_argument("--update-baseline", action="store_true", help="record the current conflict fingerprint")
     parser.add_argument("--verbose", action="store_true", help="list every conflicting selector")
     args = parser.parse_args()
     rules, conflicts = audit()
+    serialised = serialise_conflicts(conflicts)
     duplicates = sum(len(appearances) > 1 for appearances in rules.values())
     print(
         f"Native CSS: {sum(map(len, rules.values()))} selector entries, "
@@ -98,12 +122,23 @@ def main() -> int:
     if args.verbose:
         for selector, properties in sorted(conflicts.items()):
             print(f"  {selector}: {', '.join(sorted(properties))}")
-    if args.check and len(conflicts) > MAX_CONFLICTING_SELECTORS:
-        print(
-            f"CSS cascade debt increased from the allowed {MAX_CONFLICTING_SELECTORS} "
-            f"conflicting selectors to {len(conflicts)}."
-        )
-        return 1
+    if args.update_baseline:
+        BASELINE.write_text(json.dumps(serialised, indent=2, sort_keys=True) + "\n")
+        print(f"Updated {BASELINE.relative_to(ROOT)}")
+    if args.check:
+        if len(conflicts) > MAX_CONFLICTING_SELECTORS:
+            print(
+                f"CSS cascade debt increased from the allowed {MAX_CONFLICTING_SELECTORS} "
+                f"conflicting selectors to {len(conflicts)}."
+            )
+            return 1
+        baseline = json.loads(BASELINE.read_text())
+        additions = unexpected_conflicts(serialised, baseline)
+        if additions:
+            print("CSS introduced conflict values outside the known-good baseline:")
+            for addition in additions:
+                print(f"  {addition}")
+            return 1
     return 0
 
 
