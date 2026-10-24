@@ -566,7 +566,37 @@ class BrowseManager {
       this.artistContexts.set(searchSession + ':' + openedResult.list.title, profile);
       while (this.artistContexts.size > 64) this.artistContexts.delete(this.artistContexts.keys().next().value);
       const opened = await this.follow(service, searchSession, 'search', openedResult, artist.image_key);
-      return this.save(searchSession, {...opened, section:'artists', artist_profile:profile});
+
+      // Roon's Artists search result commonly contains only "Play Artist".
+      // Album discovery is a separate catalogue search category, and its item
+      // keys belong to that separate multi-session hierarchy.  Load it in an
+      // independent session and route the synthetic rows back to those keys.
+      const albumSession = `${prefix}${requestId}-albums`;
+      this.sections.set(albumSession, 'albums');
+      this.searchSources.set(albumSession, 'all');
+      const albumRootResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, pop_all:true, input:name});
+      const albumRoot = await this.follow(service, albumSession, 'search', albumRootResult);
+      const albumCategory = albumRoot.items.find(item => item.item_key && /^albums$/i.test(item.title.trim()));
+      if (!albumCategory?.item_key) throw new Error('Roon search did not return an Albums category');
+      const albumCategoryResult = await request(service, 'browse', {hierarchy:'search', multi_session_key:albumSession, zone_or_output_id:zone.zone_id, item_key:albumCategory.item_key});
+      let albumResults = await this.follow(service, albumSession, 'search', albumCategoryResult);
+      const exactArtist = value => String(value || '').split(/\s*,\s*/).some(part => part.trim().toLocaleLowerCase() === wanted);
+      let albums = albumResults.items.filter(item => !item.action && exactArtist(item.subtitle));
+      for (let offset = PAGE_SIZE; offset < Math.min(albumResults.count, 2000); offset += 200) {
+        const loaded = await request(service, 'load', {hierarchy:'search', multi_session_key:albumSession, level:albumResults.level, offset, count:200});
+        albums.push(...(loaded.items || []).map(publicItem).filter(item => !item.action && exactArtist(item.subtitle)));
+      }
+      const routes = {};
+      albums = albums.map((album, index) => {
+        const key = `artist-album-${index}`;
+        routes[key] = {session:albumSession, key:album.item_key};
+        return {...album, item_key:album.item_key ? key : null};
+      });
+      albumResults = this.save(albumSession, {...albumResults, items:albums, count:albums.length, offset:0, has_more:false, search_origin:{session:searchSession, level:opened.level}});
+      const actions = opened.items.filter(item => item.action);
+      return this.save(searchSession, {...opened, section:'artists', artist_profile:profile,
+        items:[...actions, ...albums], count:actions.length + albums.length,
+        has_more:false, search_routes:routes, message:albums.length ? '' : `No catalogue albums were found for ${name}.`});
     } catch (_) {
       // Older Roon cores can omit catalogue search categories. Retain a
       // library fallback, but only after the discovery-first route fails.

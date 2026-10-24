@@ -39,29 +39,41 @@ test('album detail exposes one cover and honest optional metadata without alteri
 });
 
 test('artist links use a fresh catalogue search and return albums outside the library', async () => {
-  const calls = [];
+  const calls = [], paths = new Map();
   const service = {
     browse(options, done) {
       calls.push({...options});
       assert.equal(options.hierarchy, 'search');
-      if (options.pop_all) { assert.equal(options.input, 'Example Artist'); return done(false, {action:'list',list:{title:'Search',level:0,count:1}}); }
-      if (options.item_key === 'artists-category') return done(false, {action:'list',list:{title:'Artists',level:1,count:1}});
-      assert.equal(options.item_key, 'catalogue-artist');
-      done(false, {action:'list', list:{title:'Example Artist', level:3,count:2}});
+      if (options.pop_all) { assert.equal(options.input, 'Example Artist'); paths.set(options.multi_session_key, 'root'); return done(false, {action:'list',list:{title:'Search',level:0,count:2}}); }
+      if (options.item_key === 'artists-category') { paths.set(options.multi_session_key, 'artists'); return done(false, {action:'list',list:{title:'Artists',level:1,count:1}}); }
+      if (options.item_key === 'albums-category') { paths.set(options.multi_session_key, 'albums'); return done(false, {action:'list',list:{title:'Albums',level:1,count:3}}); }
+      assert.equal(options.item_key, 'catalogue-artist'); paths.set(options.multi_session_key, 'artist');
+      done(false, {action:'list', list:{title:'Example Artist', level:3,count:1}});
     },
     load(options, done) {
-      if (options.level === 0) return done(false, {list:{title:'Search',level:0,count:1},items:[{title:'Artists',item_key:'artists-category'}]});
-      if (options.level === 1) return done(false, {list:{title:'Artists',level:1,count:1},items:[{title:'Example Artist',item_key:'catalogue-artist',image_key:'portrait'}]});
-      done(false, {list:{title:'Example Artist', level:3,count:2}, items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',subtitle:'Example Artist',item_key:'album'}]});
+      const path = paths.get(options.multi_session_key);
+      if (path === 'root') return done(false, {list:{title:'Search',level:0,count:2},items:[{title:'Artists',item_key:'artists-category'},{title:'Albums',item_key:'albums-category'}]});
+      if (path === 'artists') return done(false, {list:{title:'Artists',level:1,count:1},items:[{title:'Example Artist',item_key:'catalogue-artist',image_key:'portrait'}]});
+      if (path === 'albums') return done(false, {list:{title:'Albums',level:1,count:3},items:[
+        {title:'Catalogue Album',subtitle:'Example Artist',item_key:'catalogue-album'},
+        {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration'},
+        {title:'Wrong Artist Album',subtitle:'Someone Else',item_key:'wrong-album'}]});
+      done(false, {list:{title:'Example Artist', level:3,count:1}, items:[{title:'Play Artist',hint:'action',item_key:'play'}]});
     },
   };
   const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
   const result = await manager.run('links', 'artist', {name:'Example Artist'});
   assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
-  assert.equal(result.items.find(item => item.title === 'Album').item_key, 'album');
+  assert.equal(result.items.find(item => item.title === 'Catalogue Album').item_key, 'artist-album-0');
+  assert.equal(result.items.find(item => item.title === 'Collaboration').item_key, 'artist-album-1');
+  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), false);
+  const route = result.search_routes['artist-album-0'];
+  assert.match(route.session, /-albums$/); assert.equal(route.key, 'catalogue-album');
   assert.ok(calls.every(call => call.hierarchy === 'search'));
   await manager.run('links', 'artist', {name:'Example Artist'});
-  assert.equal([...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-')).length, 1, 'the previous artist hierarchy is discarded');
+  const artistSessions = [...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-'));
+  assert.equal(artistSessions.length, 2, 'only the current artist and album-search hierarchies remain');
+  assert.ok(artistSessions.every(key => key.includes('-2-')), 'the previous artist hierarchies are discarded');
 });
 
 test('artist links fall back to Library Artists only when catalogue search cannot resolve them', async () => {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.19 Alpine — 24 October 2026
+
+- Fixes Browse Artist Albums by querying Roon's catalogue Albums search separately from the artist result, filtering it to the selected artist and retaining the session-owned keys used to open each album.
+- Rebalances the seven-inch Gen 2 artist page into even artist and album columns so album artwork and titles have usable space.
+- Restores the album-detail Browse Artist Albums action to a rounded rectangle instead of a pill.
+- Reduces Fixed Volume to a small, low-contrast status label with more separation from the transport controls.
+
 ## 1.1.7-beta.18 Alpine — 24 October 2026
 
 - Makes Browse Artist Albums discovery-first: it resolves an exact artist through Roon catalogue search and lists their available albums even when the artist is absent from the local library, with a library fallback for older cores.

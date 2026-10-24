@@ -652,7 +652,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
-.fixed-volume-label { min-width: 180px; margin-top: 18px; color: #77747b; font-size: 17px; font-weight: 400; letter-spacing: 2px; }
+.fixed-volume-label { min-width: 150px; margin-top: 26px; color: #4b494f; font-size: 10px; font-weight: 400; letter-spacing: 1.4px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
@@ -705,7 +705,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }
 .touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.4; }
 .touch2-7-landscape .album-focus-detail .detail-action,
-.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px; margin-top: 14px; padding: 8px 22px; border-radius: 999px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px; margin-top: 14px; padding: 8px 22px; border-radius: 10px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
 
 /* The original 800x480 DSI panel has its own density profile.  Keep these
    rules out of the 1024x600 and larger landscape layouts. */
@@ -2829,10 +2829,10 @@ class Display(Gtk.Application):
         self.set_browser_placeholder(picture, artist=True)
         name = profile.get("name", "")
         if seven_landscape:
-            hero_width = 330 if original else min(500, round(viewport_width * .39))
+            hero_width = 330 if original else min(480, round((viewport_width - 250) * .5))
             hero_height = round(hero_width * 9 / 16)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
-            self.browser_artist_scroll.set_size_request(hero_width + (0 if original else 34), 1)
+            self.browser_artist_scroll.set_size_request(hero_width + (0 if original else 18), 1)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
             self.browser_artist_scroll.set_min_content_height(hero_height + 92); self.browser_artist_scroll.set_max_content_height(hero_height + 118)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
