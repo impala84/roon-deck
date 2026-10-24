@@ -41,11 +41,13 @@ function artistCreditMatches(value, artist) {
     .filter(token => token && token !== 'the' && token !== 'and')
     .join(' ');
   const wanted = identity(artist);
-  return Boolean(wanted) && [String(value || ''), ...String(value || '').split(/\s*[,;]\s*/)]
-    .some(credit => {
-      const candidate = identity(credit);
-      return candidate === wanted || ` ${candidate} `.includes(` ${wanted} `);
-    });
+  // Search results are deliberately broad: a query for "Chicago" also
+  // returns Chicago Symphony Orchestra and Junior Wells' Chicago Blues Band.
+  // Only accept the complete credit or one explicit collaboration credit;
+  // never accept the artist merely because its words occur inside a different
+  // artist's name.
+  const credits = [String(value || ''), ...String(value || '').split(/\s*(?:[,;/•]|·|\b(?:feat(?:uring)?|with)\b)\s*/i)];
+  return Boolean(wanted) && credits.some(credit => identity(credit) === wanted);
 }
 
 function publicItem(item) {

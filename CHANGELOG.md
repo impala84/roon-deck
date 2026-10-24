@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.41 Alpine — 24 October 2026
+
+- Resolves the selected artist through the exact Artists result and requires an exact album artist credit (or an explicitly separated collaboration credit).
+- Prevents broad catalogue matches such as Junior Wells' Chicago Blues Band and Chicago Symphony Orchestra from appearing in Chicago's albums.
+
 ## 1.1.7-beta.40 Alpine — 24 October 2026
 
 - Uses Roon's normal global Albums search as the authoritative connected-service catalogue, opens its full results, filters them to the exact artist and merges them after owned albums.

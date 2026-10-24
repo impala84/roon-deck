@@ -8,6 +8,10 @@ test('artist album credits tolerate ampersands, conjunctions and leading article
   assert.equal(artistCreditMatches('Guest Singer, The Example Band', 'Example Band'), true);
   assert.equal(artistCreditMatches('Third Eye Blind • 1997', 'Third Eye Blind'), true);
   assert.equal(artistCreditMatches('Someone Else', 'Example Band'), false);
+  assert.equal(artistCreditMatches("Junior Wells' Chicago Blues Band/Buddy Guy", 'Chicago'), false);
+  assert.equal(artistCreditMatches('Chicago Symphony Orchestra/Sir Georg Solti', 'Chicago'), false);
+  assert.equal(artistCreditMatches('Chicago, Guest Artist', 'Chicago'), true);
+  assert.equal(artistCreditMatches('Chicago Transit Authority', 'Chicago'), false);
 });
 
 test('album sorting loads the whole collection and paginates owned keys without playback', async () => {
