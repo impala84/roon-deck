@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current Alpine stable release is **1.1.6**. The **1.1.7-beta.25** artist-album discovery, profile-layout and CSS cleanup are available to Beta-channel devices through the online updater. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
+The current Alpine stable release is **1.1.6**. The **1.1.7-beta.26** grouped-zone, direct artist-radio, touchscreen-launch repair and Home tile-colour controls are available to Beta-channel devices through the online updater. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
