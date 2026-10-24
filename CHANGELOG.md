@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.53 Alpine — 25 October 2026
+
+- Keeps playback controls above descriptive copy while leaving the non-playback Browse Artist Albums action below it.
+- Stacks the album header on narrow portrait displays so the split Play Album control cannot widen the application beyond the physical screen.
+
 ## 1.1.7-beta.52 Alpine — 25 October 2026
 
 - Applies the shared identity → playback → write-up hierarchy to artist pages as well as album pages, while keeping non-play navigation actions below descriptive copy.

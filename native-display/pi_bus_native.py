@@ -3458,8 +3458,9 @@ class Display(Gtk.Application):
         button.set_child(shell); button.set_sensitive(bool(item.get("item_key"))); button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
 
     def album_header(self, profile, items):
-        header = Gtk.Box(spacing=24); header.add_css_class("album-profile")
         width = getattr(self, "viewport_width", 800)
+        narrow_portrait = bool(getattr(self, "responsive_portrait", False) and width < 600)
+        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL, spacing=16 if narrow_portrait else 24); header.add_css_class("album-profile")
         size = min(380, round(width * .32)) if width >= 1000 else min(240, round(width * .3))
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         self.set_browser_placeholder(picture)
@@ -3480,10 +3481,10 @@ class Display(Gtk.Application):
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
             menu = self.button("▾", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
-            if getattr(self, "responsive_portrait", False) and width < 600:
+            if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
                 play_slot.set_propagate_natural_width(False); play_slot.set_propagate_natural_height(True)
-                play_width = max(150, width - size - 68)
+                play_width = max(150, width - 64)
                 play_slot.set_min_content_width(play_width); play_slot.set_max_content_width(play_width); play_slot.set_size_request(play_width, -1)
                 play_slot.set_child(split); copy.append(play_slot)
             else: copy.append(split)
