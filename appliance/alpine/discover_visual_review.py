@@ -347,10 +347,10 @@ for key, pictures in display.browser_pictures.items():
     for picture in pictures: picture.set_filename(str(fixture_art(key, key.upper())))
 capture("artist-profile")
 if screen_height > screen_width:
-    assert display.browser_artist_panel.get_orientation() == Gtk.Orientation.HORIZONTAL
+    assert display.browser_artist_panel.get_orientation() == Gtk.Orientation.VERTICAL
     portrait_art = display.browser_artist_panel.get_first_child()
-    assert portrait_art.get_width() <= screen_width * (.4 if screen_width >= 1000 else .36), portrait_art.get_width()
-    assert portrait_art.get_height() == portrait_art.get_width()
+    assert portrait_art.get_width() <= screen_width * .8, portrait_art.get_width()
+    assert abs(portrait_art.get_height() - round(portrait_art.get_width() * 9 / 16)) <= 2, (portrait_art.get_width(), portrait_art.get_height())
     artist_bounds = display.browser_artist_scroll.compute_bounds(page)[1]
     albums_bounds = display.browser_scroll.compute_bounds(page)[1]
     assert albums_bounds.get_y() >= artist_bounds.get_y() + artist_bounds.get_height()
@@ -531,13 +531,15 @@ takeover_bounds = display.detail_takeover.compute_bounds(window)[1]
 assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_bounds.get_x(), takeover_bounds.get_y())
 assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
 assert display.detail_close.get_visible()
-if (screen_width, screen_height) == (800, 480):
+if display.album_focus_detail:
     assert display.detail_album_action.get_visible()
     assert not display.detail_browse_action.get_visible()
+    assert not display.detail_footer.get_visible()
+if (screen_width, screen_height) == (800, 480):
     assert display.detail_album_artwork_frame.get_width() == 380
     assert display.detail_close_glyph.get_width() < 48
     assert display.detail_close_icon.get_pixel_size() == 29
-else:
+elif not display.album_focus_detail:
     assert display.detail_browse_action.get_visible()
 assert display.detail_close.get_width() == display.detail_close.get_height(), (display.detail_close.get_width(), display.detail_close.get_height())
 if screen_width == 1280 and screen_height == 720:
@@ -545,13 +547,15 @@ if screen_width == 1280 and screen_height == 720:
     assert display.album_focus_detail
     assert not display.detail_artist_card.get_visible()
     assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
-    assert display.detail_album_artwork.get_width() >= 420, display.detail_album_artwork.get_width()
+    assert display.detail_album_artwork.get_width() == 620, display.detail_album_artwork.get_width()
+    assert not display.detail_subtitle.get_visible()
     art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
     copy_bounds = display.detail_album_content.compute_bounds(display.detail_takeover)[1]
     assert art_bounds.get_x() == 20, art_bounds.get_x()
     assert copy_bounds.get_x() > art_bounds.get_x() + art_bounds.get_width(), (copy_bounds.get_x(), art_bounds.get_x(), art_bounds.get_width())
-    action_bounds = display.detail_browse_action.compute_bounds(display.detail_takeover)[1]
-    assert round(screen_height - action_bounds.get_y() - action_bounds.get_height()) == 20, (action_bounds.get_y(), action_bounds.get_height())
+    writeup_bounds = display.detail_writeup.compute_bounds(display.detail_takeover)[1]
+    action_bounds = display.detail_album_action.compute_bounds(display.detail_takeover)[1]
+    assert action_bounds.get_y() >= writeup_bounds.get_y() + writeup_bounds.get_height(), (writeup_bounds, action_bounds)
 if screen_width == 1200 and screen_height == 1920:
     artist_art_bounds = display.detail_artist_artwork_frame.compute_bounds(display.detail_takeover)[1]
     artist_name_bounds = display.detail_artist_name.compute_bounds(display.detail_takeover)[1]

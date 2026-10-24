@@ -56,6 +56,10 @@ test('artist background falls back to Wikipedia when MusicBrainz is unavailable'
   assert.equal(result.source, 'Wikipedia');
   assert.match(result.writeup, /English rock band/);
 });
+test('artist background recognises classical vocal profiles such as Pavarotti', async () => {
+  const result=await loadWikipediaArtistWriteup('Luciano Pavarotti',async()=>JSON.stringify({type:'standard',title:'Luciano Pavarotti',description:'Italian operatic tenor',extract:'Luciano Pavarotti was an Italian operatic tenor.'}));
+  assert.equal(result.writeup,'Luciano Pavarotti was an Italian operatic tenor.');assert.equal(result.source,'Wikipedia');
+});
 
 test('playingMetadata reads three-line Roon metadata', () => {
   assert.deepEqual(playingMetadata({now_playing: {three_line: {line1: 'Track', line2: 'Artist', line3: 'Album'}, image_key: 'art'}}),

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.7-beta.16 Alpine — 24 October 2026
+
+- Starts Daily Mix playback at the tapped track while retaining the remainder of the mix as Roon's queue; Queue still adds only the selected track.
+- Returns the Daily Mix action pills to a compact, equal footprint, tightens track rows to album-list density and keeps pressed/loading feedback in the selected theme colour.
+- Uses a filled Play icon consistently in action menus and gives artist pages a responsive 16:9 hero with a bottom fade; the artist name, Play Artist action and two-line biography share one exact left boundary on every display.
+- Matches the compact landscape Album & Artist sheet to the Gen 1 composition: a much larger album cover, larger title and artist, no duplicate credit or source label, and a compact Browse Artist Albums action directly below the write-up. Larger portrait and 10-inch landscape screens retain the two-card presentation.
+- Recognises classical vocal descriptions such as tenor, soprano and baritone when retrieving artist summaries, restoring biographies for artists such as Luciano Pavarotti.
+- Replaces the broken stretched Home Assistant colour inputs with twelve named presets, a visible custom hex override and an immediate colour preview for each entity type.
+- Applies each Home Assistant entity colour to its level slider as well as the tile, icon and border.
+- Replaces inert mute and volume controls on fixed-volume Roon outputs with one clear Fixed Volume label.
+
 ## 1.1.7-beta.15 Alpine — 24 October 2026
 
 - Restores the 1280×720 Touch Display 2 Discover geometry without altering the original 800×480 rules: Daily mixes, mix details, Search, New Releases and genre tiles now use Gen 2-specific spacing and sizing.

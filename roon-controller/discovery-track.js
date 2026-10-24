@@ -21,7 +21,14 @@ async function playMixTrack(client,sdk,{id,zoneId,action,track}) {
   if(matches.length!==1)throw Error('The selected mix track could not be matched safely');
   const type=`${ns}.PlayParameters`;
   const parameters=client.structArg(type,[{name:`${ns}.PlayPriority ${type}::Priority`,propType:9,value:buildArgs([Arg.enum_(action==='play'?0:4)])},{name:`bool ${type}::Shuffle`,propType:2,value:buildArgs([Arg.bool(false)])}]);
-  const result=await client.remoting.callMethod(client.serviceOid('Transport'),`${ns}.Transport::PlayTrack(${ns}.Zone, System.Sooid, ${type}, ${ns}.TrackBase, Base.ResultCallback<${ns}.PlayFeedback>)`,Buffer.concat([buildArgs([Arg.ref(zones[0].oid),Arg.sooid(client.profile())]),parameters,buildArgs([Arg.ref(matches[0].oid)])]));
+  const selectedIndex=candidates.indexOf(matches[0]);
+  // "Play Now" is play-from-here: hand Roon the verified mix plus the selected
+  // offset so the rest of the mix remains the queue. "Queue" remains one track.
+  const method=action==='play'
+    ?`${ns}.Transport::PlayMix(${ns}.Zone, System.Sooid, ${type}, ${ns}.Mix, int, Base.ResultCallback<${ns}.PlayFeedback>)`
+    :`${ns}.Transport::PlayTrack(${ns}.Zone, System.Sooid, ${type}, ${ns}.TrackBase, Base.ResultCallback<${ns}.PlayFeedback>)`;
+  const subject=action==='play'?buildArgs([Arg.ref(BigInt(mixReference.$ref)),Arg.int(selectedIndex)]):buildArgs([Arg.ref(matches[0].oid)]);
+  const result=await client.remoting.callMethod(client.serviceOid('Transport'),method,Buffer.concat([buildArgs([Arg.ref(zones[0].oid),Arg.sooid(client.profile())]),parameters,subject]));
   if(!result.success)throw Error('Roon did not confirm the track request');
   return {accepted:true,action};
 }

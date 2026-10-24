@@ -534,7 +534,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
         self.assertIn('detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
-        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
+        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle) and not getattr(self, "album_focus_detail", False))', code)
         self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
         self.assertIn('.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }', code)
         self.assertIn('.theme-roon .detail-close, .theme-roon .detail-close-glyph { border-color: #9868F9; }', code)
@@ -738,7 +738,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         row=native_method("discovery_track_row",{"Gtk":LAYOUT_GTK,"Pango":SimpleNamespace(EllipsizeMode=SimpleNamespace(END="end"))})(owner,{"title":"Song","artist":"Artist","key":"track-key","artwork_key":"art"})
         self.assertIn("browser-row",row.classes)
         art=row.get_child().children[0]
-        self.assertEqual(art.properties["size_request"],(84,84))
+        self.assertEqual(art.properties["size_request"],(72,72))
         self.assertEqual(owner.discovery_cards,[(row,"discover:art")])
         owner.open_discovery_item.assert_not_called()
         row.properties["clicked"](); owner.open_discovery_item.assert_called_once_with(row,"track-key")
@@ -931,15 +931,19 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('renderArtistProfile(data.artist_profile, artistPlay)', web)
         self.assertNotIn('Artist background is unavailable.', web)
 
-    def test_artist_rows_have_fixed_artwork_and_play_is_beneath_the_portrait(self):
+    def test_artist_rows_have_fixed_artwork_and_profile_uses_aligned_wide_hero(self):
         code = SOURCE.read_text(encoding='utf-8')
-        self.assertIn('art_slot.set_max_content_height(84)', code)
-        self.assertIn('art_slot.set_max_content_width(84)', code)
+        self.assertIn('art_slot.set_max_content_height(72)', code)
+        self.assertIn('art_slot.set_max_content_width(72)', code)
         self.assertIn('"ARTIST ALBUMS", "browser-section"', code)
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
         self.assertIn('thumb_size = 84 if original_artist_albums', code)
         self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
-        self.assertIn('play.set_halign(Gtk.Align.START if portrait or original else Gtk.Align.CENTER); details.append(play)', code)
+        self.assertIn('hero_height = round(hero_width * 9 / 16)', code)
+        self.assertIn('overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)', code)
+        self.assertIn('details.set_size_request(hero_width - 32, -1)', code)
+        self.assertIn('summary_slot.artist_summary_lines = 2', code)
+        self.assertIn('background: linear-gradient(to bottom, transparent 0%', code)
 
     def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):
         code = SOURCE.read_text(encoding="utf-8")

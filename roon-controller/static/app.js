@@ -538,8 +538,10 @@ function renderDetails(info) {
   else { $('details-art').removeAttribute('src'); $('details-placeholder').hidden = false; }
   const artistName = info.artist || fallback.line2 || '';
   $('details-artist-heading').textContent = artistName || 'Unknown artist';
-  $('details-browse-artist').dataset.artist = artistName;
-  $('details-browse-artist').hidden = !artistName;
+  for (const id of ['details-browse-artist','details-browse-artist-inline']) {
+    $(id).dataset.artist = artistName;
+    $(id).hidden = !artistName;
+  }
   const artistKey = info.artist_image_key;
   if (artistKey) { $('details-artist-art').src = api(`/api/image?key=${encodeURIComponent(artistKey)}&size=700`); $('details-artist-placeholder').hidden = true; }
   else { $('details-artist-art').removeAttribute('src'); $('details-artist-placeholder').hidden = false; }
@@ -650,8 +652,8 @@ $('browser-scroll').addEventListener('wheel', event => { if (event.deltaY < 0 &&
 $('browser-scrub-range').onchange = event => browseCommand('jump', {letter: String.fromCharCode(65 + Number(event.target.value))});
 $('details-open').onclick = () => setMusicView('details');
 $('details-close').onclick = () => setMusicView('now');
-$('details-browse-artist').onclick = () => {
-  const name = $('details-browse-artist').dataset.artist;
+$('details-browse-artist').onclick = $('details-browse-artist-inline').onclick = event => {
+  const name = event.currentTarget.dataset.artist;
   if (!name) return;
   browserPlan = {section:'artists',query:'',steps:[]};
   setMusicView('browse');

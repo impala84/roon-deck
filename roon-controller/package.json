@@ -1,12 +1,12 @@
 {
   "name": "roon-deck-controller",
-  "version": "1.1.7-beta.15",
+  "version": "1.1.7-beta.16",
   "private": true,
   "description": "Touch-first Roon controller for RoonDeck",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test zone-subscription.test.js zone-selection.test.js queue-state.test.js details-state.test.js library-protocol.test.js library-state.test.js bluos-client.test.js browse-state.test.js discovery-model.test.js discovery-read.test.js discovery-state.test.js discovery-bridge.test.js discovery-mix.test.js static-serving.test.js web-discovery-ui.test.js ../tools/discovery-wire.test.cjs"
+    "test": "node --test zone-subscription.test.js zone-selection.test.js queue-state.test.js details-state.test.js library-protocol.test.js library-state.test.js bluos-client.test.js browse-state.test.js discovery-model.test.js discovery-read.test.js discovery-state.test.js discovery-bridge.test.js discovery-mix.test.js discovery-track.test.js static-serving.test.js web-discovery-ui.test.js ../tools/discovery-wire.test.cjs"
   },
   "dependencies": {
     "node-roon-api": "https://github.com/RoonLabs/node-roon-api/archive/055dae6c2ac45b6c738aa3b9e5ac1fd722ed60e8.tar.gz",
