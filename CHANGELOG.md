@@ -3,6 +3,7 @@
 ## 1.1.7-beta.39 Alpine — 24 October 2026
 
 - Keeps merged My Catalog and TIDAL artist albums in the visible artist-album list on seven-inch landscape displays instead of misclassifying their route map as a hidden two-column search page.
+- Follows Roon/TIDAL's Albums or View All Albums collection from an artist overview before merging, replacing the four featured releases with the complete available discography.
 - Restores the standard bounded artist lookup deadline after confirming that the albums were already present and the fault was entirely in the seven-inch renderer.
 
 ## 1.1.7-beta.38 Alpine — 24 October 2026

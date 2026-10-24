@@ -148,6 +148,28 @@ test('artist links merge My Catalog before an explicit TIDAL catalogue and remov
   assert.equal(Object.values(result.search_routes).some(route => /-tidal$/.test(route.session) && route.key === 'tidal-latest'), true);
 });
 
+test('artist catalogue follows the full Albums action instead of keeping four featured releases', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  const overview = manager.save('artist', {
+    hierarchy:'browse', level:4, title:'Creedence Clearwater Revival', has_more:false,
+    artist_profile:{name:'Creedence Clearwater Revival',image_key:'portrait'},
+    items:[{title:'Play Artist Radio',action:true,item_key:'play'},
+      {title:"Cosmo's Factory",item_key:'cosmo'}, {title:'Bayou Country',item_key:'bayou'},
+      {title:'View All Albums',hint:'action',action:true,item_key:'all-albums'}]
+  });
+  manager._run = async (_session, command, data) => {
+    assert.equal(command, 'open'); assert.equal(data.item_key, 'all-albums');
+    return manager.save('artist', {hierarchy:'browse',level:5,title:'Albums',has_more:false,
+      items:[{title:"Cosmo's Factory",item_key:'cosmo-full'}, {title:'Bayou Country',item_key:'bayou-full'},
+        {title:'Green River',item_key:'green-river'}, {title:'Willy and the Poor Boys',item_key:'willy'}]});
+  };
+  const result = await manager.completeArtistCatalogue({}, 'artist', overview);
+  assert.deepEqual(result.items.map(item => item.title), [
+    'Play Artist Radio', "Cosmo's Factory", 'Bayou Country', 'Green River', 'Willy and the Poor Boys'
+  ]);
+  assert.deepEqual(result.artist_profile, overview.artist_profile);
+});
+
 test('artist catalogue identity treats ampersand and and as the same artist name', async () => {
   const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
   manager.search = async (_service, _zone, session, _name, source) => {

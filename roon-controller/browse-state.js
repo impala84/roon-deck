@@ -569,6 +569,32 @@ class BrowseManager {
     return complete;
   }
 
+  async completeArtistCatalogue(service, session, state) {
+    const overview = await this.completeArtistPage(service, session, state);
+    // Roon/TIDAL artist pages commonly expose only four featured albums and a
+    // separate Albums/View All action. Follow that collection before merging;
+    // otherwise a successful artist lookup silently looks like a tiny catalogue.
+    const collection = overview?.items?.find(item => item.item_key && (
+      /^(?:view all|more)(?: artist)? albums?$/i.test(item.title.trim()) ||
+      (item.action && /^(?:albums?|discography)$/i.test(item.title.trim()))
+    ));
+    if (!collection) return overview;
+    try {
+      let expanded = await this._run(session, 'open', {item_key:collection.item_key});
+      if (!expanded || expanded.error || expanded.action_menu) return overview;
+      expanded = await this.completeArtistPage(service, session, expanded);
+      const play = overview.items.find(item => item.action && /^play artist(?: radio)?$/i.test(item.title.trim()));
+      const items = play && !expanded.items.some(item => item.action && /^play artist(?: radio)?$/i.test(item.title.trim()))
+        ? [play, ...expanded.items] : expanded.items;
+      return this.save(session, {
+        ...expanded, title:overview.title, artist_profile:overview.artist_profile,
+        items, message:'', error:false
+      });
+    } catch (_) {
+      return overview;
+    }
+  }
+
   async openExactTidalArtist(service, session, state, name) {
     const sameArtist = candidate => artistCreditMatches(candidate, name) && artistCreditMatches(name, candidate);
     let current = state;
@@ -583,7 +609,7 @@ class BrowseManager {
     }
     if (!artist?.item_key) return null;
     const opened = await this._run(session, 'open', {item_key:artist.item_key});
-    return {session, state:await this.completeArtistPage(service, session, opened)};
+    return {session, state:await this.completeArtistCatalogue(service, session, opened)};
   }
 
   mergeArtistCatalogues(session, name, catalogues) {
@@ -639,7 +665,7 @@ class BrowseManager {
       const route = results.search_routes?.[artist.item_key];
       const target = route?.session || session;
       const opened = await this._run(target, 'open', {item_key:route?.key || artist.item_key});
-      library = {session:target, state:await this.completeArtistPage(service, target, opened)};
+      library = {session:target, state:await this.completeArtistCatalogue(service, target, opened)};
     }
     let tidal = null;
     const tidalSession = `${prefix}${request}-tidal`;
