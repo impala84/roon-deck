@@ -954,6 +954,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('summary_slot.artist_summary_lines = 2 if original else 3', code)
         self.assertIn('profile_text_height = 118 if original else 190', code)
         self.assertIn('picture.artist_hero = True', code)
+        self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
+        self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
         self.assertIn('crop_y = max(0, round((height - crop_height) * .2))', code)
         self.assertIn('cropped.scale_simple(960, 540', code)
         self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))

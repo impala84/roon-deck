@@ -654,6 +654,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
 .fixed-volume-label { min-width: 150px; margin-top: 26px; color: #4b494f; font-size: 10px; font-weight: 400; letter-spacing: 1.4px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
+.artist-hero-frame { border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
 .touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
@@ -2842,6 +2843,7 @@ class Display(Gtk.Application):
             profile_text_height = 118 if original else 190
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
+            artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
             picture.artist_hero = True
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
@@ -3694,7 +3696,8 @@ class Display(Gtk.Application):
     def thumbnail_worker(self):
         while True:
             key = self.queue_thumbnail_jobs.get()
-            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size=256"
+            hero_size = 1200 if key in self.artist_hero_keys else 256
+            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size={hero_size}"
             image = get_bytes(url, timeout=2.5)
             if image:
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
