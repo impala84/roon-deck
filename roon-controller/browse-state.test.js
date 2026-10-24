@@ -148,6 +148,25 @@ test('artist links merge My Catalog before an explicit TIDAL catalogue and remov
   assert.equal(Object.values(result.search_routes).some(route => /-tidal$/.test(route.session) && route.key === 'tidal-latest'), true);
 });
 
+test('artist catalogue identity treats ampersand and and as the same artist name', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  manager.search = async (_service, _zone, session, _name, source) => {
+    if (source === 'tidal') throw new Error('not connected');
+    return manager.save(session, {
+      hierarchy:'search', level:0,
+      items:[{title:'ARTISTS',hint:'header'},{title:'Crosby, Stills and Nash',item_key:'artist-preview'}],
+      search_routes:{'artist-preview':{session:'csn-result',key:'csn'}}, has_more:false
+    });
+  };
+  manager._run = async session => manager.save(session, {
+    hierarchy:'search', level:3, artist_profile:{name:'Crosby, Stills and Nash',image_key:'portrait'}, has_more:false,
+    items:[{title:'Play Artist Radio',action:true,item_key:'play'},{title:'CSN',subtitle:'Crosby, Stills & Nash',item_key:'album'}]
+  });
+  const result = await manager.run('punctuation', 'artist', {name:'Crosby, Stills & Nash'});
+  assert.equal(result.items.some(item => item.title === 'CSN'), true);
+  assert.equal(result.artist_profile.name, 'Crosby, Stills and Nash');
+});
+
 test('artist album clicks resolve a fresh routed session before opening the exact album', async () => {
   const calls = [];
   const service = {

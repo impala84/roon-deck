@@ -32,6 +32,14 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_artist_hero_pixel_fade_is_opaque_above_the_fade_and_transparent_at_the_edge(self):
+        fade = native_method("fade_rgba_pixels")
+        source = bytes([20, 40, 60] * 5)
+        output, stride = fade(source, 1, 5, 3, 3, .4)
+        self.assertEqual(stride, 4)
+        self.assertEqual([output[row * stride + 3] for row in range(5)], [255, 255, 255, 128, 0])
+        self.assertEqual(output[0:3], bytes([20, 40, 60]))
+
     def test_bottom_navigation_holds_the_selected_page_until_backend_confirmation(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.pending_mode = mode; self.pending_mode_started_at = started', code)
@@ -1006,15 +1014,16 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('target_ratio = 1 / .68', code)
         self.assertIn('crop_y = max(0, round((height - crop_height) * .2))', code)
         self.assertIn('cropped.scale_simple(960, 653', code)
-        self.assertIn('fade_start = round(653 * .72)', code)
+        self.assertIn('fade_rgba_pixels(', code)
         self.assertIn('GdkPixbuf.Pixbuf.new_from_bytes', code)
-        self.assertIn('output[output_offset + 3] = round(source_alpha * opacity)', code)
+        self.assertIn('.artist-hero-frame viewport, .artist-hero-image', code)
+        self.assertIn('.artist-overlay-info { padding: 58px 16px 12px; background: transparent;', code)
         self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px;', code)
         self.assertIn('layout = "list" if data.get("artist_profile")', code)
         self.assertNotIn('slot.append(self.label(profile["source"], "artist-source"))', code)
         self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
-        self.assertIn('background: linear-gradient(to bottom, transparent 0%', code)
+        self.assertNotIn('.artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient', code)
 
     def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):
         code = SOURCE.read_text(encoding="utf-8")

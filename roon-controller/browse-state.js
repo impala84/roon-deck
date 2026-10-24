@@ -570,16 +570,16 @@ class BrowseManager {
   }
 
   async openExactTidalArtist(service, session, state, name) {
-    const wanted = name.trim().toLocaleLowerCase();
+    const sameArtist = candidate => artistCreditMatches(candidate, name) && artistCreditMatches(name, candidate);
     let current = state;
     // TIDAL commonly returns category rows first. Enter Artists explicitly so
     // an album sharing the artist's name can never be mistaken for the artist.
     const category = current.items?.find(item => /^artists?$/i.test(item.title.trim()) && item.item_key);
     if (category) current = await this._run(session, 'open', {item_key:category.item_key});
-    let artist = current.items?.find(item => !item.action && item.hint !== 'header' && item.title.trim().toLocaleLowerCase() === wanted);
+    let artist = current.items?.find(item => !item.action && item.hint !== 'header' && sameArtist(item.title));
     while (!artist && current.has_more && current.items.length < 500) {
       current = await this.loadMore(service, session);
-      artist = current.items?.find(item => !item.action && item.hint !== 'header' && item.title.trim().toLocaleLowerCase() === wanted);
+      artist = current.items?.find(item => !item.action && item.hint !== 'header' && sameArtist(item.title));
     }
     if (!artist?.item_key) return null;
     const opened = await this._run(session, 'open', {item_key:artist.item_key});
@@ -628,10 +628,11 @@ class BrowseManager {
     const mergedSession = `${prefix}${request}-merged`;
     this.sections.set(session, 'search'); this.activeSessions.set(baseSession, mergedSession);
     const results = await this.search(service, zone, session, name, 'all', 'artists');
+    const sameArtist = candidate => artistCreditMatches(candidate, name) && artistCreditMatches(name, candidate);
     let group = '';
     const artist = results.items.find(item => {
       if (item.hint === 'header') { group = item.title; return false; }
-      return group === 'ARTISTS' && item.title.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase();
+      return group === 'ARTISTS' && sameArtist(item.title);
     });
     let library = null;
     if (artist) {

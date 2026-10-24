@@ -66,6 +66,21 @@ CAROUSEL_START_INSET = 10
 CAROUSEL_END_SPACE = 30
 
 
+def fade_rgba_pixels(pixels, width, height, rowstride, channels, fade_start_ratio=.72):
+    """Copy RGB(A) pixels and smoothly reduce their bottom edge to alpha 0."""
+    output_stride = width * 4; output = bytearray(output_stride * height)
+    fade_start = round(height * fade_start_ratio)
+    for y in range(height):
+        progress = max(0.0, min(1.0, (y - fade_start) / max(1, height - 1 - fade_start)))
+        opacity = 1.0 - progress * progress * (3.0 - 2.0 * progress)
+        for x in range(width):
+            source_offset = y * rowstride + x * channels; output_offset = y * output_stride + x * 4
+            output[output_offset:output_offset + 3] = pixels[source_offset:source_offset + 3]
+            source_alpha = pixels[source_offset + 3] if channels == 4 else 255
+            output[output_offset + 3] = round(source_alpha * opacity)
+    return bytes(output), output_stride
+
+
 class ElasticCarouselTrack(Gtk.Box):
     """Paint-only resisted touch pull; allocations and resting scroll stay intact."""
     def __init__(self):
@@ -660,8 +675,8 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
 .volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
-.artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
-.artist-hero-frame { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+.artist-overlay-info { padding: 58px 16px 12px; background: transparent; }
+.artist-hero-frame, .artist-hero-frame viewport, .artist-hero-image { border-top-left-radius: 8px; border-top-right-radius: 8px; background: transparent; background-image: none; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
 .touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
@@ -2891,6 +2906,7 @@ class Display(Gtk.Application):
         if not profile: return
         viewport_width = getattr(self, "viewport_width", 800)
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
+        picture.add_css_class("artist-hero-image")
         self.set_browser_placeholder(picture, artist=True)
         name = profile.get("name", "")
         if seven_landscape:
@@ -3832,17 +3848,8 @@ class Display(Gtk.Application):
             # Fade the photograph itself to transparent. Painting a black
             # gradient over it only works on the default black theme and
             # exposes a rectangular edge on user-selected backgrounds.
-            pixels = scaled.get_pixels(); source_stride = scaled.get_rowstride(); channels = scaled.get_n_channels()
-            output_stride = 960 * 4; output = bytearray(output_stride * 653); fade_start = round(653 * .72)
-            for y in range(653):
-                progress = max(0.0, min(1.0, (y - fade_start) / max(1, 652 - fade_start)))
-                opacity = 1.0 - progress * progress * (3.0 - 2.0 * progress)
-                for x in range(960):
-                    source_offset = y * source_stride + x * channels; output_offset = y * output_stride + x * 4
-                    output[output_offset:output_offset + 3] = pixels[source_offset:source_offset + 3]
-                    source_alpha = pixels[source_offset + 3] if channels == 4 else 255
-                    output[output_offset + 3] = round(source_alpha * opacity)
-            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(bytes(output)), GdkPixbuf.Colorspace.RGB, True, 8, 960, 653, output_stride)
+            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 653, scaled.get_rowstride(), scaled.get_n_channels())
+            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 653, output_stride)
             return Gdk.Texture.new_for_pixbuf(faded)
         except (GLib.Error, ValueError, TypeError): return None
 

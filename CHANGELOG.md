@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.37 Alpine — 24 October 2026
+
+- Matches artist identities across punctuation variants such as `Crosby, Stills & Nash` and `Crosby, Stills and Nash`, preventing empty merged album pages.
+- Makes the hero frame, its viewport and its image surface transparent and removes the remaining opaque black overlay so the pixel-alpha fade reaches the selected background.
+- Adds behavioral coverage for the artist-name variant and the actual bottom-edge alpha values.
+
 ## 1.1.7-beta.36 Alpine — 24 October 2026
 
 - Builds artist album pages from explicit My Catalog and TIDAL searches, keeping owned albums first while adding the connected TIDAL catalogue and removing duplicates.
