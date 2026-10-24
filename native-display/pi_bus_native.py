@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Compatibility launcher for installations using the former display name.
+"""Stable installed launcher for the canonical RoonDeck display module.
 
-New services launch :mod:`roondeck_native` directly. Keep this small bridge so
-an older service definition can still start the display during an update.
+Keep this bridge at the historic path used by Cage and OpenRC installations so
+application renames never change the supervised touchscreen process contract.
 """
 
 from roondeck_native import Display, publish_display_source

@@ -101,13 +101,16 @@ class DisplayRotationTests(unittest.TestCase):
 
     def test_home_assistant_tile_colours_use_picker_controls(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
+        css = (ROOT / "src/pi_bus_time_display/static/admin.css").read_text()
         javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()
         for domain in ("light", "fan", "switch", "scene"):
             self.assertIn(f'name="home_assistant_{domain}_color" type="text"', html)
             self.assertIn(f'data-colour-preset="{domain}"', html)
             self.assertIn(f"'home_assistant_{domain}_color'", javascript)
         self.assertIn("const homeColourPresets=", javascript)
-        self.assertIn("Custom hex…", javascript)
+        self.assertIn("picker.className='home-colour-presets'", javascript)
+        self.assertIn("role','radio'", javascript)
+        self.assertIn("grid-template-columns:repeat(5,36px)", css)
         self.assertIn('id="reset-home-colors"', html)
         self.assertIn('name="home_assistant_color_mode"', html)
         self.assertIn('name="home_assistant_single_color" type="text"', html)
@@ -176,6 +179,7 @@ class DisplayRotationTests(unittest.TestCase):
         script = (ROOT / "scripts" / "pi-bus-cage-launch").read_text(encoding="utf-8")
         self.assertIn("90) transform=270", script)
         self.assertIn("270) transform=90", script)
+        self.assertIn("exec /opt/pi-bus-time-display/native-display/pi_bus_native.py", script)
 
     def test_landscape_profile_has_dedicated_large_touch_layout(self):
         display = (ROOT / "native-display" / "roondeck_native.py").read_text(encoding="utf-8")

@@ -25,4 +25,7 @@ if [[ -x /usr/bin/wlr-randr && -f ${profile_file} && -f ${transform_file} ]] && 
   done
 fi
 
-exec /opt/pi-bus-time-display/native-display/roondeck_native.py
+# Keep the established process entry point on installed touchscreens.  The
+# compatibility launcher imports the canonical RoonDeck implementation, while
+# preserving the path used by existing Cage/OpenRC process supervision.
+exec /opt/pi-bus-time-display/native-display/pi_bus_native.py
