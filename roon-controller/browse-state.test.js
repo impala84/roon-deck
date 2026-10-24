@@ -446,6 +446,55 @@ test('search results retain the hierarchy and zone when opened for playback', as
   assert.ok(calls.filter(call => call.input).every(call => call.pop_all && !call.item_key));
 });
 
+test('browsing remains available offline and playback waits for the selected zone', async () => {
+  let zone = null;
+  const calls = [];
+  const service = {
+    browse(options, callback) { calls.push(options); callback(false, {action:'none'}); },
+    load(_options, callback) { callback(false, {items:[]}); }
+  };
+  const manager = new BrowseManager(() => service, () => zone);
+  manager.sessions.set('pihome-offline', {
+    status:'ready', hierarchy:'browse', level:3, title:'Album',
+    items:[{title:'Play Album', action:true, item_key:'play'}]
+  });
+  manager.activeSessions.set('pihome-offline', 'pihome-offline');
+  const queued = await manager.run('offline', 'open', {item_key:'play'});
+  assert.equal(calls.length, 0, 'an absent endpoint must not redirect playback elsewhere');
+  assert.match(queued.message, /Playback queued/);
+  assert.equal(queued.navigate, 'now');
+  zone = {zone_id:'ls50w'};
+  await manager.resumePendingPlayback();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].item_key, 'play');
+  assert.equal(calls[0].zone_or_output_id, 'ls50w');
+});
+
+test('library browsing omits the playback target while the configured zone is offline', async () => {
+  const calls = [], paths = new Map();
+  const service = {
+    browse(options, callback) {
+      calls.push(options);
+      let path = options.pop_all ? 'root' : paths.get(options.multi_session_key);
+      if (options.item_key === 'library') path = 'library';
+      if (options.item_key === 'albums') path = 'albums';
+      paths.set(options.multi_session_key, path);
+      callback(false, {action:'list', list:{title:path || 'root', level:path === 'albums' ? 2 : path === 'library' ? 1 : 0, count:1}});
+    },
+    load(options, callback) {
+      const path = paths.get(options.multi_session_key);
+      const items = path === 'root' ? [{title:'Library',item_key:'library'}]
+        : path === 'library' ? [{title:'Albums',item_key:'albums'}]
+        : [{title:'Offline Album',subtitle:'Artist',item_key:'album'}];
+      callback(false, {list:{title:path,level:path === 'albums' ? 2 : path === 'library' ? 1 : 0,count:items.length},items});
+    }
+  };
+  const manager = new BrowseManager(() => service, () => null);
+  const result = await manager.run('offline-library', 'root', {section:'albums'});
+  assert.equal(result.items[0].title, 'Offline Album');
+  assert.ok(calls.every(call => !Object.hasOwn(call, 'zone_or_output_id')));
+});
+
 test('TIDAL search discovers its prompt and retains fresh keys through playback and pagination', async () => {
   const paths = new Map(), calls = [];
   const lists = {

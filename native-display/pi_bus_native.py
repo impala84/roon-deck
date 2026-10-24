@@ -234,6 +234,8 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .service-no, .arrival { font-size: 82px; font-weight: 720; font-variant-numeric: tabular-nums; }
 .service-no { font-weight: 760; }.service-blue .service-no { color: #55a9d7; }.service-green .service-no { color: #61c68f; }.service-violet .service-no { color: #a998e0; }.service-amber .service-no { color: #d4a85f; }
 .service.compact .service-no, .service.compact .arrival { font-size: 59px; }.service.dense .service-no, .service.dense .arrival { font-size: 45px; }.service.compact, .service.dense { padding-top: 2px; padding-bottom: 2px; }
+.original-landscape .bus-page .service.original-compact { min-height: 0; padding: 2px 12px; border-radius: 10px; }
+.original-landscape .bus-page .service.original-compact .arrival-sub { font-size: 8px; }
 .arrival-sub { color: #7f8b87; font-size: 10px; font-weight: 650; }.muted { color: #78837f; font-size: 11px; font-weight: 400; }
 .nav { padding-top: 3px; }.nav button { min-width: 0; min-height: 40px; border: 0; border-bottom: 5px solid transparent; border-radius: 0; background: transparent; color: #7f8b87; font-size: 14px; font-weight: 700; }
 .nav button.active { border-bottom-color: #6ed9ae; background: transparent; color: #dfe4e1; }.artwork { border-radius: 12px; }.roon-title { font-size: 35px; font-weight: 620; }.roon-artist { color: #b6c0bc; font-size: 18px; }
@@ -290,7 +292,7 @@ CSS += b"""
 .theme-roon .roon-page { background: linear-gradient(120deg, #242338, #181818 60%, #251c22); }
 .theme-roon .browser-filter.active, .theme-roon .touch-landscape .browser-filter.active { color: #9868F9; }
 .theme-roon .browser-filter, .theme-roon .browser-filter.active { background: transparent; border: 0; }
-.theme-roon .browser-cover-art, .theme-roon .browser-action-icon, .theme-roon .surprise-action { background: #282828; color: #9868F9; }
+.theme-roon .artwork, .theme-roon .queue-art, .theme-roon .browser-cover-art, .theme-roon .browser-action-icon, .theme-roon .surprise-action, .theme-roon .artist-hero-frame { background: #202020; color: #9868F9; }
 .theme-roon .nav button.active, .theme-roon .roon-subnav button.active { border-color: #9868F9; }
 .theme-roon .transport .play, .theme-roon scale highlight { background: #9868F9; color: #fff; }
 .theme-roon .eyebrow, .theme-roon .details-tag { color: #9868F9; }
@@ -365,7 +367,7 @@ CSS += b"""
 .theme-roon .home-tile.activated .home-device-button { color: #9868F9; }
 .theme-roon .home-tile.on button, .theme-roon .boot-logo, .theme-roon .surprise-action { color: #9868F9; }
 .theme-roon .home-device-button.scene-action.activated { color: #9868F9; }
-.theme-roon .surprise-action, .theme-roon .queue-art { background: #292929; }
+.theme-roon .surprise-action, .theme-roon .queue-art { background: #202020; }
 .theme-roon .clock { color: #bbb; }
 .theme-roon .browser-tile-icon, .theme-roon .browser-home-icon, .theme-roon .browser-section { color: #9868F9; }
 .theme-roon .browser-home-card { background: #232228; }
@@ -2245,21 +2247,25 @@ class Display(Gtk.Application):
         while child := self.services.get_first_child(): self.services.remove(child)
         visible = data.get("services", [])[:4]
         portrait = self.window.has_css_class("portrait")
+        original_compact = (not portrait and getattr(self, "viewport_width", 800) <= 820
+                            and getattr(self, "viewport_height", 480) <= 500 and len(visible) >= 3)
         self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
-        self.services.set_spacing(24 if portrait else 14)
+        self.services.set_spacing(24 if portrait else 8 if original_compact else 14)
         self.services.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
-        self.services.set_vexpand(not portrait)
+        self.services.set_vexpand(not portrait and not original_compact)
         self.bus_content.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
         self.services.set_margin_top(PORTRAIT_CONTENT_GAP if portrait else 0)
         for index, service in enumerate(visible):
-            row = Gtk.Box(spacing=12); row.add_css_class("service"); row.add_css_class("service-" + (service.get("colour") or {"40": "blue", "42": "green", "401": "violet"}.get(str(service.get("service")), "amber"))); row.set_vexpand(True)
+            row = Gtk.Box(spacing=12); row.add_css_class("service"); row.add_css_class("service-" + (service.get("colour") or {"40": "blue", "42": "green", "401": "violet"}.get(str(service.get("service")), "amber"))); row.set_vexpand(not original_compact)
             if len(visible) == 3: row.add_css_class("compact")
             elif len(visible) >= 4: row.add_css_class("dense")
+            if original_compact:
+                row.add_css_class("original-compact"); row.set_size_request(-1, 82 if len(visible) == 3 else 62)
             if portrait:
                 self.render_portrait_bus_card(row, service, len(visible))
                 self.services.append(row)
                 continue
-            number = self.label(str(service.get("service", "")), "service-no"); number.set_size_request((150 if len(visible) > 2 else 188) if self.window.has_css_class("high-resolution") else (100 if len(visible) > 2 else 125), -1); number.set_valign(Gtk.Align.CENTER)
+            number = self.label(str(service.get("service", "")), "service-no"); number.set_size_request((150 if len(visible) > 2 else 188) if self.window.has_css_class("high-resolution") else (86 if original_compact else 100 if len(visible) > 2 else 125), -1); number.set_valign(Gtk.Align.CENTER)
             arrivals = Gtk.Box(spacing=8); arrivals.set_hexpand(True)
             if portrait:
                 number.set_xalign(.5); number.set_size_request(-1, -1); number.set_valign(Gtk.Align.CENTER)
@@ -2269,7 +2275,7 @@ class Display(Gtk.Application):
                 route_size = min(344 if large else 216, max(40, round((card_budget - 80) / (2.6 if large else 1.85))))
             font_size = (route_size if self.window.has_css_class("large-display") else round(route_size * .8)) if portrait else (123 if self.window.has_css_class("high-resolution") else 82)
             if not portrait and len(visible) > 2:
-                font_size = round(font_size / (1.8 if len(visible) >= 4 else 1.4))
+                font_size = 38 if original_compact and len(visible) >= 4 else 46 if original_compact else round(font_size / (1.8 if len(visible) >= 4 else 1.4))
             attrs = Pango.AttrList(); attrs.insert(Pango.attr_size_new_absolute(font_size * Pango.SCALE)); number.set_attributes(attrs)
             number.add_css_class("solid-route"); row.append(number)
             for arrival in service.get("arrivals", [])[:2 if portrait else 3]:

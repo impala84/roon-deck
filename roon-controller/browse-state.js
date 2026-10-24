@@ -33,6 +33,14 @@ function isActionItem(item) {
   return item?.hint === 'action' || /^(play (now|album|playlist|artist|genre|from here)|add next|queue|start radio|shuffle)$/i.test(String(item?.title || '').trim());
 }
 
+function zoneOptions(zone) {
+  return zone?.zone_id ? {zone_or_output_id: zone.zone_id} : {};
+}
+
+function requiresPlaybackZone(item) {
+  return Boolean(item?.action) && /^(?:play(?:\s|$)|shuffle(?:\s|$)|start radio$|add next$|queue$)/i.test(String(item.title || '').trim());
+}
+
 function artistCreditMatches(value, artist) {
   const identity = text => String(text || '').toLocaleLowerCase()
     .replace(/&/g, ' and ')
@@ -122,9 +130,26 @@ class BrowseManager {
     this.artistRequestId = 0;
     this.searchSources = new Map();
     this.sortedCollections = new Map();
+    this.pendingPlayback = null;
   }
 
-  clear() { this.sessions.clear(); this.pending.clear(); this.sections.clear(); this.alphabetIndexes.clear(); this.activeSessions.clear(); this.lastSurprises.clear(); this.surpriseOrigins.clear(); this.artistContexts.clear(); this.searchSources.clear(); }
+  clear() { this.sessions.clear(); this.pending.clear(); this.sections.clear(); this.alphabetIndexes.clear(); this.activeSessions.clear(); this.lastSurprises.clear(); this.surpriseOrigins.clear(); this.artistContexts.clear(); this.searchSources.clear(); this.pendingPlayback = null; }
+
+  async resumePendingPlayback() {
+    const pending = this.pendingPlayback;
+    if (!pending || !this.service() || !this.zone()) return null;
+    this.pendingPlayback = null;
+    try {
+      return pending.surprise
+        ? await this.playSurprise(pending.baseSession)
+        : await this._run(pending.session, 'open', pending.data);
+    } catch (error) {
+      // A zone can disappear again while it is waking. Keep the user's request
+      // so the next zone update can retry it rather than silently losing it.
+      if (!this.zone()) this.pendingPlayback = pending;
+      throw error;
+    }
+  }
 
   run(sessionName, command = 'current', data = {}) {
     const session = safeSession(sessionName);
@@ -176,7 +201,7 @@ class BrowseManager {
 
   async _run(session, command, data) {
     const service = this.service(); const zone = this.zone();
-    if (!service || !zone) return {status: 'unavailable', title: 'Browse', items: [], can_back: false, has_more: false};
+    if (!service) return {status: 'unavailable', title: 'Browse', items: [], can_back: false, has_more: false};
     if (command === 'current' && this.sessions.has(session)) return this.sessions.get(session);
     if (command === 'sort') return this.sortCollection(service, session, data.order);
     if (command === 'more') return this.loadMore(service, session);
@@ -187,17 +212,21 @@ class BrowseManager {
     const state = this.sessions.get(session);
     if (command === 'back' && state?.hierarchy !== 'browse' && state?.level === 0) return this._run(session, 'root', {});
     const hierarchy = !state ? 'browse' : state.hierarchy;
-    const options = {hierarchy, multi_session_key: session, zone_or_output_id: zone.zone_id};
+    const options = {hierarchy, multi_session_key: session, ...zoneOptions(zone)};
     if (!state) options.pop_all = true;
     else if (command === 'back') options.pop_levels = state?.skipped_album_preview ? 2 : 1;
     else if (command === 'open' && data.item_key) options.item_key = String(data.item_key);
     else return state || this._run(session, 'root', {});
     const opened = command === 'open' ? state?.items?.find(item => String(item.item_key) === String(data.item_key)) : null;
+    if (!zone && requiresPlaybackZone(opened)) {
+      this.pendingPlayback = {session, data:{item_key:String(data.item_key)}};
+      return {...this.save(session, {...state, message:'Playback queued. Power on the selected zone to begin.', error:false}), navigate:'now'};
+    }
     if (opened?.shuffle_genre) return this.shuffleGenre(service, zone, session, state, options);
     let result = await request(service, 'browse', options);
     let playbackCompleted = opened?.action && /^play(?: now| from here)?$/i.test(opened.title.trim());
     if (state?.action_menu && opened?.action && /^(add next|queue)$/i.test(opened.title.trim()) && !result.is_error && result.action !== 'list') {
-      const album = await request(service, 'browse', {hierarchy, multi_session_key:session, zone_or_output_id:zone.zone_id, pop_levels:1});
+      const album = await request(service, 'browse', {hierarchy, multi_session_key:session, ...zoneOptions(zone), pop_levels:1});
       const restored = await this.follow(service, session, hierarchy, album, state.fallback_image_key);
       return this.save(session, {...restored, message: /^add next$/i.test(opened.title.trim()) ? 'Added next.' : 'Added to queue.'});
     }
@@ -292,14 +321,14 @@ class BrowseManager {
     if (!shuffle?.item_key) return this.follow(service, session, state.hierarchy, menu);
     const result = await request(service, 'browse', {...options, item_key: shuffle.item_key});
     if (result.is_error) return this.follow(service, session, state.hierarchy, result);
-    const restored = await request(service, 'browse', {hierarchy: state.hierarchy, multi_session_key: session, zone_or_output_id: zone.zone_id, pop_levels: 1});
+    const restored = await request(service, 'browse', {hierarchy: state.hierarchy, multi_session_key: session, ...zoneOptions(zone), pop_levels: 1});
     const next = await this.follow(service, session, state.hierarchy, restored);
     return this.save(session, {...next, message: `Shuffling ${state.title}.`});
   }
 
   async surprise(baseSession) {
     const service = this.service(); const zone = this.zone();
-    if (!service || !zone) throw new Error('Roon is not connected');
+    if (!service) throw new Error('Roon is not connected');
     const session = `${baseSession}-surprise`;
     const origin = this.activeSessions.get(baseSession) || `${baseSession}-albums`;
     if (!this.sessions.get(origin)?.surprise_preview) this.surpriseOrigins.set(baseSession, origin);
@@ -325,10 +354,14 @@ class BrowseManager {
     const preview = this.sessions.get(this.activeSessions.get(baseSession));
     if (!preview?.surprise_preview) throw new Error('Choose a surprise album first');
     const service = this.service(); const zone = this.zone();
-    if (!service || !zone) throw new Error('Roon is not connected');
+    if (!service) throw new Error('Roon is not connected');
+    if (!zone) {
+      this.pendingPlayback = {surprise:true, baseSession};
+      return {...this.save(this.activeSessions.get(baseSession), {...preview, message:'Playback queued. Power on the selected zone to begin.', error:false}), navigate:'now'};
+    }
     const session = `${baseSession}-surprise-play`;
     const albums = await this.openSection(service, zone, session, 'albums');
-    const options = {hierarchy: 'browse', multi_session_key: session, zone_or_output_id: zone.zone_id};
+    const options = {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone)};
     const selected = await request(service, 'load', {...options, level: albums.level, offset: this.lastSurprises.get(baseSession), count: 1});
     const album = selected.items?.[0];
     if (!album?.item_key || album.title !== preview.surprise_album) throw new Error('The library changed. Choose another surprise album.');
@@ -354,13 +387,13 @@ class BrowseManager {
     const loaded = await request(service, 'load', {hierarchy: 'browse', multi_session_key: session, level: result.list.level, offset: 0, count: 100});
     const item = (loaded.items || []).find(candidate => String(candidate.title || '').trim().toLowerCase() === title);
     if (!item?.item_key) return null;
-    return request(service, 'browse', {hierarchy: 'browse', multi_session_key: session, zone_or_output_id: zone.zone_id, item_key: item.item_key});
+    return request(service, 'browse', {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone), item_key: item.item_key});
   }
 
   async openSection(service, zone, session, requested) {
     const section = ['albums', 'artists', 'genres', 'playlists'].includes(requested.toLowerCase()) ? requested.toLowerCase() : 'albums';
     this.sections.set(session, section);
-    let result = await request(service, 'browse', {hierarchy: 'browse', multi_session_key: session, zone_or_output_id: zone.zone_id, pop_all: true});
+    let result = await request(service, 'browse', {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone), pop_all: true});
     if (['albums', 'artists'].includes(section)) result = await this.openNamed(service, zone, session, result, 'library');
     result = await this.openNamed(service, zone, session, result, section);
     if (!result) return this.save(session, {status: 'ready', hierarchy: 'browse', level: 0, title: section[0].toUpperCase() + section.slice(1), section, section_root: true, breadcrumb: `LIBRARY / ${section.toUpperCase()}`, items: [], can_back: false, has_more: false, message: 'This section is not available from Roon.', error: true});
@@ -372,7 +405,7 @@ class BrowseManager {
     this.searchSources.set(session, source === 'all' ? 'all' : source === 'tidal' ? 'tidal' : 'library');
     this.save(session, {status: 'ready', hierarchy: source === 'tidal' ? 'browse' : 'search', level: 0, section: 'search', search_source: this.searchSources.get(session), title: source === 'tidal' ? 'TIDAL Search' : 'Search', items: [], can_back: false, has_more: false});
     if (source === 'tidal') {
-      const options = {hierarchy: 'browse', multi_session_key: session, zone_or_output_id: zone.zone_id};
+      const options = {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone)};
       const root = await request(service, 'browse', {...options, pop_all: true});
       const tidal = await this.openNamed(service, zone, session, root, 'tidal');
       if (!tidal || tidal.is_error || tidal.action !== 'list') return this.searchUnavailable(session, 'TIDAL is not available in Roon. Check that your TIDAL account is connected in Roon Settings → Services.');
@@ -387,7 +420,7 @@ class BrowseManager {
     // already ordered by the core; do not split it into service-specific queries.
     // The search hierarchy takes input on the root browse request. Opening
     // it without input returns "No Results", not an input_prompt item.
-    const result = await request(service, 'browse', {hierarchy: 'search', multi_session_key: session, zone_or_output_id: zone.zone_id, pop_all: true, input: query});
+    const result = await request(service, 'browse', {hierarchy: 'search', multi_session_key: session, ...zoneOptions(zone), pop_all: true, input: query});
     const root = await this.follow(service, session, 'search', result);
     const categoryOrder = ['artists', 'albums', 'tracks'];
     const allCategories = root.items.filter(item => /^(albums|artists|tracks|playlists|composers|works)$/i.test(item.title.trim()) && item.item_key);
@@ -399,11 +432,11 @@ class BrowseManager {
       this.sections.set(child, 'search');
       try {
         // Independent Roon sessions keep result keys valid while other groups load.
-        const fresh = await request(service, 'browse', {hierarchy: 'search', multi_session_key: child, zone_or_output_id: zone.zone_id, pop_all: true, input: query});
+        const fresh = await request(service, 'browse', {hierarchy: 'search', multi_session_key: child, ...zoneOptions(zone), pop_all: true, input: query});
         const freshRoot = await this.follow(service, child, 'search', fresh);
         const match = freshRoot.items.find(item => item.title === category.title);
         if (!match?.item_key) return {items: [category], routes};
-        const opened = await request(service, 'browse', {hierarchy: 'search', multi_session_key: child, zone_or_output_id: zone.zone_id, item_key: match.item_key});
+        const opened = await request(service, 'browse', {hierarchy: 'search', multi_session_key: child, ...zoneOptions(zone), item_key: match.item_key});
         const group = await this.follow(service, child, 'search', opened);
         if (group.error || !group.items.length) return {items: group.error ? [category] : [], routes};
         this.save(child, {...group, search_origin: {session, level: group.level}});
@@ -664,7 +697,7 @@ class BrowseManager {
 
   async openArtist(baseSession, name) {
     const service = this.service(), zone = this.zone();
-    if (!service || !zone || !name) return {status:'unavailable', items:[], can_back:false};
+    if (!service || !name) return {status:'unavailable', items:[], can_back:false};
     // Resolve a fresh core-owned artist through the same global Search used by
     // the Search screen. Opening that artist result is the Roon-supported path
     // to its library-first, connected-catalogue album list.

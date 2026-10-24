@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current Alpine stable release is **1.1.6**. The **1.1.7-beta.41** physical-baseline hotfix keeps the proven beta.24 touchscreen application while adding grouped-zone playback, direct Artist Radio, merged My Catalog and connected-service artist catalogues with exact artist matching, reliable high-resolution artist heroes, progressive Now Playing metadata, polished artist-album navigation and consistent album-year detail typography. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
+The current Alpine stable release is **1.1.6**. The **1.1.7-beta.42** physical-baseline hotfix keeps the proven beta.24 touchscreen application while adding grouped-zone playback, offline-endpoint browsing with deferred playback, direct Artist Radio, merged My Catalog and connected-service artist catalogues with exact artist matching, reliable high-resolution artist heroes, progressive Now Playing metadata, polished artist-album navigation and consistent album-year detail typography. The latest complete flashable image is available from the 1.1.7-beta.12 release for clean installations.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 

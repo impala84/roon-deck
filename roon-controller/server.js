@@ -207,6 +207,7 @@ function mergeZones(command, data) {
   carryGroupedPlayback(previousZones);
   ensureQueueSubscription();
   ensureDetails();
+  if (selectedZone()) browser.resumePendingPlayback().catch(() => {});
   broadcast();
 }
 
@@ -450,6 +451,12 @@ http.createServer(async (request, response) => {
       }
       if (url.pathname === '/api/bluos/volume') { await bluos.setVolume(data.value); return json(response, 200, {ok: true}); }
       if (url.pathname === '/api/bluos/mute') { await bluos.toggleMute(); return json(response, 200, {ok: true}); }
+      if (url.pathname === '/api/browse') {
+        if (!configuredRuntime().browserEnabled) return json(response, 404, {error: 'Roon Browse is disabled'});
+        if (!browseService) return json(response, 409, {error: 'Roon is not connected'});
+        const action = ['root', 'open', 'back', 'more', 'previous', 'jump', 'section', 'sort', 'search', 'surprise', 'surprise_play', 'current', 'route', 'artist'].includes(data.action) ? data.action : 'current';
+        return json(response, 200, await browser.run(data.session, action, data));
+      }
       if (!transport || !zone) return json(response, 409, {error: 'Roon is not connected'});
       if(url.pathname === '/api/discovery/mix-action') return json(response,200,await discovery.mixAction(data.id,zone.zone_id,data.action,data.nonce));
       if(url.pathname === '/api/discovery/track-action') return json(response,200,await discovery.trackAction(data.key,zone.zone_id,data.action,data.nonce));
@@ -464,11 +471,6 @@ http.createServer(async (request, response) => {
           await discovery.tail;
         }
         return json(response,200,await openDiscovery(browser,data.session,discovery.find(data.key)));
-      }
-      if (url.pathname === '/api/browse') {
-        if (!configuredRuntime().browserEnabled) return json(response, 404, {error: 'Roon Browse is disabled'});
-        const action = ['root', 'open', 'back', 'more', 'previous', 'jump', 'section', 'sort', 'search', 'surprise', 'surprise_play', 'current', 'route', 'artist'].includes(data.action) ? data.action : 'current';
-        return json(response, 200, await browser.run(data.session, action, data));
       }
       if (url.pathname === '/api/control' && data.action === 'resume') resumeRoon(zone);
       else if (url.pathname === '/api/control' && ['previous', 'playpause', 'next'].includes(data.action)) transport.control(zone, data.action);

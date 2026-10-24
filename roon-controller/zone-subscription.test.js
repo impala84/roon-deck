@@ -11,7 +11,7 @@ const mergeEnd = source.indexOf('\nfunction ensureDetails', mergeStart);
 const zoneSource = source.slice(helperStart, helperEnd) + '\n' + source.slice(mergeStart, mergeEnd);
 test('closing a zone subscription without data does not crash the controller', () => {
   let updates = 0;
-  const context = vm.createContext({zones: new Map(), rememberedOutputIds: new Map(), ensureQueueSubscription() {}, ensureDetails() {}, broadcast() { updates++; }});
+  const context = vm.createContext({zones: new Map(), rememberedOutputIds: new Map(), selectedZone(){return context.zones.values().next().value || null;}, browser:{resumePendingPlayback:async()=>{}}, ensureQueueSubscription() {}, ensureDetails() {}, broadcast() { updates++; }});
   vm.runInContext(zoneSource, context);
   for (const data of [undefined, null]) context.mergeZones('Unsubscribed', data);
   assert.equal(updates, 0);
@@ -23,7 +23,7 @@ test('closing a zone subscription without data does not crash the controller', (
 });
 
 test('a newly grouped playing zone retains the current track before Roon sends fresh metadata', () => {
-  const context = vm.createContext({zones: new Map(), rememberedOutputIds: new Map(), ensureQueueSubscription() {}, ensureDetails() {}, broadcast() {}});
+  const context = vm.createContext({zones: new Map(), rememberedOutputIds: new Map(), selectedZone(){return context.zones.values().next().value || null;}, browser:{resumePendingPlayback:async()=>{}}, ensureQueueSubscription() {}, ensureDetails() {}, broadcast() {}});
   vm.runInContext(zoneSource, context);
   context.mergeZones('Subscribed', {zones: [
     {zone_id:'living', display_name:'Living Room', state:'playing', outputs:[{output_id:'living-output'}], now_playing:{three_line:{line1:'Pet Sounds'}}},

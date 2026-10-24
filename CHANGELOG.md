@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.42 Alpine — 25 October 2026
+
+- Keeps Roon browsing available while the configured RoonBridge speaker endpoint is powered off, without falling through to another zone.
+- Holds a requested playback action until that exact configured zone reappears, then starts it automatically.
+- Compacts three- and four-service bus layouts on the original 800×480 seven-inch display so the bottom navigation remains within the screen.
+- Makes missing album and artist artwork quieter, with darker glyphs and a subtle dark square surface across native and web views.
+
 ## 1.1.7-beta.41 Alpine — 24 October 2026
 
 - Resolves the selected artist through the exact Artists result and requires an exact album artist credit (or an explicitly separated collaboration credit).
