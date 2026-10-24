@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.32 Alpine — 24 October 2026
+
+- Retrieves album write-ups and release years for Roon titles carrying Stereo, Mono, Mix or Edition suffixes by retrying the canonical album title.
+- Shows the release year on the compact seven-inch landscape Album & Artist sheet instead of suppressing it.
+
 ## 1.1.7-beta.24 Alpine — 24 October 2026
 
 - Opens albums selected from an artist profile directly at their tracks instead of stopping at Roon's redundant one-album wrapper page.
