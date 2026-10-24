@@ -548,8 +548,8 @@ if screen_width == 1280 and screen_height == 720:
     assert not display.detail_artist_card.get_visible()
     assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
     assert display.detail_album_artwork.get_width() == 620, display.detail_album_artwork.get_width()
-    assert not display.detail_subtitle.get_visible()
-    assert display.detail_album_section_label.get_text() == "ALBUM · 2006"
+    assert display.detail_subtitle.get_visible()
+    assert display.detail_subtitle.get_text() == "2006"
     assert not display.detail_source.get_visible()
     assert not display.detail_facts.get_visible()
     art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
@@ -566,8 +566,8 @@ if screen_width == 1200 and screen_height == 1920:
     album_title_bounds = display.detail_title.compute_bounds(display.detail_takeover)[1]
     assert artist_art_bounds.get_x() == artist_name_bounds.get_x(), (artist_art_bounds.get_x(), artist_name_bounds.get_x())
     assert album_art_bounds.get_x() == album_title_bounds.get_x(), (album_art_bounds.get_x(), album_title_bounds.get_x())
-    assert display.detail_subtitle.get_visible()
-    assert display.detail_subtitle.get_text() == "2006"
+    assert not display.detail_subtitle.get_visible()
+    assert display.detail_album_section_label.get_text() == "ALBUM · 2006"
     assert not display.detail_artist_facts.get_visible()
     assert not display.detail_facts.get_visible()
     assert display.detail_artist_writeup.get_lines() == 12
