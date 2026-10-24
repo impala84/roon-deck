@@ -5,6 +5,7 @@
 - Opens albums selected from an artist profile directly at their tracks instead of stopping at Roon's redundant one-album wrapper page.
 - Detects the wrapper by its non-action structure rather than unreliable title matching, while leaving genuine album track lists and playback actions untouched.
 - Fetches artist hero artwork at 1200px before its top-weighted crop instead of enlarging a 256px thumbnail, and adds a subtle 8px rounding to the hero's top corners.
+- Makes the fixed-volume notice genuinely discreet on seven-inch landscape displays by overriding the conflicting 26px device rule with a 12px, dark-grey, lightly tracked label positioned lower beneath the transport controls.
 
 ## 1.1.7-beta.23 Alpine — 24 October 2026
 

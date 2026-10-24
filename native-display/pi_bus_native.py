@@ -652,7 +652,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
-.fixed-volume-label { min-width: 150px; margin-top: 26px; color: #4b494f; font-size: 10px; font-weight: 400; letter-spacing: 1.4px; }
+.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 12px; font-weight: 350; letter-spacing: 2px; }
 .artist-overlay-info { padding: 58px 16px 12px; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.96) 100%); }
 .artist-hero-frame { border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }

@@ -958,6 +958,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
         self.assertIn('crop_y = max(0, round((height - crop_height) * .2))', code)
         self.assertIn('cropped.scale_simple(960, 540', code)
+        self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 12px;', code)
         self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('background: linear-gradient(to bottom, transparent 0%', code)
