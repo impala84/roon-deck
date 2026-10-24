@@ -3686,7 +3686,7 @@ class Display(Gtk.Application):
         except GLib.Error: return None
 
     def decode_artist_hero_artwork(self, image):
-        """Return a top-weighted 16:9 crop without changing widget geometry."""
+        """Return the same centred 16:9 crop used by the thumbnail hero."""
         if not image: return None
         try:
             loader = GdkPixbuf.PixbufLoader.new(); loader.write(image); loader.close()
@@ -3700,8 +3700,11 @@ class Display(Gtk.Application):
             else:
                 crop_width = width; crop_height = max(1, round(width / target_ratio))
                 crop_x = 0
-                # Keep faces higher while preserving the exact 16:9 window.
-                crop_y = max(0, round((height - crop_height) * .2))
+                # Gtk.Picture initially shows the cached thumbnail with a
+                # centred COVER crop. Match that focal window exactly so the
+                # image does not jump when this higher-resolution texture
+                # replaces it.
+                crop_y = max(0, round((height - crop_height) * .5))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
             scaled = cropped.scale_simple(960, 540, GdkPixbuf.InterpType.BILINEAR)
             return Gdk.Texture.new_for_pixbuf(scaled)

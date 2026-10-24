@@ -956,7 +956,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('picture.artist_hero = True', code)
         self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
         self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
-        self.assertIn('crop_y = max(0, round((height - crop_height) * .2))', code)
+        self.assertIn('crop_y = max(0, round((height - crop_height) * .5))', code)
         self.assertIn('cropped.scale_simple(960, 540', code)
         self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 12px;', code)
         self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
