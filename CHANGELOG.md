@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.52 Alpine — 25 October 2026
+
+- Applies the shared identity → playback → write-up hierarchy to artist pages as well as album pages, while keeping non-play navigation actions below descriptive copy.
+- Fully constrains the split Play Album control to the narrow legacy portrait column without changing the seven-inch landscape composition.
+
 ## 1.1.7-beta.51 Alpine — 25 October 2026
 
 - Retains the beta.50 seven-inch polish while bounding the new split Play Album control inside the narrow legacy portrait album column.

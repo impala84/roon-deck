@@ -3053,18 +3053,14 @@ class Display(Gtk.Application):
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
-            profile_text_height = 136 if original else 196
+            profile_text_height = 184 if original else 196
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
             picture.artist_hero = True
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
-            overlay_info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); overlay_info.add_css_class("artist-overlay-info"); overlay_info.set_halign(Gtk.Align.FILL); overlay_info.set_valign(Gtk.Align.END)
-            if play_action:
-                overlay_play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play artist-overlay-play")
-                overlay_play.set_halign(Gtk.Align.START); overlay_info.append(overlay_play)
-            artwork_area.add_overlay(overlay_info); panel.append(artwork_area)
+            panel.append(artwork_area)
         else:
             # Keep the established 10-inch composition. The wide, overlaid
             # hero is reserved for the two seven-inch landscape profiles.
@@ -3099,13 +3095,13 @@ class Display(Gtk.Application):
         panel.append(details)
         title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
         if seven_landscape: title.set_xalign(0)
+        if play_action:
+            play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
+            play.set_halign(Gtk.Align.START if portrait or seven_landscape else Gtk.Align.CENTER); details.append(play)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
         summary_slot.artist_summary_lines = 3 if seven_landscape else 5
         summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
-        if play_action and not seven_landscape:
-            play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
-            play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)
 
     def load_artist_notes(self, name, slot, seed=None):
         status = self.label("Loading artist summary…", "queue-meta"); status.set_wrap(True); slot.append(status)
@@ -3487,7 +3483,9 @@ class Display(Gtk.Application):
             if getattr(self, "responsive_portrait", False) and width < 600:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
                 play_slot.set_propagate_natural_width(False); play_slot.set_propagate_natural_height(True)
-                play_slot.set_max_content_width(max(150, width - size - 68)); play_slot.set_child(split); copy.append(play_slot)
+                play_width = max(150, width - size - 68)
+                play_slot.set_min_content_width(play_width); play_slot.set_max_content_width(play_width); play_slot.set_size_request(play_width, -1)
+                play_slot.set_child(split); copy.append(play_slot)
             else: copy.append(split)
         if review := profile.get("review"):
             summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
