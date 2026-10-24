@@ -260,6 +260,10 @@ LAYOUT_GTK = SimpleNamespace(Box=LayoutWidget, Picture=LayoutWidget, ScrolledWin
 
 
 class NativeBrowserControlsTests(unittest.TestCase):
+    def test_gradient_texture_remains_subtle_on_small_displays(self):
+        texture = (SOURCE.parent / "icons" / "gradient-dither.svg").read_text(encoding="utf-8")
+        self.assertIn('opacity=".018"', texture)
+
     def test_portrait_bus_card_has_one_primary_and_two_following_predictions(self):
         gtk = SimpleNamespace(Box=LayoutWidget, Separator=LayoutWidget,
             Orientation=SimpleNamespace(VERTICAL="vertical", HORIZONTAL="horizontal"),

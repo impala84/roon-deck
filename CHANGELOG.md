@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.45 Alpine — 25 October 2026
+
+- Softens the textured gradient background, reducing its visible haze on seven-inch displays while retaining the selected Roon-style background treatment.
+
 ## 1.1.7-beta.44 Alpine — 25 October 2026
 
 - Raises faces within both seven-inch artist hero frames by shifting the shared low- and high-resolution crop window without changing its dimensions.
