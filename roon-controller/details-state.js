@@ -201,7 +201,9 @@ async function loadWikipediaAlbumWriteup(album, artist, fetchText = externalText
   const albumName = String(album || '').trim();
   const artistName = String(artist || '').trim();
   if (!albumName || !artistName) return empty;
-  const titles = [...new Set([albumName, `${albumName} (album)`, `${albumName} (${artistName} album)`])];
+  const titles = [...new Set(albumCandidates(albumName).flatMap(candidate =>
+    [candidate, `${candidate} (album)`, `${candidate} (${artistName} album)`]
+  ))];
   for (const title of titles) {
     try {
       const encoded = encodeURIComponent(title.replace(/\s+/g, '_'));
@@ -249,7 +251,7 @@ function artistCandidates(artist) {
 function albumCandidates(album) {
   const original = String(album || '').trim();
   if (!original) return [];
-  const base = original.replace(/\s*[\[(](?:(?:\d{4}\s+)?(?:re)?master(?:ed)?(?:\s+\d{4})?|(?:\d+(?:st|nd|rd|th)\s+)?anniversary(?:\s+edition)?|(?:deluxe|expanded|special)\s+edition)[\])]/ig, '').trim();
+  const base = original.replace(/\s*[\[(](?:(?:\d{4}\s+)?(?:re)?master(?:ed)?(?:\s+\d{4})?|(?:\d+(?:st|nd|rd|th)\s+)?anniversary(?:\s+edition)?|(?:deluxe|expanded|special)\s+edition|(?:stereo|mono)(?:\s+(?:mix|version|edition))?)[\])]/ig, '').trim();
   return [...new Set([original, base].filter(Boolean))];
 }
 

@@ -3602,10 +3602,10 @@ class Display(Gtk.Application):
         self.set_library_busy(self.library_pending or bool(details.get("library_busy")))
         self.set_library_icon(self.library_favorite is True)
         metadata = details.get("metadata") or {}
-        if getattr(self, "album_focus_detail", False) and not getattr(self, "original_landscape", False):
+        if getattr(self, "album_focus_detail", False):
             released = str(metadata.get("year") or metadata.get("release_date") or "")
             detail_subtitle = released[:4] if released else ""
-        self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle) and not (getattr(self, "album_focus_detail", False) and getattr(self, "original_landscape", False)))
+        self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
         writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
         self.detail_source.set_text(""); self.detail_source.set_visible(False)
         while child := self.detail_facts.get_first_child(): self.detail_facts.remove(child)

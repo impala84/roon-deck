@@ -7,6 +7,8 @@ test('album metadata retries the base title for common edition suffixes', () => 
   assert.deepEqual(albumCandidates('Hunting High and Low (2015 Remaster)'), ['Hunting High and Low (2015 Remaster)', 'Hunting High and Low']);
   assert.deepEqual(albumCandidates('(What\'s the Story) Morning Glory? [Remastered 2020]'), ['(What\'s the Story) Morning Glory? [Remastered 2020]', '(What\'s the Story) Morning Glory?']);
   assert.deepEqual(albumCandidates('Vessel (Deluxe Edition)'), ['Vessel (Deluxe Edition)', 'Vessel']);
+  assert.deepEqual(albumCandidates('Pet Sounds (Stereo)'), ['Pet Sounds (Stereo)', 'Pet Sounds']);
+  assert.deepEqual(albumCandidates('Pet Sounds [Mono Mix]'), ['Pet Sounds [Mono Mix]', 'Pet Sounds']);
 });
 
 test('album writeups stay to a two-sentence preview', () => {
@@ -221,6 +223,18 @@ test('album writeup falls back to the matching Wikipedia album page', async () =
   assert.equal(result.source, 'Wikipedia');
   assert.match(result.writeup, /second studio album/);
   assert.match(result.full_writeup, /released in 1995/);
+});
+
+test('Wikipedia album fallback retries a canonical title without the stereo edition label', async () => {
+  const urls = [];
+  const result = await loadWikipediaAlbumWriteup('Pet Sounds (Stereo)', 'The Beach Boys', async url => {
+    urls.push(url);
+    if (!url.includes('Pet_Sounds_(album)')) throw new Error('No edition-specific page');
+    return JSON.stringify({type: 'standard', description: '1966 studio album by the Beach Boys', extract: 'Pet Sounds is the eleventh studio album by the American rock band the Beach Boys. It was released in 1966.'});
+  });
+  assert.ok(urls.some(url => url.includes('Pet_Sounds_(album)')));
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.full_writeup, /released in 1966/);
 });
 
 test('Wikipedia album fallback handles initialled artists and artist-qualified titles', async () => {
