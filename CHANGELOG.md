@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.48 Alpine — 25 October 2026
+
+- Consolidates Bus Times, Home, Settings and Album & Artist page headings into one semantic type hierarchy, with profile-specific sizes applied consistently across displays.
+- Makes Smaller and Larger visibly resize transport buttons and glyphs, utility icons, primary album actions, navigation, and the Album & Artist close control instead of scaling text alone.
+- Aligns the settings cog between Discover, Bus Times and Home, while moderating the scaling of already-prominent bus route and arrival data.
+
 ## 1.1.7-beta.47 Alpine — 25 October 2026
 
 - Increases the standard Gen 2 seven-inch Album & Artist year label, album title, artist name and write-up sizes to use the available detail-sheet space more legibly.

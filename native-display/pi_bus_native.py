@@ -815,18 +815,35 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .album-focus-detail .detail-artist { font-size: 25px; }
 .touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.36; }
 .touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
-.interface-smaller .transport button { min-width: 45px; min-height: 45px; border-radius: 23px; }
-.interface-smaller .transport .play { min-width: 61px; min-height: 61px; border-radius: 31px; }
-.interface-larger .transport button { min-width: 56px; min-height: 56px; border-radius: 28px; }
-.interface-larger .transport .play { min-width: 76px; min-height: 76px; border-radius: 38px; }
-.touch-landscape.interface-smaller .transport button { min-width: 63px; min-height: 63px; border-radius: 32px; }
-.touch-landscape.interface-smaller .transport .play { min-width: 79px; min-height: 79px; border-radius: 40px; }
-.touch-landscape.interface-larger .transport button { min-width: 78px; min-height: 78px; border-radius: 39px; }
-.touch-landscape.interface-larger .transport .play { min-width: 98px; min-height: 98px; border-radius: 49px; }
+.interface-smaller .transport button { min-width: 43px; min-height: 43px; border-radius: 22px; }
+.interface-smaller .transport .play { min-width: 58px; min-height: 58px; border-radius: 29px; }
+.interface-larger .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
+.interface-larger .transport .play { min-width: 82px; min-height: 82px; border-radius: 41px; }
+.touch-landscape.interface-smaller .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
+.touch-landscape.interface-smaller .transport .play { min-width: 75px; min-height: 75px; border-radius: 38px; }
+.touch-landscape.interface-larger .transport button { min-width: 84px; min-height: 84px; border-radius: 42px; }
+.touch-landscape.interface-larger .transport .play { min-width: 106px; min-height: 106px; border-radius: 53px; }
 .interface-smaller .nav button { min-height: 36px; }
-.interface-larger .nav button { min-height: 46px; }
+.interface-larger .nav button { min-height: 48px; }
 .touch-landscape.interface-smaller .nav button { min-height: 52px; }
-.touch-landscape.interface-larger .nav button { min-height: 65px; }
+.touch-landscape.interface-larger .nav button { min-height: 70px; }
+.interface-smaller .detail-action { min-height: 49px; padding-top: 5px; padding-bottom: 5px; }
+.interface-larger .detail-action { min-height: 70px; padding-top: 10px; padding-bottom: 10px; }
+.touch-landscape.interface-smaller .detail-action { min-height: 46px; }
+.touch-landscape.interface-larger .detail-action { min-height: 65px; }
+.touch-landscape .bus-page .page-header { margin-top: 8px; }
+/* Shared semantic heading tier. Display profiles change geometry, not rank. */
+.page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }
+.stop-code { font-size: 18px; font-weight: 550; }
+.high-resolution .page-title, .high-resolution .stop,
+.high-resolution .settings-title, .high-resolution .detail-heading { font-size: 34px; }
+.high-resolution .stop-code { font-size: 22px; }
+.touch-landscape .page-title, .touch-landscape .stop,
+.touch-landscape .settings-title, .touch-landscape .detail-heading { font-size: 31px; }
+.touch-landscape .stop-code { font-size: 21px; }
+.original-landscape .page-title, .original-landscape .stop,
+.original-landscape .settings-title, .original-landscape .detail-heading { font-size: 23px; }
+.original-landscape .stop-code { font-size: 16px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #242338, #181818 60%%, #251c22); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -1003,7 +1020,14 @@ class Display(Gtk.Application):
             widget.roondeck_base_attributes = current.copy() if current else Pango.AttrList()
         attributes = widget.roondeck_base_attributes.copy()
         size = (self.settings_data or {}).get("interface_size", "standard")
-        attributes.insert(Pango.attr_scale_new({"smaller": .9, "larger": 1.12}.get(size, 1.0)))
+        factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)
+        # Bus identifiers are intentionally the largest information on their
+        # page already. They still respond, but at half the global delta so
+        # accessibility sizing does not make Bus Times dwarf every other view.
+        has_class = getattr(widget, "has_css_class", lambda _name: False)
+        if widget in {getattr(self, name, None) for name in ("bus_clock", "stop", "stop_code")} or has_class("service-no") or has_class("arrival"):
+            factor = 1.0 + (factor - 1.0) * .5
+        attributes.insert(Pango.attr_scale_new(factor))
         widget.set_attributes(attributes)
 
     def apply_interface_size(self, value):
@@ -1018,10 +1042,20 @@ class Display(Gtk.Application):
             child = widget.get_first_child()
             while child:
                 pending.append(child); child = child.get_next_sibling()
-        factor = {"smaller": .9, "larger": 1.12}.get(value, 1.0)
+        factor = {"smaller": .86, "larger": 1.2}.get(value, 1.0)
         for icon in getattr(self, "utility_icons", []):
             base = getattr(icon, "roondeck_base_size", None)
-            if base: icon.set_size_request(round(base * factor), round(base * factor))
+            if base:
+                scaled = round(base * factor)
+                if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(scaled)
+                icon.set_size_request(scaled, scaled)
+        for control, base in getattr(self, "interface_transport_icon_sizes", {}).items():
+            control.get_child().set_pixel_size(round(base * factor))
+        if hasattr(self, "interface_detail_close_sizes"):
+            close_size, glyph_size, icon_size = self.interface_detail_close_sizes
+            self.detail_close.set_size_request(round(close_size * factor), round(close_size * factor))
+            self.detail_close_glyph.set_size_request(round(glyph_size * factor), round(glyph_size * factor))
+            self.detail_close_icon.set_pixel_size(round(icon_size * factor))
 
     def icon_button(self, icon, callback, css=""):
         widget = Gtk.Button()
@@ -1168,6 +1202,7 @@ class Display(Gtk.Application):
         for icon in getattr(self, "utility_icons", []):
             clock_icon = icon is getattr(self, "music_clock_icon", None)
             icon_size = 20 if original_landscape and clock_icon else 42 if large_display and clock_icon else utility_size
+            icon.roondeck_base_size = icon_size
             if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(icon_size)
             else: icon.set_size_request(icon_size, icon_size)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
@@ -1186,6 +1221,7 @@ class Display(Gtk.Application):
             self.controls.set_spacing(26 if large_display else 14)
             for control in (self.library_add, self.prev, self.play, self.next):
                 control.get_child().set_pixel_size((80 if control is self.play else 64) if large_display else 42 if control is self.play else 34)
+            self.interface_transport_icon_sizes = {control: ((80 if control is self.play else 64) if large_display else 42 if control is self.play else 34) for control in (self.library_add, self.prev, self.play, self.next)}
         self.zone.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
         self.zone.set_margin_top(8 if portrait else 0)
         self.roon_clock.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
@@ -1294,17 +1330,20 @@ class Display(Gtk.Application):
         self.detail_close.set_size_request(close_size, close_size)
         glyph_size = 31 if original_landscape else 60 if large_detail_portrait else 48
         self.detail_close_glyph.set_size_request(glyph_size, glyph_size)
-        self.detail_close_icon.set_pixel_size(29 if original_landscape else 40 if large_detail_portrait else 34)
+        detail_close_icon_size = 29 if original_landscape else 40 if large_detail_portrait else 34
+        self.detail_close_icon.set_pixel_size(detail_close_icon_size)
+        self.interface_detail_close_sizes = (close_size, glyph_size, detail_close_icon_size)
         self.detail_close.set_halign(Gtk.Align.CENTER); self.detail_close.set_valign(Gtk.Align.CENTER)
         if previous is not None and previous != portrait:
             self.home_signature = None; self.discovery_signature = None
             if getattr(self, "browser_state", None): self.render_browser(self.browser_state)
+        self.apply_interface_size((self.settings_data or {}).get("interface_size", "standard"))
         return False
 
     def header(self, centre, clock):
-        row = Gtk.Box(spacing=10)
+        row = Gtk.Box(spacing=10); row.add_css_class("page-header")
         if isinstance(centre, Gtk.Label): centre.set_xalign(0)
-        settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility")
+        settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility"); settings.set_valign(Gtk.Align.START)
         settings.set_child(self.discover_utility_icon()); settings.set_tooltip_text("Settings"); row.append(settings)
         row.append(centre)
         spacer = Gtk.Box(); spacer.set_hexpand(True); row.append(spacer)
@@ -1362,12 +1401,13 @@ class Display(Gtk.Application):
         self.discover_toolbar.set_margin_end(0); self.discover_toolbar.set_margin_bottom(14)
         settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility")
         settings.set_child(self.discover_utility_icon())
-        settings.set_tooltip_text("Settings"); self.discover_toolbar.append(settings)
+        settings.set_tooltip_text("Settings"); settings.set_valign(Gtk.Align.START); self.discover_toolbar.append(settings)
         self.discover_toolbar_tabs = Gtk.Box(); self.discover_toolbar_tabs.set_hexpand(True)
         self.discover_toolbar_tabs.set_halign(Gtk.Align.CENTER)
         self.discover_toolbar.append(self.discover_toolbar_tabs)
         sleep = self.icon_button("preferences-system-time-symbolic", lambda *_: self.sleep(), "discover-utility discover-sleep")
         sleep.set_child(self.discover_utility_icon(clock=True))
+        sleep.set_valign(Gtk.Align.START)
         self.music_settings_button = settings; self.music_clock_button = sleep
         self.music_full_clock = self.label("--:--", "clock", 1)
         sleep.set_tooltip_text("Sleep"); self.discover_toolbar.append(sleep)
@@ -1534,7 +1574,7 @@ class Display(Gtk.Application):
 
     def build_home(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
-        self.home_title = self.label("Home Controls", "stop"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
+        self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
         self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); self.home_scroll.set_child(self.home_grid); page.append(self.home_scroll)

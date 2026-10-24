@@ -590,8 +590,23 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)', code)
         self.assertIn('self.now_playing_scroll = now_scroll', code)
         self.assertIn('self.source_scroll = source_scroll', code)
-        self.assertIn('.interface-larger .transport button { min-width: 56px;', code)
-        self.assertIn('.touch-landscape.interface-larger .nav button { min-height: 65px;', code)
+        self.assertIn('factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)', code)
+        self.assertIn('.interface-larger .transport button { min-width: 60px;', code)
+        self.assertIn('.touch-landscape.interface-larger .nav button { min-height: 70px;', code)
+        self.assertIn('.interface-larger .detail-action { min-height: 70px;', code)
+        self.assertIn('if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(scaled)', code)
+        self.assertIn('self.interface_transport_icon_sizes', code)
+        self.assertIn('self.interface_detail_close_sizes', code)
+
+    def test_page_headings_share_semantic_tiers_and_header_alignment(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('.page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }', code)
+        self.assertIn('.touch-landscape .page-title, .touch-landscape .stop,', code)
+        self.assertIn('.original-landscape .page-title, .original-landscape .stop,', code)
+        self.assertIn('row = Gtk.Box(spacing=10); row.add_css_class("page-header")', code)
+        self.assertIn('.touch-landscape .bus-page .page-header { margin-top: 8px; }', code)
+        self.assertIn('self.label("Home Controls", "page-title")', code)
+        self.assertIn('settings.set_valign(Gtk.Align.START)', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
         code = SOURCE.read_text(encoding="utf-8")
