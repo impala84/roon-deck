@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7 Alpine — 24 October 2026
+
+- Promotes the verified beta.35 application to stable, including grouped-zone playback, direct Artist Radio, reliable global artist-album browsing and high-resolution artist imagery.
+- Includes progressive Now Playing metadata, polished artist and album detail layouts, stable navigation history and the revised seven-inch artist crop.
+- Retains the updater rollback and health-check protections exercised throughout the beta series.
+
 ## 1.1.7-beta.35 Alpine — 24 October 2026
 
 - Publishes core Now Playing album details and artwork as soon as Roon resolves them, while slower external album notes continue loading in the background.
