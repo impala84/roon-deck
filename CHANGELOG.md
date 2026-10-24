@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.22 Alpine — 24 October 2026
+
+- Replaces centred cover cropping on seven-inch artist heroes with a top-weighted focal crop, retaining only 20% of vertical overflow above the viewport so faces and eyes remain visible.
+- Keeps the 16:9 hero dimensions, horizontal centring, album artwork and non-artist imagery unchanged.
+
 ## 1.1.7-beta.21 Alpine — 24 October 2026
 
 - Corrects the seven-inch Gen 2 artist-profile viewport height so the enlarged three-line artist summary and source are fully visible instead of being clipped by the previous compact allowance.

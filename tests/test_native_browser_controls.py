@@ -953,6 +953,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('details.set_size_request(hero_width - (32 if original else 64), -1)', code)
         self.assertIn('summary_slot.artist_summary_lines = 2 if original else 3', code)
         self.assertIn('profile_text_height = 118 if original else 190', code)
+        self.assertIn('picture.artist_crop_viewport = (artwork, hero_width, hero_height)', code)
+        self.assertIn("vertical.get_upper() - vertical.get_page_size()) * 0.2", ast.unparse(ast.parse(SOURCE.read_text(encoding='utf-8'))))
         self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('background: linear-gradient(to bottom, transparent 0%', code)

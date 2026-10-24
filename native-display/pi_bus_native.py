@@ -2841,6 +2841,7 @@ class Display(Gtk.Application):
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.set_min_content_width(hero_width); artwork.set_max_content_width(hero_width); artwork.set_min_content_height(hero_height); artwork.set_max_content_height(hero_height); artwork.set_size_request(hero_width, hero_height); artwork.set_halign(Gtk.Align.START); artwork.set_child(picture)
+            picture.artist_crop_viewport = (artwork, hero_width, hero_height)
             artwork_area = Gtk.Overlay(); artwork_area.set_child(artwork); artwork_area.set_halign(Gtk.Align.START)
             overlay_info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); overlay_info.add_css_class("artist-overlay-info"); overlay_info.set_halign(Gtk.Align.FILL); overlay_info.set_valign(Gtk.Align.END)
             if play_action:
@@ -2867,7 +2868,7 @@ class Display(Gtk.Application):
         if key:
             self.browser_pictures.setdefault(key, []).append(picture); self.browser_artwork_keys.append(key)
             cached = self.queue_thumbnail_cache.get(key)
-            if cached: picture.set_paintable(cached)
+            if cached: self.set_artist_hero_artwork(picture, cached)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER); details.set_hexpand(True)
         if seven_landscape:
@@ -3718,6 +3719,26 @@ class Display(Gtk.Application):
         try: return Gdk.Texture.new_from_bytes(GLib.Bytes.new(image))
         except GLib.Error: return None
 
+    def set_artist_hero_artwork(self, picture, texture):
+        """Cover a 16:9 artist hero while preserving more of its upper frame."""
+        picture.set_paintable(texture)
+        crop = getattr(picture, "artist_crop_viewport", None)
+        if not crop: return
+        viewport, viewport_width, viewport_height = crop
+        source_width, source_height = texture.get_width(), texture.get_height()
+        if source_width <= 0 or source_height <= 0: return
+        scale = max(viewport_width / source_width, viewport_height / source_height)
+        render_width, render_height = math.ceil(source_width * scale), math.ceil(source_height * scale)
+        picture.set_can_shrink(False); picture.set_content_fit(Gtk.ContentFit.FILL); picture.set_size_request(render_width, render_height)
+        def position_crop():
+            horizontal, vertical = viewport.get_hadjustment(), viewport.get_vadjustment()
+            horizontal.set_value(max(0, (horizontal.get_upper() - horizontal.get_page_size()) * .5))
+            # Faces are usually in the upper third. Retain the cover crop but
+            # consume only 20% of the vertical overflow above the viewport.
+            vertical.set_value(max(0, (vertical.get_upper() - vertical.get_page_size()) * .2))
+            return False
+        GLib.timeout_add(20, position_crop)
+
     def load_preview_artwork(self, picture, key):
         if cached := self.preview_artwork_cache.get(key):
             picture.set_paintable(cached)
@@ -3751,7 +3772,9 @@ class Display(Gtk.Application):
         for badge in getattr(self, "queue_play_badges", {}).get(key, []):
             if getattr(self, "queue_artwork_light", {}).get(key, False): badge.add_css_class("light-art")
             else: badge.remove_css_class("light-art")
-        for picture in self.browser_pictures.get(key, []): picture.set_paintable(texture)
+        for picture in self.browser_pictures.get(key, []):
+            if getattr(picture, "artist_crop_viewport", None): self.set_artist_hero_artwork(picture, texture)
+            else: picture.set_paintable(texture)
         for picture in self.discovery_pictures.get(key, []): picture.set_paintable(texture)
         return False
 
