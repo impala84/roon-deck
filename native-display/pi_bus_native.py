@@ -845,9 +845,8 @@ def post_json(url: str, data: dict, timeout: float = 1.2):
 
 
 def browser_request_timeout(action: str) -> float:
-    """Allow catalogue aggregation to finish on slower seven-inch Pis."""
-    if action == "artist": return 150.0
-    if action in {"sort", "jump", "section", "search", "surprise"}: return 35.0
+    """Keep slow browse operations bounded without blocking ordinary taps."""
+    if action in {"sort", "jump", "section", "search", "surprise", "artist"}: return 35.0
     if action in {"surprise_play", "open"}: return 15.0
     return 4.0
 
@@ -3440,7 +3439,11 @@ class Display(Gtk.Application):
         artist_play = next((item for item in data.get("items", []) if item.get("action") and item.get("title", "").strip().lower() in {"play artist", "play artist radio"}), None) if data.get("artist_profile") else None
         self.render_artist_profile(data.get("artist_profile"), artist_play)
         items = data.get("items") or []
-        grouped_results = bool(data.get("search_routes"))
+        # Merged artist catalogues also carry search_routes so every album can
+        # reopen its originating My Catalog or TIDAL session.  They are still
+        # artist album lists, not grouped search results.  Treating them as a
+        # grouped search hides browser_list on seven-inch landscape displays.
+        grouped_results = bool(data.get("search_routes")) and not data.get("artist_profile")
         grouped_search = grouped_results and not getattr(self, "responsive_portrait", False)
         if grouped_results and getattr(self, "responsive_portrait", False) and hasattr(self, "search_results_scroll"):
             self.search_results_scroll.get_vadjustment().set_value(0)

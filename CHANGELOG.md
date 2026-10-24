@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.39 Alpine — 24 October 2026
+
+- Keeps merged My Catalog and TIDAL artist albums in the visible artist-album list on seven-inch landscape displays instead of misclassifying their route map as a hidden two-column search page.
+- Restores the standard bounded artist lookup deadline after confirming that the albums were already present and the fault was entirely in the seven-inch renderer.
+
 ## 1.1.7-beta.38 Alpine — 24 October 2026
 
 - Lets the seven-inch native client wait for the full merged My Catalog and TIDAL artist catalogue on slower Raspberry Pi hardware instead of abandoning the request after 35 seconds.

@@ -32,12 +32,16 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
-    def test_artist_catalogue_request_waits_for_slow_pi_and_other_navigation_stays_bounded(self):
+    def test_artist_catalogue_request_keeps_the_standard_browse_deadline(self):
         timeout = native_method("browser_request_timeout")
-        self.assertEqual(timeout("artist"), 150.0)
+        self.assertEqual(timeout("artist"), 35.0)
         self.assertEqual(timeout("search"), 35.0)
         self.assertEqual(timeout("open"), 15.0)
         self.assertEqual(timeout("back"), 4.0)
+
+    def test_merged_artist_routes_do_not_trigger_hidden_grouped_search_layout(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('grouped_results = bool(data.get("search_routes")) and not data.get("artist_profile")', code)
 
     def test_artist_hero_pixel_fade_is_opaque_above_the_fade_and_transparent_at_the_edge(self):
         fade = native_method("fade_rgba_pixels")
