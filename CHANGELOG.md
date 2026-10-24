@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.54 Alpine — 25 October 2026
+
+- Completes native matrix validation for simplified seven-inch Settings by comparing the widths of visible actions only; the intentionally hidden install-time Apply Display action no longer contributes a zero-width allocation.
+
 ## 1.1.7-beta.53 Alpine — 25 October 2026
 
 - Keeps playback controls above descriptive copy while leaving the non-playback Browse Artist Albums action below it.

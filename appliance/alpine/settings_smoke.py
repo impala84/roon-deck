@@ -63,7 +63,8 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert min(heights) > 0 and max(heights)-min(heights) <= 1, (width,height,heights)
     actions=[]; child=display.settings_actions.get_first_child()
     while child:
-        actions.append(child.get_width()); child=child.get_next_sibling()
+        if child.get_visible(): actions.append(child.get_width())
+        child=child.get_next_sibling()
     assert max(actions)-min(actions) <= 1, actions
     assert display.settings_actions.get_first_child() == display.update_button
     assert display.update_button.get_next_sibling() == display.apply_display_button
