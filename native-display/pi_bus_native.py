@@ -633,6 +633,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }
 .high-resolution .detail-heading { font-size: 36px; }
 .high-resolution.portrait .detail-title { font-size: 49px; }
+.high-resolution.portrait .detail-section-label { font-size: 22px; letter-spacing: 2.2px; }
 .high-resolution.portrait .detail-artist { font-size: 30px; }
 .high-resolution.portrait .detail-subtitle { margin-top: 2px; color: #96919a; font-size: 21px; }
 .high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }

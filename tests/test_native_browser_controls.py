@@ -544,6 +544,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.4; }', code)
         self.assertIn('.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px;', code)
         self.assertIn('.high-resolution.portrait .detail-title { font-size: 49px; }', code)
+        self.assertIn('.high-resolution.portrait .detail-section-label { font-size: 22px; letter-spacing: 2.2px; }', code)
         self.assertIn('.high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
