@@ -14,12 +14,21 @@ class DisplayModeTests(unittest.TestCase):
     def test_home_assistant_tile_colours_are_persisted_and_validated(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"
-            write_config(path, Config(home_assistant_light_color="#112233", home_assistant_scene_color="#abcdef"))
+            write_config(path, Config(home_assistant_color_mode="single", home_assistant_single_color="#334455", home_assistant_light_color="#112233", home_assistant_scene_color="#abcdef"))
             loaded = load_config(path)
+            self.assertEqual(loaded.home_assistant_color_mode, "single")
+            self.assertEqual(loaded.home_assistant_single_color, "#334455")
             self.assertEqual(loaded.home_assistant_light_color, "#112233")
             self.assertEqual(loaded.home_assistant_scene_color, "#abcdef")
             path.write_text(path.read_text().replace("#112233", "orange"))
             with self.assertRaisesRegex(ValueError, "tile colours"):
+                load_config(path)
+
+    def test_home_assistant_colour_mode_is_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_color_mode="rainbow"))
+            with self.assertRaisesRegex(ValueError, "colour mode"):
                 load_config(path)
 
     def test_overnight_wake_schedule_persists(self):

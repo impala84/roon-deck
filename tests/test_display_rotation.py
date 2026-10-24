@@ -109,6 +109,11 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn("const homeColourPresets=", javascript)
         self.assertIn("Custom hex…", javascript)
         self.assertIn('id="reset-home-colors"', html)
+        self.assertIn('name="home_assistant_color_mode"', html)
+        self.assertIn('name="home_assistant_single_color" type="text"', html)
+        self.assertIn('data-colour-mode="single"', html)
+        self.assertIn('data-colour-mode="multi"', html)
+        self.assertIn("function showHomeColourMode(mode)", javascript)
 
     def test_home_assistant_page_title_is_optional_and_configurable(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()

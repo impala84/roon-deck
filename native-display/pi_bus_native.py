@@ -1552,7 +1552,8 @@ class Display(Gtk.Application):
     def apply_home_colors(self, config):
         defaults = {"light": "#f4c95d", "fan": "#5bcbd6", "switch": "#6ed9ae", "scene": "#6ed9ae"}
         def colour(domain):
-            value = str(config.get(f"home_assistant_{domain}_color", defaults[domain]))
+            key = "home_assistant_single_color" if config.get("home_assistant_color_mode") == "single" else f"home_assistant_{domain}_color"
+            value = str(config.get(key, defaults[domain]))
             return value if len(value) == 7 and value.startswith("#") and all(character in "0123456789abcdefABCDEF" for character in value[1:]) else defaults[domain]
         def blend(foreground, background, amount):
             front = tuple(int(foreground[index:index + 2], 16) for index in (1, 3, 5)); back = tuple(int(background[index:index + 2], 16) for index in (1, 3, 5))

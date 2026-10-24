@@ -381,6 +381,8 @@ def write_config(path: Path, config: Config) -> None:
         f"home_assistant_title = {json.dumps(config.home_assistant_title)}",
         f"home_assistant_url = {json.dumps(config.home_assistant_url)}",
         "home_assistant_entities = [" + ", ".join(json.dumps(item) for item in config.home_assistant_entities) + "]",
+        f"home_assistant_color_mode = {json.dumps(config.home_assistant_color_mode)}",
+        f"home_assistant_single_color = {json.dumps(config.home_assistant_single_color)}",
         f"home_assistant_light_color = {json.dumps(config.home_assistant_light_color)}",
         f"home_assistant_fan_color = {json.dumps(config.home_assistant_fan_color)}",
         f"home_assistant_switch_color = {json.dumps(config.home_assistant_switch_color)}",
@@ -1023,6 +1025,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "home_assistant_title": config.home_assistant_title,
                     "home_assistant_url": config.home_assistant_url,
                     "home_assistant_entities": list(config.home_assistant_entities),
+                    "home_assistant_color_mode": config.home_assistant_color_mode,
+                    "home_assistant_single_color": config.home_assistant_single_color,
                     "home_assistant_light_color": config.home_assistant_light_color,
                     "home_assistant_fan_color": config.home_assistant_fan_color,
                     "home_assistant_switch_color": config.home_assistant_switch_color,
@@ -1084,10 +1088,11 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_json(200, body)
                 return
             if self.path == "/api/home/status":
+                home_single = state.config.home_assistant_single_color if state.config.home_assistant_color_mode == "single" else None
                 self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
-                    "tile_colors": {"light": state.config.home_assistant_light_color, "fan": state.config.home_assistant_fan_color,
-                        "switch": state.config.home_assistant_switch_color, "input_boolean": state.config.home_assistant_switch_color,
-                        "scene": state.config.home_assistant_scene_color}}).encode())
+                    "tile_colors": {"light": home_single or state.config.home_assistant_light_color, "fan": home_single or state.config.home_assistant_fan_color,
+                        "switch": home_single or state.config.home_assistant_switch_color, "input_boolean": home_single or state.config.home_assistant_switch_color,
+                        "scene": home_single or state.config.home_assistant_scene_color}}).encode())
                 return
             if self.path == "/api/device/controls":
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
@@ -1467,6 +1472,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     home_assistant_title=str(data.get("home_assistant_title", current.home_assistant_title)).strip(),
                     home_assistant_url=home_url,
                     home_assistant_entities=requested_home_entities,
+                    home_assistant_color_mode=str(data.get("home_assistant_color_mode", current.home_assistant_color_mode)),
+                    home_assistant_single_color=str(data.get("home_assistant_single_color", current.home_assistant_single_color)),
                     home_assistant_light_color=str(data.get("home_assistant_light_color", current.home_assistant_light_color)),
                     home_assistant_fan_color=str(data.get("home_assistant_fan_color", current.home_assistant_fan_color)),
                     home_assistant_switch_color=str(data.get("home_assistant_switch_color", current.home_assistant_switch_color)),
@@ -1506,7 +1513,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Wake timeout must be between 30 and 7200 seconds")
                 if not (0 <= candidate.daytime_inactivity_seconds <= 7200):
                     raise ValueError("Daytime inactivity timeout must be between 0 and 7200 seconds")
-                for value in (candidate.home_assistant_light_color, candidate.home_assistant_fan_color, candidate.home_assistant_switch_color, candidate.home_assistant_scene_color):
+                if candidate.home_assistant_color_mode not in {"single", "multi"}:
+                    raise ValueError("Choose Single colour or Multi-colour")
+                for value in (candidate.home_assistant_single_color, candidate.home_assistant_light_color, candidate.home_assistant_fan_color, candidate.home_assistant_switch_color, candidate.home_assistant_scene_color):
                     if len(value) != 7 or value[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in value[1:]):
                         raise ValueError("Home Assistant tile colours must use #RRGGBB")
                 wall_time.fromisoformat(candidate.morning_start)
