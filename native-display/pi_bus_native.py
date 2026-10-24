@@ -732,7 +732,6 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .album-focus-detail .detail-title { font-size: 36px; }
 .album-focus-detail .detail-artist { font-size: 25px; }
 .album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }
-.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.4; }
 .touch2-7-landscape .album-focus-detail .detail-action,
 .touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px; margin-top: 14px; padding: 8px 22px; border-radius: 10px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
 
@@ -811,9 +810,10 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .original-landscape .album-focus-detail .detail-title { font-size: 28px; line-height: 1.08; }
 .original-landscape .album-focus-detail .detail-artist { font-size: 19px; }
 .original-landscape .album-focus-detail .detail-writeup { font-size: 16px; line-height: 1.28; }
-.touch2-7-landscape .album-focus-detail .detail-title { font-size: 32px; line-height: 1.1; }
-.touch2-7-landscape .album-focus-detail .detail-artist { font-size: 22px; }
-.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 18px; line-height: 1.34; }
+.touch2-7-landscape .album-focus-detail .detail-section-label { font-size: 17px; letter-spacing: 1.7px; }
+.touch2-7-landscape .album-focus-detail .detail-title { font-size: 36px; line-height: 1.08; }
+.touch2-7-landscape .album-focus-detail .detail-artist { font-size: 25px; }
+.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.36; }
 .touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
 .interface-smaller .transport button { min-width: 45px; min-height: 45px; border-radius: 23px; }
 .interface-smaller .transport .play { min-width: 61px; min-height: 61px; border-radius: 31px; }

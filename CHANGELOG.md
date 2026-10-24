@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.47 Alpine — 25 October 2026
+
+- Increases the standard Gen 2 seven-inch Album & Artist year label, album title, artist name and write-up sizes to use the available detail-sheet space more legibly.
+- Leaves the existing Browse Artist Albums button dimensions unchanged and retains scrolling for long titles or enlarged interface settings.
+
 ## 1.1.7-beta.46 Alpine — 25 October 2026
 
 - Removes the Roon-theme grey surface from every artist-hero layer so the transparent image fade reaches the selected page background cleanly.
