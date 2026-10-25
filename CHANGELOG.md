@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.85 Alpine — 25 October 2026
+
+- No visual change. The display's stylesheet moves out of `pi_bus_native.py` into `native-display/css/01..07-*.css`, loaded in filename order by `native-display/styles.py`, with the shared page-grid numbers in `native-display/layout_constants.py`. The Python file shrinks from 4,878 to 4,020 lines.
+- Checked: all 941 rules load identical and in the same order; the layout reports and every deterministic screenshot match beta.84 on all six display sizes. If the display fails to start after this update, select beta.84 in Settings → Software.
+- Development: `tools/check screen layout` now also writes `layout-fit.txt` (window size, header and Browse measurements at every interface size).
+
 ## 1.1.7-beta.84 Alpine — 25 October 2026
 
 - Play Album arrow: still a little large on the 10-inch portrait, so it drops from 44px to 34px (about a 26px-wide arrow). Gen 2 stays at 30px; 800x480 goes from 22px to 20px.
