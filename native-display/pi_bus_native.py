@@ -3893,7 +3893,7 @@ class Display(Gtk.Application):
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-play", 44 if min(vw, vh) >= 1000 else 22 if vw <= 820 and vh <= 500 else 30))
+            menu.set_child(FamilyIcon("chevron-play", 34 if min(vw, vh) >= 1000 else 20 if vw <= 820 and vh <= 500 else 30))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
