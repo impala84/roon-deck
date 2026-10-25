@@ -728,8 +728,12 @@ class BrowsePageMixin:
                     play_playlist.set_sensitive(bool(item.get("item_key"))); play_playlist.set_halign(Gtk.Align.START); target.append(play_playlist); continue
                 row = Gtk.Box(spacing=14); row.set_hexpand(True)
                 key = item.get("image_key")
-                if item.get("action"):
-                    action_icon = FamilyIcon(self.browser_action_icon(item.get("title")), 42)
+                row_title = (item.get("title") or "").strip().lower()
+                # Genre lists: Shuffle Genre / Artists / Albums act on the genre itself, so they get the larger
+                # key-line tile icons; the sub-genres below them open another list and keep the plain thumbnail.
+                genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums"} or row_title.startswith("shuffle")))
+                if item.get("action") or genre_shortcut:
+                    action_icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut else FamilyIcon(self.browser_action_icon(item.get("title")), 42)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_hexpand(False); action_frame.set_halign(Gtk.Align.START); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
                 elif album_profile:
                     action_icon = FamilyIcon("play", 60 if self.window.has_css_class("large-display") else 40)

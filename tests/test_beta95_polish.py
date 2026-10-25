@@ -50,3 +50,10 @@ class GenreBrowserTests(unittest.TestCase):
     def test_left_column_has_no_visible_scrollbar_and_a_wider_gutter(self):
         self.assertIn("self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)", self.code)
         self.assertIn(".genre-trail { margin-right: 40px; }", self.code)
+
+
+class GenreShortcutIconTests(unittest.TestCase):
+    def test_genre_list_shortcuts_use_the_larger_key_line_tile_icons(self):
+        code = native_text()
+        self.assertIn('genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums"} or row_title.startswith("shuffle")))', code)
+        self.assertIn('self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut', code)

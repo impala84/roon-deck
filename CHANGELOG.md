@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.100 Alpine — 26 October 2026
+
+- Genre lists: Shuffle Genre, Artists and Albums are actions on the genre itself, so they now use the larger key-line icons from the genre grid (shuffle, head-and-shoulders and album, 62px instead of 42px) in the same purple. The sub-genres below them keep the plain thumbnail, so the rows that act now look different from the rows that open another column.
+
 ## 1.1.7-beta.99 Alpine — 26 October 2026
 
 - 10-inch Settings: the Profile, Orientation and Rotation drop-downs now sit in one row of three (21px text), which frees about 200px. That space holds a live System Performance graph of the last 60 seconds: CPU, Memory, Temp and Network, sampled once a second while Settings is open. Tap a chip (CPU, Memory, Temp or Network) to show or hide its line. Network has no fixed ceiling, so its line is scaled to its recent peak; the chip shows the real Mb/s. Temp is plotted against 100°C. The page still fits on one screen and the other displays are unchanged.
