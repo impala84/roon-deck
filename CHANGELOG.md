@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.82 Alpine — 25 October 2026
+
+- Play Album arrow: found why it never grew. A leftover line reset the icon to 22px right after it was created, so every earlier size change was overridden. It now really is 72px (10-inch), 40px (Gen 2) and 26px (800x480).
+- Seven-inch Gen 2 Play Album: the arrow button is narrower (about 50px instead of 100px) and the Play Album label has less padding on its right, so the split button is more compact.
+
 ## 1.1.7-beta.81 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse: covers are back to their full 230px (Standard and Larger) and the window still stays at 1280px. The cause of the overflow was that the "fill" layout, which drops the 28px page margin and 8px list padding beside the scrubber, was skipped on Larger; it now applies to both sizes, which frees the width the larger covers need.

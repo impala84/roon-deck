@@ -1044,6 +1044,8 @@ popover listview row label { font-size: 19px; }
    Bus Times and Home to match the music pages, and the Bus/Home clock ends at the clock icon's edge. */
 /* Large portrait: BACK is set like the ALBUMS / ARTISTS / SEARCH row it sits beside: same size, same line box. */
 .portrait.large-portrait .browser-back { margin: 0; min-height: 52px; padding: 6px 28px; font-size: 24px; font-weight: 500; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 6px 0 4px; }
+.touch2-7-landscape .album-play-split .artist-play { padding-right: 14px; }
 .original-landscape .home-tile { min-height: 0; padding: 4px 8px 6px; }
 .original-landscape .home-device-button, .original-landscape .home-level { min-height: 0; }
 .original-landscape .home-name { font-size: 15px; line-height: 1.05; }
@@ -3892,7 +3894,6 @@ class Display(Gtk.Application):
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
             menu.set_child(FamilyIcon("chevron-play", 72 if min(vw, vh) >= 1000 else 26 if vw <= 820 and vh <= 500 else 40))
-            menu.get_child().set_pixel_size(22)
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
