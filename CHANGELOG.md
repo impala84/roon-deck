@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.77 Alpine — 25 October 2026
+
+- 800x480 Now Playing: the title block is anchored at the top, so the transport controls sit about 45px higher and a two-line title still fits above the volume row. The gaps below the controls are tighter and "FIXED VOLUME" is smaller (12px) and sits directly under them.
+- Bus Times and Home: the cog is now aligned at run time. The app measures where the music pages' cog really is and nudges the header cog to the same x position, so it matches at every interface size instead of relying on a fixed CSS offset.
+
 ## 1.1.7-beta.76 Alpine — 25 October 2026
 
 - Album page: the drop-down arrow beside Play Album is larger (a 64px icon on the 10-inch display, 46px on the Touch Display 2 7-inch, 30px on 800x480) and sits in a wider button (96px, 64px and 46px) with even padding either side, so it is easy to see and tap.

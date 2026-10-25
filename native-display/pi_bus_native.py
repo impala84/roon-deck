@@ -1041,6 +1041,8 @@ popover listview row label { font-size: 19px; }
 .original-landscape .discover-toolbar > .discover-utility { margin-top: 7px; margin-bottom: 0; }
 .original-landscape .page-header .discover-utility { margin-left: -4px; }
 .original-landscape .page-header .header-clock { margin-top: 7px; margin-right: 3px; }
+.original-landscape .volume-number.fixed-volume-label { margin-top: 2px; font-size: 12px; letter-spacing: 1.5px; }
+.original-landscape .now-volume-row { margin-top: 0; }
 /* 800x480 Settings: even 11px inset, a round 40px close control and a compact Sleep button. */
 .original-landscape .settings-page { padding: 11px 12px 8px; }
 .original-landscape .settings-header .settings-utilities { margin-top: 0; }
@@ -1437,7 +1439,11 @@ class Display(Gtk.Application):
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
         self.now_playing_content.set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
         self.now_playing_content.set_margin_bottom(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
-        self.now_playing_centre.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
+        self.now_playing_centre.set_valign(Gtk.Align.START if portrait or original_landscape else Gtk.Align.CENTER)
+        # 800x480: anchor the title block at the top so the transport sits high and a two-line title
+        # still fits above the volume row; tighten the gaps below the controls.
+        self.now_playing_centre.set_spacing(4 if original_landscape else 7)
+        self.controls.set_margin_top(2 if original_landscape else 6); self.controls.set_margin_bottom(4 if original_landscape else 16)
         if hasattr(self, "volume_row"):
             mute_parent = self.mute.get_parent()
             target = self.now_playing_centre if large_display and portrait else self.volume_row
@@ -1602,6 +1608,7 @@ class Display(Gtk.Application):
         settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility"); settings.set_valign(Gtk.Align.CENTER)
         settings.set_child(self.discover_utility_icon()); settings.set_tooltip_text("Settings"); row.append(settings)
         self.header_utility_buttons = getattr(self, "header_utility_buttons", []) + [settings]
+        self.header_cogs = getattr(self, "header_cogs", []) + [settings]
         row.append(centre)
         spacer = Gtk.Box(); spacer.set_hexpand(True); row.append(spacer)
         if isinstance(clock, Gtk.Label): clock.set_valign(Gtk.Align.CENTER)
@@ -4456,6 +4463,36 @@ class Display(Gtk.Application):
 
     def set_mode(self, mode):
         started = time.monotonic(); self.settings_open = False; self.last_mode = mode; self.pending_mode = mode; self.pending_mode_started_at = started; self.stack.set_visible_child_name(mode); print(f"RoonDeck switched to {mode} in {(time.monotonic() - started) * 1000:.1f}ms", flush=True); threading.Thread(target=post_json, args=(BUS + "/api/admin/display-mode", {"mode": mode}), daemon=True).start()
+        GLib.timeout_add(150, self.align_header_cogs)
+
+    def align_header_cogs(self, retry=True):
+        """Put Bus Times and Home's cog exactly where the music pages' cog is.
+
+        CSS offsets were tuned from captures and drifted between interface sizes, so measure the real
+        positions on the page now showing and nudge the header cog right by the difference."""
+        if getattr(self, "responsive_portrait", False): return False
+        try:
+            def left(button):
+                point = button.translate_coordinates(self.window, 0, 0)
+                return None if point is None else point[0]
+            reference = getattr(self, "music_settings_button", None)
+            if reference is not None and reference.get_mapped():
+                x = left(reference)
+                if x is not None: self.cog_reference_x = x
+            target = getattr(self, "cog_reference_x", None)
+            if target is None: return False
+            moved = False
+            for button in getattr(self, "header_cogs", []):
+                if not button.get_mapped(): continue
+                x = left(button)
+                if x is None: continue
+                delta = round(target - x)
+                if delta:
+                    button.set_margin_start(max(0, button.get_margin_start() + delta)); moved = True
+            if moved and retry: GLib.timeout_add(120, lambda: self.align_header_cogs(False) and False)
+        except Exception as error:
+            print("RoonDeck cog alignment skipped: " + type(error).__name__, flush=True)
+        return False
 
     def note_missing_artwork(self):
         self.image_misses += 1
