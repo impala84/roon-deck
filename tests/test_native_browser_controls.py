@@ -32,12 +32,19 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
-    def test_release_period_uses_month_when_known_and_never_invents_one(self):
+    def test_release_period_uses_year_only_and_never_invents_one(self):
         period = native_method("release_period_label", {"re": __import__("re"), "datetime": __import__("datetime").datetime})
-        self.assertEqual(period("2008-04-14"), "APRIL 2008")
-        self.assertEqual(period("2008-04"), "APRIL 2008")
+        self.assertEqual(period("2008-04-14"), "2008")
+        self.assertEqual(period("2008-04"), "2008")
         self.assertEqual(period("2008"), "2008")
         self.assertEqual(period(""), "")
+
+    def test_release_type_uses_metadata_with_a_safe_album_fallback(self):
+        release_type = native_method("release_type_label")
+        self.assertEqual(release_type({"type": "single"}), "SINGLE")
+        self.assertEqual(release_type({"format": "full-length"}), "LP")
+        self.assertEqual(release_type({"type": "promo"}), "PROMO")
+        self.assertEqual(release_type({}), "ALBUM")
 
     def test_interface_scaling_reflows_size_dependent_layouts(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -657,7 +664,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('year = released[:4] if released else ""', code)
         self.assertIn('if getattr(self, "detail_year_only", False):', code)
         self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
-        self.assertIn('self.detail_album_section_label.set_text(release_label if getattr(self, "detail_year_only", False) and release_label else "ALBUM")', code)
+        self.assertIn('detail_heading = f"{release_type} · {release_label}" if release_label else release_type', code)
+        self.assertIn('self.detail_album_section_label.set_text(detail_heading)', code)
         self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
         self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
         self.assertIn('label.set_lines(3 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail', code)
@@ -787,6 +795,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
         self.assertEqual(columns,3)
         self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 960)
+
+    def test_larger_gen2_artist_grid_keeps_four_columns(self):
+        monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
+        monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
+        gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
+        owner=SimpleNamespace(viewport_width=1920,viewport_height=720,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
+        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,False,True)
+        self.assertEqual(columns,4)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 1000)
 
     def test_scrubber_is_scoped_to_cover_collections_not_artist_profiles(self):
         code = SOURCE.read_text(encoding="utf-8")

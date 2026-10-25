@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.7-beta.64 Alpine — 25 October 2026
+
+- Restores the four-column artist browser on the seven-inch Gen 2 display at Larger interface scaling without changing the constrained album and genre grids.
+- Restores the album-information heading to the release type and year, such as `ALBUM · 2011`, with LP, single, promo and other provider types retained when available.
+- Applies the selected gradient or black background to the in-place Album & Artist information view and slightly reduces its Browse Artist Albums action text.
+- Refines Settings with a compact Sleep/close header, aligned branding, clearer display groups, a dedicated enlarged touchscreen-profile selector, and balanced two-column install actions.
+- Aligns the shared ten-inch page header geometry and the seven-inch Gen 2 bottom navigation across Now Playing, Discover, Bus Times and Home.
+- Tightens three-service bus layouts so Larger scaling remains inside the physical seven-inch and ten-inch viewports.
+- Redesigns portrait arrival cards as a two-column route/primary-arrival composition with larger labels, following arrivals and a ruled `THEN` section.
+
 ## 1.1.7-beta.63 Alpine — 25 October 2026
 
 - Keeps Larger Now Playing artwork inside the seven-inch Gen 2 viewport and disables accidental landscape page scrolling.

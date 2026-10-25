@@ -905,6 +905,59 @@ window.background-black .roon-page, window.background-black .home-page,
 window.background-black .settings-page, window.background-black .sleep {
     background-color: #000; background-image: none;
 }
+
+/* Beta 64: one shared frame and density system for physical displays. */
+window.theme-roon .detail-takeover,
+window.theme-roon .detail-header,
+window.theme-roon .detail-sheet-scroll,
+window.theme-roon .detail-footer { background: transparent; }
+window.background-black .detail-takeover,
+window.background-black .detail-header,
+window.background-black .detail-sheet-scroll,
+window.background-black .detail-footer { background: #000; }
+.detail-footer .detail-primary-action { font-size: 22px; }
+.high-resolution .detail-footer .detail-primary-action { font-size: 25px; }
+
+/* Only the installation-profile picker receives the larger menu treatment. */
+.touch-profile-select { font-size: 22px; }
+.touch-profile-select popover listview row { min-height: 60px; padding: 9px 16px; }
+.touch-profile-select popover listview row label { font-size: 22px; }
+.portrait .touch-profile-select,
+.portrait .touch-profile-select popover listview row label { font-size: 27px; }
+.portrait .touch-profile-select popover listview row { min-height: 72px; }
+
+.settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
+.theme-roon .settings-close { border-color: #9868F9; }
+.settings-sleep { min-width: 128px; min-height: 58px; }
+.settings-action-stack { padding-top: 4px; padding-bottom: 6px; }
+.portrait .settings-page { padding-top: 24px; padding-bottom: 28px; }
+.portrait .settings-header { min-height: 84px; }
+.portrait .settings-title { font-size: 38px; font-weight: 600; }
+.portrait .settings-version { font-size: 17px; }
+.portrait .settings-diagnostic { font-size: 17px; }
+.portrait .settings-card { padding-bottom: 10px; }
+.portrait .settings-action-stack { padding-top: 18px; }
+.portrait .settings-action { min-height: 72px; }
+
+/* The same page-edge geometry drives all four primary pages. */
+.touch-landscape .page-header,
+.touch-landscape .discover-toolbar { margin-left: -8px; margin-right: -8px; }
+.touch-landscape .page-header .discover-utility,
+.touch-landscape .discover-toolbar > .discover-utility { margin-top: 11px; }
+.touch-landscape .header-clock,
+.touch-landscape .discover-sleep { margin-top: 8px; }
+.touch2-7-landscape .nav { min-height: 60px; padding-top: 0; margin-top: 0; margin-bottom: 0; }
+.touch2-7-landscape .nav button { min-height: 58px; }
+.touch2-7-landscape .bus-page .service.compact { padding-top: 2px; padding-bottom: 2px; }
+.touch2-7-landscape .bus-page .service.compact .service-no,
+.touch2-7-landscape .bus-page .service.compact .arrival { font-size: 66px; }
+.touch2-7-landscape .bus-page .stop-row { margin-bottom: 4px; }
+.touch2-7-landscape .bus-page .bus-footer { min-height: 18px; }
+
+.large-display.portrait .bus-page .service.compact,
+.large-display.portrait .bus-page .service.dense { padding-top: 3px; padding-bottom: 3px; }
+.large-display.portrait .bus-page .bus-route-badge { margin-top: 4px; }
+.large-display.portrait .bus-page .bus-next-unit { margin-top: -4px; }
 """
 
 
@@ -943,13 +996,21 @@ def browser_request_timeout(action: str) -> float:
 
 
 def release_period_label(value) -> str:
-    """Return a human release period without inventing a missing month."""
+    """Return the release year without inventing missing precision."""
     released = str(value or "")
-    year = released[:4] if re.match(r"^\d{4}", released) else ""
-    match = re.fullmatch(r"(\d{4})-(\d{2})(?:-\d{2})?", released)
-    if match and 1 <= int(match.group(2)) <= 12:
-        return f"{datetime(2000, int(match.group(2)), 1).strftime('%B').upper()} {match.group(1)}"
-    return year
+    return released[:4] if re.match(r"^\d{4}", released) else ""
+
+
+def release_type_label(metadata) -> str:
+    """Use the provider's release kind, with a conservative album fallback."""
+    value = str((metadata or {}).get("type") or (metadata or {}).get("format") or "album").strip()
+    folded = value.casefold()
+    aliases = {
+        "full length": "LP", "full-length": "LP", "long play": "LP",
+        "ep": "EP", "single": "SINGLE", "promo": "PROMO",
+        "compilation": "COMPILATION", "live": "LIVE ALBUM", "album": "ALBUM",
+    }
+    return aliases.get(folded, value.upper() if value else "ALBUM")
 
 
 def get_bytes(url: str, timeout: float = 1.2):
@@ -1684,8 +1745,10 @@ class Display(Gtk.Application):
             self.settings_appearance.set_spacing(8 if original else 12)
             self.settings_daily.set_spacing(10 if original else 16)
             self.settings_display_column.set_spacing(10 if original else 16)
-        self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
-        self.settings_actions.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
+        # Keep the identity and utilities on one deliberate header line. The
+        # portrait display has ample width; stacking the controls created the
+        # large dead band seen on the physical 10-inch panel.
+        self.settings_header.set_orientation(Gtk.Orientation.HORIZONTAL)
         if hasattr(self, "touch_bus_pair"):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
             self.touch_bus_heading.set_visible(portrait or width > 1280)
@@ -1699,12 +1762,12 @@ class Display(Gtk.Application):
 
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
-        if max(width, height) >= 1600:
+        if height > width:
+            target_height = 34 if width >= 900 else 28
+        elif max(width, height) >= 1600:
             target_height = 44
         elif width >= 1200 and width > height:
             target_height = 43
-        elif height > width:
-            target_height = 24 if width < 600 else 30
         else:
             target_height = 26 if width < 1000 else 32
         accent = "#9868F9" if self.settings_data.get("display_theme") == "roon" else "#6ED9AE"
@@ -1731,7 +1794,10 @@ class Display(Gtk.Application):
         settings_title = self.label("Settings", "settings-title"); settings_title.set_valign(Gtk.Align.BASELINE); self.settings_title_label = settings_title; title_row.append(settings_title)
         self.device_status = self.label("", "settings-version"); self.device_status.set_valign(Gtk.Align.BASELINE); self.device_status.set_max_width_chars(32); self.device_status.set_ellipsize(Pango.EllipsizeMode.END); title_row.append(self.device_status); heading.append(title_row)
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
-        utilities = Gtk.Box(spacing=22); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START); utilities.append(self.button("BACK", self.close_settings)); utilities.append(self.button("SLEEP", self.sleep)); top.append(utilities); page.append(top)
+        utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START)
+        sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
+        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 28, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
+        top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
         self.settings_row_sizes = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
@@ -1756,14 +1822,24 @@ class Display(Gtk.Application):
         self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True)
         display_column.append(appearance)
-        self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); display_column.append(self.touch_profile)
+        self.display_settings_heading = self.label("DISPLAY SETTINGS", "eyebrow"); display_column.append(self.display_settings_heading)
+        self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); self.touch_profile.add_css_class("touch-profile-select"); display_column.append(self.touch_profile)
         self.touch_orientation = Gtk.DropDown.new_from_strings(["Orientation · Landscape", "Orientation · Portrait"]); self.touch_orientation.add_css_class("settings-select"); display_column.append(self.touch_orientation); controls.append(display_column)
         scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
         brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); brightness_control = Gtk.Box(spacing=12); brightness_control.add_css_class("brightness-control"); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(False); self.touch_brightness.set_hexpand(True); self.touch_brightness_value = self.label("100%", "brightness-value", 1); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_control.append(self.touch_brightness); brightness_control.append(self.touch_brightness_value); brightness_row.append(brightness_control); display_column.append(brightness_row)
+        # Appearance first, then the everyday brightness control, followed by
+        # the rarely-used installation fields as one clearly labelled group.
+        display_column.reorder_child_after(brightness_row, appearance)
+        display_column.reorder_child_after(self.display_settings_heading, brightness_row)
+        display_column.reorder_child_after(self.touch_profile, self.display_settings_heading)
+        display_column.reorder_child_after(self.touch_orientation, self.touch_profile)
+        display_column.reorder_child_after(self.touch_mounting, self.touch_orientation)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
-        actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); actions.set_valign(Gtk.Align.END); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); actions.append(reboot); card.append(actions); page.append(card)
+        action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
+        actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
+        reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); card.append(action_stack); page.append(card)
         return page
 
     def build_sleep(self):
@@ -2493,11 +2569,16 @@ class Display(Gtk.Application):
         count = max(1, count)
         height = getattr(self, "viewport_height", self.window.get_height())
         width = getattr(self, "viewport_width", self.window.get_width())
-        budget = max(180, (height - 240 - (count - 1) * 24) / count)
+        # Reserve the real header, footer and bottom navigation. The previous
+        # 240px allowance was optimistic and made a third portrait service
+        # extend beneath the fixed navigation on the physical display.
+        chrome = 390 if count >= 3 else 300
+        gap = 14 if count >= 3 else 24
+        budget = max(180, (height - chrome - (count - 1) * gap) / count)
         route_size = max(26, min(110, round(budget * .145)))
         primary_size = max(46, min(248, round(budget * .34)))
-        secondary_size = max(20, min(74, round(budget * .098)))
-        caption_size = max(12, min(36, round(budget * .045)))
+        secondary_size = max(24, min(86, round(budget * .115)))
+        caption_size = max(14, min(42, round(budget * .055)))
         row.set_orientation(Gtk.Orientation.VERTICAL); row.set_vexpand(False)
         row.set_spacing(max(4, min(16, round(budget * .02))))
         # Budget includes CSS padding, so compact screens can scroll rather
@@ -2508,26 +2589,28 @@ class Display(Gtk.Application):
             attrs = Pango.AttrList(); attrs.insert(Pango.attr_size_new_absolute(size * Pango.SCALE))
             label.set_attributes(attrs)
             return label
+        top = Gtk.Box(spacing=max(18, round(width * .06))); top.add_css_class("bus-primary-row")
+        top.set_homogeneous(True); top.set_hexpand(True); top.set_vexpand(True)
+        top.set_margin_start(round(width * .055)); top.set_margin_end(round(width * .055))
+        badge_slot = Gtk.Box(); badge_slot.set_hexpand(True); badge_slot.set_valign(Gtk.Align.CENTER)
         badge = Gtk.Box(spacing=12); badge.add_css_class("bus-route-badge"); badge.set_halign(Gtk.Align.CENTER)
-        badge.set_margin_top(max(6, round(budget * .025)))
         badge.append(sized("ROUTE", "bus-route-word", caption_size))
         number = sized(str(service.get("service", "")), "service-no", route_size)
-        number.add_css_class("solid-route"); badge.append(number); row.append(badge)
+        number.add_css_class("solid-route"); badge.append(number); badge_slot.append(badge); top.append(badge_slot)
         arrivals = service.get("arrivals", [])[:3]
         minutes = arrivals[0].get("minutes") if arrivals else None
         text = "Due" if minutes == 0 else "—" if minutes is None else str(minutes)
-        primary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); primary.set_vexpand(True); primary.set_valign(Gtk.Align.FILL)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); content.set_vexpand(True); content.set_valign(Gtk.Align.CENTER)
-        content.set_margin_bottom(max(8, round(budget * .07)))
+        primary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); primary.set_hexpand(True); primary.set_vexpand(True); primary.set_valign(Gtk.Align.CENTER)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0); content.set_valign(Gtk.Align.CENTER)
         primary_size = min(primary_size, round((width - 100) / (max(2, len(text)) * .75)))
         content.append(sized(text, "bus-next", primary_size))
         content.append(sized("arriving now" if minutes == 0 else "minutes" if minutes is not None else "no prediction", "bus-next-unit", caption_size))
-        primary.append(content); row.append(primary)
+        primary.append(content); top.append(primary); row.append(top)
         later = arrivals[1:]
         if later:
             rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); rule.add_css_class("bus-rule")
             rule.set_margin_start(round(width * .055)); rule.set_margin_end(round(width * .055)); row.append(rule)
-            row.append(sized("THEN", "bus-then", max(11, round(caption_size * .65))))
+            row.append(sized("THEN", "bus-then", max(13, round(caption_size * .75))))
             following = Gtk.Box(spacing=12); following.set_homogeneous(True)
             following.set_margin_bottom(max(8, round(budget * .025)))
             for arrival in later:
@@ -2536,7 +2619,7 @@ class Display(Gtk.Application):
                 text = "Due" if value == 0 else str(value)
                 size = min(secondary_size, round((width - 110) / (max(1, len(later)) * max(2, len(text)) * .75)))
                 item.append(sized(text, "bus-following", max(12, size)))
-                if value != 0: item.append(sized("min", "bus-following-unit", max(18, round(secondary_size * .5))))
+                if value != 0: item.append(sized("min", "bus-following-unit", max(20, round(secondary_size * .52))))
                 following.append(item)
             row.append(following)
 
@@ -3289,7 +3372,7 @@ class Display(Gtk.Application):
         if data.get("navigate") == "now" and not data.get("error"): self.set_roon_view("now")
         return False
 
-    def browser_grid_metrics(self, genres=False):
+    def browser_grid_metrics(self, genres=False, artists=False):
         monitors = Gdk.Display.get_default().get_monitors()
         monitor = monitors.get_item(0) if monitors.get_n_items() else None
         # Never derive minimum tile sizes from content that may have already
@@ -3321,9 +3404,10 @@ class Display(Gtk.Application):
             return 4, max(64, (available - 12 * 3) // 4)
         available = max(140, width - (320 if genres else 280))
         larger_seven = profile in {"touch2-7", "touch2-5-7"} and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger"
-        # Larger intentionally shows fewer items. Four enlarged columns give
-        # GTK a 1330px natural width and the physical 1280px panel clips it.
-        columns = min(3 if larger_seven else 4, max(1, available // 140))
+        # Larger cover collections intentionally show fewer items. Artist
+        # browsing is the exception: four portraits fit this viewport and are
+        # part of the established artist-browser rhythm.
+        columns = min(4 if artists or not larger_seven else 3, max(1, available // 140))
         gap = 24
         cap = 228 if larger_seven else 212
         # Each card contributes 3px padding on both sides in addition to the
@@ -3773,7 +3857,10 @@ class Display(Gtk.Application):
                 grid.set_column_spacing(30)
                 grid.set_row_spacing(30)
                 grid.set_halign(Gtk.Align.START); grid.set_hexpand(False)
-            columns, self.browser_tile_size = self.browser_grid_metrics(layout == "tiles" and active_section in {"genres", "playlists"})
+            columns, self.browser_tile_size = self.browser_grid_metrics(
+                layout == "tiles" and active_section in {"genres", "playlists"},
+                active_section == "artists",
+            )
             tile_kind = active_section if layout == "tiles" else None
             for index, item in enumerate(item for item in items if item.get("hint") != "header"):
                 card = self.browser_cover_card(item, bool(data.get("show_labels")), tile_kind); self.browser_cards.append((card, item)); grid.attach(card, index % columns, index // columns, 1, 1)
@@ -3941,7 +4028,9 @@ class Display(Gtk.Application):
         released = str(metadata.get("release_date") or metadata.get("year") or "")
         year = released[:4] if released else ""
         release_label = release_period_label(released)
-        self.detail_album_section_label.set_text(release_label if getattr(self, "detail_year_only", False) and release_label else "ALBUM")
+        release_type = release_type_label(metadata)
+        detail_heading = f"{release_type} · {release_label}" if release_label else release_type
+        self.detail_album_section_label.set_text(detail_heading)
         if getattr(self, "detail_year_only", False):
             detail_subtitle = ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
