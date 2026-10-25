@@ -2,14 +2,48 @@
 
 ## Publishing completed changes
 
-The user expects requested RoonDeck changes to be delivered through the updater, not left as local edits.
+The user expects requested RoonDeck changes to be delivered through the Pi's
+updater (Settings → Software), not left as local edits. Do not ask for
+publishing confirmation on every build: the user has authorised this routine
+workflow, including direct pushes to the beta branch and GitHub prereleases.
 
-- After implementing and proportionately verifying requested changes, commit the relevant changes, push to `origin/main`, and publish a GitHub release with the next appropriate semantic version and concise release notes.
-- Update the application version, changelog, documented current release, and affected web asset cache versions as appropriate.
-- Do not ask for publishing confirmation on every build. The user has explicitly authorised this routine workflow, including direct pushes to `main` and GitHub releases.
-- Do not overwrite unrelated user changes, force-push, or publish known failing work. Report meaningful blockers or operations needing authority beyond this workflow.
-- Confirm the release was published before claiming it is available through the updater. Publishing a release does not authorise remotely installing it or restarting the user's Pi.
-- State verification accurately: local browser fixtures and automated tests do not prove native GTK behaviour on the actual touchscreen.
+### Where releases come from
+
+- Current development is the Beta channel. Commit and push beta work to
+  `hotfix/beta27-physical-baseline`, not `main`. `main` is behind and is not
+  what the Pi installs while on Beta.
+- The Pi's Beta channel installs the newest published GitHub **prerelease**
+  whose tag ends in `-alpine`, at that tag's exact commit. It does not require
+  the Alpine verification workflow to pass (see `appliance/alpine/updater.py`).
+- Stable is different: it requires a passing Alpine verification run and is
+  released only when the user asks for a stable release.
+
+### Steps for a beta release
+
+1. Implement and verify the change locally (see the checks below).
+2. Bump the version to the next `1.1.7-beta.N` in `pyproject.toml`,
+   `src/pi_bus_time_display/__init__.py`, `README.md`,
+   `roon-controller/package.json` and `roon-controller/package-lock.json`
+   (two places), and add a `## 1.1.7-beta.N Alpine — <date>` entry at the top
+   of `CHANGELOG.md`. Update affected web asset cache versions.
+3. Commit, `git pull --rebase` onto the latest
+   `origin/hotfix/beta27-physical-baseline` (other tools may have pushed), rerun
+   the tests, then push.
+4. Publish the prerelease (this creates the tag too):
+   `gh release create v1.1.7-beta.N-alpine --repo impala84/roon-deck --target hotfix/beta27-physical-baseline --prerelease --title "1.1.7-beta.N Alpine" --notes "<changelog entry>"`
+5. Confirm it is listed with `gh release list --repo impala84/roon-deck --limit 3`
+   before telling the user it is available through the updater.
+
+### Limits
+
+- Do not overwrite unrelated user changes, force-push, or publish known failing
+  work. Report meaningful blockers or operations needing more authority.
+- Publishing a release does not authorise remotely installing it or restarting
+  the user's Pi.
+- State verification accurately: local browser fixtures, Xvfb captures and
+  automated tests do not prove native GTK behaviour on the actual touchscreen.
+- Only one agent should edit the native layout at a time. Several tools have
+  pushed to the beta branch at once; always rebase before pushing.
 
 ## Conserve GitHub Actions usage
 
