@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.72 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers grow again (217px, 223px cards) by tightening the column gap to 14px, anchored top-left at the same x as before. The second row now ends about level with the Back button's bottom, and the scroller clips just beneath it so only two rows show at first.
+- Ten-inch portrait Settings: the RoonDeck Settings heading is larger (62px wordmark, 56px title), the memory/load line is much smaller (14px), and the Install Update, Apply Display and Reboot buttons use an even 24px gap.
+
 ## 1.1.7-beta.71 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse: covers grow to 217px cards (from about 212px) in Standard and Larger, and the Larger grid now starts at the same x as Standard (200px), 30px clear of the Back button instead of 12px. The scroller's bottom edge moves up so the first view shows exactly two rows of covers.

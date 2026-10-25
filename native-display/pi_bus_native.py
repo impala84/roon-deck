@@ -965,6 +965,10 @@ window.background-black .detail-footer { background: #000; }
 .touch2-7-landscape .settings-header .settings-utilities { margin-top: 8px; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-sleep { margin-right: 14px; font-size: 19px; }
 .touch2-7-landscape .settings-primary-actions { margin-bottom: 14px; }
+/* 10-inch portrait Settings: a larger heading, a quiet diagnostics line, and even 24px gaps between the three action buttons. */
+.large-display.portrait .settings-page .settings-title { font-size: 56px; }
+.large-display.portrait .settings-page .settings-diagnostic { font-size: 14px; }
+.large-display.portrait .settings-primary-actions { margin-bottom: 12px; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
 popover listview row { min-height: 48px; padding: 8px 14px; }
@@ -1835,6 +1839,7 @@ class Display(Gtk.Application):
         # button padding from stretching it into an oval.
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
         self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))
+        if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 18)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
@@ -1845,7 +1850,7 @@ class Display(Gtk.Application):
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
         if height > width:
-            target_height = 34 if width >= 900 else 28
+            target_height = 62 if width >= 1000 else 34 if width >= 900 else 28
         elif max(width, height) >= 1600:
             target_height = 44
         elif width >= 1200 and width > height:
@@ -1860,7 +1865,7 @@ class Display(Gtk.Application):
         # The supplied wordmark is drawn to its baseline at the bottom of the
         # SVG. Lift that edge by the adjacent title font's descent so its
         # visible baseline matches GTK labels rather than their bounding box.
-        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 9 if height > width and width < 600 else 7 if height > width else 6 if width < 1000 else 8
+        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 9 if height > width and width < 600 else 13 if height > width and width >= 1000 else 7 if height > width else 6 if width < 1000 else 8
         self.settings_wordmark_frame.set_margin_bottom(baseline_lift)
         if hasattr(self, "touch_diagnostics"):
             diagnostics_gap = 5 if max(width, height) >= 1600 else 2
@@ -3473,12 +3478,11 @@ class Display(Gtk.Application):
 
     def browser_scroll_bottom_margin(self, original_view=False):
         if original_view: return 0
-        # Seven-inch Gen 2: cover cards are ~217px tall with a 24px gap, so the third row
-        # started 4-12px above the clip line and peeked in. 40px puts the clip line ~12px
-        # under the second row, so the first view shows exactly two rows. Lists just scroll.
+        # Seven-inch Gen 2: 223px cards with a 22px row gap put the third row at y~600. A 28px
+        # margin puts the clip line at y~592, so the first view shows exactly two rows.
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         gen2_seven = not getattr(self, "responsive_portrait", False) and 1200 <= width < 1500 and 650 <= height < 850
-        return 40 if gen2_seven else 10
+        return 28 if gen2_seven else 10
 
     def browser_grid_metrics(self, genres=False, artists=False):
         monitors = Gdk.Display.get_default().get_monitors()
@@ -3528,8 +3532,8 @@ class Display(Gtk.Application):
         if 1200 <= view_width < 1500 and 650 <= view_height < 850:
             # Seven-inch Gen 2. Measured on the Pi: a 212px grid plus the 43px gutter, the 64px
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
-            # 211px covers (217px cards, 24px gaps) end at x~1140, leaving ~48px before the rail.
-            size = min(size, 211)
+            # 217px covers (223px cards, 14px column gaps) end at x~1134, leaving ~54px before the rail.
+            size = min(size, 217)
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3970,6 +3974,11 @@ class Display(Gtk.Application):
                             and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger")
             if larger_seven:
                 grid.set_column_spacing(23)
+            if (not portrait and 1200 <= getattr(self, "viewport_width", 800) < 1500
+                    and 650 <= (getattr(self, "viewport_height", None) or 720) < 850):
+                # Seven-inch Gen 2: tighter columns let the covers grow; a looser row gap
+                # puts the second row's bottom near the Back button's.
+                grid.set_column_spacing(14); grid.set_row_spacing(22)
             original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             if original:
                 grid.set_column_spacing(12); grid.set_row_spacing(12)
