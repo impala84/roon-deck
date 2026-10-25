@@ -136,3 +136,14 @@ popover listview row label { font-size: 19px; }
 .original-landscape popover listview row label,
 .original-landscape.interface-larger popover listview row label { font-size: 16px; }
 .original-landscape.interface-larger popover listview row { min-height: 44px; }
+/* Beta 86: Play Album split button, seven-inch Gen 2. A shorter, wider pill with more room before the play triangle
+   and a compact arrow segment (the arrow glyph itself is set in Python). */
+.touch2-7-landscape .album-play-split .artist-play { min-height: 46px; padding: 6px 16px 6px 30px; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 40px; min-height: 46px; padding: 0 2px; }
+/* 800x480 Settings: one 16px margin on every side. The cards and columns carry no padding of their own so the
+   header, controls and buttons all sit on that margin, and the two bottom buttons are taller with softer corners. */
+.original-landscape .settings-page { padding: 16px 16px 16px; }
+.original-landscape .settings-card { padding: 0; }
+.original-landscape .settings-column { padding: 0; }
+.original-landscape .settings-header .settings-utilities { margin-right: 0; }
+.original-landscape .settings-page .settings-action { min-height: 52px; border-radius: 10px; }

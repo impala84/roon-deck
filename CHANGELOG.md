@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.86 Alpine — 26 October 2026
+
+- 800x480 album details: found why the window grew 10px (and lost the bottom underline) when you tapped the artwork. Details left a 20px gap under the header where Now Playing uses 1px. Details now use the same 1px, so the artwork stays put and the page keeps its height.
+- Seven-inch Gen 2 Play Album: a shorter pill (46px), more space before the play triangle (30px), and a compact arrow segment with a 24px arrow and less padding.
+- Loading dots: on the 10-inch portrait they sit about a quarter of the way down instead of hugging the top; on Gen 2 they are centred in the browse area (moved left and down).
+- 800x480 Settings: one 16px margin on every side, with the header, cards, columns and buttons all sitting on it. Install Update and Reboot are 52px tall with smaller corner radius.
+
 ## 1.1.7-beta.85 Alpine — 25 October 2026
 
 - No visual change. The display's stylesheet moves out of `pi_bus_native.py` into `native-display/css/01..07-*.css`, loaded in filename order by `native-display/styles.py`, with the shared page-grid numbers in `native-display/layout_constants.py`. The Python file shrinks from 4,878 to 4,020 lines.

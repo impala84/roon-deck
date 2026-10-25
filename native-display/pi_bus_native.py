@@ -468,8 +468,15 @@ class Display(Gtk.Application):
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         panel.set_halign(Gtk.Align.CENTER); panel.set_valign(Gtk.Align.CENTER)
         panel.set_hexpand(True); panel.set_vexpand(True)
-        original = getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-        panel.set_margin_top(18 if original else 48); panel.set_margin_bottom(18 if original else 48)
+        width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
+        original = width <= 820 and height <= 500
+        portrait = getattr(self, "responsive_portrait", False)
+        gen2_seven = not portrait and 1200 <= width < 1500 and 650 <= height < 850
+        # Portrait: the dots sit a third of the way down. Gen 2: centred in the browse area (right of the 170px rail,
+        # left of the scrubber), which is about 62px left of the scroll area's own centre.
+        top = 18 if original else 213 if gen2_seven else round(height * .26) if portrait else 48
+        panel.set_margin_top(top); panel.set_margin_bottom(18 if original else 48)
+        if gen2_seven: panel.set_margin_end(62)
         dots = Gtk.Box(spacing=12); dots.set_halign(Gtk.Align.CENTER)
         labels = [self.label("●", "loading-dots") for _ in range(3)]
         for label in labels: dots.append(label)
@@ -2094,7 +2101,7 @@ class Display(Gtk.Application):
         self.roon_page.set_spacing(0 if original_landscape and name in {"now", "details"} else 4)
         daily_edge = original_landscape and self.discovery_active and getattr(self, "discovery_section", "") == "daily" and name == "discover"
         (self.roon_page.add_css_class if daily_edge else self.roon_page.remove_css_class)("daily-edge")
-        self.discover_toolbar.set_margin_bottom(1 if original_landscape and name == "now" else 20 if original_landscape else 14)
+        self.discover_toolbar.set_margin_bottom(1 if original_landscape and name in {"now", "details"} else 20 if original_landscape else 14)
         self.sync_music_navigation(name)
         for button in self.roon_nav_buttons:
             if exploring: button.remove_css_class("active")
@@ -3035,7 +3042,7 @@ class Display(Gtk.Application):
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-play", 34 if min(vw, vh) >= 1000 else 20 if vw <= 820 and vh <= 500 else 30))
+            menu.set_child(FamilyIcon("chevron-play", 34 if min(vw, vh) >= 1000 else 20 if vw <= 820 and vh <= 500 else 24))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
