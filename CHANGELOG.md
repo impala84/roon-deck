@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.67 Alpine — 25 October 2026
+
+- Pulls the seven-inch Gen 2 Larger Browse grid inward, tightens its gutters and reserves enough width for the complete alphabet scrubber inside the physical 1280-pixel viewport.
+- Aligns the seven-inch Gen 2 Bus Times and Home header geometry with Now Playing and Discover instead of leaving their cog and clock lower on the page.
+- Prevents the Settings close control from stretching into an oval, enlarges its X and restores a legible Sleep label while retaining the shared button corner treatment.
+
 ## 1.1.7-beta.66 Alpine — 25 October 2026
 
 - Locks the ten-inch cog and clock to one shared header anchor across Now Playing, Discover, Bus Times and Home so they no longer jump between pages.

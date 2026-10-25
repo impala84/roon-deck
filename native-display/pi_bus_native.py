@@ -883,7 +883,10 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
 .touch2-7-landscape .browser-main { padding-left: 9px; }
-.touch2-7-landscape.interface-larger .browser-main { padding-left: 0; }
+.touch2-7-landscape.interface-larger .browser-main { padding-left: 0; margin-left: -9px; }
+.touch2-7-landscape .browser-scrubber { min-width: 42px; padding-left: 0; }
+.touch2-7-landscape .bus-page,
+.touch2-7-landscape .home-page { padding-top: 0; }
 .detail-takeover.inline-detail { background: transparent; }
 .inline-detail .detail-sheet-scroll,
 .inline-detail .detail-panel,
@@ -929,7 +932,7 @@ window.background-black .detail-footer { background: #000; }
 
 .settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .theme-roon .settings-close { border-color: #9868F9; }
-.settings-sleep { min-width: 128px; min-height: 58px; padding: 0 24px; border-radius: 8px; background: #303030; color: #f4f0e6; font-weight: 750; }
+.settings-sleep { min-width: 128px; min-height: 58px; padding: 0 24px; border-radius: 8px; background: #303030; color: #f4f0e6; font-size: 16px; font-weight: 750; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
 popover listview row { min-height: 48px; padding: 8px 14px; }
@@ -1410,7 +1413,7 @@ class Display(Gtk.Application):
         self.browser_content.set_margin_top(0 if original_landscape else 16)
         self.browser_scroll.set_margin_bottom(0 if original_landscape else 10)
         compact_browser_scrubber = portrait or compact_landscape or touch2_7_landscape
-        self.browser_scrubber.set_size_request(54 if original_landscape else 52 if compact_browser_scrubber else 74, -1)
+        self.browser_scrubber.set_size_request(54 if original_landscape else 42 if touch2_7_landscape else 52 if compact_browser_scrubber else 74, -1)
         self.browser_scrubber.set_margin_end(0 if compact_browser_scrubber else 18)
         self.browser_search_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait and width < 700 else Gtk.Orientation.HORIZONTAL)
         self.discovery_body.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
@@ -1816,7 +1819,7 @@ class Display(Gtk.Application):
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
         utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START)
         sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
-        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 28, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
+        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
         top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
@@ -3428,12 +3431,12 @@ class Display(Gtk.Application):
         # the grid uses its measured page inset and a 22px gutter. Keep the
         # same four-column rhythm for albums, artists and genre results.
         columns = min(4, max(1, available // 140))
-        gap = 22 if larger_seven else 24
+        gap = 21 if larger_seven else 24
         cap = 228 if larger_seven else 212
         # Each card contributes 3px padding on both sides in addition to the
         # grid gap. Account for it here rather than allowing the fifth/right
         # edge to be clipped by the alphabet scrubber.
-        size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 6))
+        size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 7))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
