@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.7-beta.71 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers grow to 217px cards (from about 212px) in Standard and Larger, and the Larger grid now starts at the same x as Standard (200px), 30px clear of the Back button instead of 12px. The scroller's bottom edge moves up so the first view shows exactly two rows of covers.
+- Seven-inch Gen 2: the Back button is the same larger size in Standard as in Larger (142x74).
+- Seven-inch Gen 2, Larger: the Bus Times and Home clock is about 12% smaller and ends on the cards' right edge. The header row keeps its height, so nothing below moves.
+- Ten-inch portrait Bus Times: the route badge and the arrival sit closer together, and the arrival size is capped so "Due" can no longer make the page wider than the 1200px screen (it was 1256px).
+- Ten-inch portrait: the Bus Times and Home cog, title and clock move up 9px together to match the Discover and Now Playing header line.
+
 ## 1.1.7-beta.70 Alpine — 25 October 2026
 
 - Seven-inch Gen 2: fixes the Browse/Albums/Artists page making the window wider than the screen (1311px in Standard, 1293px in Larger, which pushed the clock and scrubber off the right edge). The widened scrubber rail in beta.69 left no spare width; cover grids now cap at 202px (Standard) and 206px (Larger) so everything fits inside 1280px.

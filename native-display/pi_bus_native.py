@@ -883,7 +883,6 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
 .touch2-7-landscape .browser-main { padding-left: 9px; }
-.touch2-7-landscape.interface-larger .browser-main { padding-left: 0; margin-left: -9px; }
 .touch2-7-landscape .browser-scrubber { min-width: 64px; padding-left: 0; }
 .touch2-7-landscape .bus-page,
 .touch2-7-landscape .home-page { padding-top: 0; }
@@ -1001,6 +1000,16 @@ popover listview row label { font-size: 19px; }
 .large-display .discover-sleep { margin-top: 0; margin-bottom: 0; }
 .large-display .page-header > button,
 .large-display .discover-toolbar > button { min-height: 56px; margin-top: 4px; margin-bottom: 4px; }
+.touch2-7-landscape .browser-back { min-width: 112px; min-height: 58px; padding: 8px 15px; font-size: 18px; }
+/* Larger: the clock digits are a little smaller and end on the cards' right edge. The row keeps its
+   83px height, so nothing below moves. */
+.touch2-7-landscape.interface-larger .page-header { min-height: 83px; }
+.touch2-7-landscape.interface-larger .page-header .clock { font-size: 42px; }
+.touch2-7-landscape.interface-larger .page-header .header-clock { margin-right: 4px; }
+/* 10-inch portrait: Bus Times and Home headers sat 9px lower than Discover and Now Playing (cog centre
+   y 61.5 against 52.5). Cog, title and clock move up together so the line stays balanced. */
+.large-display.portrait .bus-page .page-header > *,
+.large-display.portrait .home-page .page-header > * { transform: translateY(-9px); }
 .touch2-7-landscape .nav { min-height: 60px; padding-top: 0; margin-top: 0; margin-bottom: 0; }
 .touch2-7-landscape .nav button { min-height: 58px; }
 .touch2-7-landscape .bus-page .service.compact { padding-top: 2px; padding-bottom: 2px; }
@@ -1449,7 +1458,7 @@ class Display(Gtk.Application):
         self.portrait_music_tabs.set_margin_bottom((16 if width < 600 else 24) if portrait else 0)
         self.browser_body.set_margin_end(0)
         self.browser_content.set_margin_top(0 if original_landscape else 16)
-        self.browser_scroll.set_margin_bottom(0 if original_landscape else 10)
+        self.browser_scroll.set_margin_bottom(self.browser_scroll_bottom_margin(original_landscape))
         compact_browser_scrubber = portrait or compact_landscape or touch2_7_landscape
         # The alphabet letter is drawn 26px left of the track, so the rail needs ~64px;
         # 42px clipped the letter. On the 7-inch Gen 2 the track sits 12px inside the
@@ -2668,11 +2677,16 @@ class Display(Gtk.Application):
             attrs = Pango.AttrList(); attrs.insert(Pango.attr_size_new_absolute(size * Pango.SCALE))
             label.set_attributes(attrs)
             return label
-        top = Gtk.Box(spacing=max(18, round(width * .06))); top.add_css_class("bus-primary-row")
+        # Wide (10-inch) portrait: the route badge and the arrival sit close together. With equal
+        # columns a long word such as "Due" made the page 1256px wide on a 1200px screen.
+        wide_portrait = width >= 1000
+        gutter = max(18, round(width * (.02 if wide_portrait else .06)))
+        side = round(width * (.04 if wide_portrait else .055))
+        top = Gtk.Box(spacing=gutter); top.add_css_class("bus-primary-row")
         # Equal columns multiply the wider child's minimum width and can push
         # a four-route 480px portrait page beyond the physical viewport.
         top.set_homogeneous(width >= 600); top.set_hexpand(True); top.set_vexpand(True)
-        top.set_margin_start(round(width * .055)); top.set_margin_end(round(width * .055))
+        top.set_margin_start(side); top.set_margin_end(side)
         badge_slot = Gtk.Box(); badge_slot.set_hexpand(True); badge_slot.set_valign(Gtk.Align.CENTER)
         badge = Gtk.Box(spacing=12); badge.add_css_class("bus-route-badge"); badge.set_halign(Gtk.Align.CENTER)
         badge.append(sized("ROUTE", "bus-route-word", caption_size))
@@ -2683,7 +2697,11 @@ class Display(Gtk.Application):
         text = "Due" if minutes == 0 else "—" if minutes is None else str(minutes)
         primary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); primary.set_hexpand(True); primary.set_vexpand(True); primary.set_valign(Gtk.Align.CENTER)
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0); content.set_valign(Gtk.Align.CENTER)
-        primary_size = min(primary_size, round((width - 100) / (max(2, len(text)) * .75)))
+        if wide_portrait:
+            column = (width - 100 - gutter - 2 * side) / 2
+            primary_size = min(primary_size, round(column / (1.9 if text == "Due" else max(2, len(text)) * .75)))
+        else:
+            primary_size = min(primary_size, round((width - 100) / (max(2, len(text)) * .75)))
         content.append(sized(text, "bus-next", primary_size))
         content.append(sized("arriving now" if minutes == 0 else "minutes" if minutes is not None else "no prediction", "bus-next-unit", caption_size))
         primary.append(content); top.append(primary); row.append(top)
@@ -3453,6 +3471,15 @@ class Display(Gtk.Application):
         if data.get("navigate") == "now" and not data.get("error"): self.set_roon_view("now")
         return False
 
+    def browser_scroll_bottom_margin(self, original_view=False):
+        if original_view: return 0
+        # Seven-inch Gen 2: cover cards are ~217px tall with a 24px gap, so the third row
+        # started 4-12px above the clip line and peeked in. 40px puts the clip line ~12px
+        # under the second row, so the first view shows exactly two rows. Lists just scroll.
+        width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
+        gen2_seven = not getattr(self, "responsive_portrait", False) and 1200 <= width < 1500 and 650 <= height < 850
+        return 40 if gen2_seven else 10
+
     def browser_grid_metrics(self, genres=False, artists=False):
         monitors = Gdk.Display.get_default().get_monitors()
         monitor = monitors.get_item(0) if monitors.get_n_items() else None
@@ -3501,8 +3528,8 @@ class Display(Gtk.Application):
         if 1200 <= view_width < 1500 and 650 <= view_height < 850:
             # Seven-inch Gen 2. Measured on the Pi: a 212px grid plus the 43px gutter, the 64px
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
-            # These caps keep it inside 1280px with ~10px to spare.
-            size = min(size, 206 if larger_seven or (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" else 202)
+            # 211px covers (217px cards, 24px gaps) end at x~1140, leaving ~48px before the rail.
+            size = min(size, 211)
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3847,7 +3874,7 @@ class Display(Gtk.Application):
         active_section = "surprise" if data.get("surprise_preview") else (data.get("section") or "albums")
         original_view = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
         self.browser_content.set_margin_top(0 if data.get("surprise_preview") and original_view else 16)
-        self.browser_scroll.set_margin_bottom(0 if data.get("surprise_preview") and original_view else 10)
+        self.browser_scroll.set_margin_bottom(0 if data.get("surprise_preview") and original_view else self.browser_scroll_bottom_margin(original_view))
         from_discover = self.discovery_active and self.discovery_browser_origin
         self.browser_sidebar.set_visible(not data.get("surprise_preview") and not from_discover)
         self.browser_discovery_sidebar.set_visible(from_discover)
