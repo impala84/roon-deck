@@ -3496,12 +3496,12 @@ class Display(Gtk.Application):
 
     def browser_scroll_bottom_margin(self, original_view=False):
         if original_view: return 0
-        # Standard 7-inch: two rows of 235px cards end at y~604, so the clip line moves to y~610.
-        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 10
-        # Seven-inch Gen 2: 223px cards with a 22px row gap put the third row at y~600. A 28px
-        # margin puts the clip line at y~592, so the first view shows exactly two rows.
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         gen2_seven = not getattr(self, "responsive_portrait", False) and 1200 <= width < 1500 and 650 <= height < 850
+        # Standard 7-inch: two rows of 235px cards end at y~604, so the clip line sits at y~610.
+        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 10
+        # Larger 7-inch Gen 2: 223px cards with a 22px row gap put the third row at y~600. A 28px
+        # margin puts the clip line at y~592, so the first view shows exactly two rows.
         return 28 if gen2_seven else 10
 
     def browser_grid_metrics(self, genres=False, artists=False):

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.74 Alpine — 25 October 2026
+
+- Fix: beta.73 raised an error in the Browse scroll-margin helper (a variable used before it was defined). That stopped layout midway on every screen except the 800x480 display, which left the 10-inch portrait Now Playing artwork as a small thumbnail at top-left. The helper is fixed and now has a test that calls it for each screen size.
+
 ## 1.1.7-beta.73 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse (Standard): the earlier cover change never took effect because a 212px size cap was applied first. Covers are now 229px (235px cards), sized to fill from the Back button's column to the scrubber rail, with a 26px row gap. The redundant 28px right margin and 8px list padding are dropped next to the rail, and the scroller clips beneath the second row. Larger keeps its previous sizing.
