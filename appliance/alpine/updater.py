@@ -131,6 +131,11 @@ def verified_revision():
     sha = reference.get("sha", "")
     if reference.get("type") != "commit" or not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise RuntimeError("Invalid Alpine release revision")
+    # Beta is the physical-development channel: the user explicitly accepts
+    # an exact published prerelease tag and performs the hardware acceptance
+    # check. Stable remains gated by the complete Alpine verification job.
+    if channel == "beta":
+        return sha
     result = fetch_json(REPO + "/actions/workflows/alpine-image.yml/runs?branch=" + BRANCH + "&head_sha=" + sha + "&status=success&per_page=100")
     runs = result.get("workflow_runs", [])
     runs = [build for build in runs if build.get("head_sha") == sha]
@@ -244,14 +249,14 @@ def update():
     # inherit a deleted current-working-directory inode.
     os.chdir("/")
     wait_for_clock()
-    status("Update · Checking verified Alpine builds…")
+    status("Update · Checking published Alpine releases…")
     try:
         sha = verified_revision()
     except NoDowngrade as error:
         status("Update unchanged. " + str(error)); return
     if (APP / ".source-commit").exists() and (APP / ".source-commit").read_text().strip() == sha:
         if healthy(sha):
-            status("Update unchanged. Latest verified Alpine is installed and running."); return
+            status("Update unchanged. Latest Alpine release is installed and running."); return
         status("Update files are current · Restarting the stale touchscreen…")
         restart()
         if not healthy(sha): raise RuntimeError("Current files are installed but the touchscreen could not be restarted on that revision")
@@ -333,7 +338,7 @@ def check():
         return
     installed = (APP / ".source-commit").read_text().strip() if (APP / ".source-commit").exists() else ""
     if installed != sha:
-        status("Update available. Open Settings → System → Software to install the latest verified Alpine release.")
+        status("Update available. Open Settings → System → Software to install the latest Alpine release.")
 
 
 def main():

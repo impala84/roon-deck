@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.57 Alpine — 25 October 2026
+
+- Lets the beta update channel install the exact commit referenced by a published Alpine prerelease without waiting for the Alpine CI workflow.
+- Keeps the stable channel protected by the existing successful Alpine-verification requirement.
+- Rewords updater status messages so beta builds are described as published releases rather than verified builds.
+
 ## 1.1.7-beta.56 Alpine — 25 October 2026
 
 - Makes the cog and clock use one shared landscape header position across Now Playing, Discover, Bus Times and Home on both seven-inch generations.

@@ -138,6 +138,18 @@ class AlpineUpdaterTests(unittest.TestCase):
                 (root / 'pyproject.toml').write_text('[project]\nversion = "1.2.0"')
                 with self.assertRaises(updater.NoDowngrade): updater.verified_revision()
 
+    def test_beta_accepts_an_exact_published_tag_without_ci_verification(self):
+        sha = "b" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'config.toml').write_text('release_channel = "beta"')
+            (root / 'pyproject.toml').write_text('[project]\nversion = "1.0.0"')
+            (root / 'update-channel-initialized').touch()
+            reference = {'object': {'type': 'commit', 'sha': sha}}
+            with patch.object(updater, 'APP', root), patch.object(updater, 'STATE', root), patch.object(updater, 'CONFIG', root / 'config.toml'), patch.object(updater, 'published_releases', return_value=[{'tag_name': 'v1.1.0-beta.1-alpine', 'prerelease': True}]), patch.object(updater, 'fetch_json', return_value=reference) as fetch:
+                self.assertEqual(updater.verified_revision(), sha)
+                fetch.assert_called_once()
+
     def test_tar_traversal_and_links_are_rejected(self):
         for name, kind in (("../escape", tarfile.REGTYPE), ("repo/link", tarfile.SYMTYPE), ("/absolute", tarfile.REGTYPE)):
             with tempfile.TemporaryDirectory() as folder:
