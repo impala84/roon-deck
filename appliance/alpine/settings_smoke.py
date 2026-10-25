@@ -54,7 +54,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     wordmark_baseline = display.settings_wordmark_frame.get_allocation().y + display.settings_wordmark_frame.get_height()
     assert abs(wordmark_baseline-title_baseline) <= 1, (width,height,wordmark_baseline,title_baseline)
     rows = [display.touch_profile, display.touch_orientation, display.touch_mounting]
-    seven_inch = height < width and 1000 <= width < 1500 and height <= 850
+    seven_inch = (height < width and width <= 820 and height <= 500) or (height < width and 1000 <= width < 1500 and height <= 850)
     if seven_inch:
         assert all(not row.get_visible() for row in rows)
         assert not display.apply_display_button.get_visible()

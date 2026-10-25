@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.55 Alpine — 25 October 2026
+
+- Establishes one balanced landscape page frame so the settings cog and clock hold the same inset and vertical position across Now Playing, Discover, Bus Times and Home without extending the viewport.
+- Reorganises seven-inch Settings into Daily Controls and Display: theme, background, brightness and interface size now live together, while installation-only display controls stay hidden and the two primary actions remain fixed at the bottom.
+- Replaces the Play Album text glyph with a compact symbolic chevron while retaining immediate playback on the main half and the existing queue/radio choices in the secondary menu.
+- Rebalances seven-inch artist pages with a wider, taller hero, overlaid artist/play hierarchy, higher album list and a separate three-line biography area; only the album column scrolls.
+- Keeps low- and high-resolution artist imagery on the same display-specific crop so the hero no longer shifts when the sharper image arrives.
+- Softens original-display artwork corners and modestly enlarges standard Gen 2 seven-inch transport controls.
+
 ## 1.1.7-beta.54 Alpine — 25 October 2026
 
 - Completes native matrix validation for simplified seven-inch Settings by comparing the widths of visible actions only; the intentionally hidden install-time Apply Display action no longer contributes a zero-width allocation.

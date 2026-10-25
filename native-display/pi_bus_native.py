@@ -227,6 +227,8 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .header-hotspot { min-height: 42px; padding: 0; border: 0; box-shadow: none; background: transparent; background-image: none; }
 .header-hotspot:hover, .header-hotspot:active { background: transparent; box-shadow: none; }
 .header-title { padding-left: 0; }.header-clock { padding-right: 0; }
+.display-landscape .page { padding-top: 20px; padding-bottom: 4px; }
+.display-landscape .page-header, .display-landscape .discover-toolbar { margin-left: -4px; margin-right: -4px; }
 .utility { min-width: 92px; min-height: 38px; border-radius: 7px; background: #18211f; color: #d9dedb; font-size: 11px; font-weight: 750; }
 .service { background: #131c1a; border: 1px solid #26312e; border-radius: 14px; padding: 5px 16px; }
 .service-blue { border-color: #28566e; background: #112027; }.service-green { border-color: #285e43; background: #102219; }
@@ -677,7 +679,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
 .mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
 .volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
-.artist-overlay-info { padding: 58px 16px 12px; background: transparent; }
+.artist-overlay-info { padding: 62px 16px 12px; background: transparent; }
 .artist-hero-frame, .artist-hero-frame viewport, .artist-hero-image,
 .theme-roon .artist-hero-frame, .theme-roon .artist-hero-frame viewport, .theme-roon .artist-hero-image { border-top-left-radius: 8px; border-top-right-radius: 8px; background: transparent; background-image: none; }
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
@@ -688,6 +690,8 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .original-landscape .artist-overlay-info .artist-name { font-size: 22px; }
 .original-landscape .artist-overlay-play { min-height: 38px; padding: 4px 12px; }
 .original-landscape .artist-profile .artist-bio { font-size: 15px; line-height: 1.25; }
+.artist-profile-summary { padding: 8px 16px 0; }
+.artist-albums-heading { padding-top: 3px; }
 popover.sort-menu .track-menu-action:hover,
 popover.sort-menu .track-menu-action:focus { background: #18211f; box-shadow: none; }
 popover.sort-menu .track-menu-action.active,
@@ -776,6 +780,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .original-landscape .surprise-title { font-size: 24px; line-height: 1.05; }
 .original-landscape .surprise-artist { font-size: 17px; }
 .original-landscape .now-playing-content { margin-top: 0; margin-bottom: 0; }
+.original-landscape .artwork, .original-landscape .artwork-button { border-radius: 6px; }
 .original-landscape .roon-title { font-size: 34px; }
 .original-landscape .now-mute { min-width: 54px; padding-left: 8px; padding-right: 8px; }
 .original-landscape .volume-step { min-width: 36px; min-height: 36px; border-radius: 18px; }
@@ -815,6 +820,8 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .album-focus-detail .detail-artist { font-size: 25px; }
 .touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.36; }
 .touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
+.touch2-7-landscape .transport button { min-width: 76px; min-height: 76px; border-radius: 38px; }
+.touch2-7-landscape .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }
 .interface-smaller .transport button { min-width: 43px; min-height: 43px; border-radius: 22px; }
 .interface-smaller .transport .play { min-width: 58px; min-height: 58px; border-radius: 29px; }
 .interface-larger .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
@@ -853,9 +860,9 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .interface-smaller .settings-select { font-size: 16px; }
 .album-play-split { margin-top: 2px; }
 .album-play-split .artist-play { border-top-right-radius: 0; border-bottom-right-radius: 0; margin: 0; }
-.album-play-menu { min-width: 54px; padding: 0 14px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; font-size: 20px; font-weight: 800; }
-.theme-roon .album-play-menu { background: #9868F9; color: #111; }
-.interface-larger .album-play-menu { min-width: 64px; font-size: 24px; }
+.album-play-menu { min-width: 42px; padding: 0 8px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #fff; }
+.theme-roon .album-play-menu { background: #9868F9; color: #fff; }
+.interface-larger .album-play-menu { min-width: 48px; padding-left: 9px; padding-right: 9px; }
 .touch-landscape.seven-inch-settings .settings-page { padding: 14px 28px 12px; }
 .touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
 .touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
@@ -1615,7 +1622,7 @@ class Display(Gtk.Application):
         if hasattr(self, "touch_bus_pair"):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
             self.touch_bus_heading.set_visible(portrait or width > 1280)
-        seven_inch = not portrait and 1000 <= width < 1500 and height <= 850
+        seven_inch = original or (not portrait and 1000 <= width < 1500 and height <= 850)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
@@ -1651,7 +1658,7 @@ class Display(Gtk.Application):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); page.add_css_class("page"); page.add_css_class("settings-page")
         top = Gtk.Box(spacing=20); top.add_css_class("settings-header"); self.settings_header = top
         heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); heading.set_hexpand(True)
-        title_row = Gtk.Box(spacing=10); title_row.set_valign(Gtk.Align.START); title_row.set_baseline_position(Gtk.BaselinePosition.CENTER); self.settings_title_row = title_row
+        title_row = Gtk.Box(spacing=8); title_row.set_valign(Gtk.Align.START); title_row.set_baseline_position(Gtk.BaselinePosition.CENTER); self.settings_title_row = title_row
         wordmark = Gtk.Picture(); wordmark.add_css_class("settings-wordmark"); wordmark.set_can_shrink(True); wordmark.set_content_fit(Gtk.ContentFit.CONTAIN); wordmark.set_hexpand(False); wordmark.set_halign(Gtk.Align.START); wordmark.set_valign(Gtk.Align.END); self.settings_wordmark = wordmark
         wordmark_frame = Gtk.Box(); wordmark_frame.set_hexpand(False); wordmark_frame.set_halign(Gtk.Align.START); wordmark_frame.set_valign(Gtk.Align.END); wordmark_frame.append(wordmark); self.settings_wordmark_frame = wordmark_frame; title_row.append(wordmark_frame); self.resize_settings_wordmark(800, 480)
         settings_title = self.label("Settings", "settings-title"); settings_title.set_valign(Gtk.Align.BASELINE); self.settings_title_label = settings_title; title_row.append(settings_title)
@@ -1677,11 +1684,12 @@ class Display(Gtk.Application):
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("DAILY CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
-        daily.append(appearance); self.settings_daily = daily; controls.append(daily)
+        self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True); display_column.append(self.label("DISPLAY", "eyebrow"))
+        display_column.append(appearance)
         self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); display_column.append(self.touch_profile)
         self.touch_orientation = Gtk.DropDown.new_from_strings(["Orientation · Landscape", "Orientation · Portrait"]); self.touch_orientation.add_css_class("settings-select"); display_column.append(self.touch_orientation); controls.append(display_column)
-        scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
+        scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
         brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(True); self.touch_brightness.set_value_pos(Gtk.PositionType.RIGHT); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_row.append(self.touch_brightness); display_column.append(brightness_row)
@@ -3039,6 +3047,9 @@ class Display(Gtk.Application):
         panel.set_visible(bool(profile))
         self.browser_artist_scroll.set_visible(bool(profile))
         if not profile: return
+        # The profile is a fixed companion panel. Only the independently
+        # scrolling album column may move on artist pages.
+        self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         viewport_width = getattr(self, "viewport_width", 800)
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         picture.add_css_class("artist-hero-image")
@@ -3048,12 +3059,13 @@ class Display(Gtk.Application):
             # Leave real inner space inside each half-width column. The old
             # fixed 330px original-panel image overflowed its 50% allocation
             # and squeezed the album column even though the parent was even.
-            hero_width = 304 if original else min(430, round((viewport_width - 310) * .5))
-            hero_height = round(hero_width * .64)
+            hero_width = 304 if original else min(480, round((viewport_width - 280) * .48))
+            hero_ratio = .66 if original else .62
+            hero_height = round(hero_width * hero_ratio)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
-            profile_text_height = 184 if original else 196
+            profile_text_height = 72 if original else 94
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
             artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
             artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
@@ -3087,18 +3099,21 @@ class Display(Gtk.Application):
                 if cached is not None: self.artist_hero_cache[key] = cached
             cached = cached or self.queue_thumbnail_cache.get(key)
             if cached: picture.set_paintable(cached)
-        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if seven_landscape else 12)
         details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER); details.set_hexpand(True)
         if seven_landscape:
-            details.set_halign(Gtk.Align.START); details.set_size_request(hero_width - (32 if original else 64), -1); details.set_margin_start(16); details.set_margin_end(16 if original else 48)
-            details.set_margin_top(0 if original else 14)
-        panel.append(details)
+            details.add_css_class("artist-overlay-info"); details.set_halign(Gtk.Align.FILL); details.set_valign(Gtk.Align.END); details.set_hexpand(True)
+            details.set_size_request(hero_width, -1); artwork_area.add_overlay(details)
+        else: panel.append(details)
         title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
         if seven_landscape: title.set_xalign(0)
         if play_action:
             play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
             play.set_halign(Gtk.Align.START if portrait or seven_landscape else Gtk.Align.CENTER); details.append(play)
-        summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); details.append(summary_slot)
+        summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        if seven_landscape:
+            summary_slot.add_css_class("artist-profile-summary"); panel.append(summary_slot)
+        else: details.append(summary_slot)
         summary_slot.artist_summary_lines = 3 if seven_landscape else 5
         summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
@@ -3479,7 +3494,8 @@ class Display(Gtk.Application):
         if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
             split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
-            menu = self.button("▾", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
+            menu = self.icon_button("chevron-down", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
+            menu.get_child().set_pixel_size(18)
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -3984,7 +4000,8 @@ class Display(Gtk.Application):
             source = loader.get_pixbuf()
             width, height = source.get_width(), source.get_height()
             if width <= 0 or height <= 0: return None
-            target_ratio = 1 / .64
+            hero_ratio = .66 if getattr(self, "original_landscape", False) else .62
+            target_ratio = 1 / hero_ratio
             if width / height > target_ratio:
                 crop_height = height; crop_width = max(1, round(height * target_ratio))
                 crop_x = max(0, round((width - crop_width) / 2)); crop_y = 0
@@ -3994,12 +4011,13 @@ class Display(Gtk.Application):
                 # Keep faces higher while preserving the exact hero window.
                 crop_y = max(0, round((height - crop_height) * .4))
             cropped = source.new_subpixbuf(crop_x, crop_y, crop_width, crop_height)
-            scaled = cropped.scale_simple(960, 614, GdkPixbuf.InterpType.BILINEAR)
+            scaled_height = round(960 * hero_ratio)
+            scaled = cropped.scale_simple(960, scaled_height, GdkPixbuf.InterpType.BILINEAR)
             # Fade the photograph itself to transparent. Painting a black
             # gradient over it only works on the default black theme and
             # exposes a rectangular edge on user-selected backgrounds.
-            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, 614, scaled.get_rowstride(), scaled.get_n_channels())
-            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, 614, output_stride)
+            output, output_stride = fade_rgba_pixels(scaled.get_pixels(), 960, scaled_height, scaled.get_rowstride(), scaled.get_n_channels())
+            faded = GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(output), GdkPixbuf.Colorspace.RGB, True, 8, 960, scaled_height, output_stride)
             return Gdk.Texture.new_for_pixbuf(faded)
         except (GLib.Error, ValueError, TypeError): return None
 
