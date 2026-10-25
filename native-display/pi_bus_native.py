@@ -2658,7 +2658,9 @@ class Display(Gtk.Application):
             label.set_attributes(attrs)
             return label
         top = Gtk.Box(spacing=max(18, round(width * .06))); top.add_css_class("bus-primary-row")
-        top.set_homogeneous(True); top.set_hexpand(True); top.set_vexpand(True)
+        # Equal columns multiply the wider child's minimum width and can push
+        # a four-route 480px portrait page beyond the physical viewport.
+        top.set_homogeneous(width >= 600); top.set_hexpand(True); top.set_vexpand(True)
         top.set_margin_start(round(width * .055)); top.set_margin_end(round(width * .055))
         badge_slot = Gtk.Box(); badge_slot.set_hexpand(True); badge_slot.set_valign(Gtk.Align.CENTER)
         badge = Gtk.Box(spacing=12); badge.add_css_class("bus-route-badge"); badge.set_halign(Gtk.Align.CENTER)
