@@ -1802,10 +1802,12 @@ class Display(Gtk.Application):
             self.settings_appearance.set_spacing(8 if original else 12)
             self.settings_daily.set_spacing(10 if original else 16)
             self.settings_display_column.set_spacing(10 if original else 16)
-        # Keep the identity and utilities on one deliberate header line. The
-        # portrait display has ample width; stacking the controls created the
-        # large dead band seen on the physical 10-inch panel.
-        self.settings_header.set_orientation(Gtk.Orientation.HORIZONTAL)
+        # Keep the identity and utilities on one deliberate header line when
+        # width permits. The original 480px portrait needs a second line or
+        # the utilities push the native window beyond the physical viewport.
+        narrow_portrait = portrait and width < 600
+        self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL)
+        self.settings_utilities.set_halign(Gtk.Align.END if narrow_portrait else Gtk.Align.START)
         if hasattr(self, "touch_bus_pair"):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
             self.touch_bus_heading.set_visible(portrait or width > 1280)
@@ -1856,7 +1858,7 @@ class Display(Gtk.Application):
         settings_title = self.label("Settings", "settings-title"); settings_title.set_valign(Gtk.Align.BASELINE); self.settings_title_label = settings_title; title_row.append(settings_title)
         self.device_status = self.label("", "settings-version"); self.device_status.set_valign(Gtk.Align.BASELINE); self.device_status.set_max_width_chars(32); self.device_status.set_ellipsize(Pango.EllipsizeMode.END); title_row.append(self.device_status); heading.append(title_row)
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
-        utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START)
+        utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START); self.settings_utilities = utilities
         sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
         close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); self.settings_close = close; utilities.append(close)
         top.append(utilities); page.append(top)
