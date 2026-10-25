@@ -558,7 +558,9 @@ if display.album_focus_detail:
     assert not display.detail_browse_action.get_visible()
     assert not display.detail_footer.get_visible()
 if (screen_width, screen_height) == (800, 480):
-    assert display.detail_album_artwork_frame.get_width() == 380
+    assert display.inline_detail
+    assert not display.detail_album_artwork_frame.get_visible()
+    assert display.detail_heading_width == 380
     assert display.detail_close_glyph.get_width() < 48
     assert display.detail_close_icon.get_pixel_size() == 29
 elif not display.album_focus_detail:
