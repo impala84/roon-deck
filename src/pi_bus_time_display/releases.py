@@ -65,7 +65,9 @@ def select_release(releases: list, channel: str, installed: str, distribution: s
         if not isinstance(tag, str) or not tag.startswith("v"):
             continue
         alpine = tag.endswith("-alpine")
-        if alpine != (distribution == "alpine"):
+        # Alpine appliances accept "-alpine" tags and, from beta.87, plain tags;
+        # the pre-Alpine "rpi" distribution still only sees plain tags.
+        if distribution == "rpi" and alpine:
             continue
         version_tag = tag[:-7] if alpine else tag
         try:
@@ -81,7 +83,7 @@ def select_release(releases: list, channel: str, installed: str, distribution: s
     available = latest > current
     status = "available" if available else "ahead" if latest < current else "current"
     message = "Update available." if available else "Installed version is newer than this channel; no downgrade will be performed." if status == "ahead" else "Up to date."
-    return {"installed_version": installed, "release_channel": channel, "latest_version": (tag[:-7] if distribution == "alpine" else tag)[1:], "tag": tag, "update_available": available, "status": status, "message": message}
+    return {"installed_version": installed, "release_channel": channel, "latest_version": (tag[:-7] if tag.endswith("-alpine") else tag)[1:], "tag": tag, "update_available": available, "status": status, "message": message}
 
 
 def published_releases() -> list:

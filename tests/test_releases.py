@@ -40,6 +40,15 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(select_release(items, 'beta', '1.0.0', 'alpine')['tag'], 'v1.3.0-beta.1-alpine')
         self.assertEqual(select_release(items, 'stable', '1.4.0', 'alpine')['status'], 'ahead')
 
+    def test_alpine_accepts_plain_tags_and_rpi_ignores_alpine_tags(self):
+        items = [release('v1.3.0-beta.1-alpine', prerelease=True), release('v1.3.0-beta.2', prerelease=True)]
+        result = select_release(items, 'beta', '1.3.0-beta.1', 'alpine')
+        self.assertEqual(result['tag'], 'v1.3.0-beta.2')
+        self.assertEqual(result['latest_version'], '1.3.0-beta.2')
+        self.assertTrue(result['update_available'])
+        self.assertEqual(select_release(items, 'beta', '1.0.0')['tag'], 'v1.3.0-beta.2')
+        self.assertEqual(select_release([items[0]], 'beta', '1.0.0')['status'], 'unavailable')
+
     def test_cache_includes_installed_version_and_distribution(self):
         with patch('pi_bus_time_display.releases.published_releases', return_value=[release('v1.1.0'), release('v1.1.0-alpine')]) as fetch:
             checker = ReleaseChecker()

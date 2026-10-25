@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.89 Alpine — 26 October 2026
+
+- No visual change. The updater now accepts release tags with or without the `-alpine` ending, so later releases can drop it. Install this one before that happens: beta.88 and earlier only see `-alpine` tags.
+- `tools/release-beta` publishes a beta in one step: write the CHANGELOG entry, run the script, and it bumps the version files, runs the checks, pushes and creates the release.
+- The controller now serves the Gen 2 Play Album arrow icon (`chevron-play`) added in beta.79; the pre-release check had been failing on it.
+- Housekeeping: the 121 pre-Alpine releases and the unused `claude/layout-7in-b67` branch were removed from GitHub.
+
 ## 1.1.7-beta.88 Alpine — 26 October 2026
 
 - Cog (800x480): found the real jump. The runtime alignment I added reset the cog margins every time the display re-laid out, which also happens on every track change and Browse render, so the cog snapped back and then moved again 250ms later. It now only restarts when the screen size or interface size changes, so Now Playing and Discover settle on the Bus Times / Home position and stay there.
