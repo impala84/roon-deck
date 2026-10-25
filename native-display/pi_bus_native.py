@@ -933,6 +933,11 @@ window.background-black .detail-footer { background: #000; }
 .settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .theme-roon .settings-close { border-color: #9868F9; }
 .settings-sleep { min-width: 128px; min-height: 58px; padding: 0 24px; border-radius: 8px; background: #303030; color: #f4f0e6; font-size: 16px; font-weight: 750; }
+/* 7-inch Gen 2 landscape: ".touch-landscape .settings-page button" (padding: 8px 20px) outranks the two
+   rules above, which stretched the 58px close circle to 102x78. These outrank it. Sizes are content-box
+   (GTK min-width excludes padding and border): 48 + 2x2 border = a 52px circle; Sleep matches at 52px tall. */
+.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
 popover listview row { min-height: 48px; padding: 8px 14px; }
@@ -1776,6 +1781,11 @@ class Display(Gtk.Application):
             self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL if width < 1000 else Gtk.Orientation.HORIZONTAL)
             self.touch_bus_heading.set_visible(portrait or width > 1280)
         seven_inch = original or (not portrait and 1000 <= width < 1500 and height <= 850)
+        # Touch Display 2 (7-inch) landscape: a smaller, perfectly round close control.
+        # The size request is the floor; the CSS below stops the generic Settings
+        # button padding from stretching it into an oval.
+        gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
+        self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
@@ -1819,7 +1829,7 @@ class Display(Gtk.Application):
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
         utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START)
         sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
-        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
+        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); self.settings_close = close; utilities.append(close)
         top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
