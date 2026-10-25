@@ -34,10 +34,14 @@ class Entry:
 class PortraitRefinementTests(unittest.TestCase):
     def test_release_period_uses_month_when_known_and_never_invents_one(self):
         period = native_method("release_period_label", {"re": __import__("re"), "datetime": __import__("datetime").datetime})
-        self.assertEqual(period("2008-04-14"), "April 2008")
-        self.assertEqual(period("2008-04"), "April 2008")
+        self.assertEqual(period("2008-04-14"), "APRIL 2008")
+        self.assertEqual(period("2008-04"), "APRIL 2008")
         self.assertEqual(period("2008"), "2008")
         self.assertEqual(period(""), "")
+
+    def test_interface_scaling_reflows_size_dependent_layouts(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('GLib.idle_add(self.adapt_display)', code[code.index('def change_interface_size'):])
 
     def test_artist_catalogue_request_keeps_the_standard_browse_deadline(self):
         timeout = native_method("browser_request_timeout")
@@ -656,7 +660,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.detail_album_section_label.set_text(release_label if getattr(self, "detail_year_only", False) and release_label else "ALBUM")', code)
         self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
         self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
-        self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait', code)
+        self.assertIn('label.set_lines(3 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail', code)
         self.assertIn('self.detail_artist_facts.set_visible(not large_detail_portrait)', code)
         self.assertIn('self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)', code)
         self.assertIn('and not getattr(self, "large_detail_portrait", False)', code)
@@ -668,7 +672,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)', code)
-        self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail', code)
+        self.assertIn('label.set_lines(3 if original_landscape else 4 if inline_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
         self.assertIn('.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
         self.assertIn('.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
@@ -779,10 +783,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
         monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
         gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
-        owner=SimpleNamespace(viewport_width=1280,viewport_height=720,responsive_portrait=False,settings_data={"interface_size":"larger"})
+        owner=SimpleNamespace(viewport_width=1920,viewport_height=1080,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
-        self.assertEqual(columns,5)
-        self.assertLessEqual(columns * size + (columns - 1) * 24, 1000)
+        self.assertEqual(columns,4)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 960)
 
     def test_original_landscape_uses_compact_dense_grids(self):
         monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))
@@ -1129,7 +1133,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px;', code)
         self.assertIn('layout = "list" if data.get("artist_profile")', code)
         self.assertNotIn('slot.append(self.label(profile["source"], "artist-source"))', code)
-        self.assertIn('browser_content.set_homogeneous(even_artist_columns)', SOURCE.read_text(encoding='utf-8'))
+        self.assertIn('browser_content.set_homogeneous(False)', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
         self.assertIn('self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)', code)
 

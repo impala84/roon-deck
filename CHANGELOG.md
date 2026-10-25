@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.62 Alpine — 25 October 2026
+
+- Constrains Touch Display 2 genre grids to the configured 1280-pixel canvas, including during the first render before KMS finishes reporting its final mode.
+- Uses four fully measured columns beside the alphabet scrubber so neither artwork nor the scrubber can leave the viewport.
+- Keeps the larger seven-inch album-information panel fixed within the viewport with a tighter four-line description.
+- Uppercases the album release month and year label.
+- Moves the Artist Albums column closer to the hero and gives album titles more usable width.
+- Enlarges standard artist biography copy and refines the larger artist overlay without increasing the hero button.
+
 ## 1.1.7-beta.61 Alpine — 25 October 2026
 
 - Keeps Now Playing selected while seven-inch album information is open.

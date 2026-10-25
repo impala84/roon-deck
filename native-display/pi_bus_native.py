@@ -687,7 +687,7 @@ popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px
 .artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
 .touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
-.touch2-7-landscape .artist-profile .artist-bio { font-size: 19px; line-height: 1.38; }
+.touch2-7-landscape .artist-profile .artist-bio { font-size: 21px; line-height: 1.34; }
 .original-landscape .artist-overlay-info { padding: 34px 12px 9px; }
 .original-landscape .artist-overlay-info .artist-name { font-size: 22px; }
 .original-landscape .artist-overlay-play { min-height: 38px; padding: 4px 12px; }
@@ -888,8 +888,9 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .inline-detail .detail-action { margin-top: 12px; }
 .touch2-7-landscape.interface-larger .inline-detail .detail-title { font-size: 34px; line-height: 1.05; }
 .touch2-7-landscape.interface-larger .inline-detail .detail-artist { font-size: 23px; }
-.touch2-7-landscape.interface-larger .inline-detail .detail-writeup { font-size: 19px; line-height: 1.24; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-writeup { font-size: 18px; line-height: 1.18; }
 .touch2-7-landscape.interface-larger .inline-detail .detail-action { min-height: 56px; margin-top: 8px; padding-top: 7px; padding-bottom: 7px; }
+.touch2-7-landscape.interface-larger .artist-overlay-info .artist-name { font-size: 34px; line-height: 1.05; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -943,7 +944,7 @@ def release_period_label(value) -> str:
     year = released[:4] if re.match(r"^\d{4}", released) else ""
     match = re.fullmatch(r"(\d{4})-(\d{2})(?:-\d{2})?", released)
     if match and 1 <= int(match.group(2)) <= 12:
-        return f"{datetime(2000, int(match.group(2)), 1).strftime('%B')} {match.group(1)}"
+        return f"{datetime(2000, int(match.group(2)), 1).strftime('%B').upper()} {match.group(1)}"
     return year
 
 
@@ -1379,8 +1380,9 @@ class Display(Gtk.Application):
             page_left = 12 if original_landscape else 28
             self.detail_takeover.set_margin_start(page_left + artwork_size + 26)
             self.detail_takeover.set_margin_end(12 if original_landscape else 28)
-            self.detail_takeover.set_margin_top(52 if original_landscape else 62)
-            self.detail_takeover.set_margin_bottom(54 if original_landscape else 76)
+            larger_detail = (self.settings_data or {}).get("interface_size") == "larger"
+            self.detail_takeover.set_margin_top(52 if original_landscape else 54 if larger_detail else 62)
+            self.detail_takeover.set_margin_bottom(54 if original_landscape else 68 if larger_detail else 76)
             self.detail_panel.set_valign(Gtk.Align.CENTER)
             self.detail_album_card.set_valign(Gtk.Align.CENTER)
         else:
@@ -1397,7 +1399,7 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
+            label.set_lines(3 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail or large_detail_portrait else Pango.EllipsizeMode.NONE)
         self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)
         self.detail_sheet.set_kinetic_scrolling(not inline_detail)
@@ -3131,7 +3133,7 @@ class Display(Gtk.Application):
             hero_ratio = .66 if original else .68
             hero_height = round(hero_width * hero_ratio)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
-            self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
+            self.browser_artist_scroll.set_size_request(hero_width, 1); self.browser_artist_scroll.set_hexpand(False)
             self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
             profile_text_height = 72 if original else 94
             self.browser_artist_scroll.set_min_content_height(hero_height + profile_text_height); self.browser_artist_scroll.set_max_content_height(hero_height + profile_text_height)
@@ -3285,6 +3287,14 @@ class Display(Gtk.Application):
         # expanded the window. Reserve the section rail, scrubber and padding.
         monitor_width = monitor.get_geometry().width if monitor else 800
         width = min(monitor_width, getattr(self, "viewport_width", monitor_width))
+        profile = (getattr(self, "system_data", {}) or {}).get("display_profile")
+        # KMS can briefly expose the source mode (often 1920 wide) before the
+        # configured Touch Display 2 canvas settles at 1280. A grid rendered in
+        # that interval permanently widens GTK's natural allocation. Use the
+        # physical profile as the hard layout budget instead.
+        if not getattr(self, "responsive_portrait", False):
+            if profile in {"touch2-7", "touch2-5-7"}: width = min(width, 1280)
+            elif profile == "original": width = min(width, 800)
         if getattr(self, "responsive_portrait", False):
             width = min(self.window.get_width() or width, width)
             # Includes outer margins, the alphabet rail, queue-list padding
@@ -3300,11 +3310,14 @@ class Display(Gtk.Application):
             # 122px, the full 54px scrubber, scroller chrome and safety gutter.
             available = max(140, width - 252)
             return 4, max(64, (available - 12 * 3) // 4)
-        available = max(140, width - 280)
-        columns = 4 if width < 1000 and width > 600 else min(5 if genres else 4, max(1, available // 140))
+        available = max(140, width - (320 if genres else 280))
+        columns = min(4, max(1, available // 140))
         gap = 24
         cap = 228 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" and 1000 <= width < 1400 else 212
-        size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 4))
+        # Each card contributes 3px padding on both sides in addition to the
+        # grid gap. Account for it here rather than allowing the fifth/right
+        # edge to be clipped by the alphabet scrubber.
+        size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 6))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3692,8 +3705,7 @@ class Display(Gtk.Application):
             items = [item for item in items if item is not artist_play]
         self.browser_list.set_valign(Gtk.Align.START if data.get("layout") == "list" else Gtk.Align.FILL)
         browser_content = self.browser_artist_scroll.get_parent()
-        even_artist_columns = bool(data.get("artist_profile")) and not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) < 1500 and getattr(self, "viewport_height", 480) <= 720
-        browser_content.set_homogeneous(even_artist_columns)
+        browser_content.set_homogeneous(False)
         browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
@@ -4308,6 +4320,11 @@ class Display(Gtk.Application):
         if getattr(self, "interface_size_updating", False): return
         values = ("smaller", "standard", "larger"); value = values[min(dropdown.get_selected(), 2)]
         self.apply_interface_size(value)
+        # Several layouts have finite line counts and physical-pixel budgets.
+        # Recalculate them immediately when scaling changes instead of waiting
+        # for a resize/config poll; otherwise the previous size's allocations
+        # can leave the seven-inch page scrollable until it is revisited.
+        GLib.idle_add(self.adapt_display)
         threading.Thread(target=post_json, args=(f"{BUS}/api/admin/config", {"section": "appearance", "interface_size": value}), kwargs={"timeout": 3}, daemon=True).start()
     def toggle_service(self, button, service):
         threading.Thread(target=post_json, args=(BUS + "/api/device/service-visibility", {"service": service, "enabled": button.get_active()}), daemon=True).start()
