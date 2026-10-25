@@ -6,7 +6,7 @@ import sys
 def prepare(root):
     root = Path(root).resolve()
     if root == Path("/") or not (root / "etc/alpine-release").is_file() or not (root / "opt/pi-home/appliance/alpine").is_dir():
-        raise ValueError("Expected an extracted Pi Home Alpine build tree, not a running system")
+        raise ValueError("Expected an extracted RoonDeck Alpine build tree, not a running system")
     for relative in (".dockerenv", "run/.containerenv"):
         marker = root / relative
         if marker.is_dir():

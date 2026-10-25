@@ -1,9 +1,11 @@
 import importlib.util
 import io
+import json
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +16,11 @@ updater = importlib.util.module_from_spec(spec); spec.loader.exec_module(updater
 class AlpineUpdaterTests(unittest.TestCase):
     def test_updates_follow_the_renamed_alpine_beta_branch(self):
         self.assertEqual(updater.BRANCH, "alpine-beta")
+
+    def test_check_reports_an_available_release_without_installing(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(updater, "APP", Path(folder)), patch.object(updater, "wait_for_clock"), patch.object(updater, "verified_revision", return_value="a" * 40), patch.object(updater, "status") as status:
+            updater.check()
+        status.assert_called_once()
 
     def test_stage_space_tracks_current_release_size_with_a_bounded_reserve(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -54,9 +61,19 @@ class AlpineUpdaterTests(unittest.TestCase):
             marker.write_text("a" * 40)
             response = urlopen.return_value.__enter__.return_value
             response.status = 200
+            response.read.return_value = json.dumps({"revision": "a" * 40}).encode()
             with patch.object(updater, "DISPLAY_REVISION", marker):
                 self.assertTrue(updater.healthy("a" * 40))
                 self.assertFalse(updater.healthy("b" * 40))
+
+    def test_health_rejects_a_stale_roon_controller(self):
+        with tempfile.TemporaryDirectory() as folder, patch("urllib.request.urlopen") as urlopen, patch.object(updater, "run"), patch.object(updater.time, "sleep"):
+            marker = Path(folder) / "display-source-commit"; marker.write_text("a" * 40)
+            response = urlopen.return_value.__enter__.return_value
+            response.status = 200
+            response.read.return_value = json.dumps({"revision": "b" * 40}).encode()
+            with patch.object(updater, "DISPLAY_REVISION", marker):
+                self.assertFalse(updater.healthy("a" * 40))
 
     def test_restart_stops_display_once_and_disables_dependency_cascades(self):
         with patch.object(updater, "run") as run:
@@ -93,9 +110,19 @@ class AlpineUpdaterTests(unittest.TestCase):
             with patch.object(updater.subprocess, "run", side_effect=subprocess.TimeoutExpired("pip", 300)), self.assertRaisesRegex(RuntimeError, "timed out"):
                 updater.run(["pip", "install"])
 
+    def test_completed_pre_marker_installation_is_migrated_before_display_restart(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(updater, "STATE", Path(folder) / "pi-home"):
+            legacy = Path(folder) / "pi-home-setup" / "progress.json"
+            legacy.parent.mkdir(parents=True); legacy.write_text('{"complete": true}')
+            self.assertTrue(updater.migrate_completed_setup())
+            marker = Path(folder) / "pi-home" / "setup-complete"
+            self.assertEqual(marker.read_text(), "true\n")
+            self.assertEqual(marker.stat().st_mode & 0o777, 0o600)
+            self.assertFalse(updater.migrate_completed_setup())
+
     def test_only_successful_fixed_branch_builds_are_accepted(self):
         sha = "a" * 40
-        valid = {"workflow_runs": [{"head_sha": sha, "head_branch": updater.BRANCH, "conclusion": "success", "event": "push", "head_repository": {"full_name": "impala84/pi-home"}}]}
+        valid = {"workflow_runs": [{"head_sha": sha, "head_branch": updater.BRANCH, "conclusion": "success", "event": "push", "head_repository": {"full_name": "impala84/roon-deck"}}]}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'config.toml').write_text('release_channel = "stable"')
@@ -110,6 +137,18 @@ class AlpineUpdaterTests(unittest.TestCase):
                     with patch.object(updater, "fetch_json", side_effect=[reference, invalid]), self.assertRaises(RuntimeError): updater.verified_revision()
                 (root / 'pyproject.toml').write_text('[project]\nversion = "1.2.0"')
                 with self.assertRaises(updater.NoDowngrade): updater.verified_revision()
+
+    def test_beta_accepts_an_exact_published_tag_without_ci_verification(self):
+        sha = "b" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'config.toml').write_text('release_channel = "beta"')
+            (root / 'pyproject.toml').write_text('[project]\nversion = "1.0.0"')
+            (root / 'update-channel-initialized').touch()
+            reference = {'object': {'type': 'commit', 'sha': sha}}
+            with patch.object(updater, 'APP', root), patch.object(updater, 'STATE', root), patch.object(updater, 'CONFIG', root / 'config.toml'), patch.object(updater, 'published_releases', return_value=[{'tag_name': 'v1.1.0-beta.1-alpine', 'prerelease': True}]), patch.object(updater, 'fetch_json', return_value=reference) as fetch:
+                self.assertEqual(updater.verified_revision(), sha)
+                fetch.assert_called_once()
 
     def test_tar_traversal_and_links_are_rejected(self):
         for name, kind in (("../escape", tarfile.REGTYPE), ("repo/link", tarfile.SYMTYPE), ("/absolute", tarfile.REGTYPE)):
@@ -130,6 +169,14 @@ class AlpineUpdaterTests(unittest.TestCase):
             with patch.object(updater, "APP", app):
                 updater.activate(source); self.assertEqual(app.resolve(), source.resolve())
                 updater.activate(old); self.assertEqual(app.resolve(), old.resolve())
+
+    def test_source_download_retries_transient_network_failures(self):
+        response = type("Response", (), {"__enter__": lambda self: self, "__exit__": lambda *args: None, "read": lambda self, size: b""})()
+        with tempfile.TemporaryDirectory() as folder, patch("urllib.request.urlopen", side_effect=[urllib.error.URLError("temporary"), response]) as urlopen, patch.object(updater.time, "sleep"), patch.object(updater, "status"):
+            archive = Path(folder) / "source.tar.gz"
+            updater.download_source("a" * 40, archive)
+            self.assertTrue(archive.exists())
+            self.assertEqual(urlopen.call_count, 2)
 
     def test_current_revision_does_not_download_or_restart(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -41,6 +41,7 @@ class AlpineSetupTests(unittest.TestCase):
         boot = (self.root / "boot/config.txt").read_text()
         self.assertIn("ili79600-10-1inch\n", boot); self.assertNotIn("swapxy", boot); self.assertIn("kernel=vmlinuz-rpi", boot)
         self.assertNotIn("password", self.setup.progress.read_text())
+        self.assertEqual((self.root / "var/lib/pi-home/setup-complete").read_text(), "true\n")
         env = self.root / "etc/pi-home/secrets.env"
         self.assertIn("ADMIN_PASSWORD=my-private-password", env.read_text()); self.assertEqual(env.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.run.call_args.args[0], ["rc-service", "pi-home-api", "restart"])
@@ -50,6 +51,16 @@ class AlpineSetupTests(unittest.TestCase):
         for name in ("-bad", "bad-", "x;reboot", "a b", "../root", "x\n", "x" * 64):
             with self.assertRaises(ValueError): self.setup.handle({"action": "name", "hostname": name})
         self.run.assert_not_called()
+
+    def test_completed_device_can_change_wifi_and_name_but_not_wizard(self):
+        self.setup.save({"complete": True})
+        self.setup.handle({"action": "set_wifi", "ssid": "Living Room", "password": "private-password"})
+        self.run.assert_any_call(["nmcli", "--wait", "30", "device", "wifi", "connect", "Living Room", "password", "private-password"])
+        self.setup.handle({"action": "set_hostname", "hostname": "pi-home-lounge"})
+        self.assertTrue(self.setup.saved()["complete"])
+        self.assertNotIn("private-password", self.setup.progress.read_text())
+        with self.assertRaisesRegex(ValueError, "already complete"):
+            self.setup.handle({"action": "display", "profile": "touch2-10", "rotation": "90"})
 
     def test_optional_software_skip_is_persisted_without_installing(self):
         self.setup.save({"network": True})
@@ -144,8 +155,10 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertTrue(self.setup.saved()["complete"])
 
     def test_wifi_uses_argument_list_not_shell_and_keeps_secrets_out_of_progress(self):
+        self.run.side_effect = lambda args: "Home\n" if "GENERAL.CONNECTION" in args else "connected"
         self.setup.handle({"action": "wifi", "ssid": "Home;not-a-command", "password": "private-secret"})
         self.assertEqual(self.run.call_args_list[0].args[0][-3:], ["Home;not-a-command", "password", "private-secret"])
+        self.run.assert_any_call(["nmcli", "connection", "modify", "Home", "802-11-wireless.powersave", "2"])
         self.assertNotIn("private-secret", self.setup.progress.read_text())
 
     def test_display_block_is_idempotent_and_preserves_kernel(self):
@@ -157,8 +170,19 @@ class AlpineSetupTests(unittest.TestCase):
 
     def test_invalid_zone_rotation_and_timezone_are_rejected(self):
         with self.assertRaises(ValueError): self.setup.handle({"action": "roon", "zone": "Missing"})
-        with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "original", "rotation": "90"})
+        with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "original", "rotation": "upsideways"})
         with self.assertRaises(ValueError): self.setup.handle({"action": "display", "profile": "auto", "rotation": "normal", "timezone": "../etc/shadow"})
+
+    def test_original_display_accepts_180_degree_rotation_in_wizard(self):
+        result = self.setup.handle({"action": "orientation", "profile": "original", "rotation": "180"})
+        self.assertTrue(result["progress"]["orientation"])
+        self.assertEqual(result["progress"]["profile"], "original")
+        self.assertEqual(result["progress"]["rotation"], "180")
+        self.assertEqual(result["progress"]["display_orientation"], "landscape")
+        config = self.root / "etc/pi-home"
+        self.assertEqual((config / "display-profile").read_text(), "original")
+        self.assertEqual((config / "display-transform").read_text(), "180")
+        self.assertEqual((config / "display-orientation").read_text(), "landscape")
 
     def test_resume_and_completed_lock(self):
         self.setup.handle({"action": "name", "hostname": "pi-home"})
@@ -281,6 +305,38 @@ class AlpineSetupTests(unittest.TestCase):
         self.run.assert_any_call(["apk", "add", "--no-cache", "curl", "ca-certificates"])
         self.assertNotIn("private-token", (self.root / "var/lib/pi-home/netdata-operation-status").read_text())
 
+    def test_official_agent_can_be_installed_without_cloud_credentials(self):
+        self.setup.save({"complete": True})
+        with patch.object(module.threading, "Thread") as thread:
+            result = self.setup.handle({"action": "netdata_install"})
+        self.assertTrue(result["queued"])
+        thread.assert_called_once_with(target=self.setup.install_official_netdata, args=("", "", "https://app.netdata.cloud"), daemon=True)
+        thread.return_value.start.assert_called_once()
+
+    def test_official_agent_replaces_packaged_agent_and_uses_current_stable_flags(self):
+        packaged = self.root / "usr/sbin/netdata"; packaged.parent.mkdir(parents=True); packaged.touch()
+        (self.root / "var/lib/pi-home").mkdir(parents=True)
+        self.setup.netdata_install_lock.acquire()
+        with patch.object(module.urllib.request, "urlopen", return_value=io.BytesIO(b"#!/bin/sh\n")), patch.object(module.subprocess, "run", return_value=Mock(returncode=1)) as run:
+            self.setup.install_official_netdata("private-token", "room-1234")
+        calls = [call.args[0] for call in self.run.call_args_list]
+        self.assertIn(["apk", "del", "netdata"], calls)
+        self.assertIn(["apk", "add", "--no-cache", "netdata"], calls)
+        installer = next(call.args[0] for call in run.call_args_list if call.args[0][0] == "/bin/bash")
+        self.assertIn("--release-channel", installer)
+        self.assertEqual(installer[installer.index("--release-channel") + 1], "stable")
+        self.assertNotIn("--stable-channel", installer)
+
+    def test_official_agent_explicit_upgrade_reinstalls_static_agent(self):
+        static = self.root / "opt/netdata/bin/netdata"; static.parent.mkdir(parents=True); static.touch()
+        (self.root / "var/lib/pi-home").mkdir(parents=True)
+        self.setup.netdata_install_lock.acquire()
+        with patch.object(module.urllib.request, "urlopen", return_value=io.BytesIO(b"#!/bin/sh\n")), patch.object(module.subprocess, "run", return_value=Mock(returncode=1)) as run:
+            self.setup.install_official_netdata()
+        installer = next(call.args[0] for call in run.call_args_list if call.args[0][0] == "/bin/bash")
+        self.assertIn("--reinstall", installer)
+        self.assertNotIn(["apk", "del", "netdata"], [call.args[0] for call in self.run.call_args_list])
+
     def test_netdata_lightweight_preserves_other_settings_and_is_idempotent(self):
         agent = self.root / "opt/netdata/bin/netdata"; agent.parent.mkdir(parents=True); agent.touch()
         config = self.root / "opt/netdata/etc/netdata/netdata.conf"; config.parent.mkdir(parents=True)
@@ -347,6 +403,15 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual(chrony.read_text(), "pool pool.ntp.org iburst\nmakestep 0.1 -1\n")
         self.assertEqual((self.root / "var/lib/pi-home/clock-seed").read_text(), "1800000000\n")
 
+    def test_daily_update_check_is_installed_once_at_three_am(self):
+        path = self.root / "etc/crontabs/root"
+        path.parent.mkdir(parents=True)
+        path.write_text("15 2 * * * existing-job\n")
+        module.ensure_daily_update_check(self.root)
+        module.ensure_daily_update_check(self.root)
+        self.assertEqual(path.read_text().splitlines(), ["15 2 * * * existing-job", module.UPDATE_CHECK_CRON])
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
     def test_netdata_controls_require_setup_and_use_only_fixed_openrc_commands(self):
         with self.assertRaises(ValueError): self.setup.handle({"action": "netdata_enable"})
         self.setup.save({"complete": True})
@@ -355,8 +420,21 @@ class AlpineSetupTests(unittest.TestCase):
         service = self.root / "etc/init.d/netdata"; service.parent.mkdir(parents=True); service.touch()
         self.setup.handle({"action": "netdata_enable"})
         self.assertEqual(self.run.call_args.args[0], ["rc-service", "netdata", "start"])
+        self.run.reset_mock()
         self.setup.handle({"action": "netdata_disable"})
-        self.assertEqual(self.run.call_args.args[0], ["rc-update", "del", "netdata", "default"])
+        self.assertEqual(self.run.call_args_list[0].args[0], ["rc-update", "del", "netdata", "default"])
+        self.assertEqual(self.run.call_args_list[1].args[0], ["rc-service", "netdata", "stop"])
+
+    def test_netdata_disable_persists_even_when_the_agent_is_not_running_under_openrc(self):
+        self.setup.save({"complete": True})
+        agent = self.root / "usr/sbin/netdata"; agent.parent.mkdir(parents=True); agent.touch()
+        service = self.root / "etc/init.d/netdata"; service.parent.mkdir(parents=True); service.touch()
+        def run(args):
+            if args == ["rc-service", "netdata", "stop"]: raise ValueError("Could not apply that setting.")
+            return ""
+        self.run.side_effect = run
+        self.assertEqual(self.setup.handle({"action": "netdata_disable"}), {"ok": True})
+        self.run.assert_any_call(["rc-update", "del", "netdata", "default"])
 
     def test_official_static_netdata_gets_a_managed_openrc_service(self):
         agent = self.root / "opt/netdata/bin/netdata"; agent.parent.mkdir(parents=True); agent.touch()
@@ -408,6 +486,36 @@ class AlpineSetupTests(unittest.TestCase):
             self.assertFalse(self.setup.handle({"action": "roon_install"})["queued"])
         thread.assert_called_once()
 
+    def test_airplay_install_uses_alpine_package_and_managed_configuration(self):
+        binary = self.root / "usr/bin/shairport-sync"
+        binary.parent.mkdir(parents=True)
+        self.setup.airplay_install_lock.acquire()
+        def install_packages(arguments):
+            self.run(arguments)
+            binary.touch()
+        with patch.object(self.setup, "run", side_effect=install_packages) as run:
+            self.setup.install_airplay()
+        run.assert_any_call(["apk", "add", "--no-cache", "shairport-sync", "shairport-sync-openrc"])
+        run.assert_any_call(["rc-update", "add", "shairport-sync", "default"])
+        run.assert_any_call(["rc-service", "shairport-sync", "start"])
+        configuration = (self.root / "etc/shairport-sync.conf").read_text()
+        self.assertIn('name = "RoonDeck"', configuration)
+        self.assertIn('output_backend = "alsa"', configuration)
+
+    def test_airplay_name_is_validated_and_restart_is_bounded(self):
+        self.setup.save({"complete": True})
+        binary = self.root / "usr/bin/shairport-sync"; binary.parent.mkdir(parents=True); binary.touch()
+        result = self.setup.handle({"action": "airplay_configure", "name": "Listening Room"})
+        self.assertEqual(result["name"], "Listening Room")
+        self.run.assert_called_with(["rc-service", "shairport-sync", "restart"])
+        with self.assertRaisesRegex(ValueError, "1–50"):
+            self.setup.handle({"action": "airplay_configure", "name": 'bad"name'})
+
+    def test_airplay_controls_require_an_installed_receiver(self):
+        self.setup.save({"complete": True})
+        with self.assertRaisesRegex(ValueError, "not installed"):
+            self.setup.handle({"action": "airplay_start"})
+
     def test_sleep_extinguishes_backlight_and_wake_restores_saved_brightness(self):
         backlight = self.root / "sys/class/backlight/rpi_backlight"; backlight.mkdir(parents=True)
         (backlight / "brightness").write_text("255"); (backlight / "max_brightness").write_text("255"); (backlight / "bl_power").write_text("0")
@@ -420,6 +528,57 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual((backlight / "bl_power").read_text(), "0")
         with self.assertRaisesRegex(ValueError, "between 10 and 100"):
             self.setup.handle({"action": "set_brightness", "brightness": 0})
+
+    def test_status_light_switch_updates_hardware_and_saved_state(self):
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True); (boot / "config.txt").write_text("dtoverlay=vc4-kms-v3d\n")
+        for name in ("led0", "led1"):
+            led = self.root / "sys/class/leds" / name; led.mkdir(parents=True)
+            (led / "trigger").write_text("none"); (led / "brightness").write_text("1")
+        self.setup.save({"complete": True})
+        self.setup.handle({"action": "leds_disable"})
+        self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
+        self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "none")
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
+        self.assertIn("dtparam=act_led_trigger=none", (boot / "config.txt").read_text())
+        self.assertIn("dtparam=pwr_led_trigger=none", (boot / "config.txt").read_text())
+        self.assertIn("[all]", (boot / "config.txt").read_text())
+        self.setup.handle({"action": "leds_enable"})
+        self.assertEqual((self.root / "sys/class/leds/led0/trigger").read_text(), "mmc0")
+        self.assertEqual((self.root / "sys/class/leds/led1/trigger").read_text(), "default-on")
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "true\n")
+        self.assertNotIn("ROONDECK STATUS LIGHTS", (boot / "config.txt").read_text())
+
+    def test_disabled_status_lights_are_reapplied_when_helper_restarts(self):
+        for name in ("led0", "led1"):
+            led = self.root / "sys/class/leds" / name; led.mkdir(parents=True)
+            (led / "trigger").write_text("none"); (led / "brightness").write_text("1")
+        marker = self.root / "var/lib/pi-home/leds-enabled"; marker.parent.mkdir(parents=True); marker.write_text("false\n")
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "sys/class/leds/led0/brightness").read_text(), "0")
+        self.assertEqual((self.root / "sys/class/leds/led1/brightness").read_text(), "0")
+
+    def test_completed_install_without_led_marker_defaults_off(self):
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True); (boot / "config.txt").write_text("[pi4]\narm_boost=1\n")
+        complete = self.root / "var/lib/pi-home/setup-complete"; complete.parent.mkdir(parents=True); complete.write_text("true\n")
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "var/lib/pi-home/leds-enabled").read_text(), "false\n")
+        config = (boot / "config.txt").read_text()
+        self.assertIn("[all]\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none", config)
+
+    def test_status_lights_are_retried_after_boot_drivers_settle(self):
+        with patch.object(module.time, "sleep") as sleep, patch.object(
+            module, "apply_status_lights", side_effect=[ValueError("not ready"), ["ACT", "PWR"], ["ACT", "PWR"]]
+        ) as apply:
+            module.reapply_status_lights(self.root, False, delays=(1, 2, 3))
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2, 3])
+        self.assertEqual(apply.call_count, 3)
+        apply.assert_called_with(self.root, False, persist=False)
+
+    def test_completed_legacy_setup_gets_durable_boot_marker(self):
+        progress = self.root / "var/lib/pi-home-setup/progress.json"
+        progress.parent.mkdir(parents=True, exist_ok=True); progress.write_text('{"complete": true}')
+        module.Setup(self.root, self.run, lambda: {"zones": []}, self.login_credentials)
+        self.assertEqual((self.root / "var/lib/pi-home/setup-complete").read_text(), "true\n")
 
     def test_dsi_orientation_only_selects_current_dsi_mode(self):
         spec = importlib.util.spec_from_file_location("orientation", ROOT / "appliance/alpine/setup_orientation.py")
@@ -444,6 +603,14 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertIn('ENV{WL_OUTPUT}=""', rule)
         self.assertIn('LIBINPUT_CALIBRATION_MATRIX}="1 0 0 0 1 0"', rule)
         self.assertIn('LIBINPUT_CALIBRATION_MATRIX}="0 1 0 -1 0 1"', mapping.mapping_rule("DSI-1", "90"))
+        import fnmatch
+        for rotation, matrix in mapping.MATRICES.items():
+            rule10 = mapping.mapping_rule("DSI-1", rotation, "touch2-10")
+            self.assertIn('ATTRS{name}=="* ili_v3"', rule10)
+            self.assertTrue(fnmatch.fnmatch("10-0041 ili_v3", "* ili_v3"))
+            self.assertIn(f'LIBINPUT_CALIBRATION_MATRIX}}="{matrix}"', rule10)
+            self.assertIn('ENV{WL_OUTPUT}=""', rule10)
+        self.assertNotIn("ili_v3", mapping.mapping_rule("DSI-1", "90", "touch2-7"))
         for rotation in mapping.MATRICES:
             values = [float(v) for v in mapping.MATRICES[rotation].split()]
             for x, y in ((0, 0), (0, 1), (1, 0), (1, 1)):
@@ -522,6 +689,16 @@ class AlpineSetupTests(unittest.TestCase):
             boot = (self.root / "boot/config.txt").read_text()
             self.assertIn("dtoverlay=vc4-kms-dsi-ili9881-7inch\n", boot)
             for flag in ("swapxy", "invx", "invy"): self.assertNotIn(flag, boot)
+
+    def test_original_display_touch_rule_receives_saved_rotation(self):
+        import sys
+        spec = importlib.util.spec_from_file_location("input_mapping_original", ROOT / "appliance/alpine/input_mapping.py")
+        mapping = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"setup_service": module}): spec.loader.exec_module(mapping)
+        rule = mapping.mapping_rule("DSI-1", "180", "original")
+        self.assertNotIn('ATTRS{name}', rule)
+        self.assertIn('ENV{ID_INPUT_TOUCHSCREEN}=="1"', rule)
+        self.assertEqual(rule.count('LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1"'), 1)
 
 
 if __name__ == "__main__": unittest.main()

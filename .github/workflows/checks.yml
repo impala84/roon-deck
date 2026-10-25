@@ -1,5 +1,12 @@
 name: Baseline checks
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -13,10 +20,4 @@ jobs:
           node-version: '20'
           cache: npm
           cache-dependency-path: roon-controller/package-lock.json
-      - run: python -m pip install .
-      - run: PYTHONPATH=src python -m unittest discover -s tests -v
-      - run: npm --prefix roon-controller ci --omit=dev --no-audit --no-fund
-      - run: npm --prefix roon-controller test
-      - run: bash -n appliance/raspberrypi/install.sh appliance/raspberrypi/seal-image.sh scripts/install-pi.sh scripts/install-roon-bridge.sh scripts/pi-bus-update scripts/pi-bus-appliance-mode scripts/pi-bus-cage-launch
-      - run: python -m py_compile native-display/pi_bus_native.py scripts/pi-bus-system-action
-      - run: python -m py_compile appliance/raspberrypi/*.py appliance/common/benchmark.py
+      - run: tools/check fast

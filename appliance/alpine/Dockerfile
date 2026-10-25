@@ -14,6 +14,7 @@ COPY native-display ./native-display
 COPY scripts/pi-bus-cage-launch ./scripts/pi-bus-cage-launch
 COPY roon-controller ./roon-controller
 COPY tools/discovery-wire.cjs ./tools/discovery-wire.cjs
+COPY tools/viewports.json ./tools/viewports.json
 COPY config.example.toml .env.example ./
 COPY appliance/alpine/ ./appliance/alpine/
 RUN sh appliance/alpine/provision.sh

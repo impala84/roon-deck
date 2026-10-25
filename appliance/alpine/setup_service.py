@@ -14,6 +14,7 @@ import socket
 import struct
 import subprocess
 import threading
+import time
 import tempfile
 import tarfile
 import urllib.request
@@ -23,6 +24,74 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 SOCKET = "/run/pi-home-setup.sock"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
 ROON_BRIDGE_URL = "https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.tar.bz2"
+UPDATE_CHECK_CRON = "0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check"
+LED_CONFIG_BEGIN = "# BEGIN ROONDECK STATUS LIGHTS"
+LED_CONFIG_END = "# END ROONDECK STATUS LIGHTS"
+
+
+def persist_status_light_boot(root, enabled):
+    """Make the off preference effective before Linux LED triggers start."""
+    config = Path(root) / "boot/config.txt"
+    if not config.exists(): return
+    text = config.read_text(encoding="utf-8")
+    text = re.sub(rf"\n?{re.escape(LED_CONFIG_BEGIN)}.*?{re.escape(LED_CONFIG_END)}\n?", "\n", text, flags=re.S).rstrip() + "\n"
+    if not enabled:
+        # config.txt may finish inside a model-specific section.  Always reset
+        # to [all], otherwise an update can appear to save the preference while
+        # silently applying it only to another Raspberry Pi model.
+        text += f"{LED_CONFIG_BEGIN}\n[all]\ndtparam=act_led_trigger=none\ndtparam=pwr_led_trigger=none\n{LED_CONFIG_END}\n"
+    atomic(config, text)
+
+
+def apply_status_lights(root, enabled, persist=True):
+    """Apply and verify the persisted LED preference against every Pi alias."""
+    root = Path(root)
+    if persist:
+        persist_status_light_boot(root, enabled)
+    found = []
+    failures = []
+    for led in (root / "sys/class/leds").glob("*"):
+        if led.name.lower() not in {"act", "pwr", "led0", "led1"}: continue
+        found.append(led.name)
+        trigger = led / "trigger"; brightness = led / "brightness"
+        try:
+            if trigger.exists():
+                if enabled:
+                    choices = trigger.read_text(encoding="ascii", errors="ignore").replace("[", "").replace("]", "").split()
+                    preferred = ("mmc0", "disk-activity", "activity") if led.name.lower() in {"act", "led0"} else ("default-on", "input")
+                    trigger.write_text(next((item for item in preferred if item in choices), preferred[0]), encoding="ascii")
+                else:
+                    trigger.write_text("none", encoding="ascii")
+            if brightness.exists():
+                maximum = led / "max_brightness"
+                on_value = maximum.read_text(encoding="ascii").strip() if enabled and maximum.exists() else "1" if enabled else "0"
+                brightness.write_text(on_value, encoding="ascii")
+                if not enabled and brightness.read_text(encoding="ascii").strip() != "0": failures.append(led.name)
+        except OSError:
+            failures.append(led.name)
+    if not found: raise ValueError("Compatible Raspberry Pi status lights were not found.")
+    if failures: raise ValueError("The Raspberry Pi status lights could not be changed: " + ", ".join(sorted(set(failures))))
+    return found
+
+
+def reapply_status_lights(root, enabled, delays=(2, 8, 20)):
+    """Reassert the preference after udev and the firmware LED driver settle."""
+    for delay in delays:
+        time.sleep(delay)
+        try:
+            apply_status_lights(root, enabled, persist=False)
+        except (OSError, ValueError):
+            continue
+
+
+def ensure_daily_update_check(root=Path("/")):
+    """Install one quiet 03:00 release check without disturbing other jobs."""
+    path = Path(root) / "etc/crontabs/root"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = path.read_text().splitlines() if path.exists() else []
+    lines = [line for line in lines if "pi-home/appliance/alpine/updater.py --check" not in line]
+    lines.append(UPDATE_CHECK_CRON)
+    atomic(path, "\n".join(lines) + "\n", 0o600)
 
 
 def configure_netdata_lightweight(root, enabled):
@@ -251,6 +320,29 @@ depend() { need localmount; after networkmanager; }
     return service
 
 
+def configure_airplay(root, name="RoonDeck"):
+    """Write the small, owned Shairport Sync configuration used by RoonDeck."""
+    root = Path(root)
+    name = str(name).strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ._'-]{0,49}", name):
+        raise ValueError("Use 1–50 letters, numbers, spaces, dots, hyphens or apostrophes for the AirPlay name.")
+    if not (root / "usr/bin/shairport-sync").is_file():
+        raise ValueError("AirPlay is not installed on this appliance.")
+    atomic(root / "etc/shairport-sync.conf", f'''general = {{
+    name = "{name}";
+    output_backend = "alsa";
+}};
+
+alsa = {{
+    output_device = "default";
+}};
+''', 0o644)
+    state = root / "var/lib/pi-home"
+    state.mkdir(parents=True, exist_ok=True)
+    atomic(state / "airplay-name", name + "\n")
+    return name
+
+
 def ensure_netdata_service(root):
     """Adopt Alpine's package or Netdata's official /opt installation."""
     root = Path(root)
@@ -356,10 +448,30 @@ class Setup:
         self.tools_lock = threading.Lock()
         self.netdata_install_lock = threading.Lock()
         self.roon_install_lock = threading.Lock()
+        self.airplay_install_lock = threading.Lock()
         self.software_lock = threading.Lock()
         self.update_process = None
         self.progress = self.root / "var/lib/pi-home-setup/progress.json"
         self.progress.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        complete_marker = self.root / "var/lib/pi-home/setup-complete"
+        if not complete_marker.exists():
+            try:
+                if json.loads(self.progress.read_text(encoding="utf-8")).get("complete"):
+                    complete_marker.parent.mkdir(parents=True, exist_ok=True)
+                    atomic(complete_marker, "true\n", 0o600)
+            except (OSError, ValueError, TypeError, json.JSONDecodeError): pass
+        led_preference = self.root / "var/lib/pi-home/leds-enabled"
+        if not led_preference.exists() and complete_marker.exists():
+            led_preference.parent.mkdir(parents=True, exist_ok=True)
+            atomic(led_preference, "false\n", 0o600)
+        if led_preference.exists():
+            enabled = led_preference.read_text(encoding="ascii").strip() == "true"
+            # Persist first, even if sysfs LEDs have not appeared yet.
+            persist_status_light_boot(self.root, enabled)
+            try: apply_status_lights(self.root, enabled)
+            except (OSError, ValueError): pass
+            if self.root == Path("/"):
+                threading.Thread(target=reapply_status_lights, args=(self.root, enabled), daemon=True).start()
 
     def roon_state(self):
         try:
@@ -394,6 +506,7 @@ class Setup:
         """
         status = self.root / "var/lib/pi-home/netdata-operation-status"
         installer = None
+        migrated_package = False
         try:
             request = urllib.request.Request("https://get.netdata.cloud/kickstart.sh", headers={"User-Agent": "Pi-Home-Netdata-Installer"})
             with urllib.request.urlopen(request, timeout=45) as response, tempfile.NamedTemporaryFile(prefix="pi-home-netdata-", delete=False) as output:
@@ -404,8 +517,20 @@ class Setup:
                     if total > 5_000_000: raise ValueError("The official Netdata installer was unexpectedly large.")
                     output.write(chunk)
             installer.chmod(0o700)
-            atomic(status, "Installing the current official Netdata Agent…\n")
-            arguments = ["/bin/bash", str(installer), "--non-interactive", "--stable-channel", "--static-only", "--auto-update"]
+            packaged_agent = self.root / "usr/sbin/netdata"
+            static_agent = self.root / "opt/netdata/bin/netdata"
+            if packaged_agent.is_file() and not static_agent.is_file():
+                # Netdata's kickstart installer deliberately refuses to replace
+                # distribution-packaged installs. Older RoonDeck images shipped
+                # Alpine's package, so remove it only after the new installer
+                # has downloaded successfully. apk retains /etc configuration.
+                atomic(status, "Replacing the older Alpine Netdata package…\n")
+                subprocess.run(["rc-service", "netdata", "stop"], capture_output=True, check=False, timeout=30)
+                self.run(["apk", "del", "netdata"])
+                migrated_package = True
+            atomic(status, "Installing the latest official stable Netdata Agent…\n")
+            arguments = ["/bin/bash", str(installer), "--non-interactive", "--release-channel", "stable", "--static-only", "--auto-update"]
+            if static_agent.is_file(): arguments.append("--reinstall")
             if token: arguments.extend(["--claim-token", token, "--claim-url", claim_url])
             if rooms: arguments.extend(["--claim-rooms", rooms])
             environment = {**os.environ, "DISABLE_TELEMETRY": "1"}
@@ -425,6 +550,13 @@ class Setup:
             # Restart under the managed service to apply the selected profile.
             atomic(status, "Official Netdata Agent installed. " + ("Checking Cloud connection…\n" if token else "Connect to Netdata Cloud from Settings when ready.\n"))
         except Exception as error:
+            if migrated_package and not (self.root / "opt/netdata/bin/netdata").is_file():
+                try:
+                    self.run(["apk", "add", "--no-cache", "netdata"])
+                    self.run(["rc-update", "add", "netdata", "default"])
+                    self.run(["rc-service", "netdata", "start"])
+                except Exception:
+                    pass
             message = str(error) if isinstance(error, ValueError) else "The official Netdata installation failed. Check the network and try again."
             atomic(status, "Failed: " + message + "\n")
         finally:
@@ -489,15 +621,36 @@ class Setup:
             if work.exists(): shutil.rmtree(work)
             self.roon_install_lock.release()
 
+    def install_airplay(self):
+        """Install Alpine's maintained classic AirPlay receiver and enable it."""
+        status = self.root / "var/lib/pi-home/airplay-install-status"
+        status.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            if (self.root / "usr/bin/shairport-sync").is_file():
+                raise ValueError("AirPlay is already installed.")
+            atomic(status, "Installing the Alpine Shairport Sync package…\n")
+            self.run(["apk", "add", "--no-cache", "shairport-sync", "shairport-sync-openrc"])
+            configure_airplay(self.root)
+            self.run(["rc-update", "add", "shairport-sync", "default"])
+            self.run(["rc-service", "shairport-sync", "start"])
+            atomic(status, "AirPlay installed and running. Choose RoonDeck from the AirPlay menu on an Apple device.\n")
+        except Exception as error:
+            message = str(error) if isinstance(error, ValueError) else "AirPlay installation failed. Check the network and try again."
+            atomic(status, "Failed: " + message + "\n")
+        finally:
+            self.airplay_install_lock.release()
+
     def install_setup_software(self, choices):
         """Install optional services serially; persist choices, never credentials."""
         try:
             for name, installer, lock, status_name, present in (
                 ("roon_bridge", self.install_roon_bridge, self.roon_install_lock, "roonbridge-install-status", "opt/RoonBridge/start.sh"),
+                ("airplay", self.install_airplay, self.airplay_install_lock, "airplay-install-status", "usr/bin/shairport-sync"),
                 ("netdata", self.install_official_netdata, self.netdata_install_lock, "netdata-operation-status", "opt/netdata/bin/netdata"),
             ):
-                if not choices[name] or (self.root / present).is_file(): continue
-                state = self.saved(); state["software_status"] = "Installing " + ("Roon Bridge…" if name == "roon_bridge" else "Netdata…"); self.save(state)
+                if not choices.get(name, False) or (self.root / present).is_file(): continue
+                labels = {"roon_bridge": "Roon Bridge…", "airplay": "AirPlay…", "netdata": "Netdata…"}
+                state = self.saved(); state["software_status"] = "Installing " + labels[name]; self.save(state)
                 lock.acquire(); installer()
                 status = read(self.root / "var/lib/pi-home" / status_name).strip()
                 if status.startswith("Failed:"): raise ValueError(status)
@@ -520,14 +673,14 @@ class Setup:
         if action == "software":
             if state.get("complete"): raise ValueError("Setup is already complete.")
             if not state.get("network"): raise ValueError("Connect to your network first.")
-            choices = {name: data.get(name, False) for name in ("roon_bridge", "netdata")}
+            choices = {name: data.get(name, False) for name in ("roon_bridge", "airplay", "netdata")}
             if any(type(value) is not bool for value in choices.values()): raise ValueError("Choose supported software options.")
             lightweight = data.get("netdata_lightweight", True)
             if type(lightweight) is not bool: raise ValueError("Choose a supported Netdata monitoring mode.")
             (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
             atomic(self.root / "var/lib/pi-home/netdata-lightweight", "yes\n" if lightweight else "no\n")
             choices["netdata_lightweight"] = lightweight
-            selected = choices["roon_bridge"] or choices["netdata"]
+            selected = choices["roon_bridge"] or choices["airplay"] or choices["netdata"]
             state.update(software_choices=choices, software=not selected, software_status="Installing selected software…" if selected else "Optional software skipped.")
             self.save(state)
             if selected:
@@ -552,6 +705,13 @@ class Setup:
             if not state.get("complete"): raise ValueError("Finish setup before controlling the display.")
             display_power(self.root, action != "display_off", data.get("brightness", 100))
             return {"ok": True, "powered": action != "display_off"}
+        if action in {"leds_enable", "leds_disable"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing status lights.")
+            enabled = action == "leds_enable"
+            apply_status_lights(self.root, enabled)
+            marker = self.root / "var/lib/pi-home/leds-enabled"; marker.parent.mkdir(parents=True, exist_ok=True)
+            atomic(marker, "true\n" if enabled else "false\n")
+            return {"ok": True, "enabled": enabled}
         if action == "set_display":
             if not state.get("complete"): raise ValueError("Finish setup before changing the display.")
             profile = str(data.get("profile", "")); orientation = str(data.get("orientation", "")); mounting = str(data.get("mounting", "standard"))
@@ -601,11 +761,20 @@ class Setup:
                 except OSError: pass
                 if not running: self.run(["rc-service", "netdata", "start"])
             else:
-                self.run(["rc-service", "netdata", "stop"])
+                # Remove it from the boot list first. Stopping can fail when the
+                # Agent is not running under OpenRC (for example started by the
+                # installer); that must never leave it enabled at boot.
+                self.run(["rc-update", "del", "netdata", "default"])
+                try:
+                    self.run(["rc-service", "netdata", "stop"])
+                except ValueError:
+                    pass
                 cli = self.root / "opt/netdata/bin/netdatacli"
                 if cli.is_file():
-                    subprocess.run([str(cli), "shutdown-agent"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-                self.run(["rc-update", "del", "netdata", "default"])
+                    try:
+                        subprocess.run([str(cli), "shutdown-agent"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+                    except (OSError, subprocess.SubprocessError):
+                        pass
             return {"ok": True}
         if action in {"roon_start", "roon_stop", "roon_restart"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing services.")
@@ -619,6 +788,22 @@ class Setup:
             else:
                 self.run(["rc-service", "roonbridge", "restart"])
             return {"ok": True}
+        if action in {"airplay_start", "airplay_stop", "airplay_restart", "airplay_configure"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing services.")
+            if not (self.root / "usr/bin/shairport-sync").is_file(): raise ValueError("AirPlay is not installed on this appliance.")
+            if action == "airplay_configure":
+                name = configure_airplay(self.root, data.get("name", ""))
+                self.run(["rc-service", "shairport-sync", "restart"])
+                return {"ok": True, "name": name}
+            if action == "airplay_start":
+                self.run(["rc-update", "add", "shairport-sync", "default"])
+                self.run(["rc-service", "shairport-sync", "start"])
+            elif action == "airplay_stop":
+                self.run(["rc-service", "shairport-sync", "stop"])
+                self.run(["rc-update", "del", "shairport-sync", "default"])
+            else:
+                self.run(["rc-service", "shairport-sync", "restart"])
+            return {"ok": True}
         if action == "roon_install":
             if not state.get("complete"): raise ValueError("Finish setup before installing Roon Bridge.")
             if (self.root / "opt/RoonBridge/start.sh").is_file(): raise ValueError("Roon Bridge is already installed.")
@@ -626,6 +811,14 @@ class Setup:
             status = self.root / "var/lib/pi-home/roonbridge-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
             atomic(status, "Roon Bridge installation queued…\n")
             threading.Thread(target=self.install_roon_bridge, daemon=True).start()
+            return {"ok": True, "queued": True}
+        if action == "airplay_install":
+            if not state.get("complete"): raise ValueError("Finish setup before installing AirPlay.")
+            if (self.root / "usr/bin/shairport-sync").is_file(): raise ValueError("AirPlay is already installed.")
+            if not self.airplay_install_lock.acquire(blocking=False): return {"ok": True, "queued": False}
+            status = self.root / "var/lib/pi-home/airplay-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
+            atomic(status, "AirPlay installation queued…\n")
+            threading.Thread(target=self.install_airplay, daemon=True).start()
             return {"ok": True, "queued": True}
         if action in {"netdata_claim", "netdata_claim_command", "netdata_disconnect"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing Netdata Cloud.")
@@ -673,9 +866,9 @@ class Setup:
             self.run(["rc-service", "netdata", "start"])
             atomic(operation_status, "Netdata Cloud settings applied. Waiting for the Agent to connect…\n")
             return {"ok": True}
-        if action == "netdata_official_install":
+        if action in {"netdata_install", "netdata_official_install"}:
             if not state.get("complete"): raise ValueError("Finish setup before installing Netdata.")
-            token, rooms, claim_url = parse_netdata_connection_command(data.get("command"))
+            token, rooms, claim_url = ("", "", "https://app.netdata.cloud") if action == "netdata_install" else parse_netdata_connection_command(data.get("command"))
             if not (self.root / "usr/bin/curl").is_file():
                 operation_status = self.root / "var/lib/pi-home/netdata-operation-status"
                 operation_status.parent.mkdir(parents=True, exist_ok=True)
@@ -711,7 +904,12 @@ class Setup:
         if action == "reboot" and (state.get("complete") or state.get("orientation")):
             threading.Timer(2, lambda: self.run(["/sbin/reboot"])).start()
             return {"ok": True}
-        if state.get("complete"): raise ValueError("Setup is already complete.")
+        # Authenticated web settings reuse only these validated network/name
+        # actions after onboarding; other wizard steps stay locked.
+        if state.get("complete") and action not in {"set_hostname", "set_wifi"}: raise ValueError("Setup is already complete.")
+        if action in {"set_hostname", "set_wifi"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing network settings.")
+            action = {"set_hostname": "name", "set_wifi": "wifi"}[action]
         if action == "name":
             name = str(data.get("hostname", "")).lower()
             if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", name):
@@ -727,6 +925,9 @@ class Setup:
             if password: args += ["password", password]
             self.run(args)
             if not self.connected(): raise ValueError("Wi-Fi is not connected yet. Please try again.")
+            profile = self.run(["nmcli", "-g", "GENERAL.CONNECTION", "device", "show", "wlan0"]).strip()
+            if profile and profile != "--":
+                self.run(["nmcli", "connection", "modify", profile, "802-11-wireless.powersave", "2"])
             state["network"] = True
         elif action == "network":
             if not self.connected(): raise ValueError("Connect Ethernet or Wi-Fi first.")
@@ -735,15 +936,13 @@ class Setup:
             zone = str(data.get("zone", ""))
             if not data.get("skip"):
                 if zone not in [z.get("name") for z in self.roon().get("zones", [])]:
-                    raise ValueError("Authorise Pi Home in Roon, refresh, then choose an available zone.")
+                    raise ValueError("Authorise RoonDeck in Roon, refresh, then choose an available zone.")
             else: zone = ""
             self.setting("roon_zone_name", zone); state["roon"] = True; state["zone"] = zone
         elif action in {"orientation", "display"}:
             profile = data.get("profile"); rotation = data.get("rotation")
             if not isinstance(profile, str) or not isinstance(rotation, str) or profile not in PROFILES or rotation not in {"normal", "90", "180", "270"}:
                 raise ValueError("Choose a supported display and orientation.")
-            if profile in {"auto", "original"} and rotation != "normal":
-                raise ValueError("Use Normal for automatic/original displays in Alpine Beta.")
             theme = data.get("theme", "roon"); timezone = data.get("timezone", "UTC")
             if theme not in ("roon", "fresh-mint") or not isinstance(timezone, str): raise ValueError("Choose a supported theme and timezone.")
             try: ZoneInfo(timezone)
@@ -790,6 +989,8 @@ class Setup:
             state["ssh"] = bool(data.get("ssh", True)); state["username"] = username
             self.run(["rc-service", "pi-home-api", "restart"])
             state["complete"] = True
+            (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
+            atomic(self.root / "var/lib/pi-home/setup-complete", "true\n", 0o600)
         else: raise ValueError("Unknown setup action.")
         self.save(state)
         return {"ok": True, "progress": state}
@@ -815,6 +1016,7 @@ class Setup:
 
 def serve():
     install_clock_support()
+    ensure_daily_update_check()
     app = Setup()
     if Path("/opt/netdata/bin/netdata").is_file():
         ensure_netdata_service(Path("/"))

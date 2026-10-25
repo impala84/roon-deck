@@ -1,9 +1,1012 @@
 # Changelog
 
-## 1.1.1-beta.18 — 8 October 2026
+## 1.1.7-beta.94 Alpine — 26 October 2026
 
-- Adds optional RGB white-balance correction to the main GTK touchscreen window, saved outside application releases. No profile preserves the original rendering; invalid profiles fall back safely.
-- Includes per-device activation/reset instructions and real GTK pixel checks. This is practical white balance, not full ICC profiling; physical GPU/touchscreen acceptance remains required.
+- No visual change. The old `pi_bus_native.py` launcher is removed now that the display starts from `roondeck_native.py`. If a device on beta.91 or earlier does not offer this update, install beta.92 or later first.
+
+## 1.1.7-beta.93 Alpine — 26 October 2026
+
+- Original 7-inch display (800x480): the cog is now in exactly the same place on Bus Times, Home and Discover (8px in, 8px down, 36px wide), and the clock ends at the same right edge on all three. This is set by the stylesheet alone; the runtime nudge that moved the cog after a page opened is switched off on this display, so it no longer jumps.
+- Netdata: turning it off in the backend now sticks across reboots. It is removed from the boot list first, so a failed stop can no longer leave it enabled.
+- Development: `tools/check screen layout touch-v1-landscape` runs the layout check for one screen size (about 40 seconds instead of four minutes).
+
+## 1.1.7-beta.92 Alpine — 26 October 2026
+
+- No visual change. The display program is renamed from `pi_bus_native.py` to `roondeck_native.py`, and the start-up scripts, updater, tests and docs follow. A small `pi_bus_native.py` stays for this release so the updater already on your Pi can still find it; it will be removed in a later release.
+- From this release, releases are tagged `v1.1.7-beta.92` without the `-alpine` ending. Beta.89 and later see them; if a device on beta.88 or earlier does not offer this update, install beta.89–91 first.
+- If the display fails to start, select beta.91 in Settings → Software.
+
+## 1.1.7-beta.91 Alpine — 26 October 2026
+
+- No visual change. The display's code moves out of one 4,400-line `pi_bus_native.py` into page files: `bus_page.py`, `home_page.py`, `now_playing_page.py`, `discover_page.py`, `browse_page.py`, `settings_page.py`, `sleep_and_touch.py`, `artwork.py`, `screen_preview.py` and a shared `native_common.py`. `pi_bus_native.py` is now 806 lines and still the file that starts the display. See `native-display/README.md`.
+- All 184 methods were moved without editing them, and checked to be identical to beta.90. The layout and fit reports for all six screen sizes match beta.90 exactly.
+- If the display fails to start, select beta.90 in Settings → Software.
+
+## 1.1.7-beta.90 Alpine — 26 October 2026
+
+- Updates: the Pis share one home network address and GitHub only allows 60 anonymous lookups an hour per address. Each update attempt, check and Settings refresh spends several of them, so three Pis can use the allowance up together; it then recovers by itself, which is why waiting sometimes worked. Lookups now re-use the last answer when GitHub says nothing changed (those replies do not count against the allowance), and a rate-limited network now says so and when it resets instead of "Download or application preparation failed". Any other failure now shows its cause, such as the HTTP code.
+- This only takes effect once a Pi has installed it, so the first update may still need a retry.
+- With the old releases now deleted the list is one page instead of two, which already halves the lookups.
+
+## 1.1.7-beta.89 Alpine — 26 October 2026
+
+- No visual change. The updater now accepts release tags with or without the `-alpine` ending, so later releases can drop it. Install this one before that happens: beta.88 and earlier only see `-alpine` tags.
+- `tools/release-beta` publishes a beta in one step: write the CHANGELOG entry, run the script, and it bumps the version files, runs the checks, pushes and creates the release.
+- The controller now serves the Gen 2 Play Album arrow icon (`chevron-play`) added in beta.79; the pre-release check had been failing on it.
+- Housekeeping: the 121 pre-Alpine releases and the unused `claude/layout-7in-b67` branch were removed from GitHub.
+
+## 1.1.7-beta.88 Alpine — 26 October 2026
+
+- Cog (800x480): found the real jump. The runtime alignment I added reset the cog margins every time the display re-laid out, which also happens on every track change and Browse render, so the cog snapped back and then moved again 250ms later. It now only restarts when the screen size or interface size changes, so Now Playing and Discover settle on the Bus Times / Home position and stay there.
+- Genre browser: the left column was squeezed to about 44px because a scroller with no horizontal scrolling takes its content's minimum width. It now has a fixed 300px width.
+- Genre screen "Shuffle Genre / Artists / Albums": it is a "home" layout, which my last change missed. It now uses the same fixed-size tiles, icon size and stroke weight as the main genre grid.
+- Portrait Settings: the Profile drop-down text was 22px (27px in portrait) while Orientation and Rotation used the standard select size. It now matches them.
+- Seven-inch Gen 2 Settings: one 10px corner radius, one 64px control height, one 16px gap between buttons and one 22px control font. Sleep is 52px tall like the close button, with a 16px gap between them. Title, version and diagnostics keep their sizes.
+
+## 1.1.7-beta.87 Alpine — 26 October 2026
+
+- Loading dots: removed the fixed 213px top / 62px right offsets that put the dots in a different place on every page (the Discover pages have no sidebar and a different height). They are now centred in whatever area they fill, and on Gen 2 they are nudged to the centre of the cover area on Browse and to the centre of the screen on Discover.
+- Genres: the "Shuffle Genre / Artists / Albums" screen now uses the same fixed-size tiles as the genre grid (four across, same icon scale and label), with new Shuffle, Artist and Album tile icons, instead of three stretched cards.
+- Genres, 7-inch landscape and up: the list for a genre has a large heading with the genre name. Opening a sub-genre keeps the list above it on the left (with the one you chose highlighted) and opens the new list on the right, like a two-column browser. Back steps out one column at a time.
+- Cog position (800x480): the cog is aligned on its centre, across and down, on every page, so Bus Times, Home, Now Playing and Discover agree to the pixel.
+
+## 1.1.7-beta.86 Alpine — 26 October 2026
+
+- 800x480 album details: found why the window grew 10px (and lost the bottom underline) when you tapped the artwork. Details left a 20px gap under the header where Now Playing uses 1px. Details now use the same 1px, so the artwork stays put and the page keeps its height.
+- Seven-inch Gen 2 Play Album: a shorter pill (46px), more space before the play triangle (30px), and a compact arrow segment with a 24px arrow and less padding.
+- Loading dots: on the 10-inch portrait they sit about a quarter of the way down instead of hugging the top; on Gen 2 they are centred in the browse area (moved left and down).
+- 800x480 Settings: one 16px margin on every side, with the header, cards, columns and buttons all sitting on it. Install Update and Reboot are 52px tall with smaller corner radius.
+
+## 1.1.7-beta.85 Alpine — 25 October 2026
+
+- No visual change. The display's stylesheet moves out of `pi_bus_native.py` into `native-display/css/01..07-*.css`, loaded in filename order by `native-display/styles.py`, with the shared page-grid numbers in `native-display/layout_constants.py`. The Python file shrinks from 4,878 to 4,020 lines.
+- Checked: all 941 rules load identical and in the same order; the layout reports and every deterministic screenshot match beta.84 on all six display sizes. If the display fails to start after this update, select beta.84 in Settings → Software.
+- Development: `tools/check screen layout` now also writes `layout-fit.txt` (window size, header and Browse measurements at every interface size).
+
+## 1.1.7-beta.84 Alpine — 25 October 2026
+
+- Play Album arrow: still a little large on the 10-inch portrait, so it drops from 44px to 34px (about a 26px-wide arrow). Gen 2 stays at 30px; 800x480 goes from 22px to 20px.
+
+## 1.1.7-beta.83 Alpine — 25 October 2026
+
+- Play Album arrow: beta.82 overshot. The arrow is now 44px on the 10-inch portrait (was 72), 30px on Gen 2 (was 40) and 22px on 800x480 (was 26), so it is clearly visible but in proportion with the Play Album label.
+
+## 1.1.7-beta.82 Alpine — 25 October 2026
+
+- Play Album arrow: found why it never grew. A leftover line reset the icon to 22px right after it was created, so every earlier size change was overridden. It now really is 72px (10-inch), 40px (Gen 2) and 26px (800x480).
+- Seven-inch Gen 2 Play Album: the arrow button is narrower (about 50px instead of 100px) and the Play Album label has less padding on its right, so the split button is more compact.
+
+## 1.1.7-beta.81 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers are back to their full 230px (Standard and Larger) and the window still stays at 1280px. The cause of the overflow was that the "fill" layout, which drops the 28px page margin and 8px list padding beside the scrubber, was skipped on Larger; it now applies to both sizes, which frees the width the larger covers need.
+- Seven-inch Gen 2 Browse: the visible area runs down to the bottom of the Back button (clip line y~605), and covers start at y~101.
+
+## 1.1.7-beta.80 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: beta.79's bigger covers made the page 1312px wide, pushing the cog, clock and scrubber off the right edge. The measured right-hand reserve (133px) is now part of the sizing, so covers are 221px (Larger 218px) with 12px gaps and the page stays at 1280px.
+- Seven-inch Gen 2 Browse: the cover area starts 10px higher and the visible area now runs lower (clip line about 10-19px above the Back button's bottom edge instead of about 30px), so two full rows show without a sliver of a third.
+
+## 1.1.7-beta.79 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: Larger now fills the area too (226px covers, up from 217); Standard stays at 229px.
+- Hidden cursor: the transparent cursor theme now covers every cursor shape name (previously unlisted shapes fell back to the visible default arrow, which flashed up occasionally), and the pointer is blanked again whenever it enters or moves.
+- Seven-inch Gen 2 details: on a black background the album sheet painted an opaque black box over the Now Playing tab underline and the clock. Inline details are now always transparent.
+- Cog position: every page now aligns to the right-most cog measured on any page (the old alignment could only move Bus Times/Home toward the music cog, never the other way), and it resets when the display size or interface size changes.
+- 800x480 Home: tiles are compacted (smaller icons, 15px names, tighter padding and gaps) so six devices no longer push the navigation off the screen.
+- 800x480 Now Playing: the title, transport and Fixed Volume are centred vertically on the artwork again, with more room above Fixed Volume.
+- 800x480 album details: opening the album text no longer grows the window or moves the artwork down. The sheet can't feed its text height into the window, and the summary shows two lines.
+- Ten-inch portrait Browse: BACK now uses the same size and line box as ALBUMS / ARTISTS / GENRES / PLAYLISTS / SEARCH.
+- Browse: tapping an album, artist or genre now leaves the current page at once and shows the loading dots while Roon builds the next page, instead of freezing on the old page.
+- Play Album arrow: uses a new tightly cropped chevron (about 78% of its box instead of 47%) at 72px on the 10-inch portrait, 40px on Gen 2 and 26px on 800x480, so it is genuinely larger and easier to see.
+
+## 1.1.7-beta.78 Alpine — 25 October 2026
+
+- Ten-inch portrait Album & Artist: the artist name and album title are both bottom-aligned in equal-height boxes, so a one-line artist name sits on the same baseline as the album title's last line and both write-ups start on the same line grid, like two magazine columns.
+- Ten-inch portrait Album & Artist: the album summary column no longer goes blank while the summary is still loading or unavailable; it shows "Loading album summary…" or "Album summary is unavailable." in the same slot as the artist's text.
+
+## 1.1.7-beta.77 Alpine — 25 October 2026
+
+- 800x480 Now Playing: the title block is anchored at the top, so the transport controls sit about 45px higher and a two-line title still fits above the volume row. The gaps below the controls are tighter and "FIXED VOLUME" is smaller (12px) and sits directly under them.
+- Bus Times and Home: the cog is now aligned at run time. The app measures where the music pages' cog really is and nudges the header cog to the same x position, so it matches at every interface size instead of relying on a fixed CSS offset.
+
+## 1.1.7-beta.76 Alpine — 25 October 2026
+
+- Album page: the drop-down arrow beside Play Album is larger (a 64px icon on the 10-inch display, 46px on the Touch Display 2 7-inch, 30px on 800x480) and sits in a wider button (96px, 64px and 46px) with even padding either side, so it is easy to see and tap.
+
+## 1.1.7-beta.75 Alpine — 25 October 2026
+
+- 800x480 header: the cog, tabs/title and clock sit 6px higher and share one line on Now Playing, Discover, Bus Times and Home. The cog is anchored to the page top so it no longer shifts between pages, and it is 4px further left on Bus Times and Home to match the music pages. The Bus/Home clock ends 3px further in, at the clock icon's edge. Discover and Now Playing content keeps its position.
+- 800x480 Settings: even 11px inset around the RoonDeck lockup, a perfectly round 40px close button, a compact 96x40 Sleep button.
+- 800x480 interface scaling: the dropdown text and its menu no longer use the 23px/22px Larger sizes (15px and 16px).
+- Both seven-inch landscape displays: Install Update sits on the left and Reboot on the right in one row, giving the controls more height.
+
+## 1.1.7-beta.74 Alpine — 25 October 2026
+
+- Fix: beta.73 raised an error in the Browse scroll-margin helper (a variable used before it was defined). That stopped layout midway on every screen except the 800x480 display, which left the 10-inch portrait Now Playing artwork as a small thumbnail at top-left. The helper is fixed and now has a test that calls it for each screen size.
+
+## 1.1.7-beta.73 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse (Standard): the earlier cover change never took effect because a 212px size cap was applied first. Covers are now 229px (235px cards), sized to fill from the Back button's column to the scrubber rail, with a 26px row gap. The redundant 28px right margin and 8px list padding are dropped next to the rail, and the scroller clips beneath the second row. Larger keeps its previous sizing.
+- Ten-inch portrait Album & Artist view: the page beneath (artwork, scrubber, controls, tabs) is hidden while the sheet is open instead of showing through the transparent Roon theme.
+- Ten-inch portrait Settings: heading is smaller (48px wordmark, 44px title), the memory line is slightly larger (18px) and there is 32px between Sleep and the close button.
+- Ten-inch portrait Bus Times and Home: the route badge and arrival time form one centred group 40px apart, "arriving now" / "minutes" sit directly under the numeral, and the cards start 16px higher.
+
+## 1.1.7-beta.72 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers grow again (217px, 223px cards) by tightening the column gap to 14px, anchored top-left at the same x as before. The second row now ends about level with the Back button's bottom, and the scroller clips just beneath it so only two rows show at first.
+- Ten-inch portrait Settings: the RoonDeck Settings heading is larger (62px wordmark, 56px title), the memory/load line is much smaller (14px), and the Install Update, Apply Display and Reboot buttons use an even 24px gap.
+
+## 1.1.7-beta.71 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers grow to 217px cards (from about 212px) in Standard and Larger, and the Larger grid now starts at the same x as Standard (200px), 30px clear of the Back button instead of 12px. The scroller's bottom edge moves up so the first view shows exactly two rows of covers.
+- Seven-inch Gen 2: the Back button is the same larger size in Standard as in Larger (142x74).
+- Seven-inch Gen 2, Larger: the Bus Times and Home clock is about 12% smaller and ends on the cards' right edge. The header row keeps its height, so nothing below moves.
+- Ten-inch portrait Bus Times: the route badge and the arrival sit closer together, and the arrival size is capped so "Due" can no longer make the page wider than the 1200px screen (it was 1256px).
+- Ten-inch portrait: the Bus Times and Home cog, title and clock move up 9px together to match the Discover and Now Playing header line.
+
+## 1.1.7-beta.70 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: fixes the Browse/Albums/Artists page making the window wider than the screen (1311px in Standard, 1293px in Larger, which pushed the clock and scrubber off the right edge). The widened scrubber rail in beta.69 left no spare width; cover grids now cap at 202px (Standard) and 206px (Larger) so everything fits inside 1280px.
+- Seven-inch Gen 2, Standard and Smaller: the cog and the clock icon sit 4px higher (top edge 14px), level with the Bus Times and Home titles. Larger is unchanged (18px).
+- Seven-inch Gen 2 Settings: the empty DISPLAY SETTINGS heading is hidden, SLEEP is larger text with more space before the close button, both sit 8px lower, and INSTALL UPDATE has 14px more space above REBOOT.
+- Seven-inch Gen 2, Larger: the artist profile page tightens its biography line spacing so the page no longer grows to 729px tall (Now Playing, Bus Times and Home already fit 720px).
+
+## 1.1.7-beta.69 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: the settings cog and the clock icon are now anchored to the top of their header row (top edge 18px from the screen top) on Now Playing, Discover, Bus Times and Home, in Smaller, Standard and Larger. Before, each was centred in a row whose height differed by page, so the cog sat 4px higher on Bus Times in Standard. The beta.68 2px cog tweak is replaced by this. Row heights are unchanged, so the bottom navigation and page content do not move.
+- Seven-inch Gen 2, Larger: the Bus Times and Home clock digits and titles move onto the same centre line as the cog (clock up 4px, title down 2px).
+- Seven-inch Gen 2: the Now Playing progress bar now ends under the clock icon's right edge (it stopped 23px short), with the elapsed/remaining times flush with the bar ends.
+- Seven-inch Gen 2: the Discover/Browse alphabet scrubber moves inside the page edge (track under the clock icon) and its rail widens from 42px to 64px, so the letter is no longer clipped. Larger covers shrink about 5px (227 to 222) to make room.
+- Development: `tools/css_cascade_report.py` understands the child selector (`>`), and `tests/test_header_anchor.py` fails if the cog top edge differs between pages.
+
+## 1.1.7-beta.68 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: the Settings close control is now a perfect 52px circle instead of a 102×78 oval. A general touch-landscape Settings button rule was overriding its padding; Sleep now matches its height.
+- Seven-inch Gen 2 with Larger interface scaling: the layout is recalculated when the saved interface size loads, so Now Playing fits the 720px screen (the cover stays at its 480px cap) and the bottom navigation no longer sits 12px lower than on Discover, Bus Times and Home.
+- Seven-inch Gen 2: the Bus Times and Home cog moves up 2px to match Discover and Now Playing.
+- Adds layout diagnostics for development: `tools/css_cascade_report.py` and `tools/check screen layout` (report-only; not part of `screen all`). No effect on the running appliance.
+
+## 1.1.7-beta.67 Alpine — 25 October 2026
+
+- Pulls the seven-inch Gen 2 Larger Browse grid inward, tightens its gutters and reserves enough width for the complete alphabet scrubber inside the physical 1280-pixel viewport.
+- Aligns the seven-inch Gen 2 Bus Times and Home header geometry with Now Playing and Discover instead of leaving their cog and clock lower on the page.
+- Prevents the Settings close control from stretching into an oval, enlarges its X and restores a legible Sleep label while retaining the shared button corner treatment.
+
+## 1.1.7-beta.66 Alpine — 25 October 2026
+
+- Locks the ten-inch cog and clock to one shared header anchor across Now Playing, Discover, Bus Times and Home so they no longer jump between pages.
+- Adds the requested breathing room above the portrait Settings Reboot button, between it and the Install Update / Apply Display row, without adding unnecessary space below it.
+- Retains the seven-inch Gen 2 larger Browse-grid fit and responsive layout corrections from the preceding beta.
+
+## 1.1.7-beta.65 Alpine — 25 October 2026
+
+- Restores four-column album, artist and genre Browse grids on the seven-inch Gen 2 display at Larger interface scaling.
+- Moves those larger Browse grids exactly 9 pixels left and tightens each inter-column gutter from 24 to 23 pixels, preserving clearance for the alphabet scrubber.
+- Improves the Settings header controls and enlarges the touchscreen-profile dropdown choices for easier use at larger interface scaling.
+
+## 1.1.7-beta.64 Alpine — 25 October 2026
+
+- Restores the four-column artist browser on the seven-inch Gen 2 display at Larger interface scaling without changing the constrained album and genre grids.
+- Restores the album-information heading to the release type and year, such as `ALBUM · 2011`, with LP, single, promo and other provider types retained when available.
+- Applies the selected gradient or black background to the in-place Album & Artist information view and slightly reduces its Browse Artist Albums action text.
+- Refines Settings with a compact Sleep/close header, aligned branding, clearer display groups, a dedicated enlarged touchscreen-profile selector, and balanced two-column install actions.
+- Aligns the shared ten-inch page header geometry and the seven-inch Gen 2 bottom navigation across Now Playing, Discover, Bus Times and Home.
+- Tightens three-service bus layouts so Larger scaling remains inside the physical seven-inch and ten-inch viewports.
+- Redesigns portrait arrival cards as a two-column route/primary-arrival composition with larger labels, following arrivals and a ruled `THEN` section.
+
+## 1.1.7-beta.63 Alpine — 25 October 2026
+
+- Keeps Larger Now Playing artwork inside the seven-inch Gen 2 viewport and disables accidental landscape page scrolling.
+- Shows three properly enlarged grid columns on the seven-inch Gen 2 instead of expanding a four-column canvas beyond the physical panel.
+- Limits the alphabet scrubber to album/artist cover collections; artist-profile album lists use ordinary scrolling.
+- Restores equal secondary transport controls and a larger play/pause control on the ten-inch portrait display under Larger scaling.
+- Opens the Play Album action menu beside the split button instead of over it.
+
+## 1.1.7-beta.62 Alpine — 25 October 2026
+
+- Constrains Touch Display 2 genre grids to the configured 1280-pixel canvas, including during the first render before KMS finishes reporting its final mode.
+- Uses four fully measured columns beside the alphabet scrubber so neither artwork nor the scrubber can leave the viewport.
+- Keeps the larger seven-inch album-information panel fixed within the viewport with a tighter four-line description.
+- Uppercases the album release month and year label.
+- Moves the Artist Albums column closer to the hero and gives album titles more usable width.
+- Enlarges standard artist biography copy and refines the larger artist overlay without increasing the hero button.
+
+## 1.1.7-beta.61 Alpine — 25 October 2026
+
+- Keeps Now Playing selected while seven-inch album information is open.
+- Replaces the compact album eyebrow with the release month and year when an exact date is available.
+- Fits the larger seven-inch information view without internal scrolling and tightens its copy rhythm.
+- Uses the realised viewport—not an oversized monitor report—to keep Album and Genre grids within the screen.
+- Restores centred Now Playing artwork on portrait displays while preserving the fixed left anchor in landscape.
+- Adds balanced upper and lower breathing room to seven-inch Settings actions.
+- Removes visible loading text while retaining the animated progress dots.
+
+## 1.1.7-beta.60 Alpine — 25 October 2026
+
+- Keeps the Browse Artist hero clean while its full-resolution image loads instead of briefly showing the generic artist glyph.
+
+- Fixed Now Playing artwork to a stable left anchor so title length, track changes and the in-place information view cannot move or resize it.
+- Preserved the transport column's allocation while album information is open, preventing the detail panel from overlapping the cover.
+- Rebalanced seven-inch album and genre grids with larger artwork under Larger scaling, equal row/column gaps and a better menu inset.
+- Exposed the alphabet scrubber for any nested cover collection spanning more than one visible page, and enlarged its active letter under Larger scaling.
+- Added more lower padding to landscape Home control tiles.
+
+## 1.1.7-beta.59 Alpine — 25 October 2026
+
+- Kept seven-inch album information in the Now Playing frame: tapping the cover now preserves its exact artwork, background, tabs and bottom navigation while swapping the transport column for album details.
+- Left-aligned album grids at every result count and added the alphabet scrubber to multi-page nested collections such as Genre albums.
+- Tightened and clarified the Play Album split-menu chevron.
+- Refined seven-inch header baselines and Now Playing spacing, and made album artwork fill its clipped square without exposing the holding frame.
+
+## 1.1.7-beta.58 Alpine — 25 October 2026
+
+- Lowers the shared cog-and-clock header row slightly on both seven-inch displays while preserving identical geometry across Now Playing, Discover, Bus Times and Home.
+- Keeps the RuneDeck wordmark and Settings title as a fixed lock-up when interface scaling changes.
+- Renames the settings groups to `NETWORK CONTROLS` and `INTERFACE SCALING`.
+- Left-aligns Display Brightness with the other display controls, extends its slider across the available width and replaces the tiny built-in value with a readable percentage.
+
+## 1.1.7-beta.57 Alpine — 25 October 2026
+
+- Lets the beta update channel install the exact commit referenced by a published Alpine prerelease without waiting for the Alpine CI workflow.
+- Keeps the stable channel protected by the existing successful Alpine-verification requirement.
+- Rewords updater status messages so beta builds are described as published releases rather than verified builds.
+
+## 1.1.7-beta.56 Alpine — 25 October 2026
+
+- Makes the cog and clock use one shared landscape header position across Now Playing, Discover, Bus Times and Home on both seven-inch generations.
+- Applies the selected gradient background to every primary page instead of limiting it to the Roon pages.
+- Reorganises Settings into clear `DAILY CONTROLS`, `INTERFACE SIZE`, `DISPLAY THEME`, `DISPLAY BACKGROUND` and `DISPLAY BRIGHTNESS` groups.
+- Gives the Gen 2 seven-inch artist hero more height and allows four biography lines without making the artist page scroll.
+
+## 1.1.7-beta.55 Alpine — 25 October 2026
+
+- Establishes one balanced landscape page frame so the settings cog and clock hold the same inset and vertical position across Now Playing, Discover, Bus Times and Home without extending the viewport.
+- Reorganises seven-inch Settings into Daily Controls and Display: theme, background, brightness and interface size now live together, while installation-only display controls stay hidden and the two primary actions remain fixed at the bottom.
+- Replaces the Play Album text glyph with a compact symbolic chevron while retaining immediate playback on the main half and the existing queue/radio choices in the secondary menu.
+- Rebalances seven-inch artist pages with a wider, taller hero, overlaid artist/play hierarchy, higher album list and a separate three-line biography area; only the album column scrolls.
+- Keeps low- and high-resolution artist imagery on the same display-specific crop so the hero no longer shifts when the sharper image arrives.
+- Softens original-display artwork corners and modestly enlarges standard Gen 2 seven-inch transport controls.
+
+## 1.1.7-beta.54 Alpine — 25 October 2026
+
+- Completes native matrix validation for simplified seven-inch Settings by comparing the widths of visible actions only; the intentionally hidden install-time Apply Display action no longer contributes a zero-width allocation.
+
+## 1.1.7-beta.53 Alpine — 25 October 2026
+
+- Keeps playback controls above descriptive copy while leaving the non-playback Browse Artist Albums action below it.
+- Stacks the album header on narrow portrait displays so the split Play Album control cannot widen the application beyond the physical screen.
+
+## 1.1.7-beta.52 Alpine — 25 October 2026
+
+- Applies the shared identity → playback → write-up hierarchy to artist pages as well as album pages, while keeping non-play navigation actions below descriptive copy.
+- Fully constrains the split Play Album control to the narrow legacy portrait column without changing the seven-inch landscape composition.
+
+## 1.1.7-beta.51 Alpine — 25 October 2026
+
+- Retains the beta.50 seven-inch polish while bounding the new split Play Album control inside the narrow legacy portrait album column.
+
+## 1.1.7-beta.50 Alpine — 25 October 2026
+
+- Darkens the Roon gradient and makes Larger scale album titles, artists, summaries, Back, Settings dropdowns, clocks and shared page headings consistently.
+- Places Play Album before the write-up and adds a Roon-style split menu for Play Now, Add Next, Queue and Start Radio while retaining immediate playback on the main button.
+- Simplifies both seven-inch Settings layouts by hiding installation-only profile, orientation, rotation and Apply Display controls, keeping the everyday controls visible without scrolling.
+- Keeps the shared settings/clock screen gutters stable between Discover, Bus Times and Home, while leaving oversized route and arrival numerals as the only moderated scale exception.
+
+## 1.1.7-beta.49 Alpine — 25 October 2026
+
+- Retains the beta.48 semantic typography and control-scaling cleanup while removing the extra Bus Times header offset that could extend the 1280×720 native layout by eight pixels.
+
+## 1.1.7-beta.48 Alpine — 25 October 2026
+
+- Consolidates Bus Times, Home, Settings and Album & Artist page headings into one semantic type hierarchy, with profile-specific sizes applied consistently across displays.
+- Makes Smaller and Larger visibly resize transport buttons and glyphs, utility icons, primary album actions, navigation, and the Album & Artist close control instead of scaling text alone.
+- Aligns the settings cog between Discover, Bus Times and Home, while moderating the scaling of already-prominent bus route and arrival data.
+
+## 1.1.7-beta.47 Alpine — 25 October 2026
+
+- Increases the standard Gen 2 seven-inch Album & Artist year label, album title, artist name and write-up sizes to use the available detail-sheet space more legibly.
+- Leaves the existing Browse Artist Albums button dimensions unchanged and retains scrolling for long titles or enlarged interface settings.
+
+## 1.1.7-beta.46 Alpine — 25 October 2026
+
+- Removes the Roon-theme grey surface from every artist-hero layer so the transparent image fade reaches the selected page background cleanly.
+- Makes both seven-inch artist heroes modestly taller while preserving the approved face weighting and identical low-/high-resolution crop.
+
+## 1.1.7-beta.45 Alpine — 25 October 2026
+
+- Softens the textured gradient background, reducing its visible haze on seven-inch displays while retaining the selected Roon-style background treatment.
+
+## 1.1.7-beta.44 Alpine — 25 October 2026
+
+- Raises faces within both seven-inch artist hero frames by shifting the shared low- and high-resolution crop window without changing its dimensions.
+- Centres Browse and Discover loading indicators within the usable content area instead of leaving them close to the top tabs.
+
+## 1.1.7-beta.43 Alpine — 25 October 2026
+
+- Adds one global interface-size setting with Smaller, Standard and Larger choices, scaling typography, navigation, clocks, utility icons and playback controls together throughout the touchscreen; larger content scrolls rather than clipping behind fixed navigation.
+- Rebalances both seven-inch artist pages with a shorter hero, longer transparent fade, equal artist and album columns and room for three biography lines.
+- Reduces oversized seven-inch Album & Artist detail typography while preserving legibility and aligned content.
+
+## 1.1.7-beta.42 Alpine — 25 October 2026
+
+- Keeps Roon browsing available while the configured RoonBridge speaker endpoint is powered off, without falling through to another zone.
+- Holds a requested playback action until that exact configured zone reappears, then starts it automatically.
+- Compacts three- and four-service bus layouts on the original 800×480 seven-inch display so the bottom navigation remains within the screen.
+- Makes missing album and artist artwork quieter, with darker glyphs and a subtle dark square surface across native and web views.
+
+## 1.1.7-beta.41 Alpine — 24 October 2026
+
+- Resolves the selected artist through the exact Artists result and requires an exact album artist credit (or an explicitly separated collaboration credit).
+- Prevents broad catalogue matches such as Junior Wells' Chicago Blues Band and Chicago Symphony Orchestra from appearing in Chicago's albums.
+
+## 1.1.7-beta.40 Alpine — 24 October 2026
+
+- Uses Roon's normal global Albums search as the authoritative connected-service catalogue, opens its full results, filters them to the exact artist and merges them after owned albums.
+- Keeps the direct TIDAL artist route as a supplemental source rather than silently relying on it as the only way to discover non-library releases.
+- Adds coverage proving a globally searched Van Morrison album absent from My Catalog is retained while a similarly named tribute by another artist is rejected.
+- Fails closed when exact artist resolution fails and validates every merged album's artist credit, retaining genuine collaborations while preventing unrelated library search hits from appearing as the selected artist's releases.
+
+## 1.1.7-beta.39 Alpine — 24 October 2026
+
+- Keeps merged My Catalog and TIDAL artist albums in the visible artist-album list on seven-inch landscape displays instead of misclassifying their route map as a hidden two-column search page.
+- Follows Roon/TIDAL's Albums or View All Albums collection from an artist overview before merging, replacing the four featured releases with the complete available discography.
+- Restores the standard bounded artist lookup deadline after confirming that the albums were already present and the fault was entirely in the seven-inch renderer.
+
+## 1.1.7-beta.38 Alpine — 24 October 2026
+
+- Lets the seven-inch native client wait for the full merged My Catalog and TIDAL artist catalogue on slower Raspberry Pi hardware instead of abandoning the request after 35 seconds.
+- Keeps ordinary browsing, album opening and transport-related requests on their existing short deadlines so the interface remains responsive when a service is unavailable.
+
+## 1.1.7-beta.37 Alpine — 24 October 2026
+
+- Matches artist identities across punctuation variants such as `Crosby, Stills & Nash` and `Crosby, Stills and Nash`, preventing empty merged album pages.
+- Makes the hero frame, its viewport and its image surface transparent and removes the remaining opaque black overlay so the pixel-alpha fade reaches the selected background.
+- Adds behavioral coverage for the artist-name variant and the actual bottom-edge alpha values.
+
+## 1.1.7-beta.36 Alpine — 24 October 2026
+
+- Builds artist album pages from explicit My Catalog and TIDAL searches, keeping owned albums first while adding the connected TIDAL catalogue and removing duplicates.
+- Preserves the originating Roon session for every merged album and Artist Radio action so selections remain valid after the catalogues are combined.
+- Fades the bottom of seven-inch artist hero imagery to true transparency, allowing black, gradient and custom backgrounds to show through naturally.
+
+## 1.1.7-beta.35 Alpine — 24 October 2026
+
+- Publishes core Now Playing album details and artwork as soon as Roon resolves them, while slower external album notes continue loading in the background.
+- Prevents the seven-inch native display poll from blocking on artist biography requests, removing the device-specific 20–120 second metadata lag.
+- Makes the seven-inch artist hero roughly half an album thumbnail taller, reducing severe face crops while retaining its width and top-weighted focal treatment.
+
+## 1.1.7-beta.34 Alpine — 24 October 2026
+
+- Shows an immediate loading indicator while Browse Artist Albums resolves its catalogue search.
+- Makes Back return to the real departure screen, such as Now Playing, instead of exposing the internal artist-search results page; albums still return to their artist first.
+- Uses the larger `ALBUM · YEAR` eyebrow on seven-inch detail sheets and removes the separate undersized year line.
+- Expands the 10-inch portrait write-up allowance to use the available screen depth.
+
+## 1.1.7-beta.33 Alpine — 24 October 2026
+
+- Rebalances the 10-inch portrait Album & Artist sheet with larger headings and close control, tighter body leading, bounded write-ups and no low-value technical fact blocks.
+- Places the release year in the album eyebrow and equalises both heading regions so the artist and album write-ups always begin on the same baseline.
+- Follows the configured room by its stable Roon output identity in either grouping direction and carries the current track across Roon's transient metadata gap while a new group forms.
+
+## 1.1.7-beta.32 Alpine — 24 October 2026
+
+- Retrieves album write-ups and release years for Roon titles carrying Stereo, Mono, Mix or Edition suffixes by retrying the canonical album title.
+- Shows the release year on the compact seven-inch landscape Album & Artist sheet instead of suppressing it.
+
+## 1.1.7-beta.24 Alpine — 24 October 2026
+
+- Opens albums selected from an artist profile directly at their tracks instead of stopping at Roon's redundant one-album wrapper page.
+- Detects the wrapper by its non-action structure rather than unreliable title matching, while leaving genuine album track lists and playback actions untouched.
+- Fetches artist hero artwork at 1200px before its top-weighted crop instead of enlarging a 256px thumbnail, and adds a subtle 8px rounding to the hero's top corners.
+- Makes the fixed-volume notice genuinely discreet on seven-inch landscape displays by overriding the conflicting 26px device rule with a 12px, dark-grey, lightly tracked label positioned lower beneath the transport controls.
+
+## 1.1.7-beta.23 Alpine — 24 October 2026
+
+- Keeps the validated fixed 16:9 artist hero, equal columns, action placement and complete summary layout while shifting only the pixels inside the hero crop upward.
+- Pre-crops seven-inch artist artwork to a top-weighted 16:9 texture before display, avoiding the oversized child image that pushed the Play Artist button and biography off-screen in beta.22.
+
+## 1.1.7-beta.22 Alpine — 24 October 2026
+
+- Replaces centred cover cropping on seven-inch artist heroes with a top-weighted focal crop, retaining only 20% of vertical overflow above the viewport so faces and eyes remain visible.
+- Keeps the 16:9 hero dimensions, horizontal centring, album artwork and non-artist imagery unchanged.
+
+## 1.1.7-beta.21 Alpine — 24 October 2026
+
+- Corrects the seven-inch Gen 2 artist-profile viewport height so the enlarged three-line artist summary and source are fully visible instead of being clipped by the previous compact allowance.
+- Keeps the independent, tighter Gen 1 height allowance unchanged.
+
+## 1.1.7-beta.20 Alpine — 24 October 2026
+
+- Makes artist and album results genuine equal-width columns on both seven-inch landscape displays.
+- Reorders the artist profile to show Play Artist first, then a larger left-aligned artist name and a larger, more generously spaced biography.
+- Constrains the biography measure inside the image boundary and gives Gen 1 its own tighter 800×480 sizing.
+
+## 1.1.7-beta.19 Alpine — 24 October 2026
+
+- Fixes Browse Artist Albums by querying Roon's catalogue Albums search separately from the artist result, filtering it to the selected artist and retaining the session-owned keys used to open each album.
+- Rebalances the seven-inch Gen 2 artist page into even artist and album columns so album artwork and titles have usable space.
+- Restores the album-detail Browse Artist Albums action to a rounded rectangle instead of a pill.
+- Reduces Fixed Volume to a small, low-contrast status label with more separation from the transport controls.
+- Enlarges the 10-inch music clock icon by 10% without changing either seven-inch display profile.
+
+## 1.1.7-beta.18 Alpine — 24 October 2026
+
+- Makes Browse Artist Albums discovery-first: it resolves an exact artist through Roon catalogue search and lists their available albums even when the artist is absent from the local library, with a library fallback for older cores.
+- Presents Play Playlist as the same prominent rounded primary Play action used by albums, artists and mixes.
+
+## 1.1.7-beta.17 Alpine — 24 October 2026
+
+- Adds Single colour and Multi-colour modes to Home Assistant tile settings, with a shared preset/custom colour that preserves saved per-device-type colours.
+- Restores the established artist layout on both 10-inch orientations and limits the wide faded hero treatment to the two seven-inch landscape profiles.
+- Widens the Touch Display 2 seven-inch artist column, returns space to album titles and reduces its album thumbnails so names are no longer needlessly truncated.
+- Reuses artist summaries already returned with a page and retries transient empty artist-information responses before showing a temporary-unavailable message.
+- Matches the compact Touch Display 2 Album & Artist action to the original display: bright purple, black text and fully rounded, with larger write-up and button text.
+- Shows only the album year beneath the artist on that compact sheet and removes the source label and low-value technical metadata.
+- Makes Fixed Volume smaller, lighter, darker, more widely tracked and slightly lower beneath the transport controls.
+
+## 1.1.7-beta.16 Alpine — 24 October 2026
+
+- Starts Daily Mix playback at the tapped track while retaining the remainder of the mix as Roon's queue; Queue still adds only the selected track.
+- Returns the Daily Mix action pills to a compact, equal footprint, tightens track rows to album-list density and keeps pressed/loading feedback in the selected theme colour.
+- Uses a filled Play icon consistently in action menus and gives artist pages a responsive 16:9 hero with a bottom fade; the artist name, Play Artist action and two-line biography share one exact left boundary on every display.
+- Matches the compact landscape Album & Artist sheet to the Gen 1 composition: a much larger album cover, larger title and artist, no duplicate credit or source label, and a compact Browse Artist Albums action directly below the write-up. Larger portrait and 10-inch landscape screens retain the two-card presentation.
+- Recognises classical vocal descriptions such as tenor, soprano and baritone when retrieving artist summaries, restoring biographies for artists such as Luciano Pavarotti.
+- Replaces the broken stretched Home Assistant colour inputs with twelve named presets, a visible custom hex override and an immediate colour preview for each entity type.
+- Applies each Home Assistant entity colour to its level slider as well as the tile, icon and border.
+- Replaces inert mute and volume controls on fixed-volume Roon outputs with one clear Fixed Volume label.
+
+## 1.1.7-beta.15 Alpine — 24 October 2026
+
+- Restores the 1280×720 Touch Display 2 Discover geometry without altering the original 800×480 rules: Daily mixes, mix details, Search, New Releases and genre tiles now use Gen 2-specific spacing and sizing.
+- Makes Play This Mix and Queue This Mix share the same allocated button footprint in landscape and portrait layouts.
+- Replaces Daily Mix track edition-search navigation with an exact, server-side track action menu. Play Now and Queue resolve the selected cached mix track and selected Roon zone without exposing private Roon references to the display.
+- Keeps the selected mix row visible while its action menu opens beside the artwork, avoiding stale album pages and off-screen controls.
+- Aligns 10-inch portrait New Releases with the other portrait Discover sections.
+- Adds Overnight display wake controls to Automation: automatic wake can be disabled for tap-to-wake use, weekends remain dark by default, and an optional separate weekend wake time is available. Morning Buses remains an independent content window.
+- Reflows and re-centres the Now Playing selector immediately when BluOS input tabs or other optional music tabs are removed.
+- Adds web colour pickers for Light, Fan, Switch and Scene Home Assistant tiles, including readable tinted states, matching icons and a one-click defaults reset.
+- Adds regression coverage for Gen 2 layout scoping, exact mix-track actions, disabled scheduled wake, weekend wake timing, tap wake and music wake.
+
+## 1.1.7-beta.14 Alpine — 23 October 2026
+
+- Make the 10-inch album-sort popup use the same rounded action-menu treatment
+  as the rest of RoonDeck, removing its one-off black panel and left stripe.
+- Show one unambiguous filled selection derived from the active sort order, so
+  a sticky touchscreen hover can no longer make Artist appear selected while
+  the collection is actually sorted by title.
+- Keep an explicitly configured Roon zone locked when that endpoint goes
+  offline, showing its quiet unavailable state instead of borrowing playback
+  from another visible zone.
+- Use all available landscape space for six Home Assistant controls: two
+  full-height primary tiles beside a 2x2 group of the remaining four.
+- Explain under the Roon Bridge controls where Roon's per-output Fixed Volume
+  and Device Volume modes are configured, without pretending to alter the
+  server-owned setting from the endpoint.
+- Let the Home Assistant entity list wrap and grow over multiple lines while
+  preserving the existing comma-separated configuration format.
+- Refine OG7 Home controls so six entities fit above the footer, multi-line
+  labels remain centred, icons are larger, and scene activation briefly pulses
+  the whole tile in purple.
+- Add an optional Home page title setting; it can use custom wording or be left
+  blank while retaining the clock and controls.
+
+## 1.1.7-beta.13 Alpine — 23 October 2026
+
+- Keep unactivated Home Assistant scenes actionable when Home Assistant reports
+  their normal initial `unknown` state; only an explicit `unavailable` state now
+  disables a scene button.
+- Hide all previously selected BluOS inputs immediately when BluOS control is
+  disabled, while preserving those saved selections for a future re-enable.
+
+## 1.1.7-beta.12 Alpine — 23 October 2026
+
+- Add allow-listed Home Assistant scenes alongside lights, fans, switches and
+  input booleans while preserving the existing eight-entity display order.
+- Resolve scene friendly names through the existing server-side state poll and
+  activate them with `scene.turn_on`, without exposing Home Assistant tokens.
+- Present scenes as stateless touchscreen and web actions with immediate,
+  temporary Activated feedback, disabled unavailable states and no false toggle.
+
+## 1.1.7-beta.11 Alpine — 23 October 2026
+
+- Replace Browse Artist Albums' Search-preview route with a fresh
+  Library → Artists lookup, scanning the exact library collection and opening
+  only the selected artist's session-owned key.
+- Restore the black Play Now triangle on the Roon-theme Surprise Me screen;
+  the icon had inherited the same purple as its circular background.
+- Keep the touchscreen update status active on slower Raspberry Pi 3 hardware
+  until the updater itself reports progress, preventing an overlapping stale
+  `Ready` poll from replacing Queued/Downloading/Installing messages with the
+  version label and dropping back to slow polling.
+
+## 1.1.7-beta.10 Alpine — 23 October 2026
+
+- Centre both one-line and wrapped two-line labels at the base of Genre and
+  Playlist tiles across the supported display profiles.
+- Correct the original seven-inch Roon-theme selector so Browse Artist Albums
+  uses the bright accent background with black text.
+- Reject cross-artist album rows when a Roon Core returns the global album
+  collection underneath an artist heading, rather than presenting wrong albums.
+- Select Browse in the top Discover navigation whenever Browse Artist Albums is
+  opened from Now Playing, clearing any stale Surprise Me or New Releases state.
+
+## 1.1.7-beta.9 Alpine — 23 October 2026
+
+- Remove Roon-purple leakage from the Fresh Mint native interface, including
+  Surprise Me, play actions, album details, sort menus and volume controls,
+  while retaining explicit purple overrides throughout the Roon theme.
+- Restore the original-display Browse Artist Albums action to the same bright
+  purple background and black text used by the Roon theme on other displays.
+- Give the original-display top and side navigation labels more vertical
+  presence with 14px type and tighter tracking, keeping both menus consistent.
+- Re-resolve the selected artist in a fresh Roon session before opening one of
+  its albums, and reject any mismatched album response instead of displaying it.
+- Match playlist cards to genre tiles across landscape displays, with the name
+  inside the lower edge and a smaller, visually centred playlist symbol.
+- Apply the standard Browse sidebar alignment to the original-display Search
+  keyboard so its menu begins on the same baseline as every library page.
+
+## 1.1.7-beta.8 Alpine — 23 October 2026
+
+- Default completed Alpine installations without a saved status-light setting to
+  the documented off state, including devices upgraded from older releases.
+- Write the ACT/PWR boot parameters in an explicit `[all]` section so a preceding
+  model-specific section cannot silently scope them to the wrong Raspberry Pi.
+- Reapply the saved LED state after udev and the firmware LED driver have settled,
+  preventing their boot-time triggers from restoring the red and green lights.
+- Give every Album & Artist “Browse Artist Albums” action a fresh Roon browse
+  hierarchy, preventing a previous artist's retained album list appearing beneath
+  the newly selected artist.
+- Match original-display artist-album rows to the album track-list scale, using
+  the same 84px media tile, 20px title and 15px secondary text.
+- Keep the original-display Album & Artist sheet on one fixed page: clamp long
+  descriptions, suppress redundant encoded artist metadata, remove its scrollbar,
+  and use the standard purple/black Browse Artist Albums action styling.
+- Align the original-display Daily and Recent sidebars with Browse so Mixes/For
+  You and Added/Listened share the same top edge and usable viewport height.
+- Standardise original-display navigation typography at 13px across the top tabs
+  and left-side Browse, Daily and Recent controls.
+- Reset the configurable return-to-Now-Playing timer whenever Browse or Discover
+  actually scrolls, including kinetic gestures consumed below the window event
+  controller, so active browsing is no longer interrupted.
+- Fall back to Wikipedia artist summaries when MusicBrainz search or artist-detail
+  requests are temporarily unavailable, instead of displaying a false “no summary”.
+- Separate original and Touch 2 seven-inch genre symbols from their captions by
+  moving icons up and anchoring labels closer to the bottom of each tile.
+
+## 1.1.7-beta.7 Alpine — 22 October 2026
+
+- Expands and top-aligns the original-display Browse viewport across albums, artists, genres, playlists and their detail pages, with the sidebar, artwork grid and scrubber sharing one top edge.
+- Enlarges Album & Artist artwork to a 380px square with matching 20px left and bottom margins, and reduces the close glyph by 15%.
+- Rebalances original-display Now Playing artwork, tightens navigation underline spacing, and restores comfortable spacing between Surprise Me artwork and its album/artist captions.
+
+## 1.1.7-beta.6 Alpine — 22 October 2026
+
+- Enlarges the original 7-inch Now Playing artwork upward and rightward while preserving its bottom-left anchor.
+- Reduces the original-display music clock by 10%, removes the final Daily carousel edge gutter, and lowers the complete Surprise Me composition for better vertical balance.
+
+## 1.1.7-beta.5 Alpine — 22 October 2026
+
+- Cap Now Playing track titles at two lines with end ellipsis across every display size, preventing long names from pushing progress, transport and volume controls below the viewport.
+- Move the original 7-inch Surprise Me composition slightly lower and extend Daily carousels through the final scrollbar gutter so artwork visibly bleeds to the physical right edge.
+- Enlarge original 7-inch Now Playing artwork to 327 pixels while keeping its lower-left visual anchor.
+
+## 1.1.7-beta.4 Alpine — 22 October 2026
+
+- Correct the original-display Search rail alignment and give the alphabet scrubber enough width to show complete letters.
+- Make the compact artist summary and its albums one continuous scrolling list, and remove the stray Surprise rail item from nested artist-album routes.
+- Fit Surprise Me fully above navigation, let Daily carousels bleed to the right edge, and reduce compact Play Album/Artist/Mix controls.
+- Move Browse Artist Albums beneath the album write-up on the compact detail view and enlarge the source volume value and step controls.
+- Migrate completed older installations to the durable setup marker before the display restarts, preventing the first-boot wizard from flashing after an update.
+- Persist the disabled ACT/PWR LED triggers in `config.txt` as well as applying them live, so the preference survives the Pi firmware and kernel boot sequence.
+
+## 1.1.7-beta.3 Alpine — 22 October 2026
+
+- Recompose Original Display artist browsing as a compact horizontal artist header followed by a full-width album list, and enlarge Browse covers while reserving a real gutter for the alphabet scrubber.
+- Rebalance the Original Display clock, Daily carousel, equal-width New Releases grid, Surprise preview, album fact sheet, Now Playing volume row, source controls and Settings spacing.
+- Persist setup completion outside the transient wizard progress file so completed appliances never initialise the Welcome window during boot.
+- Reapply the saved Raspberry Pi LED preference whenever the privileged helper starts and report hardware write failures instead of silently claiming success.
+
+## 1.1.7-beta.2 Alpine — 22 October 2026
+
+- Give the original 800×480 Touch Display a dedicated density profile with a smaller, higher utility row, larger top navigation, compact shared left-rail rhythm, four-column New Releases and denser Browse, Daily, Genre, loading and Surprise layouts.
+- Keep the complete Now Playing layout allocated behind BlueOS source pages so returning to Roon cannot flash full-width transport controls while artwork loads.
+- Use one-percent BlueOS input volume steps, tint the RoonDeck wordmark correctly in Mint, and make the Raspberry Pi status-light switch control the Alpine hardware helper rather than merely changing saved UI state.
+- Skip the completed setup wizard before it creates a window, preventing the transient Welcome screen during slow Raspberry Pi 3 boots.
+
+## 1.1.6 Alpine — 21 October 2026
+
+- Rotate every libinput-classified touchscreen event node when the explicitly selected display profile is the original Raspberry Pi Touch Display, rather than relying on kernel-driver-specific device names.
+- Retain the name-scoped calibration rules for Touch Display 2 models so unrelated external touch devices remain untouched.
+
+## 1.1.5 Alpine — 21 October 2026
+
+- Restore the dominant 540px Now Playing cover on 1280-wide landscape touchscreens without changing the Original Display's 320px cover allocation.
+- Apply the saved 180° calibration matrix to both Original Touch Display driver variants (`raspberrypi-ts` and `ft5x06`) instead of targeting only Touch Display 2 hardware.
+- Add a visible **Next** key to the first-run on-screen keyboard; it advances through the current page's fields and dismisses the keyboard after the last field.
+- Add an Original Display-specific compact pass: smaller settings and clock controls, denser four-column Browse and three-column Discover artwork grids, and a larger Surprise Me preview.
+
+## 1.1.4 Alpine — 21 October 2026
+
+- Restore the intended Now Playing cover scale at every 7-inch landscape resolution: 320px at 800×480, 360px at 1024×600 and 440px at 1280×720, while retaining the fixed no-reflow artwork stage.
+- Allow the first-run wizard to apply 180° rotation to the Original Touch Display instead of rejecting it with the obsolete Alpine Beta restriction.
+
+## 1.1.3 Alpine — 21 October 2026
+
+- Promote the complete 1.1.3 touchscreen and controller refinement cycle to Stable, including responsive 7-inch landscape and 10-inch portrait layouts, consistent Roon violet styling, corrected navigation widths and improved touch targets.
+- Add richer Recent, Browse, Daily, New Releases and Surprise workflows with preserved browsing state, configurable return-to-Now-Playing behaviour and stable alphabet scrubbing.
+- Rework Album & Artist details for portrait and landscape, with clearer typography, balanced metadata, artwork-based close targets and a single fixed Browse Artist Albums action.
+- Add prominent, consistent final Play actions; one-percent volume steps; larger brightness interaction; optional touchscreen Bus Times controls; and better settings layouts at every supported viewport.
+- Stabilise Now Playing artwork allocation while restoring its intended scale, retain the painted square until a replacement cover is ready, prevent transport reflow and artwork flashes during loading, and extend the startup wordmark hold.
+- Publish a fully verified ARM64 Alpine image for clean installations, including the Original Touch Display profile requested for Raspberry Pi 3 B+ acceptance testing.
+
+## 1.1.3-beta.49 Alpine — 21 October 2026
+
+- Rebalance primary Play pills with less space before the triangle, retained trailing space, larger text and clearer separation from album metadata.
+- Increase prominent Play action sizing modestly on larger displays.
+- Give Surprise Me and Play Now matching circular controls with more space between each symbol and caption.
+- Hold the RoonDeck startup wordmark for at least 2.5 seconds before showing the ready interface.
+
+## 1.1.3-beta.48 Alpine — 21 October 2026
+
+- Restore the 7-inch landscape Now Playing cover to a responsive square up to 440px while retaining a fixed pre-load allocation that prevents transport controls from jumping.
+- Give the 10-inch portrait Now Playing cover and artist line more breathing room before the metadata and seek controls.
+- Let either artwork panel close Album & Artist details, matching the existing close X behaviour.
+- Enlarge definitive Play glyphs and track-row Play targets, with slightly wider primary-action pills.
+- Restore action-menu Play Now to the original rectangular menu geometry while preserving its purple primary treatment and leaving Queue, Add Next and Start Radio unchanged.
+
+## 1.1.3-beta.47 Alpine — 21 October 2026
+
+- Apply the selected soft-pill treatment to prominent playback actions: filled Roon purple for Play and a quiet outlined treatment for Queue.
+- Replace the outlined Play glyph with a larger solid black triangle on Play Album, Play Artist, Play This Mix and Surprise Me.
+- Carry the pill geometry into final Play commands in action menus while retaining the existing hierarchy of secondary actions.
+- Tighten the 7-inch landscape Album & Artist header—especially below the heading—and enlarge the album write-up for easier reading.
+
+## 1.1.3-beta.46 Alpine — 21 October 2026
+
+- Reserve the Now Playing artwork square before a cover has downloaded or decoded so the transport controls no longer jump when returning from another input.
+- Use identical title-to-write-up spacing in both Album & Artist columns and suppress empty subtitle rows that previously offset the album copy.
+- Increase the close X inside its existing purple circle and restore it to white for clearer contrast without changing the touch target.
+
+## 1.1.3-beta.45 Alpine — 21 October 2026
+
+- Change the Now Playing volume step buttons to one-percent increments.
+- Give conclusive Play Album, Play Artist, Play This Mix, Play Now and equivalent action-menu commands a purple primary treatment with black iconography and text.
+- Align artist and album detail copy as title, write-up, source and then recessed facts, while removing the repeated artist line from the portrait album column.
+- Enlarge and rebalance the Album & Artist header, retaining a larger touch target around a smaller gray close glyph.
+- Carry the identity and typography improvements into 7-inch landscape, including a larger album label/title and the artist beneath it.
+
+## 1.1.3-beta.44 Alpine — 20 October 2026
+
+- Keep the alphabet scrubber visible and usable after sorting Albums by title or artist.
+- Resume the last Discover/Browse screen instead of resetting to Recently Added.
+- Apply the configured browsing timeout consistently while album and artist details are open.
+- Restore the aligned Album & Artist heading, simplify the sort menu treatment, and highlight the selected sort.
+- Add accessible two-percent volume-down and volume-up touch targets beside the Now Playing volume slider.
+
+## 1.1.3-beta.43 Alpine — 19 October 2026
+
+- Fix Discover and Browse returning to Now Playing immediately when the display inherited an older general inactivity timestamp.
+- Start a dedicated browsing inactivity countdown whenever browsing opens and reset it on every touchscreen contact.
+- Add the independent **Return browsing to Now Playing after** setting to Web Admin → Automation, including an option to keep browsing open.
+- Compact landscape touchscreen settings by removing the redundant Bus Times heading and shortening its visibility control.
+
+## 1.1.3-beta.42 Alpine — 19 October 2026
+
+- Reworked album and artist details to use the available touchscreen space, remove redundant headings, rules, repeated artist text and track snippets, and improve portrait and 7-inch landscape readability.
+- Enlarged the fixed **Browse Artist Albums** action and artist-album rows, with a transparent outlined close control and more legible album copy and metadata.
+- Retry temporarily missing artist biographies, return an idle browser to Now Playing after one minute without discarding its browse position, and group native Bus Times controls together below Daily Controls.
+
+## 1.1.3-beta.41 Alpine — 18 October 2026
+
+- Rebuilt the 7-inch landscape Album & Artist sheet around one large album cover and a readable album-and-artist write-up, removing the cramped duplicate artist column.
+- Made the close control truly circular, aligned artwork and headings to the same content margins, and gave the fixed action button a consistent bottom inset.
+- Made every visible bottom-navigation destination occupy an equal share of the row, including the three-item layout.
+- Added the Bus Times visibility control to the physical touchscreen's Settings → Display section while retaining the existing web-admin service controls.
+
+## 1.1.3-beta.40 Alpine — 18 October 2026
+
+- Keep Now Playing, Discover, Bus Times and Home in equal-width touchscreen navigation slots, including the three-item layout when Bus Times is hidden.
+- Move the optional Bus Times visibility control to Display settings while retaining stop and service configuration under Services.
+- Refine the Album & Artist sheet with balanced portrait columns, a dedicated compact landscape layout, a prominent circular close control and one fixed Browse Artist Albums action.
+- Increase the brightness slider's physical touch target for larger portrait touchscreens.
+
+## 1.1.3-beta.39 Alpine — 12 October 2026
+
+- Reads Wi-Fi signal and link speed from NetworkManager on every supported image and removes the low-value interface card from Settings.
+- Adds a non-installing release check at 03:00 each day; available updates remain user-controlled in Settings.
+- Restores the homepage hardware artwork, improves the inset mobile hero crop and gives mobile setup steps their own number-heading row.
+- Turns Supported hardware and Technical details into compact accordions, moves the optimisation note above them and removes the first-boot section.
+- Uses the configured Resend recipient for feedback notifications and records delivery failures in deployment logs.
+
+## 1.1.3-beta.38 Alpine — 11 October 2026
+
+- Shows a running or boot-enabled AirPlay receiver in Diagnostics and adds interface, address, signal and link-speed details for the connected network.
+- Tightens the Settings masthead, gives the AirPlay-name action breathing room, and expands the mode controls to two equal columns when Bus Times is disabled.
+- Renames the display backgrounds to Purple Gradient and Pure Black.
+- Removes the redundant homepage hero buttons and moves the Getting Started number spine to 25% of the content width.
+- Connects the website feedback form to a small production Neon database so messages can be submitted reliably.
+
+## 1.1.3-beta.37 Alpine — 11 October 2026
+
+- Split web Settings → Services into focused Roon Display, BluOS, Roon Bridge and AirPlay panels, and lighten the Settings title weight.
+- Add a guided playback and endpoint section to the website with white Roon, BluOS and AirPlay marks.
+- Align the extra-feature screenshots, tighten the setup-step columns and keep the hardware headline on a cleaner desktop line.
+- Preserve the full landscape-and-portrait hero composition on mobile and centre its calls to action.
+- Add a quiet, spam-resistant suggestions form backed by a small Neon table, with optional email delivery.
+- Match the microSD illustration outline weight to the Raspberry Pi and touchscreen drawings.
+
+## 1.1.3-beta.36 Alpine — 11 October 2026
+
+- Reframe the mobile hero to keep the complete landscape RoonDeck visible alongside a clear crop of the portrait unit.
+
+## 1.1.3-beta.35 Alpine — 11 October 2026
+
+- Enlarge and recrop the mobile hero so the complete landscape RoonDeck is the dominant product while the portrait unit is cropped away.
+
+## 1.1.3-beta.34 Alpine — 11 October 2026
+
+- Reverse the mobile hero crop so the landscape RoonDeck remains fully visible and the portrait display crops at the right edge.
+- Restore the complete Home Assistant tree mark without relying on an SVG mask that fails in mobile Safari.
+- Show the supplied album-cover grid for Browse your library and remove the duplicate divider below AirPlay.
+
+## 1.1.3-beta.33 Alpine — 11 October 2026
+
+- Run the mobile hero image full width while preserving the copy, image and action sequence.
+- Remove the duplicate divider below Display & settings.
+- Shorten the mobile hardware headline, keep setup headings plain with quiet links in their copy, and remove the glyph from the Roon URL.
+
+## 1.1.3-beta.32 Alpine — 11 October 2026
+
+- Recompose the mobile website hero into a clear copy, product image and action sequence.
+- Centre the hardware plus connectors precisely between stacked mobile cards.
+- Present only the Pi 4-or-newer recommended setup, with Pi 3 and 1GB retained as minimum support details rather than buying guidance.
+
+## 1.1.3-beta.31 Alpine — 11 October 2026
+
+- Replace the repeated website feature gallery and summary cards with one accessible, interactive journey ordered from Now Playing through browsing and discovery.
+- Separate the optional Roon Bridge and AirPlay endpoint choices into their own section.
+- Give the public website a distinct white favicon with a purple “r” and black “D”, while retaining the existing web Settings favicon.
+
+## 1.1.3-beta.30 Alpine — 11 October 2026
+
+- Add an optional classic AirPlay audio endpoint using Alpine's maintained Shairport Sync package, with install, naming and service controls in onboarding and web Settings.
+- Align the web Settings wordmark, title and version on one compact baseline to match the touchscreen interface.
+- Restructure the website around browsing, optional audio endpoints, hardware and a clearer linked setup sequence.
+- Strengthen the experimental Roon warning, correct the Home Assistant mark, recommend 16GB+ storage and add the current Settings screenshot.
+- Refresh the website with the latest Daily, Genres, Now Playing, album-detail and Surprise Me captures, and distinguish its white favicon from the purple web Settings icon.
+- Keep the three remaining bottom-navigation items exactly centred and equally weighted when Bus Times is disabled.
+
+## 1.1.3-beta.29 Alpine — 11 October 2026
+
+- Tighten the space above and below Settings diagnostics in every supported layout.
+- Restore breathing room between the landscape Background controls and bottom action row.
+- Reduce the Settings title to a medium weight that better matches the supplied Deck wordmark.
+
+## 1.1.3-beta.28 Alpine — 11 October 2026
+
+- Fix Screen Preview captures racing the display wake-up and page navigation sequence.
+- Wake and redraw the physical display before capture, then retry transient blank frames across later GTK frames.
+- Preserve the previous good preview until a visible replacement has been captured.
+
+## 1.1.3-beta.27 Alpine — 11 October 2026
+
+- Place the RoonDeck wordmark, Settings title and version on one explicit shared text baseline across portrait and landscape layouts.
+- Add a compact vertical gap between the identity row and diagnostics on 7-inch layouts, with slightly more room on larger displays.
+- Add native visual assertions for exact title/version baseline equality and wordmark baseline alignment at every tested settings viewport.
+
+## 1.1.3-beta.26 Alpine — 11 October 2026
+
+- Retries interrupted verified-source downloads and reports the actual network or archive failure instead of a generic preparation message.
+- Repairs the native Settings smoke check for GTK's supported size-request API.
+- Runs real application staging and rollback immediately after the appliance runtime check, before slower visual review steps.
+
+## 1.1.3-beta.25 Alpine — 11 October 2026
+
+- Consolidates RoonDeck’s Roon-theme accent colour around the approved brand violet (`#9868F9`) across the native touchscreen, web settings, Screen Preview, sign-in, Home controls, setup wizard, Roon controller and public website.
+- Keeps dark tonal surfaces for depth while removing competing violet accents from links, selected tabs, controls, icons and focus states.
+- Refreshes web asset versions so browsers do not retain the older purple palette.
+- Constrains the Settings wordmark to its true SVG width, tightens its gap to the title, and aligns the wordmark, title and version on one visual baseline.
+
+## 1.1.3-beta.24 Alpine — 11 October 2026
+
+- Applies the final supplied RoonDeck SVG identity consistently to the appliance, Settings, setup wizard, web GUI, website, favicons and launcher icon.
+- Constrains the native Settings wordmark to the original title area, aligned with and visually matched to the Settings heading across supported display layouts.
+- Refines the website information architecture: Roon Bridge/RAAT now sits with the Roon features; Home Assistant and Netdata use linked white brand marks; and the Roon feature summary becomes a full-width purple gradient band.
+- Simplifies the hardware introduction to “Everything you need to build a RoonDeck.” and improves the API notice and feature-band responsive layouts.
+- Replaces download glyphs with a consistent SVG icon and labels download actions with the current stable image version.
+
+## 1.1.3-beta.23 Alpine — 10 October 2026
+
+- Rolls out the supplied RoonDeck vector identity across the touchscreen, first-run setup, web settings, browser pages, launch metadata, favicons and public website.
+- Adds the approved independent-project descriptor and legal disclaimer, while preserving existing internal service and configuration paths for upgrade compatibility.
+- Documents optional Roon Bridge support as a RAAT endpoint and renames the Roon extension to RoonDeck without changing its pairing identifier.
+- Compacts landscape Settings by using `THEME` and `BACKGROUND` as the only appearance headings, eliminating the duplicated labels that could overflow the viewport.
+
+## 1.1.3-beta.22 Alpine — 10 October 2026
+
+- Rebrands the touchscreen Settings header from Pi Home to RoonDeck.
+
+## 1.1.3-beta.21 Alpine — 10 October 2026
+
+- Render Screen Preview captures into an independent Cairo image surface before attempting GPU/KMS readback, avoiding Raspberry Pi fullscreen capture stalls, and expose the precise renderer failure when capture still fails.
+
+## 1.1.3-beta.20 Alpine — 10 October 2026
+
+- Makes Screen Preview resilient across GTK/KMS renderer combinations by falling back from the live parent snapshot to a fresh widget snapshot and a capture-only Cairo renderer.
+- Keeps the previous preview unchanged when every validated rendering path genuinely fails, rather than replacing it with an empty or black frame.
+
+## 1.1.3-beta.19 Alpine — 9 October 2026
+
+- Reworks the native Album & Artist fact sheet into a clean full-screen two-column layout with larger headings, circular SVG close control, richer artist facts and direct Browse Artist / Artist Albums actions.
+- Adds a deliberately reduced fact-sheet layout for 800×480 landscape displays, keeping both artworks, useful facts, short summaries and actions readable without the previous oversized crop.
+- Corrects the track play menu anchor and touch sizing on compact landscape screens, keeps its cursor hidden, aligns its grays with the shared palette and prevents album art flashing when it closes.
+- Improves metadata coverage by following safe Wikipedia redirects, handling initialled artist names, trying artist-qualified album pages, accepting decisively ranked duplicate-name artists and allowing more realistic lookup times; blank artist results are no longer cached after transient failures.
+- Keeps Browse’s secondary navigation in exactly the same position when Search opens.
+- Moves Background beside Theme under Appearance on every settings layout.
+- Extends Screen Preview to open Settings, Album & Artist, Search and deeper Browse categories before capturing the physical display.
+
+## Unreleased Alpine
+
+- Disables Wi-Fi power saving in the Alpine image and on Wi-Fi profiles created by setup, preventing the severe local-network latency spikes observed with Roon Discover.
+- Keeps album write-ups to a concise two-sentence preview with Wikipedia attribution and Bandcamp fallback.
+
+## 1.1.3-beta.18 Alpine — 8 October 2026
+
+- Implements the full-screen artist-and-album fact sheet in the native GTK touchscreen actually used by Alpine, rather than only in the separate browser interface.
+- Adds a fixed close button, solid black full-screen takeover, independent artist and album artwork, the full album write-up, artist biography, release facts and track list.
+- Adds a 1200×1920 native visual acceptance check that verifies the fact sheet covers the physical display edge to edge and exposes its close control.
+
+## 1.1.3-beta.17 Alpine — 8 October 2026
+
+- Makes the album-and-artist fact sheet a true full-screen view with an explicit close button, two balanced information columns and no hidden navigation behind it.
+- Adds compact touchscreen controls for Netdata and the gradient/black background alongside Roon Bridge, with roomier settings spacing, a larger brightness target and dark dropdown menus.
+- Restores the portrait bus `ROUTE` label to white and enlarges the muted `min` labels beside later arrivals.
+
+## 1.1.3-beta.16 Alpine — 8 October 2026
+
+- Verifies that the separately served Roon controller is running the exact staged revision before an update can report success.
+- Prevents the touchscreen browser from reusing an earlier artwork page, script or stylesheet after an application update.
+- Makes Netdata Cloud reconnection use the installed Agent instead of unnecessarily running the full Agent installer again.
+- Enlarges portrait route and later-arrival numerals, quietens supporting time labels, and omits empty arrival placeholders.
+
+## 1.1.3-beta.15 Alpine — 8 October 2026
+
+- Adds a standalone Netdata installer to Tools when the Agent is absent, with live progress and failure text; Cloud connection remains an optional second step.
+- Reworks the tapped Now Playing artwork view into a responsive fact sheet with separate artist portrait and biography plus album cover, full album write-up, release facts and track list.
+
+## 1.1.3-beta.14 Alpine — 8 October 2026
+
+- Loads identity-checked Wikipedia album summaries before the slower MusicBrainz enrichment path, so a MusicBrainz timeout cannot suppress a valid summary.
+- Stops caching blank album-summary responses, allowing transient network failures to recover on the next album view instead of persisting until restart.
+
+## 1.1.3-beta.13 Alpine — 8 October 2026
+
+- Retrieves album summaries directly from a matching Wikipedia album page when MusicBrainz has no explicit article link, while rejecting unrelated and disambiguation results. This covers `(What's the Story) Morning Glory?` and other well-known albums that previously showed an unavailable message.
+- Refines the album sort popover with sentence-case labels, no broken arrow glyph or sticky selection, an immediate sorting state, inset spacing and consistent menu styling.
+- Offsets track-action popovers from the play tile so they align cleanly with track text and do not leave a focused action highlighted.
+- Correctly migrates Alpine's packaged Netdata agent to the official stable static agent before claiming it, using the current installer flags, explicit reinstalls for upgrades and package rollback when migration fails.
+
+## 1.1.3-beta.12 Alpine — 8 October 2026
+
+- Replaces the unreliable native album sort dropdown with the same high-contrast popover styling used by track actions. Offers full-library title A–Z, title Z–A and artist A–Z sorting on large portrait displays.
+- Keeps the Browse secondary navigation visible above the on-screen search keyboard, so another section is always one tap away.
+- Shows a visible loading, sourced summary or explicit unavailable state on album and artist pages. Retries common remaster, deluxe and anniversary titles against their base album names.
+- Clears an opened Daily mix when switching to For You, so the selected tab and displayed content cannot disagree.
+- Matches Home Controls card corners to Bus Times and increases the spacing between Home panels.
+- Keeps the last valid touchscreen settings during the API/display boot race and retries both display and backend settings loads automatically instead of temporarily applying defaults.
+- Release-date sorting remains unavailable because Roon's public Browse album rows do not expose release dates.
+
+## 1.1.3-beta.11 Alpine — 8 October 2026
+
+- Adds optional per-device RGB white balance to the main GTK touchscreen window, with persistent configuration outside application releases. Missing or invalid profiles preserve original colours.
+- Adds measured-gain activation/reset instructions and real GTK pixel checks. Uses the first practical correction selected by the owner; no claim of full ICC calibration.
+- Includes beta.10 UI improvements. Physical V3D/touchscreen acceptance remains required.
+
+## 1.1.3-beta.10 Alpine — 8 October 2026
+
+- Enlarges Home control labels and states, with a white Home Controls heading.
+- Aligns portrait music headers with Bus Times and prevents Back from shifting Browse tabs.
+- Uses finer strokes for large genre/playlist icons and top-aligned square genre navigation cards.
+- Adds full-collection title and artist sorting on large portrait album browsers; Roon does not expose date sorting.
+- Loads source-labelled Wikipedia/Bandcamp album notes asynchronously through MusicBrainz links when available.
+- Makes the touch spring slightly stronger while retaining clipping and exact settling.
+- Highlights only the playing queue track, with a larger filled play marker that adapts to artwork brightness.
+
+## 1.1.3-beta.9 Alpine — 8 October 2026
+
+- Adds Display → Appearance → Screen background: Current or Pure black across all physical display pages, with no reboot required.
+- Uses a 1200px loading-disc placeholder on Now Playing instead of magnifying the 256px thumbnail asset.
+
+- Sizes genre and playlist icons to their cards, adds genre caption padding and consistent space below Browse tabs.
+- Refines track action pop-up alignment, shadow and action spacing; strengthens static gradient dithering.
+- Artist links search only artist results and use the same response deadline as other multi-step Browse operations.
+- Refines portrait route badge weight and arrival spacing without changing landscape bus layouts.
+- Album reviews remain optional: displayed only when Roon supplies review metadata.
+
+## 1.1.3-beta.8 Alpine — 8 October 2026
+
+- Implements the approved portrait-only bus layout: coloured route badge, prominent next arrival, divider and THEN with two following arrivals.
+- Fits text to portrait screen/card budgets, bounds Due and long arrival values, and displays dashes for missing predictions. Keeps the existing landscape bus layout unchanged.
+- No changes to display capture, touch, GPU or network configuration. Physical touchscreen acceptance remains required.
+
+## 1.1.3-beta.7 Alpine — 8 October 2026
+
+- Captures the current page through its parent and exports with the live display renderer instead of a separate Cairo renderer, preserving GPU-backed content.
+- Rejects black or transparent captures with an inline error instead of reporting successful preview updates. Keeps the previous successful screenshot.
+- Adds an OpenGL capture regression check alongside native layout verification. Physical Pi acceptance remains required; no boot, rotation or network changes.
+
+## 1.1.3-beta.6 Alpine — 8 October 2026
+
+- Replaces the confusing Diagnostics preview controls with a dedicated Screen Preview page. Section buttons and a Discover-view dropdown lead to searchable browse results; tap an album/track to open it without separate Load/Open steps.
+- Waits for a request-matched native display acknowledgement before updating results and automatically capturing the screen. Shows loading/errors inline rather than in the settings save banner.
+- Uses asynchronous screenshot tickets and short status requests. Keeps the last successful image and timestamp when capture fails, with a download link and manual refresh.
+- Separates playback actions from browsing and requests explicit confirmation before running them. Protects preview APIs with settings authentication and restricts display acknowledgements to local, non-forwarded requests.
+- Beta only; no changes to bus sizing, live GPU acceleration, rotation or network configuration. Physical-Pi screenshot acceptance remains required.
+
+## 1.1.3-beta.5 Alpine — 8 October 2026
+
+- Doubles arrival numeral sizing on large portrait bus layouts while preserving the compact-screen limits.
+- Replaces the backend's browse button grid with a dropdown and explicit Open button; adds Albums, Artists, Genres and Playlists section buttons.
+- Uses a dedicated Cairo screenshot renderer, leaving live display GPU acceleration unchanged. Extends capture/delivery timeouts and logs delivery errors rather than silently dropping them. Physical-Pi acceptance remains required.
+- Beta only; does not alter boot configuration, touch rotation or Wi-Fi.
+
+## 1.1.3-beta.4 Alpine — 8 October 2026
+
+- Restores rounded gray track play tiles with purple triangles and anchors dark, themed playback menus beside the selected row.
+- Adds backend album/browse preview navigation and a six-image screenshot history under System → Diagnostics. Captures remain in browser memory, with downloadable PNGs; opening playback actions still requires an explicit click.
+- Includes the visible track popover in GTK display capture.
+- Replaces the short repeating dither pattern with a larger irregular static texture. Banding still requires physical-panel validation; this is not a confirmed hardware fix.
+- Beta only; working GPU, touch rotation, and network settings are unchanged.
+
+## 1.1.3-beta.3 Alpine — 8 October 2026
+
+- Adds a subtle static dither over the existing Roon gradient to reduce colour banding; physical-panel acceptance is still required.
+- Fixes overwritten portrait bus-route sizing, enlarges route/due numerals on 10-inch displays and uses lighter large route and Watch TV numerals.
+- Uses white, larger plus/minus glyphs in round gray Watch TV buttons.
+- Clips elastic paint nodes to their damage bounds and resets springs when replacing content, addressing possible stale animation strips. Adds a 10px clearance below browser/Discover scrollers.
+- Removes unused alphabet-rail space in search cover grids; shifts the scrubber right and enlarges its 10-inch letter. Reduces large Back buttons about 10–12% while retaining label size.
+- Enlarges Artist Albums and Daily recommendation labels.
+- Adds one album cover/header with artist navigation and track play icons instead of repeated artwork. Shows the core's playback-action menu in a touch popover. Displays review text only if actually supplied by the core; the public Browse contract does not guarantee reviews.
+- Adds exact-match artist-link resolution and album/action metadata tests. Wi-Fi throughput remains under hardware diagnosis; no unverified network changes are applied.
+- Beta only. Does not change the user's working boot GPU configuration or touch rotation.
+
+## 1.1.3-beta.2 Alpine — 7 October 2026
+
+- Fetches Surprise Me artwork at 900px instead of stretching the shared 256px thumbnail; keeps the scrolling cache small.
+- Corrects settings font specificity: larger title, version, diagnostics, Back/Sleep, bus labels and theme choices on 10-inch displays.
+- Adds 5px menu-label padding, slightly enlarges cog/clock and nudges the 10-inch music header up 3px.
+- Enlarges Watch TV volume numerals and Mute, with purple-on-gray Roon increment controls.
+- Preserves the enlarged play/pause icon through playback refreshes; retains a record-cover placeholder even after repeated artwork failures.
+- Centers portrait volume at 88% width, with more spacing above volume and below it before Mute.
+- Decodes scrolling thumbnails and large preview artwork in workers rather than blocking touch frames. Synchronizes elastic springs to the widget frame clock, avoids rebuilding unchanged play icons and throttles alphabetical scroll scans. Actual Pi rendering performance still requires hardware diagnosis; no refresh-rate or gradient-banding fix is claimed.
+- Beta only; stable and working touch rotation remain unchanged.
+
+## 1.1.3-beta.1 Alpine — 7 October 2026
+
+- Connects authenticated web Wi-Fi/name controls to the Alpine helper; permits validated network/name changes after onboarding and allows time for Wi-Fi association.
+- Enlarges 10-inch labels, transport controls, mute/back/settings buttons, album-track artwork and artist portrait. Moves portrait mute below the volume slider and separates top-menu items.
+- Removes excess expansion above artist albums and enlarges the 10-inch Surprise Me artwork/actions while preserving smaller display sizes.
+- Bounds artwork visibility scans during scrolling instead of running them on every motion event; no panel refresh-rate claim is made.
+- Retains the user-confirmed 10-inch touch correction from 1.1.2. Beta only pending physical layout, Wi-Fi and scrolling acceptance.
+
+## 1.1.2 Alpine — 7 October 2026
+
+- Corrects rotated touch on the 10-inch Touch Display 2: target its Ilitek `ili_v3` input device, not only the Goodix controller used by the smaller panels.
+- Preserves existing 7-inch calibration, clears compositor output mapping to avoid double rotation, and logs input names for hardware diagnosis.
+- Apply the update, then reboot manually to reload touch calibration before Cage starts. Physical finger-input acceptance remains required.
+
+## 1.1.1 Alpine Stable — 7 October 2026
+
+- Promotes the verified beta.18 application and full Raspberry Pi 5 ARM64 appliance image to the Stable channel, without further UI or interaction changes.
+- Includes unified iconography, button-local library/favourite pulse feedback, 30 previous queue tracks, responsive layout refinements and elastic touch-scroll boundaries.
+- Existing Alpine installations update through the Stable updater without reflashing; a full image with checksum and source/package manifests is provided for fresh installs.
+
+## 1.1.1-beta.18 — 7 October 2026
+
+- Packages the beta.17 application as a full ARM64 Alpine appliance image for fresh Raspberry Pi 5 flashing, with checksum and exact source/package manifests.
+- Updates fresh-image Daily validation to check aligned heading/title context without the intentionally removed duplicate seed cover, plus the 30px carousel trailing margin.
+- Preserves the application UI, 30-track history, library-button pulse and prior display refinements.
 
 ## 1.1.1-beta.17 — 7 October 2026
 
@@ -102,12 +1105,6 @@
 - Preserves genre SVG keyline detail instead of loading outlines as solid symbolic masks. Removes the duplicate diagnostics divider.
 - Adds real GTK capture coverage and useful capture-failure logging.
 - Beta commits run backend, controller, update-safety and native layout checks without creating a disk image. Full image construction is an explicit workflow option for stable releases or image testing; existing updater verification remains compatible.
-## 1.1.1-beta.4 — 7 October 2026
-
-- Add a separate Raspberry Pi OS Lite Trixie ARM64 installer with dedicated seatd/Cage/GTK services, recoverable first boot/root expansion and native official Roon Bridge. Alpine is unchanged.
-- Stage application-only updates with readiness checks and rollback; retain persistent configuration and Roon data. OS package/service-profile changes require tested maintenance.
-- Add an RSS/PSS A/B collector, optional modest zram, regression tests and exact installation/hardware test instructions.
-- Experimental: Pi hardware validation, precise UI/Roon timing spans and the complete flashable image pipeline remain outstanding.
 
 ## 1.1.1-beta.3 — 6 October 2026
 
@@ -125,13 +1122,6 @@
 - Matches the portrait Discover sketch: Settings and Sleep icons flank the primary tabs on one row; subsections remain directly below, with larger three-column Browse artwork and a compact alphabet rail.
 - Adds theme-coloured pulsing loading dots for Browse/Discover. Animation runs only while the loading view is visible.
 - Retains the 1.1.0 responsive display, configurable discovery grids, library/favourites, diagnostics, mobile bus, Home-icon and lightweight Netdata improvements. Stable releases remain unchanged.
-
-## 1.1.0 Raspberry Pi OS — 6 October 2026
-
-- Brings Raspberry Pi OS to shared Alpine UI feature parity: responsive portrait/landscape layouts, separate orientation and mounting rotation, improved Settings, library/favourite state, configurable Discover grids, mobile bus cards, Home icons, theme loading and diagnostics/capture shortcuts.
-- Retains Raspberry Pi OS systemd/Cage installation and tagged updater. Release selection excludes Alpine builds on both Stable and Beta channels.
-- Adds Raspberry Pi OS backend official Netdata installation, Cloud connection, lightweight profile and optional Roon Bridge/system-tools installation. Existing configuration and pairing are retained.
-- Applying display settings now restarts the Pi automatically; Roon endpoint controls are hidden when not installed.
 
 ## 1.1.0 Alpine — 6 October 2026
 

@@ -1,0 +1,10 @@
+{
+  "viewports": [
+    {"id": "touch-v1-landscape", "width": 800, "height": 480, "primary": true},
+    {"id": "touch-v1-portrait", "width": 480, "height": 800, "primary": true},
+    {"id": "touch-v2-7-landscape", "width": 1280, "height": 720, "primary": true},
+    {"id": "touch-v2-7-portrait", "width": 720, "height": 1280, "primary": true},
+    {"id": "touch-v2-10-landscape", "width": 1920, "height": 1200, "primary": true},
+    {"id": "touch-v2-10-portrait", "width": 1200, "height": 1920, "primary": true}
+  ]
+}

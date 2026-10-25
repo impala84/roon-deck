@@ -4,26 +4,28 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 import base64
+import io
 import subprocess
 import uuid
 from unittest.mock import Mock
 
+from native_source import display_modules, method_source, native_text, python_tree
 
-SOURCE = Path(__file__).parents[1] / "native-display" / "pi_bus_native.py"
+
+SOURCE = Path(__file__).parents[1] / "native-display" / "roondeck_native.py"
 
 
 def native_method(name, dependencies=None):
-    tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
-    method = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == name)
+    for source in display_modules():
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        method = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == name), None)
+        if method:
+            break
+    else:
+        raise LookupError(name)
     namespace = dict(dependencies or {})
-    exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), "exec"), namespace)
+    exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), "exec"), namespace)
     return namespace[name]
-
-
-def measured_browser_rails():
-    def rail(width, visible=True):
-        return SimpleNamespace(get_visible=lambda: visible, measure=lambda *_: (width, width, -1, -1))
-    return SimpleNamespace(browser_sidebar=rail(137), browser_discovery_sidebar=rail(137, False), browser_scrubber=rail(92))
 
 
 class Entry:
@@ -37,6 +39,119 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_release_period_uses_year_only_and_never_invents_one(self):
+        period = native_method("release_period_label", {"re": __import__("re"), "datetime": __import__("datetime").datetime})
+        self.assertEqual(period("2008-04-14"), "2008")
+        self.assertEqual(period("2008-04"), "2008")
+        self.assertEqual(period("2008"), "2008")
+        self.assertEqual(period(""), "")
+
+    def test_release_type_uses_metadata_with_a_safe_album_fallback(self):
+        release_type = native_method("release_type_label")
+        self.assertEqual(release_type({"type": "single"}), "SINGLE")
+        self.assertEqual(release_type({"format": "full-length"}), "LP")
+        self.assertEqual(release_type({"type": "promo"}), "PROMO")
+        self.assertEqual(release_type({}), "ALBUM")
+
+    def test_interface_scaling_reflows_size_dependent_layouts(self):
+        code = native_text()
+        self.assertIn('GLib.idle_add(self.adapt_display)', code[code.index('def change_interface_size'):])
+
+    def test_saved_interface_scaling_reflows_after_config_load(self):
+        code = native_text()
+        apply = code.split('    def apply(self, target, status, roon, config, system, device, image_key, image):', 1)[1].split('    def ', 1)[0]
+        self.assertIn('previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")', apply)
+        self.assertIn('if config.get("interface_size", "standard") != previous_interface_size:', apply)
+        self.assertIn('GLib.idle_add(self.adapt_display)', apply)
+
+    def test_artist_catalogue_request_keeps_the_standard_browse_deadline(self):
+        timeout = native_method("browser_request_timeout")
+        self.assertEqual(timeout("artist"), 35.0)
+        self.assertEqual(timeout("search"), 35.0)
+        self.assertEqual(timeout("open"), 15.0)
+        self.assertEqual(timeout("back"), 4.0)
+
+    def test_merged_artist_routes_do_not_trigger_hidden_grouped_search_layout(self):
+        code = native_text()
+        self.assertIn('grouped_results = bool(data.get("search_routes")) and not data.get("artist_profile")', code)
+
+    def test_artist_hero_pixel_fade_is_opaque_above_the_fade_and_transparent_at_the_edge(self):
+        fade = native_method("fade_rgba_pixels")
+        source = bytes([20, 40, 60] * 5)
+        output, stride = fade(source, 1, 5, 3, 3, .4)
+        self.assertEqual(stride, 4)
+        self.assertEqual([output[row * stride + 3] for row in range(5)], [255, 255, 255, 128, 0])
+        self.assertEqual(output[0:3], bytes([20, 40, 60]))
+
+    def test_both_seven_inch_artist_heroes_use_the_taller_gradual_fade(self):
+        code = native_text()
+        self.assertIn("hero_width = 304 if original else", code)
+        self.assertIn("hero_ratio = .66 if original else .68", code)
+        self.assertIn("hero_height = round(hero_width * hero_ratio)", code)
+        self.assertIn('hero_ratio = .66 if getattr(self, "original_landscape", False) else .68', code)
+        self.assertIn("target_ratio = 1 / hero_ratio", code)
+        self.assertIn("fade_start_ratio=.52", code)
+
+    def test_bottom_navigation_holds_the_selected_page_until_backend_confirmation(self):
+        code = native_text()
+        self.assertIn('self.pending_mode = mode; self.pending_mode_started_at = started', code)
+        self.assertIn('time.monotonic() - self.pending_mode_started_at < 3', code)
+        self.assertIn('desired = self.pending_mode', code)
+
+    def test_home_scene_feedback_centres_labels_and_pulses_the_whole_tile(self):
+        code = native_text()
+        self.assertIn('name.set_justify(Gtk.Justification.LEFT if portrait else Gtk.Justification.CENTER)', code)
+        self.assertIn('button.scene_tile = box', code)
+        self.assertIn('button.scene_tile.add_css_class("activated")', code)
+        self.assertIn('button.scene_tile.remove_css_class("activated")', code)
+        self.assertIn('.theme-roon .home-tile.activated', code)
+        self.assertIn('box.add_css_class("home-domain-switch" if domain == "input_boolean" else f"home-domain-{domain}")', code)
+        self.assertIn('def apply_home_colors(self, config):', code)
+
+    def test_decoded_thumbnail_only_updates_widgets_on_ui_thread(self):
+        picture = SimpleNamespace(set_paintable=Mock())
+        texture = object()
+        owner = SimpleNamespace(queue_thumbnail_pending={"cover"}, queue_thumbnail_cache={}, queue_thumbnail_order=[], queue_pictures={"cover": [picture]}, browser_pictures={}, discovery_pictures={}, decode_artwork=Mock())
+        self.assertFalse(native_method("apply_queue_thumbnail")(owner, "cover", texture, True))
+        owner.decode_artwork.assert_not_called()
+        picture.set_paintable.assert_called_once_with(texture)
+        self.assertIs(owner.queue_thumbnail_cache["cover"], texture)
+        self.assertNotIn("cover", owner.queue_thumbnail_pending)
+
+    def test_large_preview_uses_its_own_full_resolution_cache_and_requests_900px(self):
+        code = native_text()
+        render = code.split('if items and data.get("surprise_preview"):', 1)[1].split('title = self.label', 1)[0]
+        self.assertIn('self.load_preview_artwork(picture, key)', render)
+        self.assertNotIn('queue_thumbnail_cache', render)
+        preview = code.split('def load_preview_artwork', 1)[1].split('def apply_queue_thumbnail', 1)[0]
+        self.assertIn('&size=900', preview)
+        self.assertIn('self.preview_artwork_cache.get(key)', preview)
+        self.assertIn('self.preview_artwork_cache[key] = texture', preview)
+
+    def test_gen2_daily_and_search_spacing_is_scoped_to_1280_landscape(self):
+        code = native_text()
+        self.assertIn('("touch2-7-landscape", touch2_7_landscape)', code)
+        self.assertIn('.touch2-7-landscape .search-main { margin-top: 26px; margin-right: 28px; }', code)
+        self.assertIn('24 if offset_discovery', code)
+        self.assertIn('gen2_genre = tile_kind == "genres" and self.window.has_css_class("touch2-7-landscape")', code)
+
+    def test_daily_track_action_keeps_its_visible_mix_row_anchor(self):
+        code = native_text()
+        method = code.split('def open_discovery_item', 1)[1].split('def browser_swipe_back', 1)[0]
+        self.assertIn('self.browser_action_anchor = anchor', method)
+        self.assertIn('self.discovery_action_key = key', method)
+        self.assertNotIn('while child := self.discovery_list.get_first_child()', method.split('def apply_discovery_item', 1)[0])
+        self.assertIn('if data.get("action_menu"):\n            self.render_browser(data)', method)
+        self.assertIn('/api/discovery/track-action', code)
+
+    def test_settings_lockup_and_dynamic_play_icon_keep_their_size(self):
+        code = native_text()
+        self.assertNotIn('.large-display .settings-page .settings-title { font-size: 44px;', code)
+        self.assertIn('if has_class("settings-title"):\n            factor = 1.0', code)
+        self.assertIn('.large-display .settings-header .settings-utilities button { font-size: 23px;', code)
+        self.assertIn('icon_size = 80 if self.window.has_css_class("large-display") else 42', code)
+        self.assertIn('self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1', code)
+
     def test_carousel_end_changes_only_the_trailing_margin(self):
         track = Mock()
         scroller = SimpleNamespace(get_mapped=lambda: True, compute_bounds=lambda _: (True, SimpleNamespace(get_x=lambda: 165)))
@@ -49,15 +164,16 @@ class PortraitRefinementTests(unittest.TestCase):
     def test_carousel_spring_animates_then_returns_exactly_to_rest(self):
         import math
         now = [0.0]; callbacks = []
-        owner = SimpleNamespace(elastic_offset=15.0, spring_timer=None, queue_draw=Mock())
+        owner = SimpleNamespace(elastic_offset=15.0, spring_timer=None, queue_draw=Mock(), get_mapped=lambda: True)
+        owner.add_tick_callback = lambda callback: callbacks.append(callback) or 1
         owner.cancel_spring = lambda: setattr(owner, "elastic_offset", 0.0)
         glib = SimpleNamespace(timeout_add=lambda ms, callback: callbacks.append(callback) or 1)
         native_method("spring_back", {"GLib": glib, "time": SimpleNamespace(monotonic=lambda: now[0]), "math": math})(owner)
-        now[0] = .08; self.assertTrue(callbacks[0]())
+        now[0] = .08; self.assertTrue(callbacks[0](None, None))
         self.assertLess(abs(owner.elastic_offset), 15)
-        now[0] = .2; self.assertTrue(callbacks[0]())
+        now[0] = .2; self.assertTrue(callbacks[0](None, None))
         self.assertLess(owner.elastic_offset, 0)
-        now[0] = .56; self.assertFalse(callbacks[0]())
+        now[0] = .66; self.assertFalse(callbacks[0](None, None))
         self.assertEqual(owner.elastic_offset, 0)
         self.assertIsNone(owner.spring_timer)
 
@@ -75,7 +191,7 @@ class PortraitRefinementTests(unittest.TestCase):
             value[0] = boundary; handlers["drag-begin"]()
             handlers["drag-update"](drag, distance, 0)
             self.assertGreater(abs(owner.elastic_offset), 0)
-            self.assertLess(abs(owner.elastic_offset), 26)
+            self.assertLess(abs(owner.elastic_offset), 34)
             self.assertEqual(owner.elastic_offset > 0, distance > 0)
             adjustment.set_value.assert_not_called()
             handlers["drag-end"](); owner.spring_back.assert_called()
@@ -96,7 +212,7 @@ class PortraitRefinementTests(unittest.TestCase):
         for boundary, distance in ((0, 100), (400, -100)):
             value[0] = boundary; handlers["drag-begin"](); handlers["drag-update"](drag, 0, distance)
             self.assertGreater(abs(owner.elastic_offset), 18)
-            self.assertLess(abs(owner.elastic_offset), 26)
+            self.assertLess(abs(owner.elastic_offset), 34)
             self.assertEqual(owner.elastic_offset > 0, distance > 0)
             adjustment.set_value.assert_not_called()
             handlers["drag-end"](); owner.spring_back.assert_called()
@@ -126,7 +242,7 @@ class PortraitRefinementTests(unittest.TestCase):
         widget = LayoutWidget(); widget.update_property = Mock()
         gtk = SimpleNamespace(Button=lambda: widget, AccessibleProperty=SimpleNamespace(LABEL="label"))
         image = LayoutWidget(); image.icon_name = "clock"
-        button = native_method("icon_button", {"Gtk": gtk, "FamilyIcon": lambda *_: image})(SimpleNamespace(), "clock", lambda *_: None, "discover-utility discover-sleep")
+        button = native_method("icon_button", {"Gtk": gtk, "FamilyIcon": lambda *_, **__: image})(SimpleNamespace(), "clock", lambda *_: None, "discover-utility discover-sleep")
         self.assertEqual(button.classes, {"discover-utility", "discover-sleep"})
         widget.update_property.assert_called_once_with(["label"], ["Clock"])
 
@@ -145,13 +261,16 @@ class PortraitRefinementTests(unittest.TestCase):
         owner.request_browser.assert_called_once_with("search", query="Oasis", source="all")
 
     def test_bus_count_matches_orientation_and_route_is_solid(self):
-        source = SOURCE.read_text()
-        self.assertIn('[:2 if portrait else 3]', source)
+        source = native_text()
+        self.assertIn('service.get("arrivals", [])[:3]', source)
+        self.assertIn('self.render_portrait_bus_card(row, service, len(visible))', source)
+        self.assertIn('top.set_homogeneous(width >= 600 and not wide_portrait)', source)
+        self.assertIn('sized("THEN", "bus-then"', source)
         self.assertIn('number.add_css_class("solid-route")', source)
         self.assertIn('row.append(number)', source)
 
     def test_portrait_back_spacer_expands(self):
-        source = SOURCE.read_text()
+        source = native_text()
         self.assertIn('spacer.set_hexpand(portrait)', source)
         self.assertIn('back.set_halign(Gtk.Align.END if portrait else Gtk.Align.START)', source)
 class LayoutWidget:
@@ -166,21 +285,55 @@ class LayoutWidget:
     def add_css_class(self, name): self.classes.add(name)
     def remove_css_class(self, name): self.classes.discard(name)
     def connect(self, event, callback): self.properties[event] = callback
+    def cancel_spring(self): self.properties["elastic_offset"] = 0
     def __getattr__(self, name):
         if name.startswith("set_"):
             return lambda *args: self.properties.__setitem__(name[4:], args)
         raise AttributeError(name)
 
 
-LAYOUT_GTK = SimpleNamespace(Box=LayoutWidget, Picture=LayoutWidget, ScrolledWindow=LayoutWidget, Button=LayoutWidget, Orientation=SimpleNamespace(VERTICAL="vertical"), Align=SimpleNamespace(START="start", END="end", CENTER="center"), PolicyType=SimpleNamespace(NEVER="never"), ContentFit=SimpleNamespace(COVER="cover"))
+LAYOUT_GTK = SimpleNamespace(Box=LayoutWidget, Picture=LayoutWidget, ScrolledWindow=LayoutWidget, Button=LayoutWidget, Orientation=SimpleNamespace(VERTICAL="vertical"), Align=SimpleNamespace(START="start", END="end", CENTER="center"), PolicyType=SimpleNamespace(NEVER="never", AUTOMATIC="automatic", EXTERNAL="external"), ContentFit=SimpleNamespace(COVER="cover"))
 
 
 class NativeBrowserControlsTests(unittest.TestCase):
+    def test_gradient_texture_remains_subtle_on_small_displays(self):
+        texture = (SOURCE.parent / "icons" / "gradient-dither.svg").read_text(encoding="utf-8")
+        self.assertIn('opacity=".018"', texture)
+
+    def test_portrait_bus_card_has_one_primary_and_two_following_predictions(self):
+        gtk = SimpleNamespace(Box=LayoutWidget, Separator=LayoutWidget,
+            Orientation=SimpleNamespace(VERTICAL="vertical", HORIZONTAL="horizontal"),
+            Align=SimpleNamespace(CENTER="center", FILL="fill"))
+        pango = SimpleNamespace(AttrList=lambda:SimpleNamespace(insert=lambda _:None),
+            attr_size_new_absolute=lambda value:value, SCALE=1024)
+        labels = []
+        def label(text, css, align):
+            widget = LayoutWidget(text=text); widget.add_css_class(css); labels.append(widget)
+            return widget
+        owner = SimpleNamespace(window=SimpleNamespace(get_height=lambda:1920,get_width=lambda:1200),label=label)
+        method = native_method("render_portrait_bus_card", {"Gtk":gtk,"Pango":pango})
+        row = LayoutWidget()
+        method(owner, row, {"service":"42","arrivals":[{"minutes":0},{"minutes":11},{"minutes":25}]},2)
+        self.assertEqual([widget.properties['text'] for widget in labels],
+            ["ROUTE","42","Due","arriving now","THEN","11","min","25","min"])
+        self.assertEqual(len(row.children[-1].children),2)
+        labels.clear()
+        one_later = LayoutWidget()
+        method(owner, one_later, {"service":"40","arrivals":[{"minutes":8},{"minutes":28}]},2)
+        self.assertEqual([widget.properties['text'] for widget in labels][-3:],["THEN","28","min"])
+        self.assertEqual(len(one_later.children[-1].children),1)
+        labels.clear()
+        one_bus = LayoutWidget()
+        method(owner, one_bus, {"service":"40","arrivals":[{"minutes":8}]},2)
+        self.assertEqual([widget.properties['text'] for widget in labels],["ROUTE","40","8","minutes"])
+        self.assertFalse(any(widget.properties.get('text') == "—" for widget in labels))
+
     def test_late_loaded_source_buttons_follow_current_orientation(self):
         for portrait in (True, False):
             owner = SimpleNamespace(responsive_portrait=portrait, roon_subnav=LayoutWidget(),
                 now_playing_tab=LayoutWidget(), queue_tab=LayoutWidget(), browser_tab=LayoutWidget(),
-                requested_audio_view="source", button=lambda *args: LayoutWidget())
+                requested_audio_view="source", button=lambda *args: LayoutWidget(),
+                refresh_music_subnav_layout=Mock())
             method = native_method("render_bluos_inputs")
             method(owner, {"inputs": [{"id": "tv", "name": "Watch TV"}, {"id": "rega", "name": "Rega P3"}],
                 "active_input": {"id": "tv"}}, True)
@@ -188,6 +341,17 @@ class NativeBrowserControlsTests(unittest.TestCase):
                 self.assertEqual(button.properties["hexpand"], (portrait,))
             self.assertIn("active", owner.bluos_source_buttons["tv"].classes)
             self.assertNotIn("active", owner.bluos_source_buttons["rega"].classes)
+            owner.refresh_music_subnav_layout.assert_called_once_with()
+
+    def test_optional_music_tabs_force_the_selector_to_reflow(self):
+        code = native_text()
+        method = code.split("def refresh_music_subnav_layout", 1)[1].split("def select_bluos_input", 1)[0]
+        self.assertIn("self.roon_subnav.set_halign(Gtk.Align.FILL if portrait else Gtk.Align.CENTER)", method)
+        self.assertIn("child.set_hexpand(portrait)", method)
+        self.assertIn("self.roon_subnav.set_size_request(-1, -1)", method)
+        self.assertIn("self.roon_subnav.queue_resize()", method)
+        settings = code.split('self.sync_music_navigation(); self.queue_tab.set_visible', 1)[1].split('if system is not None:', 1)[0]
+        self.assertIn("self.refresh_music_subnav_layout()", settings)
 
     def test_music_clock_redraws_on_minute_change_not_every_tick(self):
         from datetime import datetime
@@ -248,12 +412,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
             owner.music_header_overlay.set_visible.assert_called_with(False)
 
     def test_now_playing_library_control_is_a_bundled_heart_and_remains_visible_for_an_album(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('self.library_add = self.button("", self.add_current_album)', code)
         self.assertIn('self.library_add.set_visible(has_album)', code)
         self.assertIn('self.set_library_icon(self.library_favorite is True)', code)
-        self.assertIn('FamilyIcon("add", 28)', code)
-        self.assertIn('FamilyIcon("heart", 28, filled=filled)', code)
+        self.assertIn('FamilyIcon("add", size)', code)
+        self.assertIn('FamilyIcon("heart", size, filled=filled)', code)
+        self.assertIn('size = 64 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 28', code)
         self.assertIn('self.library_add.set_valign(Gtk.Align.CENTER)', code)
         self.assertIn('self.library_add.set_halign(Gtk.Align.CENTER)', code)
         self.assertIn('self.library_pending = True', code)
@@ -272,19 +437,20 @@ class NativeBrowserControlsTests(unittest.TestCase):
         method(owner, False)
         button.remove_css_class.assert_called_once_with("library-busy")
         button.update_state.assert_called_with(["busy"], [False])
-        code = SOURCE.read_text()
+        code = native_text()
         self.assertNotIn('set_text("Updating Roon…")', code)
         self.assertIn('self.library_pending = False\n                self.set_library_busy(False)', code)
 
     def test_now_playing_title_and_artist_fill_their_column_before_centering(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL)', code)
+        self.assertIn('self.title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); self.title.set_lines(2); self.title.set_ellipsize(Pango.EllipsizeMode.END)', code)
         self.assertIn('self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL)', code)
 
     def test_display_runtime_publishes_the_resolved_source_revision(self):
         import tempfile
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder); source = root / "native-display" / "pi_bus_native.py"
+            root = Path(folder); source = root / "native-display" / "roondeck_native.py"
             source.parent.mkdir(); source.write_text("")
             (root / ".source-commit").write_text("a" * 40)
             run = root / "run"; run.mkdir()
@@ -293,7 +459,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
             self.assertEqual((run / "display-source-commit").read_text().strip(), "a" * 40)
 
     def test_daily_uses_roomy_native_swipe_tracks_without_arrow_controls(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('scroller.set_kinetic_scrolling(True)', code)
         self.assertIn('scroller.set_overlay_scrolling(True)', code)
         self.assertIn('super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=18)', code)
@@ -316,10 +482,264 @@ class NativeBrowserControlsTests(unittest.TestCase):
             self.assertNotIn('<text', path.read_text())
         self.assertEqual(method(SimpleNamespace(), 'Any playlist', 'playlists'), 'playlist')
 
+    def test_original_genre_tiles_separate_icon_and_bottom_label(self):
+        code = native_text()
+        self.assertIn('get("display_profile") in {"touch2-7", "touch2-5-7"}', code)
+        self.assertIn('.18 if separated_label_tile else .12', code)
+        self.assertIn('title.set_margin_bottom(6 if separated_label_tile else', code)
+
+    def test_playlist_tiles_share_genre_caption_layout_and_compact_icon(self):
+        code = native_text()
+        self.assertIn('if tile_kind in {"genres", "playlists"}:', code)
+        self.assertIn('.58 if tile_kind == "playlists" else .65', code)
+        self.assertIn('caption_height = 0 if tile_kind in {"genres", "playlists"}', code)
+
+    def test_play_playlist_uses_the_primary_play_pill(self):
+        code = native_text()
+        web = (SOURCE.parents[1] / "roon-controller/static/app.js").read_text(encoding="utf-8")
+        self.assertIn('"Play Playlist", lambda *_args', code)
+        self.assertIn('"artist-play primary-play browser-primary-action"', code)
+        self.assertIn("'artist-play primary-play browser-primary-action'", web)
+
+    def test_search_uses_the_same_sidebar_alignment_class_as_browse(self):
+        code = native_text()
+        self.assertIn('search_nav.add_css_class("browser-sidebar"); search_nav.add_css_class("library-sidebar")', code)
+
     def test_empty_activity_event_does_not_raise_or_change_state(self):
         owner = SimpleNamespace(last_interaction=123)
         self.assertFalse(native_method("note_activity")(owner, None, None))
         self.assertEqual(owner.last_interaction, 123)
+
+    def test_browse_return_uses_its_own_configurable_activity_clock(self):
+        now = [1000.0]
+        clock = SimpleNamespace(set_text=Mock())
+        owner = SimpleNamespace(
+            bus_clock=clock, roon_clock=clock, home_clock=clock, sleep_clock=clock,
+            last_clock_time="12:00", stack=SimpleNamespace(get_visible_child_name=lambda: "roon"),
+            roon_views=SimpleNamespace(get_visible_child_name=lambda: "discover"),
+            settings_data={"browse_idle_return_seconds": 60}, browse_last_interaction=999.0,
+            last_interaction=1.0, show_roon_now=Mock(),
+        )
+        fake_datetime = SimpleNamespace(now=lambda _tz: SimpleNamespace(strftime=lambda _format: "12:00", year=2026))
+        tick = native_method("tick", {"datetime": fake_datetime, "TZ": object(), "time": SimpleNamespace(monotonic=lambda: now[0])})
+        self.assertTrue(tick(owner))
+        owner.show_roon_now.assert_not_called()
+        now[0] = 1060.0
+        self.assertTrue(tick(owner))
+        owner.show_roon_now.assert_called_once_with()
+
+    def test_browse_return_can_be_disabled_and_resets_on_navigation(self):
+        code = native_text()
+        self.assertIn('browse_timeout > 0', code)
+        view_code = code.split('def set_roon_view', 1)[1].split('def ', 1)[0]
+        self.assertIn('self.browse_last_interaction = time.monotonic()', view_code)
+        self.assertIn('"details"', view_code)
+        self.assertIn('self.browse_last_interaction = self.last_interaction', code.split('def note_activity', 1)[1].split('def ', 1)[0])
+
+    def test_browse_return_timer_resets_during_kinetic_scrolling(self):
+        now = [1234.0]
+        owner = SimpleNamespace(
+            stack=SimpleNamespace(get_visible_child_name=lambda: "roon"),
+            roon_views=SimpleNamespace(get_visible_child_name=lambda: "browse"),
+            browse_last_interaction=1.0,
+        )
+        native_method("note_browse_scroll", {"time": SimpleNamespace(monotonic=lambda: now[0])})(owner)
+        self.assertEqual(owner.browse_last_interaction, 1234.0)
+        code = native_text()
+        self.assertEqual(code.count('get_vadjustment().connect("value-changed", self.note_browse_scroll)'), 2)
+
+    def test_discover_navigation_resumes_the_existing_browse_state(self):
+        buttons = {name: LayoutWidget() for name in ("recent", "browse", "daily")}
+        owner = SimpleNamespace(discovery_section="browse", browser_state={"title":"Albums"},
+            discover_tabs=buttons, set_roon_view=Mock(), set_mode=Mock())
+        native_method("resume_discover")(owner)
+        owner.set_roon_view.assert_called_once_with("browse")
+        owner.set_mode.assert_called_once_with("roon")
+        self.assertTrue(owner.discovery_active)
+        self.assertIn("active", buttons["browse"].classes)
+
+    def test_now_playing_volume_step_uses_one_percent_and_clamps(self):
+        adjustment = SimpleNamespace(get_lower=lambda: 0, get_upper=lambda: 100)
+        scale = SimpleNamespace(get_adjustment=lambda: adjustment, get_value=lambda: 99, set_value=Mock())
+        owner = SimpleNamespace(state={"zone":{}}, volume=scale)
+        native_method("step_volume")(owner, 1)
+        scale.set_value.assert_called_once_with(100)
+        code = native_text()
+        self.assertIn('self.step_volume(-1)', code)
+        self.assertIn('self.step_volume(1)', code)
+
+    def test_final_play_actions_use_the_primary_colour_treatment(self):
+        code = native_text()
+        self.assertIn('"artist-play primary-play" if action == "play"', code)
+        self.assertIn('"artist-play primary-play")', code)
+        self.assertIn('.artist-play { margin-top: 12px;', code)
+        self.assertIn('.theme-roon .artist-play { background: #9868F9;', code)
+
+    def test_selected_soft_pill_actions_use_filled_play_and_outlined_queue(self):
+        code = native_text()
+        self.assertIn('border-radius: 999px; background: #6ed9ae', code)
+        self.assertIn('primary_play = name == "play" and "primary-play" in css', code)
+        self.assertIn('filled=icon in {"play", "media-playback-start-symbolic"} and "primary-play" in css', code)
+        self.assertIn('"queue-pill")', code)
+        self.assertIn('.queue-pill, .theme-roon .queue-pill', code)
+        self.assertIn('.surprise-action.primary-play', code)
+
+    def test_play_pill_balance_surprise_geometry_and_splash_hold(self):
+        code = native_text()
+        self.assertIn('padding: 12px 30px 12px 20px', code)
+        self.assertIn('.surprise-action { min-width: 72px; min-height: 72px; padding: 8px; border-radius: 50%', code)
+        self.assertIn('orientation=Gtk.Orientation.VERTICAL, spacing=16', code)
+        self.assertIn('time.monotonic() - self.boot_started_at < 2.5', code)
+        self.assertIn('def finish_boot_splash(self):', code)
+
+    def test_detail_artwork_closes_sheet_and_dropdown_play_stays_rectangular(self):
+        code = native_text()
+        self.assertIn('for artwork_frame in (self.detail_artist_artwork_frame, self.detail_album_artwork_frame):', code)
+        self.assertIn('close_artwork.connect("released", lambda *_: self.set_roon_view("now"))', code)
+        self.assertIn('border-radius: 8px; background: #6ed9ae', code)
+        self.assertIn('.theme-roon .track-menu-action.primary-play { background: #9868F9; color: #111;', code)
+
+    def test_detail_copy_order_and_compact_identity_are_consistent(self):
+        code = native_text()
+        artist = code.split('artist_card = Gtk.Box', 1)[1].split('album_card = Gtk.Box', 1)[0]
+        self.assertLess(artist.index('detail_artist_writeup'), artist.index('detail_artist_source'))
+        self.assertLess(artist.index('detail_artist_source'), artist.index('detail_artist_facts'))
+        self.assertIn('getattr(self, "album_focus_detail", False)', code)
+        self.assertIn('.compact-detail .detail-title { font-size: 30px; }', code)
+        self.assertIn('.compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }', code)
+        self.assertIn('.touch2-7-landscape .album-focus-detail .detail-section-label { font-size: 17px;', code)
+        self.assertIn('.touch2-7-landscape .album-focus-detail .detail-title { font-size: 36px;', code)
+        self.assertIn('.touch2-7-landscape .album-focus-detail .detail-artist { font-size: 25px;', code)
+        self.assertIn('.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.36; }', code)
+        self.assertIn('.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px;', code)
+        self.assertIn('.high-resolution.portrait .detail-title { font-size: 49px; }', code)
+        self.assertIn('.high-resolution.portrait .detail-section-label { font-size: 22px; letter-spacing: 2.2px; }', code)
+        self.assertIn('.high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }', code)
+        self.assertIn('.album-focus-detail .detail-section-label { margin-top: 0; font-size: 18px; letter-spacing: 1.9px; }', code)
+        self.assertIn('.original-landscape .album-focus-detail .detail-title { font-size: 28px;', code)
+
+    def test_accessible_interface_sizes_are_global_and_persistent(self):
+        code = native_text()
+        self.assertIn('["Smaller", "Standard", "Larger"]', code)
+        self.assertIn('attributes.insert(Pango.attr_scale_new(', code)
+        self.assertIn('{"section": "appearance", "interface_size": value}', code)
+        self.assertIn('self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)', code)
+        self.assertIn('self.now_playing_scroll = now_scroll', code)
+        self.assertIn('self.source_scroll = source_scroll', code)
+        self.assertIn('factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)', code)
+        self.assertIn('.interface-larger .transport button { min-width: 60px;', code)
+        self.assertIn('.touch-landscape.interface-larger .nav button { min-height: 70px;', code)
+        self.assertIn('.interface-larger .detail-action { min-height: 70px;', code)
+        self.assertIn('if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(scaled)', code)
+        self.assertIn('self.interface_transport_icon_sizes', code)
+        self.assertIn('self.interface_detail_close_sizes', code)
+
+    def test_page_headings_share_semantic_tiers_and_header_alignment(self):
+        code = native_text()
+        self.assertIn('.page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }', code)
+        self.assertIn('.touch-landscape .page-title, .touch-landscape .stop,', code)
+        self.assertIn('.original-landscape .page-title, .original-landscape .stop,', code)
+        self.assertIn('row = Gtk.Box(spacing=10); row.add_css_class("page-header")', code)
+        self.assertIn('self.label("Home Controls", "page-title")', code)
+        self.assertIn('settings.set_valign(Gtk.Align.CENTER)', code)
+        scale = code.split('    def scale_text_label', 1)[1].split('    def apply_interface_size', 1)[0]
+        self.assertNotIn('"bus_clock"', scale)
+        self.assertNotIn('"stop"', scale)
+
+    def test_seven_inch_header_and_settings_controls_use_shared_geometry(self):
+        code = native_text()
+        self.assertIn('.touch2-7-landscape .page { padding-top: 10px; }', code)
+        self.assertIn('.original-landscape .page { padding-top: 7px; }', code)
+        # Cog and clock icon are anchored to the top of their row (valign START), top edge 18px on every page.
+        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 14px; margin-bottom: 0; }', code)
+        self.assertIn('.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 4px; margin-bottom: 0; }', code)
+        self.assertIn('button.set_valign(Gtk.Align.START if touch2_7_landscape or original_landscape else Gtk.Align.CENTER)', code)
+        self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }', code)
+        self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }', code)
+        self.assertIn('self.settings_close.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))', code)
+        self.assertIn('def toggle_now_playing_details(self, *_):', code)
+        self.assertIn('self.now_playing_centre.set_opacity(0 if inline_details else 1)', code)
+        self.assertIn('self.now_playing_centre.set_can_target(not inline_details)', code)
+        self.assertIn('grid.set_column_homogeneous(False)', code)
+        self.assertIn('self.label("NETWORK CONTROLS", "eyebrow")', code)
+        self.assertIn('self.label("INTERFACE SCALING", "eyebrow")', code)
+        self.assertIn('self.touch_brightness.set_draw_value(False)', code)
+        self.assertIn('self.touch_brightness.set_hexpand(True)', code)
+        self.assertIn('self.touch_brightness_value = self.label("100%", "brightness-value", 1)', code)
+        self.assertIn('self.touch_brightness_value.set_text(f"{round(scale.get_value())}%")', code)
+
+    def test_album_actions_and_seven_inch_settings_follow_shared_layout(self):
+        code = native_text()
+        album = code.split('    def album_header(self, profile, items):', 1)[1].split('    def load_album_notes', 1)[0]
+        self.assertLess(album.index('album-play-split'), album.index('if review := profile.get("review")'))
+        self.assertIn('self.request_browser("open", item_key=item_key, menu_only=True)', album)
+        self.assertIn('.interface-larger .album-profile .queue-meta { font-size: 21px;', code)
+        self.assertIn('.touch-landscape.interface-larger .browser-back { min-width: 112px;', code)
+        self.assertIn('seven_inch = original or (not portrait and 1000 <= width < 1500 and height <= 850)', code)
+        self.assertIn('for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading):', code)
+        self.assertIn('control.set_visible(not seven_inch)', code)
+
+    def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):
+        code = native_text()
+        self.assertIn('artist_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
+        self.assertIn('detail_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)', code)
+        self.assertIn('year = released[:4] if released else ""', code)
+        self.assertIn('if getattr(self, "detail_year_only", False):', code)
+        self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
+        self.assertIn('detail_heading = f"{release_type} · {release_label}" if release_label else release_type', code)
+        self.assertIn('self.detail_album_section_label.set_text(detail_heading)', code)
+        self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
+        self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
+        self.assertIn('label.set_lines(2 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail', code)
+        self.assertIn('self.detail_artist_facts.set_visible(not large_detail_portrait)', code)
+        self.assertIn('self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)', code)
+        self.assertIn('and not getattr(self, "large_detail_portrait", False)', code)
+        self.assertIn('glyph_size = 31 if original_landscape else 60 if large_detail_portrait else 48', code)
+        self.assertIn('FamilyIcon("close", 34, stroke_width=3)', code)
+        self.assertIn('.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }', code)
+        self.assertIn('.theme-roon .detail-close, .theme-roon .detail-close-glyph { border-color: #9868F9; }', code)
+
+    def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
+        code = native_text()
+        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if inline_detail else Gtk.PolicyType.AUTOMATIC)', code)
+        self.assertIn('label.set_lines(2 if original_landscape else 4 if inline_detail', code)
+        self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
+        self.assertIn('.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
+        self.assertIn('.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
+        self.assertIn('title.set_xalign(.5); title.set_justify(Gtk.Justification.CENTER)', code)
+        self.assertIn('if name == "browse": button.add_css_class("active")', code)
+        request_update = code[code.index('    def _request_update(self):'):code.index('    def request_display_settings', code.index('    def _request_update(self):'))]
+        self.assertNotIn('self.update_status_seen = True', request_update)
+        self.assertIn('self.last_system_fetch = 0', request_update)
+        self.assertIn('scene = domain == "scene"', code)
+        self.assertIn('button.connect("clicked", self.activate_home_scene', code)
+        self.assertIn('button.scene_status_label.set_text("ACTIVATED"', code)
+
+    def test_now_playing_artwork_uses_a_fixed_viewport_before_decode(self):
+        code = native_text()
+        self.assertIn('self.artwork.set_can_shrink(True)', code)
+        self.assertIn('self.artwork_viewport.set_child(self.artwork)', code)
+        self.assertIn('artwork_button.set_child(self.artwork_viewport)', code)
+        self.assertNotIn('elif self.artwork_button.get_child() is self.artwork_viewport', code)
+
+    def test_landscape_now_playing_artwork_does_not_shrink_below_profile_size(self):
+        size = native_method("now_playing_artwork_size")
+        self.assertEqual(size(800, 480, False), 335)
+        self.assertEqual(size(1024, 600, False), 360)
+        self.assertEqual(size(1280, 720, False), 540)
+
+    def test_touch_landscape_trims_surrounding_margins_instead_of_cover(self):
+        code = native_text()
+        self.assertIn('set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)', code)
+        self.assertIn('set_margin_bottom(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)', code)
+
+    def test_small_landscape_settings_compact_bus_times_controls(self):
+        code = native_text()
+        self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)
+        self.assertIn('Gtk.CheckButton(label="Bus Times")', code)
+        self.assertIn('self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL)', code)
+        self.assertIn('self.settings_utilities.set_halign(Gtk.Align.END if narrow_portrait else Gtk.Align.START)', code)
+        self.assertIn('else 9 if height > width and width < 600 else 10 if height > width and width >= 1000 else 7 if height > width', code)
 
     def test_secondary_navigation_is_section_specific_and_actions_preserve_context(self):
         navigation = native_method("discovery_secondary_navigation")
@@ -335,6 +755,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
         for section in ("releases", "surprise"):
             owner.discovery_section=section
             self.assertEqual(navigation(owner), ((), ""))
+
+    def test_switching_an_open_mix_to_for_you_returns_to_daily_home(self):
+        owner = SimpleNamespace(discovery_section="daily", discovery_mix="mix-id", responsive_portrait=True,
+            discovery_daily_tab="mixes", open_discover=Mock())
+        native_method("select_discovery_secondary")(owner, "recommendations")
+        self.assertEqual(owner.discovery_daily_tab, "recommendations")
+        owner.open_discover.assert_called_once_with("daily")
 
     def test_secondary_rail_uses_browse_filters_and_bottom_back_outside_scroll(self):
         def button(label, callback, style):
@@ -353,10 +780,12 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_loading_lives_in_right_content_without_replacing_sidebar(self):
         owner=SimpleNamespace(discovery_request=1,discovery_active=True,roon_views=SimpleNamespace(get_visible_child_name=lambda:"discover"),discovery_signature=None,discovery_list=LayoutWidget(),sync_discovery_sidebar=Mock(),label=lambda text,style:LayoutWidget(text=text,style=style))
         owner.discovery_body = LayoutWidget()
+        owner.discovery_scroll = LayoutWidget()
+        owner.roon_page = LayoutWidget()
         owner.settings_data = {}
         owner.window = SimpleNamespace(has_css_class=lambda _: False)
         owner.loading_notice = lambda: LayoutWidget(text="Loading…", style="loading-notice")
-        native_method("render_discover",{"json":__import__("json")})(owner,1,{"status":"loading"})
+        native_method("render_discover",{"json":__import__("json"), "Gtk":LAYOUT_GTK})(owner,1,{"status":"loading"})
         self.assertEqual(owner.discovery_list.children[0].properties,{"text":"Loading…","style":"loading-notice"})
         owner.sync_discovery_sidebar.assert_called_once()
 
@@ -372,19 +801,69 @@ class NativeBrowserControlsTests(unittest.TestCase):
         monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1280))
         monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
         gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
-        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk,"Gtk":SimpleNamespace(Orientation=SimpleNamespace(HORIZONTAL=0))})(measured_browser_rails())
+        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(SimpleNamespace())
         self.assertEqual(columns,4)
         metrics=native_method("discovery_grid_metrics",{"Gdk":gdk})
         self.assertEqual(metrics(SimpleNamespace(),"recent"),(4,236))
         self.assertEqual(metrics(SimpleNamespace(),"releases"),(4,283))
-        source=SOURCE.read_text(encoding="utf-8")
+        source=native_text()
         self.assertIn('columns, size = self.discovery_grid_metrics(self.discovery_section)',source)
         self.assertIn('30 if portrait_grid or self.discovery_section == "releases"',source)
         self.assertIn('size = min(212, size)',source)
         self.assertNotIn('MORE RECOMMENDATIONS',source)
 
+    def test_genre_grid_is_bounded_by_the_realised_viewport(self):
+        monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
+        monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
+        gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
+        owner=SimpleNamespace(viewport_width=1920,viewport_height=1080,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
+        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
+        self.assertEqual(columns,4)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 22, 960)
+
+    def test_larger_gen2_artist_grid_keeps_four_columns(self):
+        monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
+        monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
+        gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
+        owner=SimpleNamespace(viewport_width=1920,viewport_height=720,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
+        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,False,True)
+        self.assertEqual(columns,4)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 22, 1000)
+
+    def test_scrubber_is_scoped_to_cover_collections_not_artist_profiles(self):
+        code = native_text()
+        self.assertIn('not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}', code)
+        self.assertIn('getattr(self, "browser_scrubber_active", False)', code)
+
+    def test_larger_gen2_artwork_is_bounded_and_landscape_never_scrolls(self):
+        code = native_text()
+        self.assertIn('artwork_size = min(480, artwork_size)', code)
+        self.assertIn('Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER', code)
+
+    def test_large_portrait_transport_retains_primary_hierarchy(self):
+        code = native_text()
+        self.assertIn('.large-display.interface-larger .transport button,', code)
+        self.assertIn('.large-display.interface-larger .transport .play { min-width: 150px;', code)
+
+    def test_original_landscape_uses_compact_dense_grids(self):
+        monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))
+        monitors = SimpleNamespace(get_n_items=lambda: 1, get_item=lambda _index: monitor)
+        gdk = SimpleNamespace(Display=SimpleNamespace(get_default=lambda: SimpleNamespace(get_monitors=lambda: monitors)))
+        owner = SimpleNamespace(responsive_portrait=False, viewport_height=480)
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (4, 128))
+        discovery = native_method("discovery_grid_metrics", {"Gdk": gdk})
+        self.assertEqual(discovery(owner, "recent"), (3, 184))
+        self.assertEqual(discovery(owner, "releases"), (4, 175))
+        source = native_text()
+        self.assertIn('.compact-landscape .settings-page .settings-action { min-height: 46px;', source)
+        self.assertIn('utility_size = 26 if original_landscape else 30 if compact_landscape else 38', source)
+        self.assertIn('.original-landscape .browser-filter { min-height: 39px;', source)
+        session = (SOURCE.parents[1] / "appliance/alpine/display-session").read_text(encoding="utf-8")
+        self.assertIn('/var/lib/pi-home/setup-complete', session)
+        self.assertIn('"complete"[[:space:]]*:[[:space:]]*true', session)
+
     def test_daily_lazy_load_uses_each_horizontal_viewport(self):
-        source=SOURCE.read_text(encoding="utf-8")
+        source=native_text()
         self.assertIn('self.discovery_card_scrollers[id(card)] = scroller',source)
         self.assertIn('horizontal.get_hadjustment()',source)
         self.assertIn('get_hadjustment().connect("value-changed", self.load_visible_discovery_artwork)',source)
@@ -393,8 +872,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
         monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=720))
         monitors = SimpleNamespace(get_n_items=lambda: 1, get_item=lambda _: monitor)
         gdk = SimpleNamespace(Display=SimpleNamespace(get_default=lambda: SimpleNamespace(get_monitors=lambda: monitors)))
-        owner = SimpleNamespace(responsive_portrait=True, settings_data={}, window=SimpleNamespace(get_width=lambda: 720))
+        owner = SimpleNamespace(responsive_portrait=True, settings_data={}, browser_state={}, window=SimpleNamespace(get_width=lambda: 720))
         self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner)[0], 3)
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (3, 200))
+        owner.browser_state = {"alpha_scrub": True}
+        self.assertEqual(native_method("browser_grid_metrics", {"Gdk": gdk})(owner), (3, 173))
         for section in ("recent", "releases"):
             columns, size = native_method("discovery_grid_metrics", {"Gdk": gdk})(owner, section)
             self.assertEqual(columns, 2)
@@ -402,22 +884,22 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.settings_data["portrait_discovery_columns"] = 3
         for section in ("recent", "daily", "releases"):
             self.assertEqual(native_method("discovery_grid_metrics", {"Gdk": gdk})(owner, section), (3, 200))
-        self.assertIn('self.discovery_recent_mode = "added"', SOURCE.read_text())
+        self.assertIn('self.discovery_recent_mode = "added"', native_text())
 
     def test_new_release_detail_uses_discover_back_rail_not_browse_search(self):
-        source=SOURCE.read_text(encoding="utf-8")
+        source=native_text()
         self.assertIn('self.discovery_section in {"recent", "daily", "releases"}',source)
         self.assertIn('from_browser and self.discovery_section == "releases"',source)
 
     def test_discover_fetch_is_not_queued_behind_the_general_status_poll(self):
-        source=SOURCE.read_text(encoding="utf-8")
-        poll=source[source.index('    def poll(self):'):source.index('    def capture_display',source.index('    def poll(self):'))]
+        source=native_text()
+        poll=method_source('poll')
         self.assertNotIn('/api/discovery?',poll)
         self.assertIn('threading.Thread(target=self._fetch_discovery',source)
         self.assertIn('GLib.timeout_add(600 if data and data.get("status") == "loading" else 1200',source)
 
     def test_admin_can_request_a_real_native_discover_view(self):
-        source=SOURCE.read_text(encoding="utf-8")
+        source=native_text()
         self.assertIn('view_request = device.get("display_view_request") or {}', source)
         self.assertIn('GLib.idle_add(self.apply_display_view_request, dict(view_request))', source)
         owner=SimpleNamespace(show_roon_now=Mock(),set_mode=Mock(),open_discover=Mock())
@@ -427,8 +909,20 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.show_roon_now.assert_called_once_with()
         owner.set_mode.assert_called_once_with("roon")
 
+    def test_preview_waits_until_browser_render_finishes(self):
+        posted=Mock()
+        thread=SimpleNamespace(Thread=lambda **kwargs:SimpleNamespace(start=lambda:posted(kwargs['args'][1])))
+        owner=SimpleNamespace(preview_navigation_id='ticket',roon_views=SimpleNamespace(get_visible_child_name=lambda:'browse'),browser_loading=True,browser_rendering=False,browser_state={'title':'Album','items':[{'title':'Track','item_key':'track'}]})
+        method=native_method('finish_preview_navigation',{'time':SimpleNamespace(monotonic=lambda:1),'threading':thread,'post_json':Mock(),'BUS':'http://localhost'})
+        self.assertTrue(method(owner,{'id':'ticket','view':'browse'},10))
+        posted.assert_not_called()
+        owner.browser_loading=False
+        self.assertFalse(method(owner,{'id':'ticket','view':'browse'},10))
+        self.assertEqual(posted.call_args.args[0]['title'],'Album')
+        self.assertEqual(posted.call_args.args[0]['items'][0]['item_key'],'track')
+
     def test_reboot_confirmation_uses_a_full_overlay_with_a_centred_card(self):
-        source=SOURCE.read_text(encoding="utf-8")
+        source=native_text()
         confirm=source[source.index('    def confirm_reboot'):source.index('    def _request_update',source.index('    def confirm_reboot'))]
         self.assertIn('shade = Gtk.Overlay()',confirm)
         self.assertIn('card.set_halign(Gtk.Align.CENTER)',confirm)
@@ -440,10 +934,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         row=native_method("discovery_track_row",{"Gtk":LAYOUT_GTK,"Pango":SimpleNamespace(EllipsizeMode=SimpleNamespace(END="end"))})(owner,{"title":"Song","artist":"Artist","key":"track-key","artwork_key":"art"})
         self.assertIn("browser-row",row.classes)
         art=row.get_child().children[0]
-        self.assertEqual(art.properties["size_request"],(84,84))
+        self.assertEqual(art.properties["size_request"],(72,72))
         self.assertEqual(owner.discovery_cards,[(row,"discover:art")])
         owner.open_discovery_item.assert_not_called()
-        row.properties["clicked"](); owner.open_discovery_item.assert_called_once_with("track-key")
+        row.properties["clicked"](); owner.open_discovery_item.assert_called_once_with(row,"track-key")
 
     def test_discover_artwork_only_queues_visible_and_nearby_cards(self):
         jobs = Mock()
@@ -463,14 +957,14 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.open_discover.reset_mock()
         native_method("open_recent")(owner,"listened")
         owner.open_discover.assert_called_once_with("recent", recent_mode="listened")
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('section = "added"',code)
         self.assertIn('self.discovery_recent_mode = recent_mode or "added"', code)
         self.assertIn('client=touch',code)
         self.assertIn('("recommendations", "FOR YOU")',code)
 
     def test_mix_duotone_preserves_alpha_and_maps_black_white_and_coloured_pixels(self):
-        tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        tree = python_tree()
         function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "mix_duotone_matrix")
         namespace = {}; exec(compile(ast.Module(body=[function], type_ignores=[]), str(SOURCE), "exec"), namespace)
         matrix = namespace["mix_duotone_matrix"]()
@@ -485,7 +979,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertFalse(native_method("apply_discovery_item")(owner, 1, {"items":[]}))
 
     def test_discovery_keeps_short_tabs_and_moves_browse_out_of_now_playing(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('("releases", "NEW RELEASES")', code)
         self.assertIn('self.browser_tab.set_visible(False)', code)
         self.assertIn('self.roon_views.add_named(self.discovery_body, "discover")', code)
@@ -493,7 +987,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('background: transparent; background-image: none; box-shadow: none;', code)
 
     def test_discovery_thumbnail_has_its_own_proxy_not_official_image_keys(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('/api/discovery/image?key=', code)
         self.assertIn('key.startswith("discover:")', code)
         self.assertIn('self.discovery_pictures.get(key, [])', code)
@@ -508,12 +1002,12 @@ class NativeBrowserControlsTests(unittest.TestCase):
             music.set_visible.assert_called_with(not active)
             discover.set_visible.assert_called_with(active)
             browse.set_visible.assert_called_with(False)
-        code = SOURCE.read_text(encoding='utf-8')
+        code = native_text()
         self.assertIn('self.sync_music_navigation(); self.queue_tab', code)
         self.assertNotIn('self.roon_subnav.set_visible(True)', code)
 
     def test_discovery_art_and_titles_have_fixed_space_and_rounded_snapshot(self):
-        code=SOURCE.read_text(encoding='utf-8')
+        code=native_text()
         self.assertIn('snapshot.push_rounded_clip(clip)',code)
         self.assertIn('MixPicture(duotone=item.get("kind") == "mix" or item.get("_context_seed", False))',code)
         self.assertIn('title_label.set_justify(Gtk.Justification.CENTER)',code)
@@ -522,7 +1016,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('group(None, data.get("items", []), "mixes")',code)
 
     def test_daily_context_uses_a_heading_and_seed_as_a_fixed_grid_card(self):
-        code=SOURCE.read_text(encoding='utf-8')
+        code=native_text()
         self.assertIn('"BECAUSE YOU LISTENED TO…"',code)
         self.assertNotIn('dict(seed, _context_seed=True)',code)
         self.assertIn('item.get("_context_seed", False)',code)
@@ -533,13 +1027,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.touch-landscape .roon-page .browser-view { padding-right: 0; }',code)
         self.assertIn('self.browser_scrubber.set_margin_end(18)',code)
 
-    def test_now_playing_uses_local_placeholder_before_artwork_arrives(self):
-        code=SOURCE.read_text(encoding='utf-8')
-        build=code[code.index('    def build_roon'):code.index('    def build_home')]
-        apply=code[code.index('    def apply(self,'):code.index('    def apply_artwork',code.index('    def apply(self,'))]
+    def test_now_playing_keeps_fixed_artwork_while_replacement_arrives(self):
+        code=native_text()
+        build=method_source('build_roon')
+        apply=method_source('apply')
+        missing=method_source('note_missing_artwork')
         self.assertIn('self.set_browser_placeholder(self.artwork)',build)
-        self.assertIn('if image_key != self.image_key:',apply)
-        self.assertIn('self.set_browser_placeholder(self.artwork)',apply)
+        self.assertNotIn('self.set_browser_placeholder(self.artwork)',apply)
+        self.assertIn('self.set_browser_placeholder(self.artwork)',missing)
+        self.assertIn('self.artwork.set_paintable(Gdk.Texture.new_from_bytes',code)
 
     def test_mix_action_is_explicit_single_request_and_stale_result_does_not_update_ui(self):
         controls = Mock(); controls.get_first_child.return_value = None
@@ -559,13 +1055,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.discovery_request=5
         fn,result=callbacks.pop(); fn(result)
         message.set_text.assert_not_called()
-        code=SOURCE.read_text(encoding='utf-8')
+        code=native_text()
         self.assertNotIn('Gtk.Expander(label="VIEW TRACKS")',code)
         self.assertIn('"PLAY THIS MIX"',code)
         self.assertIn('self.labelled_icon_button("play"', code)
 
     def test_grouped_results_have_separate_scrollers_not_nested_in_browser_viewport(self):
-        code = SOURCE.read_text(encoding="utf-8")
+        code = native_text()
         self.assertIn('content.append(self.browser_search_columns)', code)
         self.assertIn('self.browser_search_columns.append(scroll)', code)
         self.assertNotIn('self.browser_list.append(scroll)', code)
@@ -592,6 +1088,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(Path(picture.set_filename.call_args.args[0]), SOURCE.parent / "icons/missing-artist.svg")
         method(SimpleNamespace(), picture)
         self.assertEqual(Path(picture.set_filename.call_args.args[0]), SOURCE.parent / "icons/missing-album.svg")
+        method(SimpleNamespace(artwork=picture), picture)
+        self.assertEqual(Path(picture.set_filename.call_args.args[0]), SOURCE.parent / "icons/missing-album-large.svg")
+        self.assertIn('width="1200" height="1200"', (SOURCE.parent / "icons/missing-album-large.svg").read_text())
         for name in ("missing-artist.svg", "missing-album.svg"):
             self.assertTrue((SOURCE.parent / "icons" / name).is_file())
 
@@ -609,35 +1108,116 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_back_swipe_requires_rightward_horizontal_motion_and_back_destination(self):
         swipe = native_method("browser_swipe_back")
         calls = []
-        owner = SimpleNamespace(browser_state={"can_back":True}, request_browser=calls.append)
+        owner = SimpleNamespace(browser_state={"can_back":True}, browser_back_action=lambda: calls.append("back"))
         for x, y in ((150,0),(-150,0),(60,0),(150,120),(0,150)): swipe(owner,None,x,y)
         self.assertEqual(calls, ["back"])
         owner.browser_state = {"can_back":False}; swipe(owner,None,800,0)
         self.assertEqual(calls, ["back"])
 
+    def test_artist_album_back_honours_real_departure_page(self):
+        method = native_method("browser_back_action")
+        owner = SimpleNamespace(browser_departure_view="now", browser_state={"artist_profile":{"name":"The Beatles"}}, set_roon_view=Mock(), request_browser=Mock())
+        method(owner)
+        owner.set_roon_view.assert_called_once_with("now")
+        owner.request_browser.assert_not_called()
+        self.assertIsNone(owner.browser_departure_view)
+        owner.browser_departure_view = "now"; owner.browser_state = {"artist_profile":{"name":"The Beatles"}, "album_profile":{"name":"Abbey Road"}}
+        method(owner)
+        owner.request_browser.assert_called_once_with("back")
+
+    def test_artist_lookup_shows_loading_before_queued_request(self):
+        loading = LayoutWidget(text="Loading…")
+        owner = SimpleNamespace(browser_loading=True, browser_pending_request=None,
+            browser_scroll=LayoutWidget(), browser_artist_scroll=LayoutWidget(), browser_search_columns=LayoutWidget(),
+            browser_scrubber=LayoutWidget(), browser_message=LayoutWidget(), browser_list=LayoutWidget(),
+            loading_notice=lambda: loading)
+        native_method("request_browser", {"Gtk":LAYOUT_GTK})(owner, "artist", name="The Beatles")
+        self.assertEqual(owner.browser_list.children, [loading])
+        self.assertEqual(owner.browser_pending_request, ("artist", {"name":"The Beatles"}))
+
     def test_artist_panel_keeps_portrait_and_name_without_biography(self):
-        tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        tree = python_tree()
         method = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "render_artist_profile")
         code = ast.unparse(method)
         self.assertIn('Gtk.Picture()', code)
         self.assertIn("'artist-name'", code)
         self.assertNotIn('artist_bio', code)
         self.assertNotIn('get_json', code)
-        self.assertIn('self.render_artist_profile(data.get("artist_profile"), artist_play)', SOURCE.read_text(encoding="utf-8"))
+        self.assertIn('self.render_artist_profile(data.get("artist_profile"), artist_play)', native_text())
+        self.assertIn('"Play Artist Radio"', native_text())
         web = (SOURCE.parents[1] / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn('renderArtistProfile(data.artist_profile, artistPlay)', web)
         self.assertNotIn('Artist background is unavailable.', web)
 
-    def test_artist_rows_have_fixed_artwork_and_play_is_beneath_the_portrait(self):
-        code = SOURCE.read_text(encoding='utf-8')
-        self.assertIn('art_slot.set_max_content_height(84)', code)
-        self.assertIn('art_slot.set_max_content_width(84)', code)
+    def test_artist_rows_have_fixed_artwork_and_profile_uses_aligned_wide_hero(self):
+        code = native_text()
+        self.assertIn('art_slot.set_max_content_height(72)', code)
+        self.assertIn('art_slot.set_max_content_width(72)', code)
         self.assertIn('"ARTIST ALBUMS", "browser-section"', code)
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
-        self.assertIn('play.set_halign(Gtk.Align.START if portrait else Gtk.Align.CENTER); details.append(play)', code)
+        self.assertIn('thumb_size = 84 if original_artist_albums', code)
+        self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
+        self.assertIn('hero_ratio = .66 if original else .68', code)
+        self.assertIn('hero_height = round(hero_width * hero_ratio)', code)
+        artist = code.split('    def render_artist_profile', 1)[1].split('    def load_artist_notes', 1)[0]
+        self.assertLess(artist.index('details.append(title)'), artist.index('details.append(play)'))
+        self.assertLess(artist.index('details.append(play)'), artist.index('summary_slot = Gtk.Box'))
+        self.assertIn('details.add_css_class("artist-overlay-info")', code)
+        self.assertIn('artwork_area.add_overlay(details)', code)
+        self.assertIn('summary_slot.add_css_class("artist-profile-summary")', code)
+        self.assertIn('panel.append(summary_slot)', code)
+        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 5', code)
+        self.assertIn('profile_text_height = 72 if original else 94', code)
+        self.assertIn('picture.artist_hero = True', code)
+        self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
+        self.assertIn('timeout=6.0 if key in self.artist_hero_keys else 2.5', code)
+        self.assertIn('self.queue_thumbnail_source = {}', code)
+        self.assertIn('source := self.queue_thumbnail_source.get(key)', code)
+        self.assertIn('self.queue_thumbnail_source[key] = source', code)
+        self.assertIn('self.queue_thumbnail_source.pop(old, None)', code)
+        self.assertIn('needs_image = key not in self.queue_thumbnail_cache or (key in self.artist_hero_keys and key not in self.artist_hero_cache)', code)
+        self.assertIn('artwork.set_overflow(Gtk.Overflow.HIDDEN)', code)
+        self.assertIn('target_ratio = 1 / hero_ratio', code)
+        self.assertIn('crop_y = max(0, round((height - crop_height) * .4))', code)
+        self.assertIn('self.discovery_list = ElasticVerticalTrack(spacing=18); self.discovery_list.set_vexpand(True)', code)
+        self.assertIn('self.browser_list = ElasticVerticalTrack(spacing=2); self.browser_list.set_vexpand(True)', code)
+        self.assertIn('cropped.scale_simple(960, scaled_height', code)
+        self.assertIn('fade_rgba_pixels(', code)
+        self.assertIn('GdkPixbuf.Pixbuf.new_from_bytes', code)
+        self.assertIn('.artist-hero-frame viewport, .artist-hero-image', code)
+        self.assertIn('.theme-roon .artist-hero-frame viewport, .theme-roon .artist-hero-image', code)
+        self.assertIn('.artist-overlay-info { padding: 62px 16px 12px; background: transparent;', code)
+        self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px;', code)
+        self.assertIn('layout = "list" if data.get("artist_profile")', code)
+        self.assertNotIn('slot.append(self.label(profile["source"], "artist-source"))', code)
+        self.assertIn('browser_content.set_homogeneous(False)', native_text())
+        self.assertIn('summary.add_css_class("artist-bio")', native_text())
+        self.assertIn('self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)', code)
+
+    def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):
+        code = native_text()
+        self.assertEqual(code.count('add_css_class("discovery-sidebar")'), 2)
+        self.assertIn('.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }', code)
+        self.assertIn('.original-landscape .roon-subnav button { min-height: 34px; padding: 3px 8px 0; font-size: 14px; letter-spacing: .2px;', code)
+        self.assertIn('.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; letter-spacing: .2px;', code)
+
+    def test_mint_defaults_do_not_contain_roon_purple(self):
+        code = native_text()
+        allowed = ("theme-roon", "library-pulse-roon", 'accent="#9868F9"',
+                   'replace("#9868F9", accent)', 'accent = "#9868F9"',
+                   "alpha(#9868F9")
+        leaked = [line.strip() for line in code.splitlines()
+                  if any(token in line.lower() for token in ("#9868f9", "#a77cff", "152,104,249"))
+                  and not any(marker in line for marker in allowed)]
+        self.assertEqual(leaked, [])
+
+    def test_scroll_activity_hook_is_safe_in_visual_review_harness(self):
+        owner = SimpleNamespace()
+        native_method("note_browse_scroll", {"time": SimpleNamespace(monotonic=lambda: 1)})(owner)
+        self.assertFalse(hasattr(owner, "browse_last_interaction"))
 
     def test_active_playback_is_excluded_from_touchscreen_idle_sleep(self):
-        code = SOURCE.read_text(encoding='utf-8')
+        code = native_text()
         self.assertIn('inactivity_due = bool(not playing and inactivity_seconds', code)
         self.assertIn('self.playback_was_active = playing', code)
         self.assertIn('if playing and target != "/sleep.html":', code)
@@ -650,27 +1230,43 @@ class NativeBrowserControlsTests(unittest.TestCase):
         paintable = SimpleNamespace(snapshot=Mock())
         gtk = SimpleNamespace(WidgetPaintable=SimpleNamespace(new=Mock(return_value=paintable)),Snapshot=Mock(return_value=snapshot))
         page = object()
-        window = SimpleNamespace(get_child=lambda:page,get_width=lambda:800,get_height=lambda:480,get_renderer=lambda:SimpleNamespace(render_texture=Mock(return_value=texture)))
+        renderer = SimpleNamespace(unrealize=Mock(),is_realized=lambda:False,realize_for_display=lambda _:True,render_texture=Mock(return_value=texture))
+        gsk = SimpleNamespace(CairoRenderer=SimpleNamespace(new=lambda:renderer))
+        window = SimpleNamespace(get_child=lambda:page,get_width=lambda:800,get_height=lambda:480,get_display=lambda:object(),get_renderer=lambda:renderer,snapshot_child=Mock(),queue_draw=Mock())
+        pixels = SimpleNamespace(get_pixels=lambda:bytes([255,255,255,255]),get_n_channels=lambda:4,get_rowstride=lambda:4,get_width=lambda:1,get_height=lambda:1)
+        gdk = SimpleNamespace(pixbuf_get_from_texture=lambda _:pixels)
+        glib = SimpleNamespace(Error=RuntimeError)
         posted = Mock()
-        method = native_method('capture_display', {'Gtk':gtk,'base64':base64,'BUS':'http://127.0.0.1:8765','post_json':posted})
+        cairo = SimpleNamespace(Error=RuntimeError, FORMAT_ARGB32=0, ImageSurface=Mock(side_effect=RuntimeError('unavailable')))
+        method = native_method('capture_display', {'Gtk':gtk,'Gsk':gsk,'Gdk':gdk,'GLib':glib,'cairo':cairo,'io':io,'base64':base64,'BUS':'http://127.0.0.1:8765','post_json':posted})
         result = method(SimpleNamespace(window=window), 'ticket')
-        paintable.snapshot.assert_called_once_with(snapshot, 800.0, 480.0)
-        gtk.WidgetPaintable.new.assert_called_once_with(page)
+        window.snapshot_child.assert_called_once_with(page, snapshot)
+        gtk.WidgetPaintable.new.assert_not_called()
         self.assertEqual(base64.b64decode(posted.call_args.args[1]['image']), image)
         self.assertEqual(posted.call_args.args[1]['id'], 'ticket')
         self.assertFalse(result)
+        renderer.unrealize.assert_not_called()
+        pixels.get_pixels = lambda:bytes([0,0,0,255])
+        method(SimpleNamespace(window=window), 'black-ticket', 4)
+        self.assertNotIn('image', posted.call_args.args[1])
+        self.assertIn('Display capture failed:', posted.call_args.args[1]['error'])
+        pixels.get_pixels = lambda:bytes([255,255,255,0])
+        method(SimpleNamespace(window=window), 'transparent-ticket', 4)
+        self.assertNotIn('image', posted.call_args.args[1])
 
     def test_failed_widget_capture_returns_friendly_error(self):
         gtk = SimpleNamespace(WidgetPaintable=SimpleNamespace(new=Mock(side_effect=RuntimeError())))
         posted = Mock()
-        method = native_method('capture_display', {'Gtk':gtk,'base64':base64,'BUS':'http://127.0.0.1:8765','post_json':posted})
-        method(SimpleNamespace(window=SimpleNamespace(get_child=lambda:object(),get_width=lambda:800,get_height=lambda:480)), 'ticket')
-        self.assertIn('could not be rendered', posted.call_args.args[1]['error'])
+        glib = SimpleNamespace(Error=RuntimeError)
+        cairo = SimpleNamespace(Error=RuntimeError)
+        method = native_method('capture_display', {'Gtk':gtk,'GLib':glib,'cairo':cairo,'base64':base64,'BUS':'http://127.0.0.1:8765','post_json':posted})
+        method(SimpleNamespace(window=SimpleNamespace(get_child=lambda:object(),get_width=lambda:800,get_height=lambda:480,queue_draw=Mock())), 'ticket', 4)
+        self.assertIn('Display capture failed:', posted.call_args.args[1]['error'])
         self.assertNotIn('image', posted.call_args.args[1])
 
     def test_capture_request_is_scheduled_on_the_gtk_main_loop(self):
-        code = SOURCE.read_text(encoding='utf-8')
-        self.assertIn('GLib.idle_add(self.capture_display, capture_id)', code)
+        code = native_text()
+        self.assertIn('GLib.timeout_add(350, self.capture_display, capture_id, 0)', code)
 
     def test_theme_updates_the_selector_without_triggering_a_save(self):
         calls = []
@@ -690,25 +1286,63 @@ class NativeBrowserControlsTests(unittest.TestCase):
             native_method('submit_browser_search')(owner)
             self.assertEqual(calls, ['browse',('search',{'query':'Radiohead','source':'all'})])
 
+    def test_search_keyboard_keeps_browse_secondary_navigation_visible(self):
+        code = native_text()
+        search = code.split('search_panel = Gtk.Box', 1)[1].split('self.roon_views.add_named(search_panel', 1)[0]
+        for section in ('albums', 'artists', 'genres', 'playlists'):
+            self.assertIn(section, search)
+        self.assertIn('search_active.add_css_class("active")', search)
+
+    def test_touch_popovers_hide_the_cursor_before_opening(self):
+        code = native_text()
+        self.assertGreaterEqual(code.count('self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)'), 2)
+        self.assertGreaterEqual(code.count('GLib.idle_add(self.hide_native_cursor, widget)'), 2)
+        self.assertIn('getattr(self, "browser_sort_popover", None)', code)
+
+    def test_failed_boot_config_fetch_keeps_last_good_settings_and_retries(self):
+        code = native_text()
+        poll = code.split('def poll(self):', 1)[1].split('def capture_display', 1)[0]
+        self.assertIn('if isinstance(fetched_config, dict) and fetched_config:', poll)
+        self.assertIn('self.last_config_fetch = 0', poll)
+        apply = code.split('def apply(self,', 1)[1].split('def apply_artwork', 1)[0]
+        self.assertIn('effective_config = config if isinstance(config, dict) and config else self.settings_data', apply)
+
     def test_surprise_selection_and_bottom_back_are_present_in_both_interfaces(self):
-        code = SOURCE.read_text(encoding='utf-8')
+        code = native_text()
         self.assertIn('and not data.get("surprise_preview")', code)
         self.assertIn('active_section = "surprise" if data.get("surprise_preview")',code)
-        self.assertIn('spacer.set_vexpand(True); self.browser_sidebar_spacer = spacer; sidebar.append(spacer); sidebar.append(self.browser_back)',code)
+        self.assertIn('spacer.set_vexpand(True); self.browser_sidebar_spacer = spacer; sidebar.append(spacer); sidebar.append(self.browser_sort); sidebar.append(self.browser_back)',code)
         self.assertIn('self.button("BACK"', code)
+        self.assertIn('self.browser_sort = self.button("Sort: Title, A to Z", self.show_browser_sort', code)
+        self.assertIn('self.browser_sort.set_sensitive(False)', code)
+        self.assertNotIn('Gtk.DropDown.new_from_strings(["Sort: Title A–Z"', code)
+        self.assertNotIn('popover.sort-menu > contents { margin-top: 8px; background: #000', code)
+        self.assertNotIn('box-shadow: inset 3px 0 #9868F9', code)
+        self.assertIn('popover.sort-menu .track-menu-action.active:focus { background: #9868F9; color: #111; box-shadow: none; }', code)
         web = (SOURCE.parents[1] / 'roon-controller/static/app.js').read_text(encoding='utf-8')
         self.assertIn("const activeSection = data.surprise_preview ? 'surprise'", web)
         self.assertIn('!data.can_back || Boolean(data.surprise_preview)',web)
 
+    def test_six_home_controls_fill_landscape_with_two_tall_tiles_and_a_two_by_two_group(self):
+        code = native_text()
+        self.assertIn('if not portrait and len(entities) == 6:', code)
+        self.assertIn('self.home_grid.attach(box, index, 0, 1, 2)', code)
+        self.assertIn('self.home_grid.attach(box, 2 + (index - 2) % 2, (index - 2) // 2, 1, 1)', code)
+
+    def test_missing_configured_zone_has_an_explicit_quiet_state(self):
+        code = native_text()
+        self.assertIn('if zone.get("available") is False:', code)
+        self.assertIn('self.artist.set_text("Selected zone is offline")', code)
+
     def test_grid_minimums_fit_physical_monitor_without_using_expanded_content(self):
-        metrics = native_method("browser_grid_metrics", {"Gdk": SimpleNamespace(Display=SimpleNamespace(get_default=lambda: display)), "Gtk":SimpleNamespace(Orientation=SimpleNamespace(HORIZONTAL=0))})
+        metrics = native_method("browser_grid_metrics", {"Gdk": SimpleNamespace(Display=SimpleNamespace(get_default=lambda: display))})
         for width in (480, 720, 800, 1024, 1280):
             monitor = SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=width))
             display = SimpleNamespace(get_monitors=lambda:SimpleNamespace(get_n_items=lambda:1,get_item=lambda _:monitor))
             for genres in (True, False):
-                columns, size = metrics(measured_browser_rails(), genres)
-                self.assertLessEqual(columns * (size + 12) + (columns - 1) * 16, width - 303)
-                self.assertLessEqual(size, 212)
+                columns, size = metrics(SimpleNamespace(), genres)
+                self.assertLessEqual(columns * (size + 12) + (columns - 1) * 16, width - (250 if width == 1280 else 266))
+                self.assertLessEqual(size, 230)
 
     def test_playback_handoff_requires_successful_navigation_response(self):
         for data, expected in (({"navigate":"now"}, ["render", "now"]), ({}, ["render"]), ({"navigate":"now","error":"failed"}, ["render"])):

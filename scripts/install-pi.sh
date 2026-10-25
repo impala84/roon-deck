@@ -60,8 +60,10 @@ install -m 0755 /opt/pi-home/scripts/pi-bus-appliance-mode /usr/local/sbin/pi-bu
 desktop_home=$(getent passwd "${desktop_user}" | cut -d: -f6)
 install -d -o "${desktop_user}" -g "${desktop_user}" "${desktop_home}/.config/autostart"
 install -m 0644 -o "${desktop_user}" -g "${desktop_user}" /opt/pi-home/native-display/pi-bus-native.desktop "${desktop_home}/.config/autostart/pi-bus-native.desktop"
+install -d /usr/share/icons/hicolor/scalable/apps
+install -m 0644 /opt/pi-home/native-display/assets/brand/favicon-dark.svg /usr/share/icons/hicolor/scalable/apps/roondeck.svg
 rm -f "${desktop_home}/.config/autostart/pi-bus-time-display.desktop"
-chmod 0755 /opt/pi-home/native-display/pi_bus_native.py
+chmod 0755 /opt/pi-home/native-display/roondeck_native.py
 chmod 0755 /opt/pi-home/scripts/pi-bus-cage-launch
 usermod -a -G morningbus "${desktop_user}"
 systemctl daemon-reload
@@ -69,5 +71,5 @@ systemctl enable pi-bus-time-display.service
 systemctl enable pi-bus-roon-controller.service
 systemctl enable --now pi-bus-system-action.path
 systemctl enable --now pi-home-leds.service
-echo "Installed native GTK display. Edit /etc/pi-home/config.toml and /etc/pi-home/secrets.env, then reboot."
+echo "Installed RoonDeck native GTK display. Edit /etc/pi-home/config.toml and /etc/pi-home/secrets.env, then reboot."
 echo "Future application updates: sudo pi-bus-update"

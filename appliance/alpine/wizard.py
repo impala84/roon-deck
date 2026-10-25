@@ -1,11 +1,23 @@
-"""Touch-first Alpine onboarding, before the main native display starts."""
+"""Touch-first RoonDeck Alpine onboarding."""
 import json
 import socket
 import threading
+from pathlib import Path
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
 from setup_service import SOCKET
+
+BRAND_ASSETS = Path(__file__).resolve().parent / "assets" / "brand"
+
+
+def wordmark_picture(target_height=26):
+    source = GdkPixbuf.Pixbuf.new_from_file(str(BRAND_ASSETS / "roondeck-wordmark.svg"))
+    width = round(target_height * source.get_width() / source.get_height())
+    scaled = source.scale_simple(width, target_height, GdkPixbuf.InterpType.BILINEAR)
+    picture = Gtk.Picture.new_for_pixbuf(scaled); picture.set_size_request(width, target_height)
+    picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.CONTAIN)
+    return picture
 
 
 def request(data):
@@ -18,7 +30,7 @@ def request(data):
 class Wizard(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="uk.co.dallabs.PiHome.Setup")
-        self.stage = 0; self.progress = {}; self.entry = None; self.shift = False; self.symbols = False; self.busy = False; self.initial = True
+        self.stage = 0; self.progress = {}; self.entry = None; self.fields = []; self.shift = False; self.symbols = False; self.busy = False; self.initial = True
         self.connect("activate", self.activate)
 
     def label(self, text):
@@ -28,15 +40,15 @@ class Wizard(Gtk.Application):
         button = Gtk.Button(label=title); button.connect("clicked", lambda *_: callback()); return button
 
     def activate(self, *_):
-        self.window = Gtk.ApplicationWindow(application=self); self.window.set_title("Set up Pi Home"); self.window.fullscreen()
+        self.window = Gtk.ApplicationWindow(application=self); self.window.set_title("Set up RoonDeck"); self.window.fullscreen()
         self.window.set_cursor_from_name("none")
-        css = Gtk.CssProvider(); css.load_from_data(b"window { background:#1c1b24; color:#f5f5f5; } button { min-height:40px; padding:4px 10px; background:#302d42; color:#fff; border-radius:8px; } button:active {background:#aaa2ff;color:#111;} entry { min-height:40px; font-size:20px; background:#282631;color:#fff; } .title {font-size:25px;font-weight:700;color:#aaa2ff;} .brand {font-size:15px;font-weight:800;color:#817aeb;letter-spacing:3px;} .primary {background:#817aeb;color:#111;} .key {min-height:34px;padding:2px;} label {font-size:17px;} .mint .brand, .mint .title {color:#6ed9ae;} .mint .primary, .mint button:active {background:#6ed9ae;}")
+        css = Gtk.CssProvider(); css.load_from_data(b"window { background:#1c1b24; color:#f5f5f5; } button { min-height:40px; padding:4px 10px; background:#302d42; color:#fff; border-radius:8px; } button:active {background:#9868F9;color:#111;} entry { min-height:40px; font-size:20px; background:#282631;color:#fff; } .title {font-size:25px;font-weight:700;color:#9868F9;} .brand {min-width:0;min-height:0;} .primary {background:#9868F9;color:#111;} .key {min-height:34px;padding:2px;} label {font-size:17px;} .mint .title {color:#6ed9ae;} .mint .primary, .mint button:active {background:#6ed9ae;}")
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         for edge in ("start", "end", "top", "bottom"): getattr(self.outer, "set_margin_" + edge)(14)
         header = Gtk.Box(spacing=14)
-        brand = self.label("PI HOME"); brand.add_css_class("brand"); header.append(brand)
-        self.title = self.label("Welcome to Pi Home"); self.title.add_css_class("title"); header.append(self.title); self.outer.append(header)
+        brand = wordmark_picture(); brand.add_css_class("brand"); brand.set_halign(Gtk.Align.START); brand.set_valign(Gtk.Align.CENTER); header.append(brand)
+        self.title = self.label("Welcome to RoonDeck"); self.title.add_css_class("title"); header.append(self.title); self.outer.append(header)
         scroll = Gtk.ScrolledWindow(); scroll.set_vexpand(True); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); scroll.set_child(self.content); self.outer.append(scroll)
         self.status = self.label(""); self.outer.append(self.status)
@@ -79,7 +91,7 @@ class Wizard(Gtk.Application):
     def field(self, placeholder, text="", secret=False):
         entry = Gtk.Entry(); entry.set_placeholder_text(placeholder); entry.set_text(text); entry.set_visibility(not secret)
         focus = Gtk.EventControllerFocus(); focus.connect("enter", lambda *_: self.select_entry(entry)); entry.add_controller(focus)
-        self.content.append(entry); return entry
+        self.fields.append(entry); self.content.append(entry); return entry
 
     def secret_field(self, placeholder):
         entry = self.field(placeholder, secret=True)
@@ -101,7 +113,7 @@ class Wizard(Gtk.Application):
                 key = self.button(value, lambda c=value: self.type_key(c)); key.add_css_class("key"); key.set_focusable(False); row.append(key)
             self.keyboard.append(row)
         row = Gtk.Box(spacing=3); row.set_homogeneous(True)
-        for title, callback in (("Shift", self.toggle_shift), ("ABC" if self.symbols else "Symbols", self.toggle_symbols), ("Space", lambda: self.type_key(" ")), ("⌫", self.backspace), ("Hide", lambda: self.keyboard.set_visible(False))):
+        for title, callback in (("Shift", self.toggle_shift), ("ABC" if self.symbols else "Symbols", self.toggle_symbols), ("Space", lambda: self.type_key(" ")), ("⌫", self.backspace), ("Next", self.focus_next_entry), ("Hide", lambda: self.keyboard.set_visible(False))):
             key = self.button(title, callback); key.set_focusable(False); row.append(key)
         self.keyboard.append(row)
 
@@ -120,12 +132,19 @@ class Wizard(Gtk.Application):
                 position = self.entry.get_position()
                 if position > 0: self.entry.delete_text(position - 1, position)
 
+    def focus_next_entry(self):
+        if self.entry in self.fields:
+            index = self.fields.index(self.entry) + 1
+            if index < len(self.fields):
+                self.entry = self.fields[index]; self.entry.grab_focus(); return
+        self.keyboard.set_visible(False)
+
     def advance(self, data):
         def saved(result): self.progress = result["progress"]; self.stage += 1; self.refresh()
         self.async_call(data, saved)
 
     def render(self):
-        self.clear(self.content); self.clear(self.footer); self.keyboard.set_visible(False); self.entry = None
+        self.clear(self.content); self.clear(self.footer); self.keyboard.set_visible(False); self.entry = None; self.fields = []
         titles = ["Choose your display", "Name your device", "Connect to your network", "Connect to Roon", "Choose theme and region", "Choose optional software", "Finish setup"]
         self.title.set_text(f"{self.stage + 1}/7 · {titles[self.stage]}")
         if self.progress.get("theme") == "fresh-mint": self.window.add_css_class("mint")
@@ -158,7 +177,7 @@ class Wizard(Gtk.Application):
             self.content.append(self.button("Connect Wi-Fi", lambda: self.advance({"action": "wifi", "ssid": ssid.get_text(), "password": password.get_text()})))
             self.footer.append(self.button("Continue with current connection", lambda: self.advance({"action": "network"})))
         elif self.stage == 3:
-            self.content.append(self.label("In Roon: Settings → Extensions → enable Pi Home Roon Controller. Then Refresh and choose the output you want to control. This Pi is a controller, not an audio endpoint."))
+            self.content.append(self.label("In Roon: Settings → Extensions → enable RoonDeck. Then Refresh and choose the output you want to control. Roon Bridge can optionally turn this Pi into a separate RAAT audio endpoint."))
             zones = [zone["name"] for zone in self.snapshot.get("roon", {}).get("zones", [])]
             chooser = Gtk.DropDown.new_from_strings(zones or ["Waiting for Roon authorisation…"]); self.content.append(chooser)
             select = self.button("Use this zone", lambda: self.advance({"action": "roon", "zone": zones[chooser.get_selected()]})); select.set_sensitive(bool(zones)); self.footer.append(select)
@@ -174,16 +193,17 @@ class Wizard(Gtk.Application):
             region.connect("notify::selected", lambda *_: timezone.set_text(regions[region.get_selected()]) if region.get_selected() else None)
             self.footer.append(self.button("Save and continue", lambda: self.advance({"action": "display", "profile": self.progress["profile"], "rotation": self.progress["rotation"], "theme": ("roon", "fresh-mint")[theme.get_selected()], "timezone": timezone.get_text()})))
         elif self.stage == 5:
-            self.content.append(self.label("Pi Home already includes storage expansion, time sync, downloads and diagnostics. Choose any additional services for this Pi."))
+            self.content.append(self.label("RoonDeck already includes storage expansion, time sync, downloads and diagnostics. Choose any additional services for this Pi."))
             choices = self.progress.get("software_choices", {})
-            bridge = Gtk.CheckButton(label="Install Roon Bridge · use this Pi as an audio endpoint"); bridge.set_active(choices.get("roon_bridge", False)); self.content.append(bridge)
+            bridge = Gtk.CheckButton(label="Install Roon Bridge · use this Pi as a RAAT audio endpoint"); bridge.set_active(choices.get("roon_bridge", False)); self.content.append(bridge)
+            airplay = Gtk.CheckButton(label="Install AirPlay · stream audio from Apple devices"); airplay.set_active(choices.get("airplay", False)); self.content.append(airplay)
             netdata = Gtk.CheckButton(label="Install Netdata · official stable Agent with automatic updates"); netdata.set_active(choices.get("netdata", False)); self.content.append(netdata)
             lightweight = Gtk.CheckButton(label="Lightweight Netdata · 3-second samples, no ML anomaly detection"); lightweight.set_active(choices.get("netdata_lightweight", True)); self.content.append(lightweight)
             self.content.append(self.label("Downloads the latest official stable Agent, not Alpine’s older package. Lightweight mode disables ML and six optional collectors, keeps apps/go.d, alerts, dashboard and Cloud connectivity; memory savings vary."))
             self.content.append(self.label("Netdata Cloud can be connected later in web Settings. Downloads require internet access and may take several minutes."))
             self.content.append(self.label(self.progress.get("software_status", "")))
             def install():
-                self.async_call({"action": "software", "roon_bridge": bridge.get_active(), "netdata": netdata.get_active(), "netdata_lightweight": lightweight.get_active()}, lambda _: self.refresh())
+                self.async_call({"action": "software", "roon_bridge": bridge.get_active(), "airplay": airplay.get_active(), "netdata": netdata.get_active(), "netdata_lightweight": lightweight.get_active()}, lambda _: self.refresh())
             self.footer.append(self.button("Install and continue", install))
             self.content.append(self.button("Continue without optional software", lambda: self.async_call({"action": "software", "roon_bridge": False, "netdata": False}, lambda _: self.refresh())))
             if self.snapshot.get("software_busy"):
@@ -191,11 +211,11 @@ class Wizard(Gtk.Application):
             else:
                 self.content.set_sensitive(True); self.footer.set_sensitive(True)
         elif self.stage == 6:
-            self.content.append(self.label(f"Web settings: http://{self.progress.get('hostname')}.local:8765/admin\nChoose the device account used for both Pi Home settings and SSH recovery."))
+            self.content.append(self.label(f"Web settings: http://{self.progress.get('hostname')}.local:8765/admin\nChoose the device account used for both RoonDeck settings and SSH recovery."))
             username = self.field("Device username", self.progress.get("username", "admin"))
             password = self.secret_field("Choose password")
             confirmation = self.secret_field("Enter password again")
-            self.content.append(self.label("Use 8–128 characters. Pi Home may warn about a simple password, but the choice is yours; keep it private because it controls the appliance."))
+            self.content.append(self.label("Use 8–128 characters. RoonDeck may warn about a simple password, but the choice is yours; keep it private because it controls the appliance."))
             ssh = Gtk.CheckButton(label="Enable SSH (recommended for recovery)"); ssh.set_active(True); self.content.append(ssh)
             self.footer.append(self.button("Finish and restart", lambda: self.finish(username.get_text(), password.get_text(), True, confirmation.get_text(), ssh.get_active())))
             self.content.append(self.button("Finish without restart", lambda: self.finish(username.get_text(), password.get_text(), False, confirmation.get_text(), ssh.get_active())))
@@ -217,4 +237,14 @@ class Wizard(Gtk.Application):
         self.async_call({"action": "finish", "username": username, "password": password, "confirmation": confirmation, "ssh": ssh}, saved)
 
 
-if __name__ == "__main__": Wizard().run(None)
+def setup_complete(path=Path("/var/lib/pi-home-setup/progress.json")):
+    """Avoid presenting a completed wizard while the slower Pi 3 boots."""
+    if Path("/var/lib/pi-home/setup-complete").exists():
+        return True
+    try:
+        return bool(json.loads(path.read_text(encoding="utf-8")).get("complete"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+
+
+if __name__ == "__main__" and not setup_complete(): Wizard().run(None)

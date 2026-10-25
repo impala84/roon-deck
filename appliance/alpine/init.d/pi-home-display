@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Pi Home native GTK touchscreen"
+description="RoonDeck native GTK touchscreen"
 supervisor=supervise-daemon
 command=/usr/local/bin/pi-home-display-launch
 command_user=morningbus:morningbus

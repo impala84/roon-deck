@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Pi Home dashboard API"
+description="RoonDeck dashboard API"
 supervisor=supervise-daemon
 command=/opt/pi-home/.venv/bin/pi-home
 command_args="--config /etc/pi-home/config.toml --env /etc/pi-home/secrets.env --state-dir /var/lib/pi-home --host 0.0.0.0"

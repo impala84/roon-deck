@@ -16,18 +16,19 @@ import tempfile
 import time
 import sys
 import tomllib
+import urllib.error
 import urllib.request
 
 APP = Path("/opt/pi-home")
 STATE = Path("/var/lib/pi-home")
-REPO = "https://api.github.com/repos/impala84/pi-home"
+REPO = "https://api.github.com/repos/impala84/roon-deck"
 BRANCH = "alpine-beta"
 DISPLAY_REVISION = Path("/run/pi-home/display-source-commit")
 MANAGED_RELEASE = re.compile(r"[0-9a-f]{40}-[0-9]+")
 UPDATE_RESERVE_BYTES = 96_000_000
 MIN_STAGE_BYTES = 160_000_000
 sys.path.insert(0, str(APP / "src"))
-from pi_bus_time_display.releases import published_releases, select_release
+from pi_bus_time_display.releases import github_json, published_releases, select_release
 CONFIG = Path("/etc/pi-home/config.toml")
 
 
@@ -60,8 +61,8 @@ def run(args, timeout=300):
 
 
 def fetch_json(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "Pi-Home-Alpine-Updater", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(request, timeout=30) as response: return json.load(response)
+    # Shared with the release list: unchanged answers are re-validated for free and a rate-limited network says so.
+    return github_json(url, timeout=30)
 
 
 def wait_for_clock(timeout=45):
@@ -130,12 +131,17 @@ def verified_revision():
     sha = reference.get("sha", "")
     if reference.get("type") != "commit" or not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise RuntimeError("Invalid Alpine release revision")
+    # Beta is the physical-development channel: the user explicitly accepts
+    # an exact published prerelease tag and performs the hardware acceptance
+    # check. Stable remains gated by the complete Alpine verification job.
+    if channel == "beta":
+        return sha
     result = fetch_json(REPO + "/actions/workflows/alpine-image.yml/runs?branch=" + BRANCH + "&head_sha=" + sha + "&status=success&per_page=100")
     runs = result.get("workflow_runs", [])
     runs = [build for build in runs if build.get("head_sha") == sha]
     if not runs: raise RuntimeError("No verified Alpine build is available")
     build = runs[0]
-    if build.get("head_branch") != BRANCH or build.get("conclusion") != "success" or build.get("event") not in {"push", "workflow_dispatch"} or build.get("head_repository", {}).get("full_name") != "impala84/pi-home" or not re.fullmatch(r"[0-9a-f]{40}", sha):
+    if build.get("head_branch") != BRANCH or build.get("conclusion") != "success" or build.get("event") not in {"push", "workflow_dispatch"} or build.get("head_repository", {}).get("full_name") != "impala84/roon-deck" or not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise RuntimeError("Invalid verified build response")
     return sha
 
@@ -156,11 +162,50 @@ def extract_source(archive, destination):
     return roots[0]
 
 
+def download_source(sha, archive, attempts=3):
+    url = "https://codeload.github.com/impala84/roon-deck/tar.gz/" + sha
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as response, archive.open("wb") as file:
+                total = 0
+                while chunk := response.read(65536):
+                    total += len(chunk)
+                    if total > 30_000_000: raise RuntimeError("Source download is too large")
+                    file.write(chunk)
+            return
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = error
+            try: archive.unlink()
+            except FileNotFoundError: pass
+            if attempt < attempts:
+                status(f"Update · Source download interrupted; retrying ({attempt + 1}/{attempts})…")
+                time.sleep(2)
+    detail = getattr(last_error, "reason", last_error)
+    raise RuntimeError(f"Could not download the verified application files after {attempts} attempts: {detail}") from last_error
+
+
 def activate(target):
     temporary = APP.with_name(".pi-home-next")
     if temporary.is_symlink(): temporary.unlink()
     temporary.symlink_to(target)
     temporary.replace(APP)
+
+
+def migrate_completed_setup():
+    """Give pre-marker installations the root-readable boot completion flag."""
+    marker = STATE / "setup-complete"
+    if marker.exists(): return False
+    legacy = STATE.with_name("pi-home-setup") / "progress.json"
+    try:
+        complete = bool(json.loads(legacy.read_text(encoding="utf-8")).get("complete"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    if not complete: return False
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    temporary = marker.with_suffix(".tmp")
+    temporary.write_text("true\n", encoding="ascii"); temporary.chmod(0o600); temporary.replace(marker)
+    return True
 
 
 def healthy(expected_sha=None):
@@ -169,6 +214,10 @@ def healthy(expected_sha=None):
             for url in ("http://127.0.0.1:8765/api/status", "http://127.0.0.1:8766/api/state"):
                 with urllib.request.urlopen(url, timeout=2) as response:
                     if response.status != 200: raise OSError("Not ready")
+            if expected_sha:
+                with urllib.request.urlopen("http://127.0.0.1:8766/api/build", timeout=2) as response:
+                    if response.status != 200 or json.load(response).get("revision") != expected_sha:
+                        raise OSError("Roon controller is not running the staged revision")
             run(["rc-service", "pi-home-display", "status"], timeout=10)
             if expected_sha:
                 if not DISPLAY_REVISION.exists() or DISPLAY_REVISION.read_text().strip() != expected_sha:
@@ -200,14 +249,14 @@ def update():
     # inherit a deleted current-working-directory inode.
     os.chdir("/")
     wait_for_clock()
-    status("Update · Checking verified Alpine builds…")
+    status("Update · Checking published Alpine releases…")
     try:
         sha = verified_revision()
     except NoDowngrade as error:
         status("Update unchanged. " + str(error)); return
     if (APP / ".source-commit").exists() and (APP / ".source-commit").read_text().strip() == sha:
         if healthy(sha):
-            status("Update unchanged. Latest verified Alpine is installed and running."); return
+            status("Update unchanged. Latest Alpine release is installed and running."); return
         status("Update files are current · Restarting the stale touchscreen…")
         restart()
         if not healthy(sha): raise RuntimeError("Current files are installed but the touchscreen could not be restarted on that revision")
@@ -228,25 +277,22 @@ def update():
         with tempfile.TemporaryDirectory(prefix="pi-home-source-") as folder:
             temporary = Path(folder); archive = temporary / "source.tar.gz"
             status("Update · Downloading verified application files…")
-            url = "https://codeload.github.com/impala84/pi-home/tar.gz/" + sha
-            with urllib.request.urlopen(url, timeout=60) as response, archive.open("wb") as file:
-                total = 0
-                while chunk := response.read(65536):
-                    total += len(chunk)
-                    if total > 30_000_000: raise RuntimeError("Source download is too large")
-                    file.write(chunk)
-            source = extract_source(archive, temporary / "unpacked")
+            download_source(sha, archive)
+            try:
+                source = extract_source(archive, temporary / "unpacked")
+            except (tarfile.TarError, OSError) as error:
+                raise RuntimeError(f"Downloaded application package could not be unpacked: {error}") from error
             source.rename(target)
         (target / ".source-commit").write_text(sha + "\n")
         status("Update · Creating Python environment…")
         run(["python3", "-m", "venv", "--system-site-packages", str(target / ".venv")])
-        status("Update · Installing Pi Home Python package…")
+        status("Update · Installing RoonDeck Python package…")
         run([str(target / ".venv/bin/pip"), "install", "--no-build-isolation", "--no-deps", str(target)])
         status("Update · Downloading Roon dependencies…")
         run(["npm", "--prefix", str(target / "roon-controller"), "ci", "--omit=dev", "--no-audit", "--no-fund"])
         status("Update · Checking prepared application…")
         run([str(target / ".venv/bin/python"), "-c", "import gi; gi.require_version('Gtk', '4.0'); gi.require_foreign('cairo'); from pi_bus_time_display import __version__"])
-        for path in ("native-display/pi_bus_native.py", "scripts/pi-bus-cage-launch", "appliance/alpine/display-session"):
+        for path in ("native-display/roondeck_native.py", "scripts/pi-bus-cage-launch", "appliance/alpine/display-session"):
             (target / path).chmod(0o755)
     except Exception:
         if target.exists() and managed_release(target, releases):
@@ -259,9 +305,10 @@ def update():
         APP.rename(previous)
     try:
         activate(target)
+        migrate_completed_setup()
         shutil.copyfile(target / "appliance/alpine/display-launch", "/usr/local/bin/pi-home-display-launch")
         Path("/usr/local/bin/pi-home-display-launch").chmod(0o755)
-        status("Update · Restarting and checking Pi Home…")
+        status("Update · Restarting and checking RoonDeck…")
         restart()
         if not healthy(sha): raise RuntimeError("New application did not become healthy or the touchscreen kept running old files")
     except Exception as failure:
@@ -281,18 +328,35 @@ def update():
     status("Update installed. Alpine " + sha[:7] + "; settings and pairing preserved.")
 
 
+def check():
+    """Check the selected channel without downloading or installing an update."""
+    os.chdir("/")
+    wait_for_clock()
+    try:
+        sha = verified_revision()
+    except NoDowngrade:
+        return
+    installed = (APP / ".source-commit").read_text().strip() if (APP / ".source-commit").exists() else ""
+    if installed != sha:
+        status("Update available. Open Settings → System → Software to install the latest Alpine release.")
+
+
 def main():
     if os.geteuid() != 0: raise SystemExit("Run with sudo")
     with open("/run/pi-home-update.lock", "a") as lock:
         try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError: return
-        try: update()
+        try: check() if "--check" in sys.argv[1:] else update()
         except Exception as error:
             reason = getattr(error, "reason", error)
             if isinstance(reason, ssl.SSLCertVerificationError):
                 message = "HTTPS certificate check failed. Check the Pi clock and network time sync; existing installation retained"
             else:
-                message = str(error) if isinstance(error, RuntimeError) else "Download or application preparation failed; existing installation retained"
+                if isinstance(error, RuntimeError): message = str(error)
+                else:
+                    code = getattr(error, "code", None)
+                    detail = f"HTTP {code}" if code else str(getattr(error, "reason", error))[:80] or type(error).__name__
+                    message = f"Download or application preparation failed ({detail}); existing installation retained"
             status("Failed: " + message)
             raise SystemExit(1)
 

@@ -1,4 +1,4 @@
-.web-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}.web-nav:has(a[hidden]){display:flex}.web-nav a{flex:1}
+.web-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}.web-nav:has(a[hidden]){grid-template-columns:repeat(3,minmax(0,1fr))!important}.web-nav a{min-width:0}
 .discovery-view{position:fixed;inset:88px 28px 106px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
 .recent-modes{display:flex;gap:12px;margin-bottom:18px}.recent-modes button{min-height:44px;padding:8px 12px;background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;cursor:pointer}.recent-modes button.active{color:var(--mint);border-bottom-color:var(--mint)}
 .discovery-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-bottom:28px}

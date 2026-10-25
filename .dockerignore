@@ -13,3 +13,4 @@ roon-controller/config.json
 .state
 dist
 build
+artifacts

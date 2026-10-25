@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+mode=${1:-help}
+screen=${2:-all}
+native_image=roondeck-native-test:local
+appliance_image=roondeck-appliance-candidate:local
+
+usage() {
+  cat <<'EOF'
+Usage:
+  tools/check fast
+  tools/check screen [settings|discover|layout|all] [viewport-id]
+  tools/check candidate
+  tools/check image
+
+fast       Python, controller, shell and version checks.
+screen     Cached Alpine/GTK rendering across the supported viewport matrix.
+           "layout" reports real header/nav positions per page (not part of "all").
+candidate  Fast checks, all native layouts and deterministic appliance smoke tests.
+image      Candidate checks plus the complete ARM64 disk image (ARM64 Linux only).
+EOF
+}
+
+python_bin() {
+  for candidate in python3.13 python3.12 python3.11 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3,11))'; then
+      command -v "$candidate"
+      return
+    fi
+  done
+  echo "Python 3.11 or newer is required." >&2
+  exit 1
+}
+
+require_container_engine() {
+  command -v docker >/dev/null 2>&1 || { echo "Docker is required for native checks." >&2; exit 1; }
+  docker info >/dev/null 2>&1 || {
+    echo "The Docker client is installed, but no local container engine is running." >&2
+    echo "Start your local Linux container environment, then rerun this command." >&2
+    exit 1
+  }
+}
+
+fast() {
+  local python
+  python=$(python_bin)
+  if [[ ! -d "$repo/roon-controller/node_modules" ]]; then
+    npm --prefix "$repo/roon-controller" ci --omit=dev --no-audit --no-fund
+  fi
+  PYTHONPATH="$repo/src" PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/roondeck-pycache" \
+    "$python" -m unittest discover -s "$repo/tests"
+  npm --prefix "$repo/roon-controller" test
+  bash -n "$repo/scripts/install-pi.sh" "$repo/scripts/install-roon-bridge.sh" \
+    "$repo/scripts/pi-bus-update" "$repo/scripts/pi-bus-appliance-mode" \
+    "$repo/scripts/pi-bus-cage-launch" "$repo/tools/check"
+  PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/roondeck-pycache" "$python" -m py_compile \
+    "$repo"/native-display/*.py "$repo/scripts/pi-bus-system-action" \
+    "$repo/tools/run_native_matrix.py"
+  git -C "$repo" diff --check
+}
+
+build_native_image() {
+  require_container_engine
+  docker build -q -t "$native_image" -f "$repo/tools/native-test.Dockerfile" "$repo" >/dev/null
+}
+
+native() {
+  local target=${1:-all}
+  local only=${2:-}
+  local output
+  case "$target" in settings|discover|layout|all) ;; *) usage; exit 2 ;; esac
+  build_native_image
+  output="$repo/dist/native-review/$target"
+  mkdir -p "$output"
+  local extra=()
+  [[ -n "$only" ]] && extra=(--viewport "$only")
+  docker run --rm \
+    -v "$repo:/opt/pi-home:ro" \
+    -v "$repo/dist/native-review:/opt/pi-home/dist/native-review" \
+    -w /opt/pi-home \
+    "$native_image" \
+    python3 tools/run_native_matrix.py --screen "$target" --output "/opt/pi-home/dist/native-review/$target" ${extra[@]+"${extra[@]}"}
+}
+
+candidate() {
+  fast
+  native all
+  require_container_engine
+  docker build --platform linux/arm64 \
+    --build-arg "PI_HOME_SOURCE_SHA=$(git -C "$repo" rev-parse HEAD)" \
+    -t "$appliance_image" -f "$repo/appliance/alpine/Dockerfile" "$repo"
+  docker run --rm --user morningbus "$appliance_image" .venv/bin/python appliance/alpine/smoke.py
+  local source_archive
+  source_archive=$(mktemp "$repo/.roondeck-source.XXXXXX")
+  trap 'rm -f "$source_archive"' RETURN
+  git -C "$repo" archive --prefix=pi-home/ HEAD | gzip > "$source_archive"
+  docker run --rm -v "$source_archive:/tmp/pi-home-update-source.tar.gz:ro" \
+    "$appliance_image" python3 appliance/alpine/updater_smoke.py
+  docker run --rm "$appliance_image" python3 appliance/alpine/update_button_smoke.py
+  docker run --rm "$appliance_image" python3 appliance/alpine/cursor_smoke.py
+  docker run --rm "$appliance_image" sh -ec \
+    'apk add --no-cache xvfb-run >/dev/null && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'
+}
+
+case "$mode" in
+  fast) fast ;;
+  screen) native "$screen" "${3:-}" ;;
+  candidate) candidate ;;
+  image)
+    candidate
+    bash "$repo/appliance/alpine/build-image.sh"
+    bash "$repo/appliance/alpine/verify-storage-expansion.sh" "$repo/dist/alpine/pi-home-alpine-beta.img.gz"
+    ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 2 ;;
+esac

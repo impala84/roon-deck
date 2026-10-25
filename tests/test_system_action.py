@@ -19,56 +19,11 @@ def load_helper():
 
 
 class SystemActionQueueTests(unittest.TestCase):
-    def test_display_apply_persists_mounting_and_reboots_automatically(self):
-        helper = load_helper()
-        with tempfile.TemporaryDirectory() as directory, patch.object(helper, 'DISPLAY_CONFIG', Path(directory)), patch.object(helper, 'run') as run, patch.object(helper, 'report'):
-            helper.execute({'action': 'set_display', 'profile': 'touch2-10', 'orientation': 'portrait', 'mounting': 'inverted'})
-            self.assertEqual((Path(directory) / 'display-mounting').read_text(), 'inverted\n')
-            self.assertEqual([call.args[0] for call in run.call_args_list], [
-                ['/usr/local/sbin/pi-bus-appliance-mode', 'display', 'touch2-10', '180'], ['systemctl', 'reboot']])
-
-    def test_roon_install_uses_fixed_official_installer(self):
-        helper = load_helper()
-        with patch.object(helper, 'run') as run, patch.object(helper, 'report'):
-            helper.execute({'action': 'roon_install'})
-        run.assert_called_once_with(['/bin/bash', str(helper.APP / 'scripts/install-roon-bridge.sh')])
-
-    def test_lightweight_restarts_only_running_agent(self):
-        helper = load_helper()
-        for active in (0, 3):
-            with patch.object(helper.subprocess, 'run', side_effect=[type('Result', (), {'returncode': 0})(), type('Result', (), {'returncode': active})()]), patch.object(helper, 'run') as run, patch.object(helper, 'report'), patch.object(helper, 'configure_netdata_lightweight') as configure:
-                helper.execute({'action': 'netdata_lightweight', 'enabled': True})
-                configure.assert_called_once_with(Path('/'), True)
-                self.assertEqual(run.call_count, 1 if active == 0 else 0)
-
-    def test_official_install_never_executes_or_logs_pasted_shell(self):
-        helper = load_helper()
-        pasted = 'bash <(curl -Ss https://get.netdata.cloud/kickstart.sh) --claim-token private-token --claim-rooms room-1234 ; touch /tmp/unsafe'
-        with tempfile.TemporaryDirectory() as directory, patch.object(helper, 'STATE', Path(directory)), patch.object(helper, 'run') as run, patch.object(helper, 'configure_netdata_lightweight'), patch.object(helper.urllib.request, 'urlopen') as response, patch.object(helper.subprocess, 'run', return_value=type('Result', (), {'returncode': 0})()) as process:
-            response.return_value.__enter__.return_value.read.return_value = b'# official test installer'
-            helper.install_netdata(pasted)
-            arguments = process.call_args.args[0]
-            self.assertIn('--stable-channel', arguments)
-            self.assertIn('--auto-update', arguments)
-            self.assertNotIn(pasted, arguments)
-            self.assertNotIn('touch', arguments)
-            self.assertNotIn('private-token', repr(run.call_args_list))
-            self.assertNotIn('private-token', (Path(directory) / 'netdata-operation-status').read_text())
-            self.assertFalse(Path(arguments[1]).exists())
-
-    def test_install_timeout_does_not_expose_claim_token(self):
-        helper = load_helper()
-        pasted = 'bash <(curl -Ss https://get.netdata.cloud/kickstart.sh) --claim-token private-token'
-        with tempfile.TemporaryDirectory() as directory, patch.object(helper, 'STATE', Path(directory)), patch.object(helper, 'run'), patch.object(helper.urllib.request, 'urlopen') as response, patch.object(helper.subprocess, 'run', side_effect=helper.subprocess.TimeoutExpired(['bash', '--claim-token', 'private-token'], 900)):
-            response.return_value.__enter__.return_value.read.return_value = b'# official test installer'
-            with self.assertRaises(RuntimeError) as error: helper.install_netdata(pasted)
-            self.assertNotIn('private-token', str(error.exception))
-
     def test_reboot_uses_only_the_fixed_systemd_action(self):
         helper = load_helper()
         with patch.object(helper, "run") as run, patch.object(helper, "report") as report:
             helper.execute({"action": "reboot"})
-        report.assert_any_call("Reboot requested. Pi Home is restarting…")
+        report.assert_any_call("Reboot requested. RoonDeck is restarting…")
         run.assert_called_once_with(["systemctl", "reboot"])
 
     def test_failed_update_gets_a_dedicated_terminal_status(self):

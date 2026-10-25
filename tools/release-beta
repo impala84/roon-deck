@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Publish the next Beta release in one step.
+
+Write the new entry at the top of CHANGELOG.md first:
+
+    ## 1.1.7-beta.87 Alpine — 27 October 2026
+
+    - What changed, in plain words.
+
+Then run:
+
+    tools/release-beta            # bump versions, check, commit, push, release
+    tools/release-beta --dry-run  # show what would happen, change nothing
+
+The script reads the version from that top entry, writes it into every file that
+carries the version, runs `tools/check fast`, commits, rebases onto the beta
+branch, pushes (never forced), creates the GitHub prerelease with the entry as
+its notes, and confirms the release is listed.
+"""
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+BRANCH = "hotfix/beta27-physical-baseline"
+REPO = "impala84/roon-deck"
+# Releases from beta.92 are tagged v1.1.7-beta.N. Devices running beta.88 or
+# earlier only see "-alpine" tags; beta.89 and later accept both.
+TAG_SUFFIX = ""
+HEADING = re.compile(r"^## (1\.1\.7-beta\.(\d+)) Alpine — .+$", re.M)
+
+
+def run(*cmd, capture=False):
+    print("$", " ".join(cmd), flush=True)
+    result = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=capture)
+    if result.returncode:
+        sys.exit(f"Stopped: {' '.join(cmd)} failed ({result.returncode}).\n{result.stderr if capture else ''}")
+    return result.stdout.strip() if capture else ""
+
+
+def top_entry():
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    matches = list(HEADING.finditer(text))
+    if not matches:
+        sys.exit("CHANGELOG.md has no '## 1.1.7-beta.N Alpine — date' entry at the top.")
+    first = matches[0]
+    end = matches[1].start() if len(matches) > 1 else len(text)
+    return first.group(1), text[first.start():end].strip()
+
+
+def current_version():
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    return re.search(r'^version = "([^"]+)"', text, re.M).group(1)
+
+
+def sub_once(path, pattern, replacement, count=1):
+    file = ROOT / path
+    text = file.read_text(encoding="utf-8")
+    new, n = re.subn(pattern, replacement, text, count=count, flags=re.M)
+    if n != count:
+        sys.exit(f"{path}: expected {count} version match(es), found {n}.")
+    file.write_text(new, encoding="utf-8")
+
+
+def bump(old, new):
+    esc = re.escape(old)
+    sub_once("pyproject.toml", rf'^version = "{esc}"', f'version = "{new}"')
+    sub_once("src/pi_bus_time_display/__init__.py", rf'__version__ = "{esc}"', f'__version__ = "{new}"')
+    sub_once("README.md", rf"\*\*{esc}\*\*", f"**{new}**")
+    sub_once("roon-controller/package.json", rf'"version": "{esc}"', f'"version": "{new}"')
+    sub_once("roon-controller/package-lock.json", rf'"version": "{esc}"', f'"version": "{new}"', count=2)
+
+
+def main():
+    dry = "--dry-run" in sys.argv
+    version, notes = top_entry()
+    old = current_version()
+    tag = f"v{version}{TAG_SUFFIX}"
+    print(f"Current version {old}; changelog entry {version}; tag {tag}")
+
+    if run("git", "branch", "--show-current", capture=True) != BRANCH:
+        sys.exit(f"Switch to the {BRANCH} branch first.")
+    if int(version.rsplit(".", 1)[1]) < int(old.rsplit(".", 1)[1]):
+        sys.exit("The changelog entry is older than the current version.")
+    published = json.loads(run("gh", "release", "list", "--repo", REPO, "--limit", "5",
+                               "--json", "tagName", capture=True))
+    if tag in {r["tagName"] for r in published}:
+        sys.exit(f"{tag} is already published. Add a new changelog entry first.")
+    if dry:
+        print("Dry run: would bump, check, commit, push and publish.\n\n" + notes)
+        return
+
+    if version != old:
+        bump(old, version)
+    run("tools/check", "fast")
+    run("git", "add", "-A", "--", ":!roon-deck")
+    if run("git", "status", "--porcelain", "--untracked-files=no", capture=True):
+        first_line = notes.splitlines()[2] if len(notes.splitlines()) > 2 else "changes"
+        run("git", "commit", "-m", f"Release {version} Alpine: {first_line.lstrip('- ')[:70]}")
+    run("git", "pull", "--rebase", "origin", BRANCH)
+    run("git", "push", "origin", f"HEAD:{BRANCH}")
+    run("gh", "release", "create", tag, "--repo", REPO, "--target", BRANCH, "--prerelease",
+        "--title", f"{version} Alpine", "--notes", notes)
+    listing = run("gh", "release", "list", "--repo", REPO, "--limit", "3", capture=True)
+    if tag not in listing:
+        sys.exit(f"{tag} was created but is not in the release list yet:\n{listing}")
+    print(f"\nPublished {tag}. Install it from Settings → Software on the Beta channel.")
+
+
+main()

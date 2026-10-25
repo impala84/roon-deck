@@ -19,7 +19,7 @@ class UpdateScriptTests(unittest.TestCase):
 
     def test_graphics_are_checked_before_restart_and_native_startup_is_verified(self):
         script = (ROOT / "scripts" / "pi-bus-update").read_text(encoding="utf-8")
-        self.assertLess(script.index('gi.require_foreign("cairo")'), script.index('progress "Restarting Pi Home services…"'))
+        self.assertLess(script.index('gi.require_foreign("cairo")'), script.index('progress "Restarting RoonDeck services…"'))
         self.assertIn("--property=NRestarts --value", script)
         self.assertIn("systemctl is-active --quiet pi-bus-native.service", script)
         self.assertLess(script.index('progress "Touchscreen is running."'), script.index('progress "Complete'))

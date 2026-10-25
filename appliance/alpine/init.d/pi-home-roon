@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Pi Home Roon controller (not Roon Bridge audio endpoint)"
+description="RoonDeck controller (Roon Bridge RAAT endpoint is optional)"
 supervisor=supervise-daemon
 command=/usr/bin/node
 command_args=/opt/pi-home/roon-controller/server.js

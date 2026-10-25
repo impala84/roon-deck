@@ -5,9 +5,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
-import time
-import urllib.request
 from pathlib import Path
 
 STATE = Path("/var/lib/pi-bus-time-display")
@@ -16,40 +13,6 @@ QUEUE = STATE / "system-action-queue"
 STATUS = STATE / "system-action-status"
 UPDATE_STATUS = STATE / "update-status"
 LEDS_ENABLED = STATE / "leds-enabled"
-APP = Path("/opt/pi-bus-time-display")
-DISPLAY_CONFIG = Path("/etc/pi-bus-time-display")
-sys.path.insert(0, str(APP / "src"))
-from pi_bus_time_display.netdata import atomic, configure_netdata_lightweight, parse_netdata_connection_command
-
-
-def install_netdata(command=""):
-    token, rooms, url = parse_netdata_connection_command(command) if command else ("", "", "https://app.netdata.cloud")
-    operation = STATE / "netdata-operation-status"
-    atomic(operation, "Installing the current official Netdata Agent…\n")
-    run(["apt-get", "update"])
-    run(["apt-get", "install", "-y", "curl", "ca-certificates"])
-    request = urllib.request.Request("https://get.netdata.cloud/kickstart.sh", headers={"User-Agent": "Pi-Home-Netdata-Installer"})
-    with tempfile.TemporaryDirectory(prefix="pi-home-netdata-") as directory:
-        installer = Path(directory) / "kickstart.sh"
-        with urllib.request.urlopen(request, timeout=45) as response:
-            payload = response.read(5_000_001)
-        if len(payload) > 5_000_000: raise RuntimeError("Official installer is unexpectedly large")
-        installer.write_bytes(payload)
-        installer.chmod(0o700)
-        arguments = ["/bin/bash", str(installer), "--non-interactive", "--stable-channel", "--auto-update"]
-        if token: arguments.extend(["--claim-token", token, "--claim-url", url])
-        if rooms: arguments.extend(["--claim-rooms", rooms])
-        # Claim tokens and installer output must not enter status messages/logs.
-        try:
-            result = subprocess.run(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=900, env={**os.environ, "DISABLE_TELEMETRY": "1"})
-        except subprocess.TimeoutExpired:
-            raise RuntimeError("Official Netdata installation timed out; check the network and retry") from None
-        if result.returncode: raise RuntimeError("Official Netdata installation failed; check the network and retry")
-    preference = STATE / "netdata-lightweight"
-    configure_netdata_lightweight(Path("/"), not preference.exists() or preference.read_text().strip() != "no")
-    run(["systemctl", "enable", "--now", "netdata.service"])
-    run(["systemctl", "restart", "netdata.service"])
-    atomic(operation, "Official Netdata Agent installed.\n")
 
 
 def report(message: str) -> None:
@@ -88,7 +51,7 @@ def roon_service() -> str:
 
 def display_power(powered: bool, brightness_percent: int = 100) -> None:
     brightness_percent = max(10, min(100, int(brightness_percent)))
-    # Recover a display pipeline disabled by an older Pi Home release, but
+    # Recover a display pipeline disabled by an older RoonDeck release, but
     # never disable it again: touchscreen wake events require it to stay live.
     vcgencmd = Path("/usr/bin/vcgencmd")
     if powered and vcgencmd.exists():
@@ -184,9 +147,9 @@ def execute(data: dict) -> None:
         except Exception as error:
             report_update(f"Failed: {error}")
             raise
-        report("Update installed. Pi Home services restarted.")
+        report("Update installed. RoonDeck services restarted.")
     elif action == "reboot":
-        report("Reboot requested. Pi Home is restarting…")
+        report("Reboot requested. RoonDeck is restarting…")
         run(["systemctl", "reboot"])
     elif action in {"display_on", "display_off"}:
         display_power(action == "display_on", int(data.get("brightness", 100)))
@@ -208,41 +171,7 @@ def execute(data: dict) -> None:
             raise ValueError("Invalid display configuration")
         transform = orientation_transform(profile, orientation, mounting)
         run(["/usr/local/sbin/pi-bus-appliance-mode", "display", profile, transform])
-        (DISPLAY_CONFIG / "display-mounting").write_text(mounting + "\n")
-        report("Display settings updated. Restarting…")
-        run(["systemctl", "reboot"])
-    elif action == "roon_install":
-        run(["/bin/bash", str(APP / "scripts/install-roon-bridge.sh")])
-        report("Roon Bridge installed.")
-    elif action == "install_tools":
-        run(["apt-get", "update"])
-        run(["apt-get", "install", "-y", "grim", "procps", "curl", "ca-certificates", "chrony"])
-        atomic(STATE / "tools-status", "System tools installed.\n")
-        report("System tools installed.")
-    elif action in {"netdata_official_install", "netdata_claim_command"}:
-        install_netdata(str(data.get("command", "")))
-        report("Netdata installed and configured.")
-    elif action == "netdata_lightweight":
-        if subprocess.run(["systemctl", "cat", "netdata.service"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
-            raise RuntimeError("Netdata is not installed")
-        configure_netdata_lightweight(Path("/"), data.get("enabled"))
-        if subprocess.run(["systemctl", "is-active", "--quiet", "netdata.service"]).returncode == 0:
-            run(["systemctl", "restart", "netdata.service"])
-        report("Netdata monitoring mode applied.")
-    elif action == "netdata_disconnect":
-        run(["systemctl", "stop", "netdata.service"])
-        try:
-            static = Path("/opt/netdata/bin/netdata").is_file()
-            config = Path("/opt/netdata/etc/netdata" if static else "/etc/netdata")
-            cloud = Path("/opt/netdata/var/lib/netdata/cloud.d" if static else "/var/lib/netdata/cloud.d")
-            backup = STATE / ("netdata-cloud-backup-" + str(time.time_ns()))
-            backup.mkdir(mode=0o700)
-            for path in (config / "claim.conf", cloud):
-                if path.is_symlink(): raise RuntimeError("Netdata Cloud identity needs manual repair")
-                if path.exists(): path.rename(backup / path.name)
-        finally:
-            run(["systemctl", "start", "netdata.service"])
-        report("Netdata Cloud disconnected. Local monitoring remains running.")
+        report("Display settings updated.")
     elif action in {"roon_start", "roon_stop", "roon_restart"}:
         service = roon_service()
         verb = action.removeprefix("roon_")

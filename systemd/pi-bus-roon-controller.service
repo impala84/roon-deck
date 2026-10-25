@@ -1,5 +1,5 @@
 [Unit]
-Description=Pi Home Roon touchscreen controller
+Description=RoonDeck Roon touchscreen controller
 After=network-online.target
 Wants=network-online.target
 

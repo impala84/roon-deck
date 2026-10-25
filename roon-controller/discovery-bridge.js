@@ -9,6 +9,7 @@ function matches(item, candidate) {
 }
 async function openDiscovery(browser, session, item) {
   if (!item || !['album', 'track'].includes(item.kind)) throw new Error('This discovery item is no longer available');
+  if (item.kind === 'track') return {status:'ready',layout:'list',action_menu:true,discovery_track_actions:true,items:[{title:'Play Now',action:true,item_key:'play'},{title:'Queue',action:true,item_key:'queue'}]};
   const found = await browser.run(session, 'search', {query:item.title,source:'all'});
   const candidates = (found.items || []).filter(candidate => matches(item,candidate));
   if (candidates.length !== 1) return {...found, message: candidates.length ? 'Several editions match. Choose the version you want.' : 'Roon could not uniquely match this item. Choose a result below.', discovery_ambiguous: true};

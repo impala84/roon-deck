@@ -44,8 +44,11 @@ main { grid-template-rows: auto minmax(0, 1fr); padding-bottom: 100px; }
   .bus-results .arrival { font-size: clamp(32px, 10vh, 72px); line-height: 1; }
 }
 
-.web-nav { position: fixed; z-index: 6; left: 22px; right: 22px; bottom: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 12px; border: 0; border-radius: 0; background: rgba(11,17,16,.96); }
+.web-nav { position: fixed; z-index: 6; left: 22px; right: 22px; bottom: 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 8px 12px; border: 0; border-radius: 0; background: rgba(11,17,16,.96); }
 .web-nav a { min-height: 48px; display: grid; place-items: center; padding: 12px 8px; color: var(--muted); text-align: center; text-decoration: none; font-size: 14px; font-weight: 750; }
+.web-nav a { min-width: 0; }
+.web-nav a[hidden] { display: none !important; }
+.web-nav:has(a[hidden]) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .web-nav a.active { color: var(--ink); box-shadow: inset 0 -4px var(--mint); }
 @media (max-height: 600px) and (orientation: landscape) { .web-nav a { padding: 7px 6px 5px; font-size: 11px; } }
 

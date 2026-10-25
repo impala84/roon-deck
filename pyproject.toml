@@ -3,14 +3,15 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pi-bus-time-display"
-version = "1.1.1-beta.18"
-description = "A Raspberry Pi home dashboard for Roon, Singapore buses and Home Assistant"
+name = "roon-deck"
+version = "1.1.7-beta.94"
+description = "RoonDeck, an independent Raspberry Pi touchscreen for Roon"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = []
 
 [project.scripts]
+roon-deck = "pi_bus_time_display.server:main"
 pi-home = "pi_bus_time_display.server:main"
 pi-bus-time-display = "pi_bus_time_display.server:main"
 
@@ -21,4 +22,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-pi_bus_time_display = ["static/*"]
+pi_bus_time_display = ["static/*", "static/brand/*"]

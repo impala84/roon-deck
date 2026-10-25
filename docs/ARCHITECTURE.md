@@ -1,4 +1,4 @@
-# Pi Home runtime architecture
+# RoonDeck runtime architecture
 
 This document records the runtime boundaries for the v1.0 Stable baseline. It is
 intentionally brief: each component should have one clear authority and avoid
@@ -67,7 +67,7 @@ remain unverified; no remote installation or restart was performed.
   are imported by the controller and pinned to RoonLabs revisions; keep them.
   Locked transitive dependencies: `node-uuid` (MIT) and `ws` (MIT). Official
   Roon modules: Apache-2.0. Installed package licence files remain intact.
-  Pi Home's MIT licence covers its own code, not those dependencies.
+  RoonDeck's MIT licence covers its own code, not those dependencies.
   `npm audit --omit=dev` reported zero known vulnerabilities on 4 October 2026;
   that report is point-in-time and does not guarantee all dependencies are safe.
 - GTK, Cairo, Cage, fonts, Avahi and other OS dependencies retain distribution

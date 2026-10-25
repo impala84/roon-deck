@@ -48,10 +48,20 @@ class AlpinePrototypeTests(unittest.TestCase):
     def test_unsupported_privileged_actions_fail_without_queuing(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}):
             state = Path(folder)
-            for action in ("set_wifi",):
+            for action in ("set_rotation",):
                 with self.assertRaisesRegex(ValueError, "unavailable in Alpine Beta"):
                     write_control_request(state, {"action": action})
             self.assertEqual(list(state.iterdir()), [])
+
+    def test_wifi_and_hostname_are_forwarded_to_existing_setup_actions(self):
+        client = Mock(); client.__enter__ = Mock(return_value=client); client.__exit__ = Mock(return_value=False)
+        client.makefile.return_value.readline.return_value = b'{"ok":true}\n'
+        with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.socket.socket", return_value=client):
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "set_wifi", "ssid": "My Network", "password": "private"}))
+            self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "set_wifi", "ssid": "My Network", "password": "private"})
+            client.settimeout.assert_called_with(45)
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "set_hostname", "hostname": "pi-home-room"}))
+            self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "set_hostname", "hostname": "pi-home-room"})
 
     def test_alpine_backlight_actions_use_the_bounded_root_helper(self):
         client = Mock(); client.__enter__ = Mock(return_value=client); client.__exit__ = Mock(return_value=False)
@@ -90,6 +100,13 @@ class AlpinePrototypeTests(unittest.TestCase):
             self.assertTrue(write_control_request(Path("/unused"), {"action": "netdata_official_install", "command": command}))
         payload = json.loads(client.sendall.call_args.args[0])
         self.assertEqual(payload, {"action": "netdata_official_install", "command": command})
+
+    def test_netdata_can_be_installed_before_cloud_is_configured(self):
+        client = Mock(); client.__enter__ = Mock(return_value=client); client.__exit__ = Mock(return_value=False)
+        client.makefile.return_value.readline.return_value = b'{"ok":true,"queued":true}\n'
+        with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.socket.socket", return_value=client):
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "netdata_install"}))
+        self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "netdata_install"})
 
     def test_credentials_are_unique_private_and_idempotent(self):
         passwords = []
@@ -139,6 +156,7 @@ class AlpinePrototypeTests(unittest.TestCase):
         self.assertIn("e2fsprogs-extra", dockerfile)
         self.assertIn("pi-home-storage", provision)
         self.assertIn("need localmount pi-home-storage", firstboot)
+        self.assertIn("wifi.powersave=2", provision)
 
 
 if __name__ == "__main__":

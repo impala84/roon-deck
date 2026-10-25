@@ -1,0 +1,3 @@
+/* Part 5 of the original single stylesheet. Cascade order matters: files load in filename order. */
+/* Words between two @ signs are placeholders filled in by native-display/styles.py. */
+.theme-roon .page { background-image: url("@GRADIENT_DITHER_URL@"), linear-gradient(120deg, #1d1c2d, #121212 62%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }

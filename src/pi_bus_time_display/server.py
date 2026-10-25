@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
-from .config import Config, load_config, load_env
+from .config import Config, HOME_ASSISTANT_DOMAINS, load_config, load_env
 from .domain import normalise
 from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
@@ -31,9 +31,10 @@ from .releases import ReleaseChecker
 CONTROL_REQUEST_LOCK = threading.Lock()
 ALPINE_SYSTEM_ACTIONS = {
     "update", "reboot", "netdata_enable", "netdata_disable", "netdata_claim",
-    "netdata_claim_command", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
+    "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
     "device_credentials", "install_tools", "display_on", "display_off",
-    "set_brightness", "set_display", "roon_install", "roon_start", "roon_stop", "roon_restart",
+    "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
+    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable",
 }
 SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
     "leds_enable", "leds_disable",
@@ -52,6 +53,8 @@ class State:
         self.lock = threading.Lock()
         self.display_capture = None
         self.display_view_request = None
+        self.preview_result = None
+        self.preview_capture = None
         self.data: dict = {"status": "starting", "services": []}
         self.last_success: datetime | None = None
         self.last_roon_playing = 0.0
@@ -82,6 +85,8 @@ class State:
             "roon_display_url": self.config.roon_display_url,
             "roon_display_name": self.config.roon_display_name,
             "display_theme": self.config.display_theme,
+            "display_background": self.config.display_background,
+            "interface_size": self.config.interface_size,
             "bus_enabled": self.config.bus_enabled,
             "stale": bool(self.last_success and (now - self.last_success).total_seconds() > self.config.stale_after_seconds),
         })
@@ -101,13 +106,39 @@ class State:
             "display_view_request": view_request,
         }
 
-    def request_display_view(self, view: str) -> dict:
+    def request_display_view(self, view: str, browse_action: str = "", item_key: str = "", section: str = "") -> dict:
         request = {"id": secrets.token_urlsafe(12), "view": view}
+        if browse_action:
+            request.update(browse_action=browse_action, item_key=item_key, section=section)
         with self.lock:
             self.display_view_request = request
+            self.preview_result = None
         return dict(request)
 
-    def capture_display(self, timeout: float = 15) -> bytes:
+    def complete_preview(self, data: dict) -> None:
+        with self.lock:
+            if not self.display_view_request or data.get("id") != self.display_view_request["id"]:
+                raise ValueError("Stale preview acknowledgement")
+            self.preview_result = {"id": data["id"], "error": str(data.get("error") or "")[:500],
+                "title": str(data.get("title") or "")[:500], "can_back": bool(data.get("can_back")),
+                "items": [{key: item.get(key) for key in ("title", "subtitle", "item_key", "action", "hint")} for item in data.get("items", [])[:500] if isinstance(item, dict)]}
+
+    def start_preview_capture(self) -> str:
+        with self.lock:
+            if self.preview_capture and self.preview_capture["status"] == "loading":
+                raise RuntimeError("A screenshot is already being captured")
+            ticket = {"id": secrets.token_urlsafe(12), "status": "loading", "image": None, "error": ""}
+            self.preview_capture = ticket
+        def work():
+            try:
+                ticket["image"] = self.capture_display()
+                ticket["status"] = "ready"
+            except Exception as error:
+                ticket["error"] = str(error); ticket["status"] = "error"
+        threading.Thread(target=work, daemon=True).start()
+        return ticket["id"]
+
+    def capture_display(self, timeout: float = 35) -> bytes:
         request = {"id": secrets.token_urlsafe(24), "event": threading.Event(), "image": None, "error": None}
         with self.lock:
             if self.display_capture is not None:
@@ -157,6 +188,15 @@ def within_window(config: Config, now: datetime) -> bool:
     start = wall_time.fromisoformat(config.morning_start)
     end = wall_time.fromisoformat(config.morning_end)
     return start <= now.timetz().replace(tzinfo=None) < end
+
+
+def automatic_display_wake_ready(config: Config, now: datetime) -> bool:
+    """Whether the configured morning wake has occurred on this local day."""
+    weekend = now.weekday() >= 5
+    if not config.scheduled_wake_enabled or (weekend and not config.weekend_wake_enabled):
+        return False
+    start = wall_time.fromisoformat(config.weekend_wake_time if weekend else config.sleep_end)
+    return now.timetz().replace(tzinfo=None) >= start
 
 
 def within_sleep_window(config: Config, now: datetime) -> bool:
@@ -236,6 +276,21 @@ def home_assistant_set_state(config: Config, entity_id: str, enabled: bool) -> o
     return home_assistant_request(config, f"/api/services/{domain}/{service}", {"entity_id": entity_id})
 
 
+def home_assistant_activate(config: Config, entity_id: str) -> object:
+    if entity_id.split(".", 1)[0] != "scene":
+        raise ValueError("This entity is not a scene")
+    return home_assistant_request(config, "/api/services/scene/turn_on", {"entity_id": entity_id})
+
+
+def home_assistant_entity_available(domain: str, entity_state: object) -> bool:
+    # A scene has no persistent on/off state. Home Assistant commonly reports
+    # an unactivated scene as unknown until it has been run for the first time.
+    # Only its explicit unavailable state should disable the action button.
+    if domain == "scene":
+        return entity_state != "unavailable"
+    return entity_state not in {"unavailable", "unknown"}
+
+
 def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserveLogger | None = None) -> None:
     last_status: str | None = None
     while not stop.is_set():
@@ -261,6 +316,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
                     "percentage": attributes.get("percentage"), "brightness": attributes.get("brightness"),
+                    "action": domain == "scene", "available": home_assistant_entity_available(domain, item.get("state")),
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))
                         or (domain == "light" and attributes.get("supported_color_modes") not in (None, [], ["onoff"]))
@@ -291,6 +347,9 @@ def write_config(path: Path, config: Config) -> None:
         f"stale_after_seconds = {config.stale_after_seconds}",
         f"morning_start = {json.dumps(config.morning_start)}",
         f"morning_end = {json.dumps(config.morning_end)}",
+        f"scheduled_wake_enabled = {str(config.scheduled_wake_enabled).lower()}",
+        f"weekend_wake_enabled = {str(config.weekend_wake_enabled).lower()}",
+        f"weekend_wake_time = {json.dumps(config.weekend_wake_time)}",
         f"sleep_start = {json.dumps(config.sleep_start)}",
         f"sleep_end = {json.dumps(config.sleep_end)}",
         f"timezone = {json.dumps(config.timezone)}",
@@ -298,6 +357,8 @@ def write_config(path: Path, config: Config) -> None:
         f"roon_zone_name = {json.dumps(config.roon_zone_name)}",
         f"roon_display_name = {json.dumps(config.roon_display_name)}",
         f"display_theme = {json.dumps(config.display_theme)}",
+        f"display_background = {json.dumps(config.display_background)}",
+        f"interface_size = {json.dumps(config.interface_size)}",
         f"portrait_discovery_columns = {config.portrait_discovery_columns}",
         f"landscape_music_clock = {json.dumps(config.landscape_music_clock)}",
         f"bus_enabled = {str(config.bus_enabled).lower()}",
@@ -315,11 +376,19 @@ def write_config(path: Path, config: Config) -> None:
         f"sleep_show_clock = {str(config.sleep_show_clock).lower()}",
         f"auto_switch_to_roon = {str(config.auto_switch_to_roon).lower()}",
         f"roon_idle_return_seconds = {config.roon_idle_return_seconds}",
+        f"browse_idle_return_seconds = {config.browse_idle_return_seconds}",
         f"outside_hours_wake_seconds = {config.outside_hours_wake_seconds}",
         f"daytime_inactivity_seconds = {config.daytime_inactivity_seconds}",
         f"home_assistant_enabled = {str(config.home_assistant_enabled).lower()}",
+        f"home_assistant_title = {json.dumps(config.home_assistant_title)}",
         f"home_assistant_url = {json.dumps(config.home_assistant_url)}",
         "home_assistant_entities = [" + ", ".join(json.dumps(item) for item in config.home_assistant_entities) + "]",
+        f"home_assistant_color_mode = {json.dumps(config.home_assistant_color_mode)}",
+        f"home_assistant_single_color = {json.dumps(config.home_assistant_single_color)}",
+        f"home_assistant_light_color = {json.dumps(config.home_assistant_light_color)}",
+        f"home_assistant_fan_color = {json.dumps(config.home_assistant_fan_color)}",
+        f"home_assistant_switch_color = {json.dumps(config.home_assistant_switch_color)}",
+        f"home_assistant_scene_color = {json.dumps(config.home_assistant_scene_color)}",
         f"openobserve_enabled = {str(config.openobserve_enabled).lower()}",
         f"openobserve_url = {json.dumps(config.openobserve_url)}",
         f"openobserve_org = {json.dumps(config.openobserve_org)}",
@@ -468,6 +537,8 @@ def automatic_display_target(state: State, mode_path: Path, roon: dict | None, n
     if not state.config.bus_enabled:
         if state.config.sleep_when_roon_idle: return "/sleep.html"
         return "http://127.0.0.1:8766/" if roon is not None else "/roon-unavailable.html"
+    if not automatic_display_wake_ready(state.config, now):
+        return "/sleep.html"
     if state.config.auto_switch_to_roon:
         return "/"
     if within_window(state.config, now):
@@ -501,6 +572,7 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         "api": {"label": "Bus data service", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "controller": {"label": "Roon controller", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "bridge": {"label": "Roon Bridge", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
+        "airplay": {"label": "AirPlay · Shairport Sync", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
         "netdata": {"label": "Netdata", "rss_kb": 0, "cpu_percent": 0.0, "pids": [], "active": False},
     }
     for line in command_output(["ps", "-eo", "pid=,rss=,pcpu=,args="]).splitlines():
@@ -511,12 +583,14 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         lowered = args.lower()
         executable = lowered.split()[0]
         group = None
-        if "pi_bus_native.py" in lowered or "/cage" in lowered:
+        if "roondeck_native.py" in lowered or "/cage" in lowered:
             group = "display"
         elif "roon-controller/server.js" in lowered:
             group = "controller"
         elif "roonbridge" in lowered or "roon bridge" in lowered:
             group = "bridge"
+        elif "shairport-sync" in lowered:
+            group = "airplay"
         elif Path(executable).name == "netdata" or executable.startswith(("/opt/netdata/usr/libexec/netdata/", "/usr/libexec/netdata/", "/usr/lib/netdata/")):
             group = "netdata"
         elif ("pi-bus-time-display" in lowered or "/pi-home " in lowered) and "native" not in lowered:
@@ -530,7 +604,7 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
             except ValueError:
                 pass
     alpine = os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype"
-    services = {"controller": "pi-home-roon", "api": "pi-home-api", "display": "pi-home-display", "bridge": "roonbridge"} if alpine else {"controller": "pi-bus-roon-controller.service", "api": "pi-bus-time-display.service", "display": "pi-bus-native.service", "bridge": "roonbridge.service"}
+    services = {"controller": "pi-home-roon", "api": "pi-home-api", "display": "pi-home-display", "bridge": "roonbridge", "airplay": "shairport-sync"} if alpine else {"controller": "pi-bus-roon-controller.service", "api": "pi-bus-time-display.service", "display": "pi-bus-native.service", "bridge": "roonbridge.service", "airplay": "shairport-sync.service"}
     for group, service in services.items():
         groups[group]["active"] = service_state(service) == "running" or groups[group]["active"]
     if not alpine:
@@ -540,12 +614,15 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         if not config.roon_zone_name.strip():
             visible.discard("controller")
         if not config.bus_enabled:
-            groups["api"]["label"] = "Pi Home backend"
+            groups["api"]["label"] = "RoonDeck backend"
         # Optional tools are shown when running, or enabled at boot so failures
         # remain diagnosable. A deliberately stopped endpoint is not an idle row.
         bridge_enabled = Path("/etc/runlevels/default/roonbridge").exists() if alpine else command_output(["systemctl", "is-enabled", "roonbridge.service"]) == "enabled" or command_output(["systemctl", "is-enabled", "RoonBridge.service"]) == "enabled"
         if not groups["bridge"]["active"] and not bridge_enabled:
             visible.discard("bridge")
+        airplay_enabled = Path("/etc/runlevels/default/shairport-sync").exists() if alpine else command_output(["systemctl", "is-enabled", "shairport-sync.service"]) == "enabled"
+        if not groups["airplay"]["active"] and not airplay_enabled:
+            visible.discard("airplay")
     try:
         uptime = float(Path("/proc/uptime").read_text(encoding="ascii").split()[0])
     except (OSError, ValueError, IndexError):
@@ -580,6 +657,39 @@ def active_wifi_ssid() -> str:
         return ""
     ssid = command_output(["nmcli", "--escape", "no", "-g", "802-11-wireless.ssid", "connection", "show", profile])
     return ssid or profile
+
+
+def connected_network_snapshot() -> dict:
+    """Return useful, non-sensitive details for the active network link."""
+    rows = command_output(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"])
+    active = next((line.split(":", 3) for line in rows.splitlines() if ":connected:" in line), [])
+    if len(active) != 4:
+        return {"name": active_wifi_ssid(), "interface": "", "type": "", "address": "", "signal": "", "speed": ""}
+    interface, link_type, _, connection = active
+    name = active_wifi_ssid() if link_type in {"wifi", "802-11-wireless"} else connection
+    address_output = command_output(["ip", "-4", "-o", "addr", "show", "dev", interface])
+    address_match = re.search(r"\binet\s+([^\s]+)", address_output)
+    signal = ""
+    speed = ""
+    if link_type in {"wifi", "802-11-wireless"}:
+        # NetworkManager is part of every RoonDeck image, whereas `iw` is not.
+        # Ask it for the active access point so the web UI works on both the
+        # original and current Alpine images without another package install.
+        access_points = command_output(["nmcli", "--escape", "no", "-t", "-f", "IN-USE,SIGNAL,RATE", "device", "wifi", "list", "ifname", interface])
+        active_access_point = next((line.split(":", 2) for line in access_points.splitlines() if line.startswith(("yes:", "*:"))), [])
+        if len(active_access_point) == 3:
+            signal = f"{active_access_point[1]}%" if active_access_point[1].isdigit() else active_access_point[1]
+            speed = active_access_point[2]
+        if not signal or not speed:
+            link = command_output(["iw", "dev", interface, "link"])
+            signal_match = re.search(r"signal:\s*(-?\d+)\s*dBm", link, re.I)
+            speed_match = re.search(r"(?:rx|tx) bitrate:\s*([\d.]+\s*\w+/s)", link, re.I)
+            signal = signal or (f"{signal_match.group(1)} dBm" if signal_match else "")
+            speed = speed or (speed_match.group(1) if speed_match else "")
+    else:
+        raw_speed = command_output(["cat", f"/sys/class/net/{interface}/speed"])
+        speed = f"{raw_speed} Mb/s" if raw_speed.isdigit() else ""
+    return {"name": name, "interface": interface, "type": "Wi-Fi" if link_type in {"wifi", "802-11-wireless"} else "Ethernet" if link_type == "ethernet" else link_type, "address": address_match.group(1) if address_match else "", "signal": signal, "speed": speed}
 
 
 def service_state(name: str) -> str:
@@ -663,13 +773,15 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         if roon_service == "not_installed" and Path("/opt/RoonBridge/start.sh").is_file():
             roon_service = "stopped"
     else:
-        roon_service = "not_installed"
+        roon_service = "unknown"
         for name in ("roonbridge.service", "RoonBridge.service"):
-            status = service_state(name)
-            if status != "not_installed":
+            status = command_output(["systemctl", "is-active", name])
+            if status and status != "unknown":
                 roon_service = status
                 break
-    active_wifi = active_wifi_ssid()
+    network = connected_network_snapshot()
+    active_wifi = network["name"] if network["type"] == "Wi-Fi" else active_wifi_ssid()
+    airplay_service = service_state("shairport-sync.service")
     try:
         update_status = (state_dir / "update-status").read_text(encoding="utf-8").strip()
     except OSError:
@@ -717,8 +829,12 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
     snapshot = {
         "hostname": socket.gethostname(),
         "wifi_ssid": active_wifi,
+        "network": network,
         "roon_bridge": roon_service,
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
+        "airplay": airplay_service,
+        "airplay_name": (state_dir / "airplay-name").read_text().strip() if (state_dir / "airplay-name").is_file() else "RoonDeck",
+        "airplay_operation_status": (state_dir / "airplay-install-status").read_text().strip() if (state_dir / "airplay-install-status").is_file() else "",
         "roon_controller": roon_controller,
         "netdata": netdata["service"],
         "netdata_details": netdata,
@@ -733,7 +849,6 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "reboot_required": reboot_required,
         "app_version": display_version(),
         "alpine_tools": os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype",
-        "software_tools": True,
         "tools_status": (state_dir / "tools-status").read_text().strip() if (state_dir / "tools-status").is_file() else "",
         "storage_status": (state_dir / "storage-status").read_text().strip() if (state_dir / "storage-status").is_file() else "Not yet checked",
         "netdata_operation_status": (state_dir / "netdata-operation-status").read_text().strip() if (state_dir / "netdata-operation-status").is_file() else "",
@@ -754,6 +869,10 @@ def write_control_request(state_dir: Path, request: dict) -> bool:
     if os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype":
         if request.get("action") in ALPINE_SYSTEM_ACTIONS:
             payload = {"action": request["action"]}
+            if request["action"] == "set_wifi":
+                payload.update(ssid=str(request.get("ssid", "")), password=str(request.get("password", "")))
+            if request["action"] == "set_hostname":
+                payload.update(hostname=str(request.get("hostname", "")))
             if request["action"] in {"display_on", "set_brightness"}:
                 brightness = int(request.get("brightness", 100))
                 if not 10 <= brightness <= 100: raise ValueError("Brightness must be between 10 and 100")
@@ -765,13 +884,15 @@ def write_control_request(state_dir: Path, request: dict) -> bool:
             if request["action"] == "netdata_lightweight":
                 if type(request.get("enabled")) is not bool: raise ValueError("Choose a supported Netdata monitoring mode.")
                 payload["enabled"] = request["enabled"]
+            if request["action"] == "airplay_configure":
+                payload["name"] = str(request.get("name", ""))
             if request["action"] == "device_credentials":
                 payload.update(username=str(request.get("username", "")), password=str(request.get("password", "")), confirmation=str(request.get("confirmation", "")))
             if request["action"] == "set_display":
                 payload.update(profile=str(request.get("profile", "")), orientation=str(request.get("orientation", "")), mounting=str(request.get("mounting", "standard")))
             try:
                 with socket.socket(socket.AF_UNIX) as client:
-                    client.settimeout(105 if request["action"] in {"netdata_claim", "netdata_claim_command", "netdata_lightweight", "roon_start", "roon_stop", "roon_restart"} else 15); client.connect("/run/pi-home-setup.sock")
+                    client.settimeout(105 if request["action"] in {"netdata_claim", "netdata_claim_command", "netdata_lightweight", "roon_start", "roon_stop", "roon_restart", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure"} else 45 if request["action"] == "set_wifi" else 15); client.connect("/run/pi-home-setup.sock")
                     client.sendall((json.dumps(payload) + "\n").encode())
                     result = json.loads(client.makefile("rb").readline(4096))
             except OSError as error: raise ValueError("Alpine system helper is not ready. Please retry.") from error
@@ -874,11 +995,15 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "bus_stop_code": config.bus_stop_code, "bus_stop_name": config.bus_stop_name,
                     "services": list(config.services), "walking_minutes": config.walking_minutes,
                     "poll_seconds": config.poll_seconds, "morning_start": config.morning_start,
-                    "morning_end": config.morning_end, "sleep_start": config.sleep_start,
+                    "morning_end": config.morning_end, "scheduled_wake_enabled": config.scheduled_wake_enabled,
+                    "weekend_wake_enabled": config.weekend_wake_enabled, "weekend_wake_time": config.weekend_wake_time,
+                    "sleep_start": config.sleep_start,
                     "sleep_end": config.sleep_end, "roon_display_url": config.roon_display_url,
                     "roon_zone_name": config.roon_zone_name,
                     "roon_display_name": config.roon_display_name,
                     "display_theme": config.display_theme,
+                    "display_background": config.display_background,
+                    "interface_size": config.interface_size,
                     "portrait_discovery_columns": config.portrait_discovery_columns,
                     "landscape_music_clock": config.landscape_music_clock,
                     "bus_enabled": config.bus_enabled,
@@ -896,11 +1021,19 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "sleep_show_clock": config.sleep_show_clock,
                     "auto_switch_to_roon": config.auto_switch_to_roon,
                     "roon_idle_return_seconds": config.roon_idle_return_seconds,
+                    "browse_idle_return_seconds": config.browse_idle_return_seconds,
                     "outside_hours_wake_seconds": config.outside_hours_wake_seconds,
                     "daytime_inactivity_seconds": config.daytime_inactivity_seconds,
                     "home_assistant_enabled": config.home_assistant_enabled,
+                    "home_assistant_title": config.home_assistant_title,
                     "home_assistant_url": config.home_assistant_url,
                     "home_assistant_entities": list(config.home_assistant_entities),
+                    "home_assistant_color_mode": config.home_assistant_color_mode,
+                    "home_assistant_single_color": config.home_assistant_single_color,
+                    "home_assistant_light_color": config.home_assistant_light_color,
+                    "home_assistant_fan_color": config.home_assistant_fan_color,
+                    "home_assistant_switch_color": config.home_assistant_switch_color,
+                    "home_assistant_scene_color": config.home_assistant_scene_color,
                     "has_home_assistant_token": bool(os.getenv("HOME_ASSISTANT_TOKEN")),
                     "openobserve_enabled": config.openobserve_enabled,
                     "openobserve_url": config.openobserve_url,
@@ -938,12 +1071,31 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     return
                 self.send_json(200, json.dumps(diagnostics_snapshot(state.config)).encode())
                 return
+            if self.path == "/api/admin/preview":
+                if not self.authorised(): return
+                with state.lock:
+                    capture = state.preview_capture
+                    body = {"navigation": state.preview_result, "capture": {key: capture[key] for key in ("id", "status", "error")} if capture else None}
+                self.send_json(200, json.dumps(body).encode()); return
+            if self.path.startswith("/api/admin/preview-image?"):
+                if not self.authorised(): return
+                ticket_id = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("id", [""])[0]
+                with state.lock:
+                    capture = state.preview_capture
+                    image = capture["image"] if capture and capture["id"] == ticket_id and capture["status"] == "ready" else None
+                if image is None:
+                    self.send_json(404, b'{"error":"Screenshot is not ready"}'); return
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Content-Length", str(len(image))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(image); return
             if self.path == "/api/status":
                 body = json.dumps(state.snapshot()).encode()
                 self.send_json(200, body)
                 return
             if self.path == "/api/home/status":
-                self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme}).encode())
+                home_single = state.config.home_assistant_single_color if state.config.home_assistant_color_mode == "single" else None
+                self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
+                    "tile_colors": {"light": home_single or state.config.home_assistant_light_color, "fan": home_single or state.config.home_assistant_fan_color,
+                        "switch": home_single or state.config.home_assistant_switch_color, "input_boolean": home_single or state.config.home_assistant_switch_color,
+                        "scene": home_single or state.config.home_assistant_scene_color}}).encode())
                 return
             if self.path == "/api/device/controls":
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
@@ -955,8 +1107,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_json(200, json.dumps(controls).encode())
                 return
             path = self.path.split("?", 1)[0]
-            if path in {"/", "/index.html", "/home.html", "/admin.html"}:
-                if path == "/admin.html" and not self.authorised(): return
+            if path in {"/", "/index.html", "/home.html", "/admin.html", "/preview.html"}:
+                if path in {"/admin.html", "/preview.html"} and not self.authorised(): return
                 theme = "roon" if state.config.display_theme == "roon" else "fresh-mint"
                 body = (static / ("index.html" if path == "/" else path[1:])).read_text(encoding="utf-8")
                 body = body.replace("<body", f'<body data-theme="{theme}"', 1)
@@ -967,6 +1119,21 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().do_GET()
 
         def do_POST(self):
+            if self.path == "/api/admin/preview-capture":
+                if not self.authorised(): return
+                try: self.send_json(202, json.dumps({"id": state.start_preview_capture()}).encode())
+                except RuntimeError as error: self.send_json(409, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path == "/api/device/preview":
+                if self.client_address[0] not in {"127.0.0.1", "::1"} or any(self.headers.get(name) for name in ("X-Forwarded-For", "Forwarded", "X-Real-IP")):
+                    self.send_json(403, b'{"error":"Touchscreen only"}'); return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 1_048_576: raise ValueError("Invalid acknowledgement size")
+                    state.complete_preview(json.loads(self.rfile.read(length)))
+                    self.send_json(200, b'{"ok":true}')
+                except (ValueError, TypeError) as error: self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path == "/api/admin/display-capture":
                 if not self.authorised():
                     return
@@ -979,7 +1146,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     self.send_header("Content-Type", "image/png")
                     self.send_header("Cache-Control", "no-store")
                     self.send_header("Content-Length", str(len(image)))
-                    self.send_header("Content-Disposition", 'inline; filename="pi-home-display.png"')
+                    self.send_header("Content-Disposition", 'inline; filename="roondeck-display.png"')
                     self.end_headers()
                     self.wfile.write(image)
                 except RuntimeError as exc:
@@ -1068,7 +1235,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     events.emit("display.wake.requested", view=state.awake_view)
                 self.send_json(200, json.dumps({"ok": True, "awake_seconds": state.config.outside_hours_wake_seconds}).encode())
                 return
-            if self.path in {"/api/device/service-visibility", "/api/device/roon-bridge", "/api/device/home-toggle", "/api/device/home-state", "/api/device/home-value"}:
+            if self.path in {"/api/device/service-visibility", "/api/device/roon-bridge", "/api/device/netdata", "/api/device/home-toggle", "/api/device/home-state", "/api/device/home-value"}:
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
                     self.send_json(403, b'{"error":"Touchscreen only"}')
                     return
@@ -1091,13 +1258,22 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     except (OSError, ValueError) as error:
                         self.send_json(502, json.dumps({"error": str(error)}).encode())
                         return
+                elif self.path == "/api/device/netdata":
+                    if type(data.get("enabled")) is not bool:
+                        self.send_json(400, b'{"error":"Choose whether Netdata should run"}')
+                        return
+                    try:
+                        write_control_request(mode_path.parent, {"action": "netdata_enable" if data["enabled"] else "netdata_disable"})
+                    except (OSError, ValueError) as error:
+                        self.send_json(502, json.dumps({"error": str(error)}).encode())
+                        return
                 else:
                     entity_id = str(data.get("entity_id", ""))
                     if entity_id not in state.config.home_assistant_entities:
                         self.send_json(400, b'{"error":"Entity is not available on this display"}')
                         return
                     domain = entity_id.split(".", 1)[0]
-                    if domain not in {"fan", "light", "switch", "input_boolean"}:
+                    if domain not in HOME_ASSISTANT_DOMAINS:
                         self.send_json(400, b'{"error":"This entity type cannot be toggled"}')
                         return
                     try:
@@ -1105,6 +1281,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                             home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                         elif self.path == "/api/device/home-state":
                             home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                        elif domain == "scene":
+                            home_assistant_activate(state.config, entity_id)
                         else:
                             home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})
                     except (OSError, ValueError, urllib.error.URLError) as exc:
@@ -1126,6 +1304,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                     elif self.path == "/api/home/state":
                         home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                    elif domain == "scene":
+                        home_assistant_activate(state.config, entity_id)
                     else:
                         home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})
                     self.send_json(200, b'{"ok":true}')
@@ -1195,6 +1375,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if type(data.get("enabled")) is not bool:
                             raise ValueError("Choose a supported Netdata monitoring mode.")
                         request["enabled"] = data["enabled"]
+                    if action == "airplay_configure":
+                        request["name"] = str(data.get("name", "")).strip()
                     if action == "device_credentials":
                         request.update(username=str(data.get("username", "")).strip(), password=str(data.get("password", "")), confirmation=str(data.get("confirmation", "")))
                     if action == "set_rotation":
@@ -1219,13 +1401,21 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     mode = str(data.get("mode", ""))
                     set_display_mode(state, mode_path, mode)
                     view = str(data.get("view", "")).strip()
+                    preview_request = None
                     if view:
-                        if view not in {"now", "recent", "daily", "releases", "browse", "surprise"}:
+                        if view not in {"now", "details", "recent", "daily", "releases", "browse", "search", "surprise", "bus", "home", "settings"}:
                             raise ValueError("Unknown display view")
-                        state.request_display_view(view)
+                        browse_action = str(data.get("browse_action", ""))
+                        item_key = str(data.get("item_key", ""))
+                        section = str(data.get("section", ""))
+                        if browse_action not in {"", "open", "back", "current", "section"} or len(item_key) > 2048:
+                            raise ValueError("Unknown preview navigation")
+                        if browse_action == "section" and section not in {"albums", "artists", "genres", "playlists"}:
+                            raise ValueError("Unknown preview section")
+                        preview_request = state.request_display_view(view, browse_action, item_key, section)
                     if events:
                         events.emit("display.mode.changed", mode=mode)
-                    self.send_json(200, json.dumps({"ok": True, "display_mode": mode, "display_view": view or None}).encode())
+                    self.send_json(200, json.dumps({"ok": True, "display_mode": mode, "display_view": view or None, "request_id": preview_request["id"] if preview_request else None}).encode())
                     return
                 current = state.config
                 def values(name, fallback):
@@ -1237,7 +1427,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 requested_home_entities = values("home_assistant_entities", current.home_assistant_entities)
                 if len(requested_home_entities) > 8:
                     raise ValueError("Choose no more than eight Home Assistant entities")
-                unsupported = [item for item in requested_home_entities if item.split(".", 1)[0] not in {"fan", "light", "switch", "input_boolean"}]
+                unsupported = [item for item in requested_home_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
                 if unsupported:
                     raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
                 home_url = str(data.get("home_assistant_url", current.home_assistant_url)).strip()
@@ -1252,11 +1442,16 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     walking_minutes=int(data.get("walking_minutes", current.walking_minutes)), poll_seconds=int(data.get("poll_seconds", current.poll_seconds)),
                     stale_after_seconds=current.stale_after_seconds,
                     morning_start=str(data.get("morning_start", current.morning_start)), morning_end=str(data.get("morning_end", current.morning_end)),
+                    scheduled_wake_enabled=bool(data.get("scheduled_wake_enabled", current.scheduled_wake_enabled)),
+                    weekend_wake_enabled=bool(data.get("weekend_wake_enabled", current.weekend_wake_enabled)),
+                    weekend_wake_time=str(data.get("weekend_wake_time", current.weekend_wake_time)),
                     sleep_start=str(data.get("sleep_start", current.sleep_start)), sleep_end=str(data.get("sleep_end", current.sleep_end)),
                     timezone=current.timezone, roon_display_url=current.roon_display_url,
                     roon_zone_name=str(data.get("roon_zone_name", current.roon_zone_name)).strip(),
                     roon_display_name=str(data.get("roon_display_name", current.roon_display_name)).strip() or "Roon",
                     display_theme=str(data.get("display_theme", current.display_theme)),
+                    display_background=str(data.get("display_background", current.display_background)),
+                    interface_size=str(data.get("interface_size", current.interface_size)),
                     portrait_discovery_columns=int(data.get("portrait_discovery_columns", current.portrait_discovery_columns)),
                     landscape_music_clock=str(data.get("landscape_music_clock", current.landscape_music_clock)),
                     bus_enabled=bool(data.get("bus_enabled", current.bus_enabled)),
@@ -1274,11 +1469,19 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     sleep_show_clock=bool(data.get("sleep_show_clock", current.sleep_show_clock)),
                     auto_switch_to_roon=bool(data.get("auto_switch_to_roon", current.auto_switch_to_roon)),
                     roon_idle_return_seconds=int(data.get("roon_idle_return_seconds", current.roon_idle_return_seconds)),
+                    browse_idle_return_seconds=int(data.get("browse_idle_return_seconds", current.browse_idle_return_seconds)),
                     outside_hours_wake_seconds=int(data.get("outside_hours_wake_seconds", current.outside_hours_wake_seconds)),
                     daytime_inactivity_seconds=int(data.get("daytime_inactivity_seconds", current.daytime_inactivity_seconds)),
                     home_assistant_enabled=bool(data.get("home_assistant_enabled", current.home_assistant_enabled)),
+                    home_assistant_title=str(data.get("home_assistant_title", current.home_assistant_title)).strip(),
                     home_assistant_url=home_url,
                     home_assistant_entities=requested_home_entities,
+                    home_assistant_color_mode=str(data.get("home_assistant_color_mode", current.home_assistant_color_mode)),
+                    home_assistant_single_color=str(data.get("home_assistant_single_color", current.home_assistant_single_color)),
+                    home_assistant_light_color=str(data.get("home_assistant_light_color", current.home_assistant_light_color)),
+                    home_assistant_fan_color=str(data.get("home_assistant_fan_color", current.home_assistant_fan_color)),
+                    home_assistant_switch_color=str(data.get("home_assistant_switch_color", current.home_assistant_switch_color)),
+                    home_assistant_scene_color=str(data.get("home_assistant_scene_color", current.home_assistant_scene_color)),
                     openobserve_enabled=bool(data.get("openobserve_enabled", current.openobserve_enabled)),
                     openobserve_url=openobserve_url,
                     openobserve_org=str(data.get("openobserve_org", current.openobserve_org)).strip(),
@@ -1290,6 +1493,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Bus stop code must be five digits")
                 if candidate.display_theme not in {"fresh-mint", "roon"}:
                     raise ValueError("Choose Fresh Mint or Roon for the display style")
+                if candidate.display_background not in {"current", "black"}:
+                    raise ValueError("Choose Purple Gradient or Pure Black")
+                if candidate.interface_size not in {"smaller", "standard", "larger"}:
+                    raise ValueError("Choose Smaller, Standard or Larger for interface size")
                 if candidate.portrait_discovery_columns not in {2, 3}:
                     raise ValueError("Choose 2 or 3 portrait Discover columns")
                 if candidate.landscape_music_clock not in {"icon", "full"}:
@@ -1306,12 +1513,20 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Polling must be between 5 and 300 seconds")
                 if not (0 <= candidate.roon_idle_return_seconds <= 7200):
                     raise ValueError("Roon return delay must be between 0 and 7200 seconds")
+                if not (0 <= candidate.browse_idle_return_seconds <= 7200):
+                    raise ValueError("Browse return delay must be between 0 and 7200 seconds")
                 if not (30 <= candidate.outside_hours_wake_seconds <= 7200):
                     raise ValueError("Wake timeout must be between 30 and 7200 seconds")
                 if not (0 <= candidate.daytime_inactivity_seconds <= 7200):
                     raise ValueError("Daytime inactivity timeout must be between 0 and 7200 seconds")
+                if candidate.home_assistant_color_mode not in {"single", "multi"}:
+                    raise ValueError("Choose Single colour or Multi-colour")
+                for value in (candidate.home_assistant_single_color, candidate.home_assistant_light_color, candidate.home_assistant_fan_color, candidate.home_assistant_switch_color, candidate.home_assistant_scene_color):
+                    if len(value) != 7 or value[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in value[1:]):
+                        raise ValueError("Home Assistant tile colours must use #RRGGBB")
                 wall_time.fromisoformat(candidate.morning_start)
                 wall_time.fromisoformat(candidate.morning_end)
+                wall_time.fromisoformat(candidate.weekend_wake_time)
                 wall_time.fromisoformat(candidate.sleep_start)
                 wall_time.fromisoformat(candidate.sleep_end)
                 if candidate.openobserve_enabled:

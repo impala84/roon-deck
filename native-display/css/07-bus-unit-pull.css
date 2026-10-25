@@ -1,0 +1,17 @@
+/* Part 7 of the original single stylesheet. Cascade order matters: files load in filename order. */
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-1 { margin-top: -4px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-2 { margin-top: -8px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-3 { margin-top: -12px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-4 { margin-top: -16px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-5 { margin-top: -20px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-6 { margin-top: -24px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-7 { margin-top: -28px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-8 { margin-top: -32px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-9 { margin-top: -36px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-10 { margin-top: -40px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-11 { margin-top: -44px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-12 { margin-top: -48px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-13 { margin-top: -52px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-14 { margin-top: -56px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-15 { margin-top: -60px; }
+.large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-16 { margin-top: -64px; }

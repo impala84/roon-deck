@@ -1,5 +1,5 @@
 [Unit]
-Description=Pi Home dashboard service
+Description=RoonDeck dashboard service
 After=network-online.target
 Wants=network-online.target
 

@@ -10,11 +10,12 @@ import re
 import threading
 import time
 import tomllib
+import urllib.error
 import urllib.request
 from functools import total_ordering
 from pathlib import Path
 
-REPOSITORY = "impala84/pi-home"
+REPOSITORY = "impala84/roon-deck"
 VERSION = re.compile(r"^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$")
 
 
@@ -65,7 +66,9 @@ def select_release(releases: list, channel: str, installed: str, distribution: s
         if not isinstance(tag, str) or not tag.startswith("v"):
             continue
         alpine = tag.endswith("-alpine")
-        if alpine != (distribution == "alpine"):
+        # Alpine appliances accept "-alpine" tags and, from beta.87, plain tags;
+        # the pre-Alpine "rpi" distribution still only sees plain tags.
+        if distribution == "rpi" and alpine:
             continue
         version_tag = tag[:-7] if alpine else tag
         try:
@@ -81,18 +84,60 @@ def select_release(releases: list, channel: str, installed: str, distribution: s
     available = latest > current
     status = "available" if available else "ahead" if latest < current else "current"
     message = "Update available." if available else "Installed version is newer than this channel; no downgrade will be performed." if status == "ahead" else "Up to date."
-    return {"installed_version": installed, "release_channel": channel, "latest_version": (tag[:-7] if distribution == "alpine" else tag)[1:], "tag": tag, "update_available": available, "status": status, "message": message}
+    return {"installed_version": installed, "release_channel": channel, "latest_version": (tag[:-7] if tag.endswith("-alpine") else tag)[1:], "tag": tag, "update_available": available, "status": status, "message": message}
+
+
+CACHE_PATH = Path("/var/lib/pi-home/github-etag-cache.json")
+
+
+class RateLimited(RuntimeError, OSError):
+    """GitHub's anonymous API quota (60 requests an hour per network address) is used up."""
+
+
+def _rate_limit_message(headers) -> str:
+    reset = headers.get("X-RateLimit-Reset") if headers is not None else None
+    when = ""
+    if reset and str(reset).isdigit():
+        remaining = max(1, round((int(reset) - time.time()) / 60))
+        when = f" It resets in about {remaining} minute{'s' if remaining != 1 else ''}."
+    return "GitHub is limiting requests from this network (every Pi on it shares one hourly allowance)." + when + " Try again then."
+
+
+def github_json(url: str, timeout: float = 15):
+    """GET a GitHub API URL. An unchanged answer (HTTP 304) is free of the rate limit, so the last answer and
+    its ETag are kept on disk and re-validated instead of fetched again."""
+    try: cache = json.loads(CACHE_PATH.read_text())
+    except (OSError, ValueError): cache = {}
+    entry = cache.get(url) if isinstance(cache, dict) else None
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "RoonDeck-Updater"}
+    if isinstance(entry, dict) and entry.get("etag"): headers["If-None-Match"] = entry["etag"]
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as response:
+            body = json.load(response)
+            etag = response.headers.get("ETag")
+    except urllib.error.HTTPError as error:
+        if error.code == 304 and isinstance(entry, dict) and "body" in entry: return entry["body"]
+        if error.code in {403, 429}: raise RateLimited(_rate_limit_message(error.headers)) from error
+        raise
+    if etag:
+        try:
+            if not isinstance(cache, dict): cache = {}
+            cache[url] = {"etag": etag, "body": body}
+            temporary = CACHE_PATH.with_suffix(".tmp")
+            temporary.write_text(json.dumps(cache)); temporary.replace(CACHE_PATH)
+        except OSError:
+            pass
+    return body
 
 
 def published_releases() -> list:
     releases = []
     for page in range(1, 6):
-        request = urllib.request.Request(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100&page={page}", headers={"Accept": "application/vnd.github+json", "User-Agent": "Pi-Home-Updater"})
-        with urllib.request.urlopen(request, timeout=8) as response:
-            batch = json.load(response)
+        batch = github_json(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100&page={page}", timeout=15)
         if not isinstance(batch, list):
             raise ValueError("Invalid release catalogue")
-        releases.extend(batch)
+        # Only these fields are used, and keeping them small keeps the on-disk cache small.
+        releases.extend({"tag_name": item.get("tag_name"), "draft": item.get("draft"), "prerelease": item.get("prerelease")} for item in batch if isinstance(item, dict))
         if len(batch) < 100:
             return releases
     raise ValueError("Release catalogue exceeds the supported page limit")
@@ -111,6 +156,10 @@ class ReleaseChecker:
                 return dict(self.cached)
             try:
                 result = select_release(published_releases(), channel, installed, distribution)
+            except RateLimited as error:
+                result = {"installed_version": installed, "release_channel": channel, "latest_version": None, "update_available": False, "status": "unavailable", "message": str(error)}
+                self.cached = result; self.cache_key = key; self.checked_at = time.monotonic() - 240
+                return dict(result)
             except (OSError, ValueError):
                 result = {"installed_version": installed, "release_channel": channel, "latest_version": None, "update_available": False, "status": "unavailable", "message": "Could not check GitHub releases. Try again later."}
             self.cached = result

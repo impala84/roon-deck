@@ -4,7 +4,7 @@
 
 The owner's official macOS Roon client was recorded on 5 October 2026 against
 the real Core. TCP streams were reassembled, method declarations/calls decoded,
-and server object updates replayed through Pi Home's pinned object-graph reader.
+and server object updates replayed through RoonDeck's pinned object-graph reader.
 Raw recordings remain private and are not shipped or committed.
 
 Observed library-add:
@@ -30,7 +30,7 @@ The streaming metadata edition is not a reliable source for favourite state.
 `GetAlbumLite(long, Base.ResultCallback<AlbumLite>)`, also observed in the
 recording, resolves the positive library ID to that edition.
 
-## Pi Home implementation
+## RoonDeck implementation
 
 Live Core checks also verified this implementation adding Judas Priest's
 Rocka Rolla (not-in-library → in-library, still unfavourited), and favouriting

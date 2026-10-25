@@ -8,8 +8,8 @@ connection command. No claim token is embedded in an image.
 
 Every image includes storage expansion, curl, trusted certificates, diagnostics
 and network time. Netdata uses its official stable static Agent under
-`/opt/netdata`, with its official daily updater and cron enabled. Pi Home updates
-replace only Pi Home's application release and preserve Netdata and Roon Bridge.
+`/opt/netdata`, with its official daily updater and cron enabled. RoonDeck updates
+replace only RoonDeck's application release and preserve Netdata and Roon Bridge.
 Reflashing erases the existing filesystem: choose software again on the new card
 and reconnect the new node to Cloud.
 
@@ -23,7 +23,7 @@ overrides are restored when lightweight mode is turned off. Other collectors
 remain enabled. Memory savings depend on the collected metrics and workload.
 Change this later under **System → Services → Netdata**; turning it off selects
 one-second sampling and automatic ML. Existing Agents are not modified merely
-by updating Pi Home. The initial configuration is backed up alongside
+by updating RoonDeck. The initial configuration is backed up alongside
 `netdata.conf` as `netdata.conf.pi-home-backup`; unrelated configuration is
 preserved. Diagnostics shows combined Netdata/collector RSS and CPU when running.
 
@@ -65,7 +65,7 @@ New images include grim for screenshot capture. Optional Netdata installation
 uses the official stable Agent. System → Services shows its version, running state,
 local dashboard and Cloud connection state. For Cloud setup, open System →
 Services → Netdata, choose Connect to Netdata Cloud, then paste the complete
-Linux installation command supplied by Netdata Cloud's Add nodes flow. Pi Home
+Linux installation command supplied by Netdata Cloud's Add nodes flow. RoonDeck
 validates the official address and claim settings, installs curl if required,
 downloads Netdata's current official installer and passes those settings to it;
 the pasted shell itself is never executed, logged or retained. Existing images
@@ -114,7 +114,7 @@ the Goodix rule explicitly clears `WL_OUTPUT` to prevent double input rotation.
 Region/theme remain a later step. This replaces the mapping strategy described
 in the historical notes below; physical acceptance is still required.
 
-Revision `2b48d7b`: [image build and native setup checks](https://github.com/impala84/pi-home/actions/runs/37192855390)
+Revision `2b48d7b`: [image build and native setup checks](https://github.com/impala84/roon-deck/actions/runs/37192855390)
 passed, including the real GTK first-page choice/reboot request and resume into
 device naming, API runtime, SSH policy and updater staging/rollback checks.
 Baseline checks passed 156 Python tests and 91 Node tests. For Pi 4B with the
@@ -122,7 +122,7 @@ Baseline checks passed 156 Python tests and 91 Node tests. For Pi 4B with the
 on the first screen, then Apply and restart. This is not physical-touch
 acceptance; nothing was flashed or remotely installed.
 
-Revision `764694f`: [combined ARM64 image and update checks](https://github.com/impala84/pi-home/actions/runs/37191573089)
+Revision `764694f`: [combined ARM64 image and update checks](https://github.com/impala84/roon-deck/actions/runs/37191573089)
 passed, including both API services, real GTK setup/icons, SSH policy, real
 Python/npm staging, atomic rollback after a simulated failed health check,
 and a real HTTP → private Unix socket → root updater privilege-boundary test
@@ -148,11 +148,11 @@ messages. This is a source-backed correction, not physical-touch acceptance.
 An attached USB mouse can complete onboarding and enable SSH on the already
 flashed image, allowing an in-place repair instead of another flash.
 
-Revision `c71d326`: [ARM64 image, GTK pages/icons and SSH policy checks](https://github.com/impala84/pi-home/actions/runs/37189662473)
+Revision `c71d326`: [ARM64 image, GTK pages/icons and SSH policy checks](https://github.com/impala84/roon-deck/actions/runs/37189662473)
 passed. Baseline checks passed 148 Python and 91 Node tests. Setup now starts
 portrait DSI panels in landscape, offers password visibility/confirmation and
 an enabled-by-default SSH option, uses a regional timezone chooser, and shows
-a small theme-aware Pi Home wordmark. The main splash reads the saved theme
+a small theme-aware RoonDeck wordmark. The main splash reads the saved theme
 before the first frame. Standard GTK icons and SVG support are included.
 Duplicate touch rotation was removed; actual finger input still needs retesting.
 No changes were installed on the running Pi, and the earlier image remains
@@ -169,7 +169,7 @@ normal cold-plug/device-module path. This is a confirmed image packaging bug
 and a strong explanation for the blank display, not a proven hardware diagnosis.
 The image's ext4 filesystem passed a read-only consistency check.
 
-Corrected revision `497b14e`: [image build and exported-root startup checks](https://github.com/impala84/pi-home/actions/runs/37187467742)
+Corrected revision `497b14e`: [image build and exported-root startup checks](https://github.com/impala84/roon-deck/actions/runs/37187467742)
 passed, alongside the Alpine runtime and native GTK checks. Baseline checks
 passed 144 Python and 91 Node tests. The user subsequently confirmed that
 this image booted on Pi 4B / 7-inch Touch Display 2; touch, onboarding and
@@ -179,13 +179,13 @@ The factory now sanitises the exported root before packaging it: remove Docker
 and Podman markers, replace Docker-injected hostname/hosts/DNS configuration,
 then check OpenRC reports a non-container system and regenerates dependencies.
 Boot output is no longer quiet; OpenRC writes `/var/log/rc.log` and supervised
-Pi Home processes write private logs under `/var/log/pi-home/`. Filesystem check
+RoonDeck processes write private logs under `/var/log/pi-home/`. Filesystem check
 utilities are included. These checks supplement container tests, not physical
 Pi boot validation. Do not keep using the earlier `ce7da54` installer image.
 
 ## Verified factory build — 4 October 2026
 
-Installer revision `ce7da54`; [ARM64 installer image and native GTK checks](https://github.com/impala84/pi-home/actions/runs/37185600684)
+Installer revision `ce7da54`; [ARM64 installer image and native GTK checks](https://github.com/impala84/roon-deck/actions/runs/37185600684)
 passed. All six wizard pages and the touch keyboard were exercised under Xvfb
 at 800×480; both HTTP services passed in Alpine. Local verification passed
 142 Python tests. This supersedes the earlier image for first-boot setup.
@@ -195,7 +195,7 @@ does not move or overwrite an older installation's saved settings or pairing.
 
 Earlier image-factory baseline:
 
-Source revision `888d8cd`; [ARM64 image build and runtime checks](https://github.com/impala84/pi-home/actions/runs/37183838137)
+Source revision `888d8cd`; [ARM64 image build and runtime checks](https://github.com/impala84/roon-deck/actions/runs/37183838137)
 passed. Artifact `pi-home-alpine-prototype` contains the compressed image,
 SHA-256, source revision and resolved package manifest (about 319 MB total).
 The persistent root filesystem passed e2fsck. GTK/Graphene/Cairo imports and
@@ -219,7 +219,7 @@ removes its boot entry. SSH and web settings share the initial credentials.
 System → Access can update the device/SSH credentials, while the separate web
 controls can subsequently diverge. Do not forward SSH to the internet.
 SSH host keys are generated on-device, not distributed with the image.
-Ethernet DHCP and mDNS are included. Pi Home configuration and Roon pairing
+Ethernet DHCP and mDNS are included. RoonDeck configuration and Roon pairing
 persist on the root filesystem. Bus Times is off; the initial theme is Roon.
 The native first-boot wizard now covers device naming, Ethernet/Wi-Fi,
 Roon authorisation/zone selection (or explicit setup-later), display profile,
@@ -282,14 +282,16 @@ Download the successful build artifact; check its SHA-256, then select its
 image in Raspberry Pi Imager and flash a **spare** card (flashing erases that
 selected card). Start with Pi 5, wired Ethernet and HDMI if necessary to
 separate boot bring-up from DSI compatibility. The intended boot path starts
-Pi Home automatically; actual boot, DRM/seat ownership and touch are unproven.
+RoonDeck automatically; actual boot, DRM/seat ownership and touch are unproven.
 Follow the native wizard. It explains Roon Settings → Extensions, lists available
 zones and lets you choose the device/SSH username and initial shared web password.
 Use at least eight characters. Simple passwords produce advice but remain the
 owner's choice. The password is stored privately, not printed in logs or embedded
 in the build artifact. The Finish screen shows the named
 device's `.local:8765/admin` address. Use the assigned IP if mDNS is unavailable.
-NetworkManager handles Ethernet DHCP and saved Wi-Fi connections. Wi-Fi/DSI,
+NetworkManager handles Ethernet DHCP and saved Wi-Fi connections. RoonDeck
+disables Wi-Fi power saving globally and on newly created Wi-Fi profiles to
+avoid latency spikes in Roon's persistent LAN connections. Wi-Fi/DSI,
 touch keyboard behaviour and Roon LAN pairing still require physical acceptance.
 
 Display auto-detection is initially enabled. The build must include the Pi 5 device tree

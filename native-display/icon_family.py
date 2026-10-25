@@ -21,24 +21,27 @@ ALIASES = {
 class FamilyIcon(Gtk.Image):
     _textures = {}
 
-    def __init__(self, name, size=34, filled=False):
+    def __init__(self, name, size=34, filled=False, stroke_width=None):
         super().__init__()
         self.icon_name = ALIASES.get(name, name)
         self.filled = filled
+        self.stroke_width = stroke_width
         self._colour = None
         self.set_pixel_size(size)
-        self._refresh('#817aeb')
+        self._refresh('#9868F9')
 
     def _refresh(self, colour):
         # Rasterise above the requested optical size, including large 10-inch
         # portrait Home icons. Never upscale a fixed small texture.
         resolution = max(128, self.get_pixel_size() * 2)
-        key = (self.icon_name, colour, self.filled, resolution)
+        key = (self.icon_name, colour, self.filled, resolution, self.stroke_width)
         if key not in self._textures:
             path = ASSETS / (self.icon_name + '-symbolic.svg')
             if not path.exists(): path = ASSETS / 'music-symbolic.svg'
             svg = path.read_text().replace('currentColor', colour)
-            if self.icon_name in TOUCH_CONTROLS:
+            if self.stroke_width is not None:
+                svg = svg.replace('stroke-width="2"', f'stroke-width="{self.stroke_width}"')
+            elif self.icon_name in TOUCH_CONTROLS:
                 svg = svg.replace('stroke-width="2"', f'stroke-width="{TOUCH_CONTROL_STROKE}"')
             svg = svg.replace('width="128" height="128"', f'width="{resolution}" height="{resolution}"')
             if self.filled: svg = svg.replace('fill="none"', 'fill="' + colour + '"', 1)

@@ -1,22 +1,66 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {loadArtistProfile, playingMetadata, chooseItem, artistCandidates, chooseMusicBrainzGroup, chooseUniqueTitleGroup, musicBrainzFacts, parseBandcampPage, loadAlbumWriteup, loadMusicBrainzMetadata, loadDetails} = require('./details-state');
+const {clipWriteup, loadArtistProfile, loadWikipediaArtistWriteup, chooseArtistCandidate, playingMetadata, chooseItem, artistCandidates, albumCandidates, chooseMusicBrainzGroup, chooseUniqueTitleGroup, musicBrainzFacts, parseBandcampPage, loadAlbumWriteup, loadWikipediaAlbumWriteup, loadAlbumNotes, loadMusicBrainzMetadata, loadDetails} = require('./details-state');
+
+test('album metadata retries the base title for common edition suffixes', () => {
+  assert.deepEqual(albumCandidates('Hunting High and Low (2015 Remaster)'), ['Hunting High and Low (2015 Remaster)', 'Hunting High and Low']);
+  assert.deepEqual(albumCandidates('(What\'s the Story) Morning Glory? [Remastered 2020]'), ['(What\'s the Story) Morning Glory? [Remastered 2020]', '(What\'s the Story) Morning Glory?']);
+  assert.deepEqual(albumCandidates('Vessel (Deluxe Edition)'), ['Vessel (Deluxe Edition)', 'Vessel']);
+  assert.deepEqual(albumCandidates('Pet Sounds (Stereo)'), ['Pet Sounds (Stereo)', 'Pet Sounds']);
+  assert.deepEqual(albumCandidates('Pet Sounds [Mono Mix]'), ['Pet Sounds [Mono Mix]', 'Pet Sounds']);
+});
+
+test('album writeups stay to a two-sentence preview', () => {
+  assert.equal(clipWriteup('First sentence. Second sentence! Third sentence should not appear.'), 'First sentence. Second sentence!');
+  const clipped = clipWriteup('A'.repeat(360));
+  assert.equal(clipped.length, 321);
+  assert.ok(clipped.endsWith('…'));
+});
 
 test('artist background follows only a unique exact MusicBrainz identity', async () => {
   const id = '12345678-1234-1234-1234-123456789abc';
   const calls = [];
   const json = async path => {
     calls.push(path);
-    return path.includes('?query=') ? {artists:[{name:'Radiohead',id}]} : {relations:[{url:{resource:'https://en.wikipedia.org/wiki/Radiohead'}}]};
+    return path.includes('?query=') ? {artists:[{name:'Radiohead',id}]} : {type:'Group',area:{name:'Oxfordshire'},country:'GB','life-span':{begin:'1985'},tags:[{name:'rock',count:8},{name:'alternative',count:4}],relations:[{url:{resource:'https://en.wikipedia.org/wiki/Radiohead'}}]};
   };
   const result = await loadArtistProfile('Radiohead', json, async()=>JSON.stringify({extract:'A British rock band.'}));
   assert.equal(result.writeup, 'A British rock band.'); assert.equal(result.source,'Wikipedia');
+  assert.equal(result.type, 'Group'); assert.equal(result.area, 'Oxfordshire'); assert.equal(result.country, 'GB'); assert.equal(result.formed, '1985'); assert.deepEqual(result.genres, ['rock','alternative']);
   assert.match(calls[1], /inc=url-rels/);
   for (const artists of [[{name:'Other',id}], [{name:'Radiohead',id},{name:'Radiohead',id}]]) {
     const result = await loadArtistProfile('Radiohead', async()=>({artists}), async()=>{throw Error('Must not request a biography')});
     assert.equal(result.writeup,'');
   }
+});
+
+test('artist matching accepts a decisive canonical result but rejects tied names', () => {
+  const canonical = {name:'Phoenix',id:'canonical',score:100};
+  assert.equal(chooseArtistCandidate([canonical,{name:'Phoenix',id:'tribute',score:82}]), canonical);
+  assert.equal(chooseArtistCandidate([{name:'Phoenix',score:100},{name:'Phoenix',score:100}]), null);
+});
+
+test('artist background can use a clearly musical Wikipedia page when MusicBrainz is ambiguous', async () => {
+  const result = await loadWikipediaArtistWriteup('Air', async url => {
+    if (url.includes('(band)')) return JSON.stringify({type:'standard',title:'Air (French band)',description:'French musical duo',extract:'Air are a French music duo formed in Versailles.'});
+    return JSON.stringify({type:'disambiguation',title:'Air',extract:'Air may refer to several subjects.'});
+  });
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /French music duo/);
+});
+
+test('artist background falls back to Wikipedia when MusicBrainz is unavailable', async () => {
+  const result = await loadArtistProfile('Oasis', async()=>{ throw Error('MusicBrainz unavailable'); }, async url => {
+    if (url.includes('(band)')) return JSON.stringify({type:'standard',title:'Oasis (band)',description:'English rock band',extract:'Oasis are an English rock band formed in Manchester in 1991.'});
+    return JSON.stringify({type:'standard',title:'Oasis',description:'Fertile area in a desert',extract:'An oasis is a fertile area in a desert.'});
+  });
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /English rock band/);
+});
+test('artist background recognises classical vocal profiles such as Pavarotti', async () => {
+  const result=await loadWikipediaArtistWriteup('Luciano Pavarotti',async()=>JSON.stringify({type:'standard',title:'Luciano Pavarotti',description:'Italian operatic tenor',extract:'Luciano Pavarotti was an Italian operatic tenor.'}));
+  assert.equal(result.writeup,'Luciano Pavarotti was an Italian operatic tenor.');assert.equal(result.source,'Wikipedia');
 });
 
 test('playingMetadata reads three-line Roon metadata', () => {
@@ -97,6 +141,28 @@ test('temporary enrichment failure is marked for a bounded retry', async () => {
   assert.equal(result.status, 'ready'); assert.equal(result.metadata_retryable, true);
 });
 
+test('core album details are published before external enrichment completes', async () => {
+  const service = {browse(_options, callback) { callback('offline'); }};
+  let finishEnrichment;
+  const enrichment = new Promise(resolve => { finishEnrichment = resolve; });
+  let partial;
+  const completed = loadDetails(
+    service,
+    {zone_id: 'zone', now_playing: {three_line: {line1: 'Track', line2: 'Artist', line3: 'Album'}, image_key: 'current'}},
+    () => enrichment,
+    result => { partial = result; }
+  );
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(partial.status, 'ready');
+  assert.equal(partial.album, 'Album');
+  assert.equal(partial.image_key, 'current');
+  assert.equal(partial.metadata_pending, true);
+  finishEnrichment({year: '2001', writeup: 'Finished later.'});
+  const result = await completed;
+  assert.equal(result.metadata_pending, false);
+  assert.equal(result.metadata.year, '2001');
+});
+
 test('MusicBrainz matching requires the exact album and artist', () => {
   const groups = [
     {id: 'wrong', title: 'Chrysalis Deluxe', score: 100, 'artist-credit': [{name: 'Someone Else'}]},
@@ -104,6 +170,12 @@ test('MusicBrainz matching requires the exact album and artist', () => {
   ];
   assert.equal(chooseMusicBrainzGroup(groups, 'Chrysalis', 'Emancipator').id, 'right');
   assert.equal(chooseMusicBrainzGroup(groups, 'Unknown', 'Emancipator'), null);
+});
+
+test('browse album notes reject a title-only match for a different artist', async () => {
+  const fetchJson = async () => ({'release-groups':[{id:'wrong',title:'Album','artist-credit':[{name:'Someone Else'}]}]});
+  const facts = await loadMusicBrainzMetadata('Album', 'Artist', 0, fetchJson, true);
+  assert.equal(facts.writeup || '', '');
 });
 
 test('MusicBrainz matching accepts the album artist within Roon track credits', () => {
@@ -160,5 +232,74 @@ test('Bandcamp parsing returns artist notes and a small tag set', () => {
 test('album writeup prefers a linked Wikipedia summary', async () => {
   const group = {relations: [{url: {resource: 'https://en.wikipedia.org/wiki/Example_album'}}]};
   const result = await loadAlbumWriteup(group, null, async () => JSON.stringify({type: 'standard', extract: 'The album story.'}));
-  assert.deepEqual(result, {writeup: 'The album story.', source: 'Wikipedia', tags: []});
+  assert.deepEqual(result, {writeup: 'The album story.', full_writeup: 'The album story.', source: 'Wikipedia', tags: []});
+});
+
+test('album writeup falls back to the matching Wikipedia album page', async () => {
+  const urls = [];
+  const result = await loadWikipediaAlbumWriteup("(What's the Story) Morning Glory?", 'Oasis', async url => {
+    urls.push(url);
+    return JSON.stringify({type: 'standard', description: '1995 studio album by Oasis', extract: 'Morning Glory is the second studio album by the English rock band Oasis. It was released in 1995.'});
+  });
+  assert.match(urls[0], /Morning_Glory/);
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /second studio album/);
+  assert.match(result.full_writeup, /released in 1995/);
+});
+
+test('Wikipedia album fallback retries a canonical title without the stereo edition label', async () => {
+  const urls = [];
+  const result = await loadWikipediaAlbumWriteup('Pet Sounds (Stereo)', 'The Beach Boys', async url => {
+    urls.push(url);
+    if (!url.includes('Pet_Sounds_(album)')) throw new Error('No edition-specific page');
+    return JSON.stringify({type: 'standard', description: '1966 studio album by the Beach Boys', extract: 'Pet Sounds is the eleventh studio album by the American rock band the Beach Boys. It was released in 1966.'});
+  });
+  assert.ok(urls.some(url => url.includes('Pet_Sounds_(album)')));
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.full_writeup, /released in 1966/);
+});
+
+test('Wikipedia album fallback handles initialled artists and artist-qualified titles', async () => {
+  const urls = [];
+  const result = await loadWikipediaAlbumWriteup('Monster', 'R.E.M.', async url => {
+    urls.push(url);
+    if (!url.includes('R.E.M.')) return JSON.stringify({type:'disambiguation',description:'Several works',extract:'Monster may refer to several works.'});
+    return JSON.stringify({type:'standard',description:'1994 studio album by R.E.M.',extract:'Monster is the ninth studio album by American rock band R.E.M.'});
+  });
+  assert.equal(urls.length, 3);
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /ninth studio album/);
+});
+
+test('Wikipedia album fallback rejects unrelated and disambiguation pages', async () => {
+  const unrelated = await loadWikipediaAlbumWriteup('Home', 'Example Artist', async () => JSON.stringify({type: 'standard', description: 'A place where someone lives', extract: 'A home is a dwelling.'}));
+  assert.equal(unrelated.writeup, '');
+  const ambiguous = await loadWikipediaAlbumWriteup('Home', 'Example Artist', async () => JSON.stringify({type: 'disambiguation', description: 'Albums and songs by Example Artist', extract: 'Home may refer to several albums.'}));
+  assert.equal(ambiguous.writeup, '');
+});
+
+test('album notes use Wikipedia before MusicBrainz can time out', async () => {
+  let musicBrainzCalled = false;
+  const result = await loadAlbumNotes("(What's the Story) Morning Glory?", 'Oasis', async () => {
+    musicBrainzCalled = true;
+    throw new Error('MusicBrainz timeout');
+  }, async () => JSON.stringify({
+    type: 'standard',
+    description: '1995 studio album by Oasis',
+    extract: "(What's the Story) Morning Glory? is the second studio album by the English rock band Oasis."
+  }));
+  assert.equal(musicBrainzCalled, false);
+  assert.equal(result.source, 'Wikipedia');
+  assert.match(result.writeup, /second studio album/);
+});
+
+test('MusicBrainz album metadata uses the title fallback when relations contain no writeup', async () => {
+  const id = '12345678-1234-1234-1234-123456789abc';
+  const fetchJson = async path => path.includes('?query=')
+    ? {'release-groups': [{id, title: "(What's the Story) Morning Glory?", score: 100, 'artist-credit': [{name: 'Oasis'}]}]}
+    : {id, title: "(What's the Story) Morning Glory?", 'artist-credit': [{name: 'Oasis'}], releases: [], relations: []};
+  const facts = await loadMusicBrainzMetadata("(What's the Story) Morning Glory?", 'Oasis', 0, fetchJson, true,
+    async () => JSON.stringify({type: 'standard', description: '1995 studio album by Oasis', extract: 'It is the second studio album by Oasis.'}));
+  assert.equal(facts.writeup_source, 'Wikipedia');
+  assert.equal(facts.writeup, 'It is the second studio album by Oasis.');
 });

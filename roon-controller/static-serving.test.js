@@ -32,6 +32,7 @@ test('production serves every script and stylesheet referenced by the Roon page'
     assert.equal(response.status, 200, asset);
     assert.ok(response.data.length > 0, asset);
     assert.match(response.headers['Content-Type'], asset.includes('.js') ? /^text\/javascript/ : /^text\/css/);
+    assert.equal(response.headers['Cache-Control'], 'no-store, must-revalidate');
   }
 });
 test('production serves dynamically loaded Discover CSS and refuses arbitrary paths', () => {

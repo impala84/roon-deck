@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Local-only Pi Home first-boot setup helper"
+description="Local-only RoonDeck first-boot setup helper"
 supervisor=supervise-daemon
 command=/usr/bin/python3
 command_args=/opt/pi-home/appliance/alpine/setup_service.py

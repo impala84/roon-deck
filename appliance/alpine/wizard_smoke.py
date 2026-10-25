@@ -39,6 +39,12 @@ app.type_key("C")
 assert entry.get_text() == "abC"
 app.toggle_symbols(); app.type_key("/London")
 assert entry.get_text() == "abC/London"
+app.stage = 2; app.render()
+ssid, password = app.fields
+app.select_entry(ssid); app.focus_next_entry()
+assert app.entry is password and app.keyboard.get_visible()
+app.focus_next_entry()
+assert not app.keyboard.get_visible()
 app.window.destroy()
 icons = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
 assert icons.has_icon("media-skip-forward-symbolic")

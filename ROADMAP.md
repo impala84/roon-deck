@@ -1,4 +1,4 @@
-# Pi Home roadmap
+# RoonDeck roadmap
 
 ## v1.0 Stable baseline — first gate
 
@@ -32,7 +32,7 @@ Maintain one codebase: personal installs can enable Bus Times/Home, while public
 
 Explore a Raspberry Pi OS-based image: download → flash with Raspberry Pi Imager → boot → touchscreen setup → use. Keep an advanced manual-install path. First-run setup could cover welcome, network and Roon discovery/authorisation. The supplied brief ended during this first-run section; remaining detail must be confirmed before that phase.
 
-Before image distribution: audit all redistributed package licences/notices, supported hardware, recovery, credentials, security updates and reproducible image tooling. Pi Home remains independent of Roon and does not redistribute proprietary Roon Bridge without permission.
+Before image distribution: audit all redistributed package licences/notices, supported hardware, recovery, credentials, security updates and reproducible image tooling. RoonDeck remains independent of Roon and does not redistribute proprietary Roon Bridge without permission.
 
 ## Retained reliability considerations
 

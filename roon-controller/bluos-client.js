@@ -87,7 +87,10 @@ class BluOSClient {
     const config = this.getConfig(); const base = config.enabled ? normaliseAddress(config.address) : '';
     if (base === this.base && Boolean(config.enabled) === this.state.enabled) return;
     this.base = base; this.generation += 1; clearTimeout(this.timer);
-    this.state = {...this.state, enabled: Boolean(config.enabled), connected: false, status: config.enabled ? (base ? 'Connecting' : 'Select a player') : 'Disabled'}; this.changed();
+    this.state = config.enabled
+      ? {...this.state, enabled: true, connected: false, status: base ? 'Connecting' : 'Select a player'}
+      : {enabled: false, connected: false, status: 'Disabled', player: null, inputs: [], active_input: null, playback: null, volume: null};
+    this.changed();
     if (base) this.connect(this.generation);
   }
   request(path, timeout = 5000) {

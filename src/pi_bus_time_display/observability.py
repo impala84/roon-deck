@@ -56,7 +56,7 @@ class OpenObserveLogger:
     def _record(self, event: str, level: str, fields: dict[str, object]) -> dict:
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "service": "pi-home",
+            "service": "roondeck",
             "version": __version__,
             "host": socket.gethostname(),
             "level": str(level),

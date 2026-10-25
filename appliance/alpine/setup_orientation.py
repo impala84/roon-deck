@@ -27,11 +27,11 @@ def main():
                 transform = {"90": "270", "270": "90"}.get(rotation, rotation) if rotation else "normal"
                 if transform in {"normal", "90", "180", "270"}:
                     subprocess.run(["wlr-randr", "--output", output, "--transform", transform], check=True, timeout=3)
-                    print(f"Pi Home setup orientation: {output} transform={transform}", flush=True)
+                    print(f"RoonDeck setup orientation: {output} transform={transform}", flush=True)
                 return
         except (OSError, subprocess.SubprocessError): pass
         time.sleep(.1)
-    print("Pi Home setup orientation: no DSI output ready; unchanged", flush=True)
+    print("RoonDeck setup orientation: no DSI output ready; unchanged", flush=True)
 
 
 if __name__ == "__main__": main()

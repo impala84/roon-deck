@@ -1,8 +1,5 @@
 name: Alpine verification
 on:
-  push:
-    # Keep the old branch as a one-release bridge for beta.14 and older devices.
-    branches: [alpine-beta, alpine-appliance-prototype]
   workflow_dispatch:
     inputs:
       build_image:
@@ -22,26 +19,14 @@ jobs:
         with:
           node-version: '20'
       - name: Verify backend, update safety and controller
-        run: |
-          python -m pip install .
-          PYTHONPATH=src python -m unittest discover -s tests -v
-          npm --prefix roon-controller ci --omit=dev --no-audit --no-fund
-          npm --prefix roon-controller test
+        run: tools/check fast
       - name: Verify native layouts without building a disk image
-        run: |
-          mkdir -p dist/beta-review
-          docker run --rm -v "$PWD:/opt/pi-home:ro" -v "$PWD/dist/beta-review:/screenshots" -w /opt/pi-home alpine:3.24.2 sh -ec '
-            apk add --no-cache python3 py3-gobject3 py3-cairo gtk4.0 font-inter dbus adwaita-icon-theme librsvg xvfb-run imagemagick
-            GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a python3 appliance/common/white_balance_smoke.py
-            for dimensions in 720x1280 480x800 1200x1920 1280x720; do
-              width=${dimensions%x*}; height=${dimensions#*x}
-              GDK_BACKEND=x11 GSK_RENDERER=cairo PI_HOME_SCREEN_WIDTH=$width PI_HOME_SCREEN_HEIGHT=$height PI_HOME_SCREENSHOT_DIR=/screenshots/$dimensions dbus-run-session xvfb-run -a -s "-screen 0 ${dimensions}x24" python3 appliance/alpine/discover_visual_review.py
-            done'
+        run: tools/check screen all
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: beta-native-review
-          path: dist/beta-review/
+          path: dist/native-review/
           retention-days: 14
   image:
     if: github.event_name == 'workflow_dispatch' && inputs.build_image
@@ -61,6 +46,12 @@ jobs:
       - name: Validate Alpine runtime without pretending to boot the Pi
         run: |
           docker run --rm --user morningbus pi-home-alpine:beta .venv/bin/python appliance/alpine/smoke.py
+      - name: Exercise Alpine application staging and rollback
+        run: |
+          git archive --prefix=pi-home/ HEAD | gzip > /tmp/pi-home-update-source.tar.gz
+          docker run --rm -v /tmp/pi-home-update-source.tar.gz:/tmp/pi-home-update-source.tar.gz:ro pi-home-alpine:beta python3 appliance/alpine/updater_smoke.py
+      - name: Verify the real update button privilege boundary
+        run: docker run --rm pi-home-alpine:beta python3 appliance/alpine/update_button_smoke.py
       - name: Verify time sync and optional service tools
         run: |
           docker run --rm pi-home-alpine:beta sh -ec 'test -x /usr/bin/grim; test -x /usr/bin/growpart; test -x /usr/sbin/resize2fs; test -x /usr/bin/curl; test -x /usr/bin/openssl; test -e /lib/ld-linux-aarch64.so.1; test -e /usr/lib/libstdc++.so.6; test ! -e /usr/sbin/netdata; test -e /etc/runlevels/default/pi-home-storage; test -e /etc/runlevels/default/chronyd; test -e /etc/runlevels/boot/pi-home-clock; test ! -e /etc/runlevels/boot/hwclock; grep -Eq "^(pool|server).* iburst" /etc/chrony/chrony.conf; grep -qx "makestep 0.1 -1" /etc/chrony/chrony.conf; chronyd -p -f /etc/chrony/chrony.conf'
@@ -72,37 +63,11 @@ jobs:
           docker run --rm pi-home-alpine:beta sh -c 'apk add --no-cache xvfb-run && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'
       - name: Install official Netdata from a fresh appliance
         run: docker run --rm pi-home-alpine:beta python3 appliance/alpine/software_smoke.py
-      - name: Capture native touchscreen visual-review frames
-        run: |
-          mkdir -p dist/alpine-ui-review/landscape dist/alpine-ui-review/portrait
-          docker run --rm -v "$PWD/dist/alpine-ui-review/landscape:/screenshots" pi-home-alpine:beta sh -c 'apk add --no-cache xvfb-run imagemagick && GDK_BACKEND=x11 GSK_RENDERER=cairo PI_HOME_SCREEN_WIDTH=1280 PI_HOME_SCREEN_HEIGHT=720 PI_HOME_SCREENSHOT_DIR=/screenshots dbus-run-session xvfb-run -a -s "-screen 0 1280x720x24" sh -ec "python3 appliance/alpine/discover_visual_review.py; python3 appliance/alpine/settings_smoke.py"'
-          docker run --rm -v "$PWD/dist/alpine-ui-review/portrait:/screenshots" pi-home-alpine:beta sh -c 'apk add --no-cache xvfb-run imagemagick && GDK_BACKEND=x11 GSK_RENDERER=cairo PI_HOME_SCREEN_WIDTH=720 PI_HOME_SCREEN_HEIGHT=1280 PI_HOME_SCREENSHOT_DIR=/screenshots dbus-run-session xvfb-run -a -s "-screen 0 720x1280x24" python3 appliance/alpine/discover_visual_review.py'
-      # The same native widgets must fit both small panels and the 1200x1920
-      # ten-inch panel; these are test displays, not physical Pi acceptance.
-      - name: Verify small and ten-inch portrait viewport layouts
-        run: |
-          for dimensions in 480x800 1200x1920; do
-            width=${dimensions%x*}; height=${dimensions#*x}
-            mkdir -p "dist/alpine-ui-review/$dimensions"
-            docker run --rm -v "$PWD/dist/alpine-ui-review/$dimensions:/screenshots" pi-home-alpine:beta sh -c "apk add --no-cache xvfb-run imagemagick && GDK_BACKEND=x11 GSK_RENDERER=cairo PI_HOME_SCREEN_WIDTH=$width PI_HOME_SCREEN_HEIGHT=$height PI_HOME_SCREENSHOT_DIR=/screenshots dbus-run-session xvfb-run -a -s '-screen 0 ${dimensions}x24' python3 appliance/alpine/discover_visual_review.py"
-          done
       - name: Verify SSH account and security policy
         run: |
           docker run --rm pi-home-alpine:beta sh -ec 'command -v chpasswd; python3 -c "from appliance.alpine.setup_service import set_login_credentials; set_login_credentials(\"admin\", \"12345678\"); from pathlib import Path; entry=next(x for x in Path(\"/etc/shadow\").read_text().splitlines() if x.startswith(\"admin:\")); assert entry.split(\":\")[1].startswith(\"\u0024\")"; ssh-keygen -A; sshd -t; sshd -T | grep -q "permitrootlogin no"; sshd -T | grep -q "allowusers admin"; visudo -c'
-      - name: Exercise Alpine application staging and rollback
-        run: |
-          git archive --prefix=pi-home/ HEAD | gzip > /tmp/pi-home-update-source.tar.gz
-          docker run --rm -v /tmp/pi-home-update-source.tar.gz:/tmp/pi-home-update-source.tar.gz:ro pi-home-alpine:beta python3 appliance/alpine/updater_smoke.py
-      - name: Verify the real update button privilege boundary
-        run: docker run --rm pi-home-alpine:beta python3 appliance/alpine/update_button_smoke.py
       - uses: actions/upload-artifact@v4
         with:
           name: pi-home-alpine-beta
           path: dist/alpine/
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pi-home-alpine-ui-review
-          path: dist/alpine-ui-review/
           retention-days: 14

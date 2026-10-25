@@ -92,7 +92,7 @@ def main() -> int:
         result = expand(STATE, LOG, SYS_DEV_BLOCK)
         append_log("First-boot storage result: " + result, LOG)
     except Exception as error:
-        # OpenRC deliberately treats this as recoverable: Pi Home must still
+        # OpenRC deliberately treats this as recoverable: RoonDeck must still
         # start so the owner can diagnose or repair the card.
         append_log("Root storage expansion failed safely: " + str(error), LOG)
         STATE.mkdir(parents=True, exist_ok=True)

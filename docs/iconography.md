@@ -1,4 +1,4 @@
-# Pi Home icon family
+# RoonDeck icon family
 
 `tools/build_icons.py` is the single editable catalogue. Run it after changing a
 path; `--check` and the unit suite verify committed outputs. No icon dependency.

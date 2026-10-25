@@ -30,7 +30,7 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 if [[ ! -d ${app_dir}/.git ]]; then
-  echo "Pi Home is not a Git checkout in ${app_dir}."
+  echo "RoonDeck is not a Git checkout in ${app_dir}."
   echo "Run the current install-pi.sh once to enable one-command updates."
   exit 1
 fi
@@ -38,7 +38,7 @@ fi
 if [[ ${PI_HOME_UPDATE_LOCKED:-0} != 1 ]]; then
   exec 9>/run/lock/pi-home-update.lock
   if ! flock -n 9; then
-    echo "A Pi Home update is already running."
+    echo "A RoonDeck update is already running."
     exit 0
   fi
   export PI_HOME_UPDATE_LOCKED=1
@@ -60,7 +60,7 @@ if [[ ${PI_HOME_UPDATE_REEXECUTED:-0} != 1 || -z ${PI_HOME_UPDATE_TARGET:-} ]]; 
   fi
   export PI_HOME_UPDATE_TARGET="${release_tag}"
 fi
-if [[ ${PI_HOME_UPDATE_TARGET:-} == *-alpine || ! ${PI_HOME_UPDATE_TARGET:-} =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+if [[ ! ${PI_HOME_UPDATE_TARGET:-} =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
   echo "Invalid published release target."
   exit 1
 fi
@@ -69,7 +69,7 @@ if [[ -n $(git -c safe.directory="${app_dir}" -C "${app_dir}" status --porcelain
   progress "Preserving local appliance changes…"
   git -c safe.directory="${app_dir}" -C "${app_dir}" stash push --include-untracked --message "${backup_name}"
 fi
-progress "Downloading the latest Pi Home release…"
+progress "Downloading the latest RoonDeck release…"
 update_stage="downloading the latest release"
 timeout --signal=TERM --kill-after=10s 2m git -c safe.directory="${app_dir}" -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=30 -C "${app_dir}" fetch origin "refs/tags/${PI_HOME_UPDATE_TARGET}:refs/tags/${PI_HOME_UPDATE_TARGET}"
 update_stage="switching to the downloaded release"
@@ -104,17 +104,7 @@ update_stage="checking touchscreen graphics dependencies"
 progress "Checking touchscreen graphics dependencies…"
 python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_foreign("cairo"); from gi.repository import Gtk, Gdk, Gio, GLib, Pango'
 
-progress "Installing Pi Home application files…"
-for parent in /opt /etc /var/lib; do
-  canonical="${parent}/pi-home"
-  legacy="${parent}/pi-bus-time-display"
-  if [[ -e ${canonical} && -e ${legacy} ]]; then
-    [[ $(readlink -f "${canonical}") == $(readlink -f "${legacy}") ]] || { echo "Conflicting installations at ${canonical} and ${legacy}."; exit 1; }
-  elif [[ -e ${legacy} && ! -L ${canonical} ]]; then
-    ln -s "${legacy}" "${canonical}"
-  fi
-  [[ -e ${canonical} ]] || { echo "Missing or broken installation path: ${canonical}"; exit 1; }
-done
+progress "Installing RoonDeck application files…"
 update_stage="installing the Python application"
 timeout --signal=TERM --kill-after=10s 3m "${app_dir}/.venv/bin/pip" install --disable-pip-version-check --no-deps "${app_dir}"
 package_lock_hash=$(sha256sum "${app_dir}/roon-controller/package-lock.json" | cut -d' ' -f1)
@@ -144,7 +134,7 @@ if systemctl is-enabled --quiet pi-bus-native.service && [[ -f /etc/pi-bus-time-
   progress "Applying the saved display configuration…"
   PI_HOME_NO_RESTART=1 /usr/local/sbin/pi-bus-appliance-mode rotate "$(</etc/pi-bus-time-display/display-transform)"
 fi
-chmod 0755 "${app_dir}/native-display/pi_bus_native.py"
+chmod 0755 "${app_dir}/native-display/roondeck_native.py"
 chmod 0755 "${app_dir}/scripts/pi-bus-cage-launch"
 
 desktop_user=${SUDO_USER:-}
@@ -155,8 +145,8 @@ if [[ -n ${desktop_user} && ${desktop_user} != root ]]; then
   rm -f "${desktop_home}/.config/autostart/pi-bus-time-display.desktop"
 fi
 
-progress "Restarting Pi Home services…"
-update_stage="restarting Pi Home services"
+progress "Restarting RoonDeck services…"
+update_stage="restarting RoonDeck services"
 systemctl daemon-reload
 systemctl enable --now pi-bus-system-action.path
 systemctl enable pi-home-leds.service
@@ -205,8 +195,8 @@ if systemctl is-enabled --quiet pi-bus-native.service; then
   progress "Touchscreen is running."
 fi
 
-progress "Complete — all Pi Home services are responding."
-printf '%s\n' "Update installed. Pi Home services restarted." >"${status_file}.tmp"
+progress "Complete — all RoonDeck services are responding."
+printf '%s\n' "Update installed. RoonDeck services restarted." >"${status_file}.tmp"
 chmod 0644 "${status_file}.tmp"
 mv -f "${status_file}.tmp" "${status_file}"
 trap - EXIT

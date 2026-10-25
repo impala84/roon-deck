@@ -2,7 +2,7 @@
 @media(max-width:700px) and (orientation:portrait){main{padding-top:62px;padding-bottom:72px}.settings-cog{top:max(9px,env(safe-area-inset-top));left:10px}.web-nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}.web-nav a{padding:12px 8px 10px}}
 
 @media(min-width:701px){main{padding-bottom:100px}.web-nav{left:22px;right:22px;bottom:18px;padding:8px 12px;border:0;border-radius:0}.web-nav a{min-height:48px;display:grid;place-items:center;padding:12px 8px;font-size:14px}}
-body[data-theme="roon"]{--bg:#151515;--panel:#232228;--line:#45424b;--ink:#f5f5f5;--muted:#aaa;--mint:#817aeb;background:linear-gradient(120deg,#242338,#181818 60%,#251c22)}
+body[data-theme="roon"]{--bg:#151515;--panel:#232228;--line:#45424b;--ink:#f5f5f5;--muted:#aaa;--mint:#9868F9;background:linear-gradient(120deg,#242338,#181818 60%,#251c22)}
 body[data-theme="roon"] .entity.on{background:#302b44;border-color:var(--mint)}
 body[data-theme="roon"] .entity.on svg{color:var(--mint)}
 .settings-cog,.web-nav,body[data-theme="roon"] .settings-cog,body[data-theme="roon"] .web-nav{background:transparent;border:0;cursor:pointer}
@@ -14,5 +14,8 @@ main{grid-template-rows:auto auto;align-content:start}
 header{padding-right:160px}
 @media(max-width:700px) and (orientation:portrait){#clock{top:14px;right:16px;font-size:28px}header{padding-right:0}}
 @media(min-width:701px),(orientation:landscape){#clock{font-size:clamp(30px,4.7vw,50px)}}
-.web-nav a[hidden]{display:none!important}.web-nav:has(a[hidden]){grid-template-columns:repeat(2,minmax(0,1fr))}
+.web-nav{grid-template-columns:repeat(4,minmax(0,1fr))}.web-nav a{min-width:0}.web-nav a[hidden]{display:none!important}.web-nav:has(a[hidden]){grid-template-columns:repeat(3,minmax(0,1fr))}
 svg.pi-icon{stroke-width:2}
+.entity.scene.activated{border-color:var(--mint);color:var(--ink)}.entity button:disabled{cursor:default;opacity:.48}.entity.scene.activated button{color:var(--mint);opacity:1}
+.entity.typed input{accent-color:var(--entity-color)}
+.entity.typed{background:color-mix(in srgb,var(--entity-color) 18%,var(--panel));border-color:color-mix(in srgb,var(--entity-color) 58%,var(--line))}.entity.typed svg{color:var(--entity-color)}.entity.typed.on,.entity.typed.activated{background:color-mix(in srgb,var(--entity-color) 34%,var(--panel));border-color:var(--entity-color)}.entity.typed.activated{box-shadow:0 0 18px color-mix(in srgb,var(--entity-color) 70%,transparent)}.entity.typed.on svg,.entity.typed.activated button{color:var(--entity-color)}

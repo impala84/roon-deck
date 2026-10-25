@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Generate unique Pi Home credentials on first boot"
+description="Generate unique RoonDeck credentials on first boot"
 depend() { need localmount pi-home-storage; before pi-home-api pi-home-roon; }
 start() {
     # Do not create credentials during the image build.

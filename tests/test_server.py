@@ -7,10 +7,63 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from pi_bus_time_display.config import Config, load_config
-from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, display_config_dir, display_orientation, display_target, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
+from pi_bus_time_display.server import State, active_wifi_ssid, automatic_display_target, clear_sleep_mode_on_start, connected_network_snapshot, display_config_dir, display_orientation, display_target, home_assistant_activate, home_assistant_entity_available, home_assistant_set_state, home_assistant_set_value, netdata_snapshot, read_display_mode, service_state, set_display_mode, system_snapshot, within_sleep_window, write_config, write_control_request
 
 
 class DisplayModeTests(unittest.TestCase):
+    def test_home_assistant_tile_colours_are_persisted_and_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_color_mode="single", home_assistant_single_color="#334455", home_assistant_light_color="#112233", home_assistant_scene_color="#abcdef"))
+            loaded = load_config(path)
+            self.assertEqual(loaded.home_assistant_color_mode, "single")
+            self.assertEqual(loaded.home_assistant_single_color, "#334455")
+            self.assertEqual(loaded.home_assistant_light_color, "#112233")
+            self.assertEqual(loaded.home_assistant_scene_color, "#abcdef")
+            path.write_text(path.read_text().replace("#112233", "orange"))
+            with self.assertRaisesRegex(ValueError, "tile colours"):
+                load_config(path)
+
+    def test_home_assistant_colour_mode_is_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_color_mode="rainbow"))
+            with self.assertRaisesRegex(ValueError, "colour mode"):
+                load_config(path)
+
+    def test_overnight_wake_schedule_persists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(scheduled_wake_enabled=False, weekend_wake_enabled=True, weekend_wake_time="09:15"))
+            saved = load_config(path)
+            self.assertFalse(saved.scheduled_wake_enabled)
+            self.assertTrue(saved.weekend_wake_enabled)
+            self.assertEqual(saved.weekend_wake_time, "09:15")
+
+    def test_home_assistant_title_can_be_custom_or_blank(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            for title in ("Bedroom", ""):
+                write_config(path, Config(home_assistant_title=title))
+                self.assertEqual(load_config(path).home_assistant_title, title)
+
+    def test_home_assistant_scene_configuration_is_allowed_and_still_bounded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(home_assistant_entities=("scene.bedroom_energize", "scene.bedroom_ruby_romance")))
+            self.assertEqual(load_config(path).home_assistant_entities, ("scene.bedroom_energize", "scene.bedroom_ruby_romance"))
+            write_config(path, Config(home_assistant_entities=("lock.front_door",)))
+            with self.assertRaisesRegex(ValueError, "Unsupported Home Assistant entity"):
+                load_config(path)
+    def test_browsing_return_timeout_persists_and_validates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(browse_idle_return_seconds=150))
+            self.assertEqual(load_config(path).browse_idle_return_seconds, 150)
+            write_config(path, Config(browse_idle_return_seconds=7201))
+            with self.assertRaises(ValueError):
+                load_config(path)
+
     def test_landscape_music_clock_persists_and_validates(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"
@@ -73,6 +126,25 @@ class DisplayModeTests(unittest.TestCase):
                     self.assertEqual(handler.send_json.call_args.args[0], 403)
                     self.assertEqual(action.call_count, 1)
 
+    def test_touchscreen_netdata_switch_reaches_alpine_helper(self):
+        import io
+        from unittest.mock import Mock
+        from pi_bus_time_display.server import make_handler
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            Handler = make_handler(State(Config(), path), path / "config.toml", path / "env", path / "mode")
+            for enabled in (True, False):
+                handler = Handler.__new__(Handler)
+                handler.path = "/api/device/netdata"
+                handler.client_address = ("127.0.0.1", 1)
+                payload = b'{"enabled":true}' if enabled else b'{"enabled":false}'
+                handler.headers = {"Content-Length": str(len(payload))}
+                handler.rfile = io.BytesIO(payload); handler.send_json = Mock()
+                with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.write_control_request") as action:
+                    handler.do_POST()
+                    action.assert_called_once_with(path, {"action":"netdata_enable" if enabled else "netdata_disable"})
+                    self.assertEqual(handler.send_json.call_args.args[0], 200)
+
     def test_display_orientation_is_derived_from_each_panels_native_shape(self):
         self.assertEqual(display_orientation("original", "normal"), "landscape")
         self.assertEqual(display_orientation("original", "90"), "portrait")
@@ -90,7 +162,7 @@ class DisplayModeTests(unittest.TestCase):
         with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.command_output", return_value=""), patch("pi_bus_time_display.server.service_state", return_value="running") as services:
             data = diagnostics_snapshot()
         self.assertTrue(all(process["active"] for process in data["processes"]))
-        self.assertEqual({call.args[0] for call in services.call_args_list}, {"pi-home-roon", "pi-home-api", "pi-home-display", "roonbridge"})
+        self.assertEqual({call.args[0] for call in services.call_args_list}, {"pi-home-roon", "pi-home-api", "pi-home-display", "roonbridge", "shairport-sync"})
 
     def test_diagnostics_includes_netdata_and_collectors_only_when_running(self):
         from pi_bus_time_display.server import diagnostics_snapshot
@@ -115,8 +187,9 @@ class DisplayModeTests(unittest.TestCase):
             labels = [p["label"] for p in diagnostics_snapshot(Config(bus_enabled=False))["processes"]]
             self.assertNotIn("Roon controller", labels)
             self.assertNotIn("Roon Bridge", labels)
+            self.assertNotIn("AirPlay · Shairport Sync", labels)
             self.assertNotIn("Netdata", labels)
-            self.assertIn("Pi Home backend", labels)
+            self.assertIn("RoonDeck backend", labels)
             configured = diagnostics_snapshot(Config(roon_zone_name="NAD M33"))["processes"]
             self.assertIn("Roon controller", [p["label"] for p in configured])
 
@@ -142,6 +215,26 @@ class DisplayModeTests(unittest.TestCase):
             self.assertEqual(load_config(path).display_theme, "roon")
             self.assertEqual(State(Config(display_theme="roon"), Path(directory)).snapshot()["display_theme"], "roon")
             write_config(path, Config(display_theme="invalid"))
+            with self.assertRaises(ValueError): load_config(path)
+
+    def test_display_background_round_trip_and_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            self.assertEqual(Config().display_background, "current")
+            write_config(path, Config(display_background="black"))
+            self.assertEqual(load_config(path).display_background, "black")
+            self.assertEqual(State(Config(display_background="black"), Path(directory)).snapshot()["display_background"], "black")
+            write_config(path, Config(display_background="invalid"))
+            with self.assertRaises(ValueError): load_config(path)
+
+    def test_interface_size_round_trip_and_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            self.assertEqual(Config().interface_size, "standard")
+            write_config(path, Config(interface_size="larger"))
+            self.assertEqual(load_config(path).interface_size, "larger")
+            self.assertEqual(State(Config(interface_size="larger"), Path(directory)).snapshot()["interface_size"], "larger")
+            write_config(path, Config(interface_size="enormous"))
             with self.assertRaises(ValueError): load_config(path)
 
     def test_custom_roon_display_name_persists(self):
@@ -320,6 +413,8 @@ class DisplayModeTests(unittest.TestCase):
             client.makefile.return_value.readline.return_value = b'{"ok":true}\n'
             self.assertTrue(write_control_request(Path("/unused"), {"action": "netdata_lightweight", "enabled": True}))
             self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "netdata_lightweight", "enabled": True})
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "airplay_configure", "name": "Listening Room"}))
+            self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "airplay_configure", "name": "Listening Room"})
         with tempfile.TemporaryDirectory() as directory:
             state_dir = Path(directory)
             self.assertTrue(write_control_request(state_dir, {"action": "update"}))
@@ -383,6 +478,27 @@ class DisplayModeTests(unittest.TestCase):
             with patch("pi_bus_time_display.server.time.monotonic", return_value=1700):
                 self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, overnight), "/sleep.html")
 
+    def test_scheduled_wake_can_be_disabled_but_tap_and_music_still_wake(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mode = Path(directory) / "display-mode"; mode.write_text("auto\n", encoding="utf-8")
+            now = datetime(2026, 9, 29, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+            state = State(Config(scheduled_wake_enabled=False))
+            with patch("pi_bus_time_display.server.time.monotonic", return_value=1200):
+                self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, now), "/sleep.html")
+                state.awake_until = 1300
+                self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, now), "/")
+            self.assertEqual(automatic_display_target(State(Config(scheduled_wake_enabled=False)), mode, {"zone": {"state": "playing"}}, now), "http://127.0.0.1:8766/")
+
+    def test_weekend_stays_dark_unless_enabled_and_waits_for_weekend_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mode = Path(directory) / "display-mode"; mode.write_text("auto\n", encoding="utf-8")
+            early = datetime(2026, 10, 24, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+            late = datetime(2026, 10, 24, 9, 30, tzinfo=ZoneInfo("Asia/Singapore"))
+            self.assertEqual(automatic_display_target(State(Config()), mode, None, late), "/sleep.html")
+            config = Config(weekend_wake_enabled=True, weekend_wake_time="09:00")
+            self.assertEqual(automatic_display_target(State(config), mode, None, early), "/sleep.html")
+            self.assertEqual(automatic_display_target(State(config), mode, None, late), "/")
+
     def test_manual_view_returns_to_automatic_at_next_schedule_boundary(self):
         with tempfile.TemporaryDirectory() as directory:
             mode = Path(directory) / "display-mode"
@@ -434,6 +550,26 @@ class DisplayModeTests(unittest.TestCase):
         with patch("pi_bus_time_display.server.command_output", side_effect=["netplan-wlan0-Boogaloo:802-11-wireless", "Boogaloo"]):
             self.assertEqual(active_wifi_ssid(), "Boogaloo")
 
+    def test_connected_wifi_reports_link_metrics(self):
+        outputs = [
+            "wlan0:wifi:connected:netplan-wlan0-Boogaloo",
+            "netplan-wlan0-Boogaloo:802-11-wireless",
+            "Boogaloo",
+            "2: wlan0 inet 10.12.0.50/24 brd 10.12.0.255 scope global wlan0",
+            "yes:72:866 Mbit/s",
+        ]
+        with patch("pi_bus_time_display.server.command_output", side_effect=outputs):
+            details = connected_network_snapshot()
+        self.assertEqual(details, {"name": "Boogaloo", "interface": "wlan0", "type": "Wi-Fi", "address": "10.12.0.50/24", "signal": "72%", "speed": "866 Mbit/s"})
+
+    def test_diagnostics_includes_running_airplay(self):
+        from pi_bus_time_display.server import diagnostics_snapshot
+        output = "24 4096 0.2 /usr/bin/shairport-sync -c /etc/shairport-sync.conf\n"
+        with patch("pi_bus_time_display.server.command_output", return_value=output), patch("pi_bus_time_display.server.service_state", return_value="stopped"):
+            airplay = next(process for process in diagnostics_snapshot(Config())["processes"] if process["label"] == "AirPlay · Shairport Sync")
+        self.assertTrue(airplay["active"])
+        self.assertEqual(airplay["pids"], [24])
+
     def test_home_light_level_uses_brightness_percentage(self):
         with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
             home_assistant_set_value(Config(), "light.living_room", 63)
@@ -448,6 +584,19 @@ class DisplayModeTests(unittest.TestCase):
         with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
             home_assistant_set_state(Config(), "switch.pi_hole", False)
             request.assert_called_once_with(Config(), "/api/services/switch/turn_off", {"entity_id": "switch.pi_hole"})
+
+    def test_home_scene_uses_momentary_turn_on_service(self):
+        with patch("pi_bus_time_display.server.home_assistant_request", return_value=[]) as request:
+            home_assistant_activate(Config(), "scene.bedroom_energize")
+            request.assert_called_once_with(Config(), "/api/services/scene/turn_on", {"entity_id": "scene.bedroom_energize"})
+        with self.assertRaisesRegex(ValueError, "not a scene"):
+            home_assistant_activate(Config(), "switch.bedroom")
+
+    def test_unactivated_home_scene_remains_available(self):
+        self.assertTrue(home_assistant_entity_available("scene", "unknown"))
+        self.assertTrue(home_assistant_entity_available("scene", "2026-10-23T00:15:00+00:00"))
+        self.assertFalse(home_assistant_entity_available("scene", "unavailable"))
+        self.assertFalse(home_assistant_entity_available("light", "unknown"))
 
 
 if __name__ == "__main__":

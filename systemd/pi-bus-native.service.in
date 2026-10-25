@@ -1,5 +1,5 @@
 [Unit]
-Description=Pi Home native touchscreen appliance
+Description=RoonDeck native touchscreen appliance
 After=systemd-user-sessions.service network-online.target pi-bus-roon-controller.service
 Wants=network-online.target pi-bus-roon-controller.service
 Conflicts=getty@tty1.service

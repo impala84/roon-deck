@@ -1,5 +1,5 @@
 #!/sbin/openrc-run
-description="Seed the Pi Home clock on hardware without a battery RTC"
+description="Seed the RoonDeck clock on hardware without a battery RTC"
 
 seed=/var/lib/pi-home/clock-seed
 
@@ -9,7 +9,7 @@ depend() {
 }
 
 start() {
-    ebegin "Restoring a usable Pi Home clock"
+    ebegin "Restoring a usable RoonDeck clock"
     if [ -r "$seed" ]; then
         saved=$(cat "$seed")
         now=$(date +%s)
@@ -24,7 +24,7 @@ start() {
 }
 
 stop() {
-    ebegin "Saving the Pi Home clock"
+    ebegin "Saving the RoonDeck clock"
     umask 022
     current=$(date +%s)
     if [ "$current" -ge 1704067200 ]; then

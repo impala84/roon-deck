@@ -1,7 +1,269 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {BrowseManager, browserLayout, formatDuration, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage} = require('./browse-state');
+const {BrowseManager, artistCreditMatches, browserLayout, formatDuration, libraryItems, publicItem, rootItems, safeSession, withAlbumArtist, withFallbackImage} = require('./browse-state');
+
+test('artist album credits tolerate ampersands, conjunctions and leading articles', () => {
+  assert.equal(artistCreditMatches('Tommy James and The Shondells', 'Tommy James & the Shondells'), true);
+  assert.equal(artistCreditMatches('Guest Singer, The Example Band', 'Example Band'), true);
+  assert.equal(artistCreditMatches('Third Eye Blind • 1997', 'Third Eye Blind'), true);
+  assert.equal(artistCreditMatches('Someone Else', 'Example Band'), false);
+  assert.equal(artistCreditMatches("Junior Wells' Chicago Blues Band/Buddy Guy", 'Chicago'), false);
+  assert.equal(artistCreditMatches('Chicago Symphony Orchestra/Sir Georg Solti', 'Chicago'), false);
+  assert.equal(artistCreditMatches('Chicago, Guest Artist', 'Chicago'), true);
+  assert.equal(artistCreditMatches('Chicago Transit Authority', 'Chicago'), false);
+});
+
+test('album sorting loads the whole collection and paginates owned keys without playback', async () => {
+  const albums = Array.from({length:65}, (_, i) => ({title:`Album ${65-i}`, subtitle:`Artist ${i%3}`, item_key:`key-${i}`}));
+  const service = {load(options, callback) {callback(null, {items:albums.slice(options.offset, options.offset+options.count)});}};
+  const manager = new BrowseManager(() => service, () => ({}));
+  manager.sections.set('albums', 'albums');
+  manager.store('albums', 'browse', {title:'Albums', level:1, count:65}, albums.slice(0,30), '');
+  const sorted = await manager.sortCollection(service, 'albums', 'title');
+  assert.equal(sorted.items[0].title, 'Album 1');
+  assert.equal(sorted.alpha_scrub, true);
+  const jumped = await manager.jumpTo(service, 'albums', 'A');
+  assert.equal(jumped.items[0].title, 'Album 1');
+  assert.equal(jumped.sort_order, 'title');
+  const more = await manager.loadMore(service, 'albums');
+  assert.equal(more.items.length,60);
+  assert.equal(new Set(more.items.map(item=>item.item_key)).size,60);
+  await assert.rejects(manager.sortCollection(service, 'albums', 'date'), /Unsupported/);
+});
+
+test('album detail exposes one cover and honest optional metadata without altering track keys', () => {
+  const manager = new BrowseManager(() => ({}), () => ({}));
+  const state = manager.store('album', 'browse', {title:'Example Album', level:3, count:3}, [
+    {title:'Play Album', hint:'action', item_key:'play'},
+    {title:'1. First', subtitle:'Example Artist', item_key:'first'},
+    {title:'2. Second', subtitle:'Example Artist', item_key:'second'},
+  ], '', 'cover');
+  assert.deepEqual(state.album_profile, {name:'Example Album', artist:'Example Artist', image_key:'cover', review:''});
+  assert.equal(state.items[1].item_key, 'first');
+  assert.equal(state.action_menu, false);
+  const menu = manager.store('album', 'browse', {title:'First', level:4}, [
+    {title:'Play Now', hint:'action', item_key:'now'}, {title:'Add Next', hint:'action', item_key:'next'},
+  ], '');
+  assert.equal(menu.action_menu, true);
+  assert.equal(menu.album_profile, undefined);
+});
+
+test('artist links open the exact global Search artist and retain its core-owned catalogue', async () => {
+  const calls = [], paths = new Map();
+  const service = {
+    browse(options, done) {
+      calls.push({...options});
+      assert.equal(options.hierarchy, 'search');
+      if (options.pop_all) { assert.equal(options.input, 'Example Artist'); paths.set(options.multi_session_key, 'root'); return done(false, {action:'list',list:{title:'Search',level:0,count:2}}); }
+      if (options.item_key === 'artists-category') { paths.set(options.multi_session_key, 'artists'); return done(false, {action:'list',list:{title:'Artists',level:1,count:1}}); }
+      if (options.item_key === 'albums-category') { paths.set(options.multi_session_key, 'albums'); return done(false, {action:'list',list:{title:'Albums',level:1,count:3}}); }
+      assert.equal(options.item_key, 'catalogue-artist'); paths.set(options.multi_session_key, 'artist');
+      done(false, {action:'list', list:{title:'Example Artist', level:3,count:1}});
+    },
+    load(options, done) {
+      const path = paths.get(options.multi_session_key);
+      if (path === 'root') return done(false, {list:{title:'Search',level:0,count:2},items:[{title:'Artists',item_key:'artists-category'},{title:'Albums',item_key:'albums-category'}]});
+      if (path === 'artists') return done(false, {list:{title:'Artists',level:1,count:1},items:[{title:'Example Artist',item_key:'catalogue-artist',image_key:'portrait'}]});
+      if (path === 'albums') return done(false, {list:{title:'Albums',level:1,count:3},items:[
+        {title:'Catalogue Album',subtitle:'',item_key:'catalogue-album'},
+        {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration'},
+        {title:'Wrong Artist Album',subtitle:'Someone Else',item_key:'wrong-album'}]});
+      done(false, {list:{title:'Example Artist', level:3,count:3}, items:[
+        {title:'Play Artist',hint:'action',item_key:'play'},
+        {title:'Catalogue Album',subtitle:'Example Artist',item_key:'catalogue-album',image_key:'cover'},
+        {title:'Collaboration',subtitle:'Guest, Example Artist',item_key:'collaboration',image_key:'other'}]});
+    },
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  const result = await manager.run('links', 'artist', {name:'Example Artist'});
+  assert.deepEqual(result.artist_profile, {name:'Example Artist', image_key:'portrait'});
+  assert.equal(result.search_routes[result.items.find(item => item.title === 'Catalogue Album').item_key].key, 'catalogue-album');
+  assert.equal(result.search_routes[result.items.find(item => item.title === 'Collaboration').item_key].key, 'collaboration');
+  assert.equal(result.items.some(item => item.title === 'Wrong Artist Album'), false);
+  assert.ok(calls.some(call => call.hierarchy === 'search'));
+  assert.ok(calls.some(call => call.hierarchy === 'browse'), 'the connected TIDAL catalogue is queried separately');
+  await manager.run('links', 'artist', {name:'Example Artist'});
+  const artistSessions = [...manager.sessions.keys()].filter(key => key.startsWith('pihome-links-artist-link-'));
+  assert.equal(artistSessions.length, 6, 'only the current artist, global album search, TIDAL and merged hierarchies remain');
+  assert.ok(artistSessions.every(key => /-2(?:-|$)/.test(key)), 'the previous artist hierarchies are discarded');
+});
+
+test('artist links never replace a missing global result with a library-only catalogue', async () => {
+  const hierarchies = [];
+  const service = {
+    browse(options, done) {
+      hierarchies.push(options.hierarchy);
+      if (options.hierarchy === 'search') return done(false, {action:'list',list:{title:'Search',level:0,count:0}});
+      if (options.pop_all) return done(false, {action:'list',list:{title:'Browse',level:0,count:1}});
+      if (options.item_key === 'library') return done(false, {action:'list',list:{title:'Library',level:1,count:1}});
+      if (options.item_key === 'artists') return done(false, {action:'list',list:{title:'Artists',level:2,count:1}});
+      return done(false, {action:'list',list:{title:'Known Artist',level:3,count:2}});
+    },
+    load(options, done) {
+      if (options.hierarchy === 'search') return done(false, {list:{title:'Search',level:0,count:0},items:[]});
+      if (options.level === 0) return done(false, {items:[{title:'Library',item_key:'library'}]});
+      if (options.level === 1) return done(false, {items:[{title:'Artists',item_key:'artists'}]});
+      if (options.level === 2) return done(false, {list:{title:'Artists',level:2,count:1},items:[{title:'Known Artist',item_key:'known',image_key:'portrait'}]});
+      return done(false, {list:{title:'Known Artist',level:3,count:2},items:[{title:'Play Artist',hint:'action',item_key:'play'},{title:'Album',item_key:'album'}]});
+    }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  const result = await manager.run('fallback', 'artist', {name:'Known Artist'});
+  assert.deepEqual(result.artist_profile, {name:'Known Artist',image_key:null});
+  assert.deepEqual(result.items, [], 'raw search hits must never masquerade as the selected artist catalogue');
+  assert.equal(hierarchies[0], 'search');
+  assert.equal(hierarchies.includes('browse'), true, 'TIDAL is queried explicitly rather than falling back to Library Artists');
+});
+
+test('artist links merge My Catalog before an explicit TIDAL catalogue and remove duplicates', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  manager.search = async (_service, _zone, session, _name, source, category) => {
+    if (source === 'tidal') return manager.save(session, {
+      hierarchy:'browse', level:2, items:[{title:'Artists',item_key:'tidal-artists'}], has_more:false
+    });
+    if (category === 'albums') {
+      manager.save('global-albums', {hierarchy:'search',level:1,title:'Albums',has_more:false,
+        items:[{title:'Astral Weeks',subtitle:'Van Morrison',item_key:'global-astral'},
+          {title:'Veedon Fleece',subtitle:'Van Morrison',item_key:'global-veedon'},
+          {title:'Van Morrison Tribute',subtitle:'Someone Else',item_key:'wrong-artist'}]});
+      return manager.save(session, {hierarchy:'search',level:0,has_more:false,
+        items:[{title:'ALBUMS',hint:'header'},{title:'View all albums',item_key:'all-albums'}],
+        search_routes:{'all-albums':{session:'global-albums'}}});
+    }
+    return manager.save(session, {
+      hierarchy:'search', level:0,
+      items:[{title:'ARTISTS',hint:'header'},{title:'Van Morrison',item_key:'library-preview'}],
+      search_routes:{'library-preview':{session:'library-artist',key:'library-van'}}, has_more:false
+    });
+  };
+  manager._run = async (session, _command, data) => {
+    if (session === 'library-artist') return manager.save(session, {
+      hierarchy:'search', level:3, artist_profile:{name:'Van Morrison',image_key:'library-portrait'}, has_more:false,
+      items:[{title:'Play Artist Radio',action:true,item_key:'library-play'},
+        {title:'Astral Weeks',subtitle:'Van Morrison',item_key:'library-astral'},
+        {title:'Moondance',subtitle:'Van Morrison',item_key:'library-moondance'},
+        {title:"What's the Story Morning Glory",subtitle:'Oasis',item_key:'wrong-library-album'}]
+    });
+    if (data.item_key === 'tidal-artists') return manager.save(session, {
+      hierarchy:'browse', level:3, items:[{title:'Van Morrison',item_key:'tidal-van'}], has_more:false
+    });
+    return manager.save(session, {
+      hierarchy:'browse', level:4, artist_profile:{name:'Van Morrison',image_key:'tidal-portrait'}, has_more:false,
+      items:[{title:'Play Artist Radio',action:true,item_key:'tidal-play'},
+        {title:'Astral Weeks',subtitle:'Van Morrison',item_key:'tidal-astral'},
+        {title:'Latest Record',subtitle:'Van Morrison',item_key:'tidal-latest'}]
+    });
+  };
+  const result = await manager.run('merged', 'artist', {name:'Van Morrison'});
+  assert.deepEqual(result.items.map(item => item.title), ['Play Artist Radio', 'Astral Weeks', 'Moondance', 'Veedon Fleece', 'Latest Record']);
+  assert.deepEqual(result.artist_profile, {name:'Van Morrison',image_key:'library-portrait'});
+  assert.equal(result.count, 4);
+  assert.equal(Object.values(result.search_routes).some(route => route.session === 'library-artist' && route.key === 'library-astral'), true);
+  assert.equal(Object.values(result.search_routes).some(route => /-tidal$/.test(route.session) && route.key === 'tidal-latest'), true);
+  assert.equal(Object.values(result.search_routes).some(route => route.session === 'global-albums' && route.key === 'global-veedon'), true);
+  assert.equal(result.items.some(item => item.title === 'Van Morrison Tribute'), false);
+  assert.equal(result.items.some(item => item.title === "What's the Story Morning Glory"), false);
+});
+
+test('artist catalogue follows the full Albums action instead of keeping four featured releases', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  const overview = manager.save('artist', {
+    hierarchy:'browse', level:4, title:'Creedence Clearwater Revival', has_more:false,
+    artist_profile:{name:'Creedence Clearwater Revival',image_key:'portrait'},
+    items:[{title:'Play Artist Radio',action:true,item_key:'play'},
+      {title:"Cosmo's Factory",item_key:'cosmo'}, {title:'Bayou Country',item_key:'bayou'},
+      {title:'View All Albums',hint:'action',action:true,item_key:'all-albums'}]
+  });
+  manager._run = async (_session, command, data) => {
+    assert.equal(command, 'open'); assert.equal(data.item_key, 'all-albums');
+    return manager.save('artist', {hierarchy:'browse',level:5,title:'Albums',has_more:false,
+      items:[{title:"Cosmo's Factory",item_key:'cosmo-full'}, {title:'Bayou Country',item_key:'bayou-full'},
+        {title:'Green River',item_key:'green-river'}, {title:'Willy and the Poor Boys',item_key:'willy'}]});
+  };
+  const result = await manager.completeArtistCatalogue({}, 'artist', overview);
+  assert.deepEqual(result.items.map(item => item.title), [
+    'Play Artist Radio', "Cosmo's Factory", 'Bayou Country', 'Green River', 'Willy and the Poor Boys'
+  ]);
+  assert.deepEqual(result.artist_profile, overview.artist_profile);
+});
+
+test('artist catalogue identity treats ampersand and and as the same artist name', async () => {
+  const manager = new BrowseManager(() => ({}), () => ({zone_id:'zone'}));
+  manager.search = async (_service, _zone, session, _name, source) => {
+    if (source === 'tidal') throw new Error('not connected');
+    return manager.save(session, {
+      hierarchy:'search', level:0,
+      items:[{title:'ARTISTS',hint:'header'},{title:'Crosby, Stills and Nash',item_key:'artist-preview'}],
+      search_routes:{'artist-preview':{session:'csn-result',key:'csn'}}, has_more:false
+    });
+  };
+  manager._run = async session => manager.save(session, {
+    hierarchy:'search', level:3, artist_profile:{name:'Crosby, Stills and Nash',image_key:'portrait'}, has_more:false,
+    items:[{title:'Play Artist Radio',action:true,item_key:'play'},{title:'CSN',subtitle:'Crosby, Stills & Nash',item_key:'album'}]
+  });
+  const result = await manager.run('punctuation', 'artist', {name:'Crosby, Stills & Nash'});
+  assert.equal(result.items.some(item => item.title === 'CSN'), true);
+  assert.equal(result.artist_profile.name, 'Crosby, Stills and Nash');
+});
+
+test('artist album clicks resolve a fresh routed session before opening the exact album', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) { calls.push(options.item_key); done(false, {action:'list', list:{title:'Wanted Album', level:4}}); },
+    load(_options, done) { done(false, {list:{title:'Wanted Album',level:4},items:[{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',subtitle:'Artist',item_key:'song'}]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('stale-artist', {hierarchy:'search', level:3, artist_profile:{name:'Artist'}, items:[{title:'Wanted Album',image_key:'cover',item_key:'stale-album'}]});
+  manager.activeSessions.set(safeSession('touch'), 'stale-artist');
+  manager.openArtist = async base => {
+    manager.activeSessions.set(base, 'fresh-artist');
+    manager.save('fresh-albums', {hierarchy:'search',level:1,title:'Albums',items:[{title:'Wanted Album',image_key:'cover',item_key:'fresh-album'}],has_more:false});
+    return manager.save('fresh-artist', {hierarchy:'search',level:3,artist_profile:{name:'Artist'},items:[{title:'Wanted Album',image_key:'cover',item_key:'artist-album-0'}],has_more:false,search_routes:{'artist-album-0':{session:'fresh-albums',key:'fresh-album'}}});
+  };
+  const result = await manager.run('touch', 'open', {item_key:'stale-album'});
+  assert.equal(calls[0], 'fresh-album');
+  assert.equal(manager.activeSessions.get(safeSession('touch')), 'fresh-albums');
+  assert.equal(result.album_profile.name, 'Wanted Album');
+});
+
+test('Play Artist Radio executes Start Radio without exposing the intermediate menu', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) {
+      calls.push(options.item_key);
+      if (options.item_key === 'play-artist') return done(false, {action:'list', list:{title:'Play Artist',level:4,count:2}});
+      if (options.item_key === 'start-radio') return done(false, {action:'message',message:'Radio started'});
+      done('unexpected action');
+    },
+    load(_options, done) { done(false, {items:[
+      {title:'Shuffle',hint:'action',item_key:'shuffle'},
+      {title:'Start Radio',hint:'action',item_key:'start-radio'}
+    ]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('pihome-radio', {hierarchy:'search',level:3,title:'Artist',items:[{title:'Play Artist Radio',action:true,item_key:'play-artist'}],artist_profile:{name:'Artist'}});
+  const result = await manager.run('radio', 'open', {item_key:'play-artist'});
+  assert.deepEqual(calls, ['play-artist', 'start-radio']);
+  assert.equal(result.navigate, 'now');
+  assert.equal(result.items[0].title, 'Play Artist Radio');
+});
+
+test('successful queue actions return from the popup to album tracks without replaying the action', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) { calls.push(options); done(false, options.item_key ? {action:'message',message:'Queued'} : {action:'list',list:{title:'Album',level:3}}); },
+    load(options, done) { done(false, {list:{title:'Album',level:3},items:[{title:'Play Album',hint:'action',item_key:'album-play'},{title:'Track',subtitle:'Artist',item_key:'track'}]}); },
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('pihome-queue', {hierarchy:'browse', level:4, action_menu:true, fallback_image_key:'cover', items:[{title:'Queue',action:true,item_key:'queue-once'}]});
+  const result = await manager.run('queue', 'open', {item_key:'queue-once'});
+  assert.equal(calls.filter(call => call.item_key).length, 1);
+  assert.equal(calls[1].pop_levels, 1);
+  assert.equal(result.action_menu, false);
+  assert.equal(result.album_profile.name, 'Album');
+  assert.equal(result.message, 'Added to queue.');
+});
 
 test('a missing Roon callback has a deadline and releases the serialized queue', async () => {
   const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path');
@@ -75,7 +337,7 @@ test('search album wrappers open the tracks directly and Back skips the wrapper 
     },
     load(options, done) {
       const stack = paths.get(options.multi_session_key), title = stack.at(-1);
-      const items = title === 'Search' ? [{title:'Albums',item_key:'albums'}] : title === 'Albums' ? [{title:'Example',item_key:'album-hit',image_key:'cover'}] : title === 'Preview' ? [{title:'Example',item_key:'album-details',image_key:'cover'}] : [{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',item_key:'song'}];
+      const items = title === 'Search' ? [{title:'Albums',item_key:'albums'}] : title === 'Albums' ? [{title:'Example',item_key:'album-hit',image_key:'cover'}] : title === 'Preview' ? [{title:'Example (Album)',item_key:'album-details',image_key:'cover'}] : [{title:'Play Album',hint:'action',item_key:'play'},{title:'Song',item_key:'song'}];
       done(false, {list:{title,level:stack.length-1,count:items.length},items});
     }
   };
@@ -85,6 +347,19 @@ test('search album wrappers open the tracks directly and Back skips the wrapper 
   assert.equal(album.title, 'Tracks'); assert.equal(album.skipped_album_preview, true); assert.equal(played, false);
   assert.equal((await manager.run('wrapper', 'back')).title, 'Albums');
   assert.equal((await manager.run('wrapper', 'back')).items[0].title, 'ALBUMS');
+});
+
+test('a real one-track album is not mistaken for a search wrapper', async () => {
+  const calls = [];
+  const service = {
+    browse(options, done) { calls.push(options.item_key); done(false, {action:'list',list:{title:'Album',level:3}}); },
+    load(_options, done) { done(false, {list:{title:'Album',level:3,count:2},items:[{title:'Play Album',hint:'action',item_key:'play'},{title:'Only Song',item_key:'song'}]}); }
+  };
+  const manager = new BrowseManager(() => service, () => ({zone_id:'zone'}));
+  manager.sessions.set('pihome-single', {hierarchy:'search',title:'Albums',level:2,items:[{title:'Single',item_key:'album'}]});
+  const result = await manager.run('single', 'open', {item_key:'album'});
+  assert.deepEqual(calls, ['album']);
+  assert.equal(result.items.find(item => item.title === 'Only Song').item_key, 'song');
 });
 
 function fakeService() {
@@ -169,6 +444,55 @@ test('search results retain the hierarchy and zone when opened for playback', as
   assert.deepEqual(calls.map(call => call.input || call.item_key), ['Blue', 'album', 'play', 'Oasis']);
   assert.ok(calls.every(call => call.hierarchy === 'search' && call.zone_or_output_id === 'zone'));
   assert.ok(calls.filter(call => call.input).every(call => call.pop_all && !call.item_key));
+});
+
+test('browsing remains available offline and playback waits for the selected zone', async () => {
+  let zone = null;
+  const calls = [];
+  const service = {
+    browse(options, callback) { calls.push(options); callback(false, {action:'none'}); },
+    load(_options, callback) { callback(false, {items:[]}); }
+  };
+  const manager = new BrowseManager(() => service, () => zone);
+  manager.sessions.set('pihome-offline', {
+    status:'ready', hierarchy:'browse', level:3, title:'Album',
+    items:[{title:'Play Album', action:true, item_key:'play'}]
+  });
+  manager.activeSessions.set('pihome-offline', 'pihome-offline');
+  const queued = await manager.run('offline', 'open', {item_key:'play'});
+  assert.equal(calls.length, 0, 'an absent endpoint must not redirect playback elsewhere');
+  assert.match(queued.message, /Playback queued/);
+  assert.equal(queued.navigate, 'now');
+  zone = {zone_id:'ls50w'};
+  await manager.resumePendingPlayback();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].item_key, 'play');
+  assert.equal(calls[0].zone_or_output_id, 'ls50w');
+});
+
+test('library browsing omits the playback target while the configured zone is offline', async () => {
+  const calls = [], paths = new Map();
+  const service = {
+    browse(options, callback) {
+      calls.push(options);
+      let path = options.pop_all ? 'root' : paths.get(options.multi_session_key);
+      if (options.item_key === 'library') path = 'library';
+      if (options.item_key === 'albums') path = 'albums';
+      paths.set(options.multi_session_key, path);
+      callback(false, {action:'list', list:{title:path || 'root', level:path === 'albums' ? 2 : path === 'library' ? 1 : 0, count:1}});
+    },
+    load(options, callback) {
+      const path = paths.get(options.multi_session_key);
+      const items = path === 'root' ? [{title:'Library',item_key:'library'}]
+        : path === 'library' ? [{title:'Albums',item_key:'albums'}]
+        : [{title:'Offline Album',subtitle:'Artist',item_key:'album'}];
+      callback(false, {list:{title:path,level:path === 'albums' ? 2 : path === 'library' ? 1 : 0,count:items.length},items});
+    }
+  };
+  const manager = new BrowseManager(() => service, () => null);
+  const result = await manager.run('offline-library', 'root', {section:'albums'});
+  assert.equal(result.items[0].title, 'Offline Album');
+  assert.ok(calls.every(call => !Object.hasOwn(call, 'zone_or_output_id')));
 });
 
 test('TIDAL search discovers its prompt and retains fresh keys through playback and pagination', async () => {
@@ -349,6 +673,26 @@ test('Play Album completes its nested Play Now menu and hands off only on succes
   }
 });
 
+test('Play Album dropdown exposes its native action menu without starting playback', async () => {
+  const calls = [];
+  const service = {
+    browse:(options,cb)=>{calls.push(options.item_key); cb(false,{action:'list',list:{title:'Play Album',level:3,count:4}});},
+    load:(_options,cb)=>cb(false,{list:{title:'Play Album',level:3,count:4},items:[
+      {title:'Play Now',hint:'action',item_key:'now'},
+      {title:'Add Next',hint:'action',item_key:'next'},
+      {title:'Queue',hint:'action',item_key:'queue'},
+      {title:'Start Radio',hint:'action',item_key:'radio'}
+    ]})
+  };
+  const manager = new BrowseManager(()=>service,()=>({zone_id:'zone'}));
+  manager.sessions.set('pihome-test',{hierarchy:'browse',section:'albums',level:2,items:[{title:'Play Album',action:true,item_key:'album-play'}]});
+  const result = await manager.run('test','open',{item_key:'album-play',menu_only:true});
+  assert.deepEqual(calls,['album-play']);
+  assert.equal(result.action_menu,true);
+  assert.deepEqual(result.items.map(item=>item.title),['Play Now','Add Next','Queue','Start Radio']);
+  assert.equal(result.navigate,undefined);
+});
+
 test('successful Play Now returning a track list hands off and retains album artwork', async () => {
   const service = {browse:(_options,cb)=>cb(false,{action:'list',list:{title:'Album',level:2,count:1}}),load:(_options,cb)=>cb(false,{items:[{title:'Song',item_key:'song',hint:'action_list'}]})};
   const manager = new BrowseManager(()=>service,()=>({zone_id:'zone'}));
@@ -371,6 +715,7 @@ test('artist overview retains the selected portrait when returning from an album
   assert.deepEqual(opened.artist_profile,{name:'Band',image_key:'portrait'});
   const restored = manager.store('pihome-test','browse',{title:'Band',level:3},[{title:'Play Artist',hint:'action'},{title:'Album',image_key:'album-cover'}],'','album-cover');
   assert.deepEqual(restored.artist_profile,{name:'Band',image_key:'portrait'});
+  assert.equal(restored.alpha_scrub, false, 'artist-profile album lists use ordinary scrolling, never the alphabet rail');
   manager.clear(); assert.equal(manager.artistContexts.size,0);
 });
 
@@ -401,6 +746,16 @@ test('album and artist collections retain artwork grids', () => {
   const items = [{title: 'One', image_key: '1'}, {title: 'Two', image_key: '2'}];
   assert.deepEqual(browserLayout('browse', 2, {title: 'Albums'}, items), {layout: 'covers', show_labels: false});
   assert.deepEqual(browserLayout('browse', 2, {title: 'Artists'}, items), {layout: 'covers', show_labels: true});
+});
+
+test('nested multi-page album collections expose the alphabet scrubber', () => {
+  const manager = new BrowseManager(() => ({}), () => ({}));
+  manager.sections.set('genre-albums', 'genres');
+  const albums = Array.from({length: 30}, (_, i) => ({title:`Pop Rock Album ${i}`, image_key:`cover-${i}`, item_key:`album-${i}`}));
+  const state = manager.store('genre-albums', 'browse', {title:'Pop/Rock', level:3, count:30}, albums, '');
+  assert.equal(state.layout, 'covers');
+  assert.equal(state.has_more, false);
+  assert.equal(state.alpha_scrub, true);
 });
 
 test('album contents with a play action use track rows and preserve supplied durations', () => {

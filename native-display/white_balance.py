@@ -25,7 +25,7 @@ def read_gains(path=PROFILE):
     except FileNotFoundError:
         return IDENTITY
     except (OSError, ValueError, KeyError, TypeError):
-        print('Pi Home: invalid/unreadable display white-balance profile; using original colours', file=sys.stderr)
+        print('RoonDeck: invalid/unreadable display white-balance profile; using original colours', file=sys.stderr)
         return IDENTITY
 
 
@@ -59,5 +59,5 @@ def create_display_window(*, application=None, gains=None):
                 snapshot.pop()
         _balanced_window_type = WhiteBalancedWindow
 
-    print('Pi Home: display white-balance RGB gains ' + ', '.join(f'{gain:.4f}' for gain in gains), flush=True)
+    print('RoonDeck: display white-balance RGB gains ' + ', '.join(f'{gain:.4f}' for gain in gains), flush=True)
     return _balanced_window_type(application, gains)

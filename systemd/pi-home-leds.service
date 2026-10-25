@@ -1,5 +1,5 @@
 [Unit]
-Description=Apply Pi Home Raspberry Pi status light preference
+Description=Apply RoonDeck Raspberry Pi status light preference
 
 [Service]
 Type=oneshot

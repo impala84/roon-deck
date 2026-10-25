@@ -1,10 +1,10 @@
 #!/sbin/openrc-run
-description="Expand Pi Home root storage on first boot"
+description="Expand RoonDeck root storage on first boot"
 depend() { need localmount; before pi-home-firstboot pi-home-api pi-home-roon pi-home-display; }
 start() {
     if [ ! -e /var/lib/pi-home/root-storage-expanded ]; then
         /usr/bin/python3 /opt/pi-home/appliance/alpine/expand_root.py || \
-            ewarn "Pi Home storage expansion failed; boot will continue (see /var/log/pi-home/storage.log)"
+            ewarn "RoonDeck storage expansion failed; boot will continue (see /var/log/pi-home/storage.log)"
     fi
     return 0
 }

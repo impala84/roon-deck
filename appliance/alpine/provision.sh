@@ -17,7 +17,7 @@ sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config
 # Host keys are generated uniquely on the device by the OpenRC sshd service.
 rc-update add sshd default
 mkdir -p /etc/pi-home /var/lib/pi-home/roon
-# Internal compatibility paths for existing runtime helpers; new paths use Pi Home.
+# Internal compatibility paths are retained across the RoonDeck rebrand.
 ln -s /opt/pi-home /opt/pi-bus-time-display
 ln -s /etc/pi-home /etc/pi-bus-time-display
 ln -s /var/lib/pi-home /var/lib/pi-bus-time-display
@@ -31,7 +31,7 @@ chown -R morningbus:morningbus /etc/pi-home /var/lib/pi-home
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install --no-build-isolation --no-deps .
 npm --prefix roon-controller ci --omit=dev --no-audit --no-fund
-chmod 755 native-display/pi_bus_native.py scripts/pi-bus-cage-launch
+chmod 755 native-display/roondeck_native.py scripts/pi-bus-cage-launch
 chmod 755 appliance/alpine/display-session
 cp appliance/alpine/reset-password.py /usr/local/bin/pi-home-reset-password
 chmod 755 /usr/local/bin/pi-home-reset-password
@@ -47,10 +47,12 @@ chown morningbus:morningbus /var/log/pi-home
 chmod 750 /var/log/pi-home
 printf '%s\n' 'rc_logger="YES"' 'rc_log_path="/var/log/rc.log"' >> /etc/rc.conf
 printf '%s\n' 'command_args="-g video"' > /etc/conf.d/seatd
-printf '%s\n' 'pi-home-alpine' > /etc/hostname
+printf '%s\n' 'roondeck' > /etc/hostname
+mkdir -p /usr/share/icons/hicolor/scalable/apps
+cp native-display/assets/brand/app-icon-dark.svg /usr/share/icons/hicolor/scalable/apps/roondeck.svg
 printf '%s\n' 'auto lo' 'iface lo inet loopback' > /etc/network/interfaces
 mkdir -p /etc/NetworkManager/conf.d
-printf '%s\n' '[main]' 'plugins=keyfile' '[device]' 'wifi.backend=wpa_supplicant' > /etc/NetworkManager/conf.d/pi-home.conf
+printf '%s\n' '[main]' 'plugins=keyfile' '[connection]' 'wifi.powersave=2' '[device]' 'wifi.backend=wpa_supplicant' > /etc/NetworkManager/conf.d/pi-home.conf
 printf '%s\n' 'LABEL=PIROOT / ext4 defaults,noatime 0 1' 'LABEL=PIBOOT /boot vfat defaults 0 2' > /etc/fstab
 for service in devfs dmesg mdev; do rc-update add "$service" sysinit; done
 rc-update del mdev sysinit
@@ -70,6 +72,10 @@ sed -i -E '/^[[:space:]]*(pool|server)[[:space:]]/ { /[[:space:]]iburst([[:space
 printf '%s\n' 'makestep 0.1 -1' >> /etc/chrony/chrony.conf
 rc-update add chronyd default
 rc-update add crond default
+mkdir -p /etc/crontabs
+sed -i '\|pi-home/appliance/alpine/updater.py --check|d' /etc/crontabs/root 2>/dev/null || true
+printf '%s\n' '0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check' >> /etc/crontabs/root
+chmod 600 /etc/crontabs/root
 # SSH is enabled, but admin stays locked until setup supplies a unique password.
 awk -F: '$1 == "root" && $2 ~ /^[!*]/ {locked=1} END {exit !locked}' /etc/shadow
 sed -i '/^[^#].*getty/s/^/#/' /etc/inittab
