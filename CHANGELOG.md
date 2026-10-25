@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.58 Alpine — 25 October 2026
+
+- Lowers the shared cog-and-clock header row slightly on both seven-inch displays while preserving identical geometry across Now Playing, Discover, Bus Times and Home.
+- Keeps the RuneDeck wordmark and Settings title as a fixed lock-up when interface scaling changes.
+- Renames the settings groups to `NETWORK CONTROLS` and `INTERFACE SCALING`.
+- Left-aligns Display Brightness with the other display controls, extends its slider across the available width and replaces the tiny built-in value with a readable percentage.
+
 ## 1.1.7-beta.57 Alpine — 25 October 2026
 
 - Lets the beta update channel install the exact commit referenced by a published Alpine prerelease without waiting for the Alpine CI workflow.

@@ -453,7 +453,9 @@ CSS += b"""
 .settings-divider { background: #232228; min-height: 3px; margin-top: 2px; margin-bottom: 2px; }
 .settings-page .setting-line, .settings-page .settings-select { min-height: 46px; padding: 7px 14px; }
 .settings-page .brightness-setting { padding-top: 6px; }
-.settings-page .brightness-setting scale { min-height: 44px; padding: 8px 10px; }
+.settings-page .brightness-control { padding: 0; }
+.settings-page .brightness-control scale { min-height: 44px; padding: 8px 0; }
+.settings-page .brightness-value { min-width: 54px; color: #b6bbb8; font-size: 17px; font-weight: 600; }
 .touch-landscape .settings-page { padding: 26px 28px; }
 .touch-landscape .settings-page .settings-card { padding: 0; }
 .touch-landscape .settings-page .settings-version { font-size: 17px; }
@@ -461,7 +463,8 @@ CSS += b"""
 .touch-landscape .settings-page .settings-title { font-size: 43px; }
 .touch-landscape .settings-page .settings-controls { padding: 8px 0 0; }
 .touch-landscape .settings-page .setting-line, .touch-landscape .settings-page .settings-select { min-height: 62px; padding: 5px 18px; }
-.touch-landscape .settings-page .brightness-setting { padding: 5px 18px; }
+.touch-landscape .settings-page .brightness-setting { padding: 5px 0; }
+.touch-landscape .settings-page .brightness-value { min-width: 64px; font-size: 20px; }
 .touch-landscape .settings-page .settings-action { min-height: 62px; }
 .portrait .settings-page .settings-title { font-size: 26px; }
 .portrait.compact-portrait .settings-page .settings-title { font-size: 22px; }
@@ -583,7 +586,6 @@ scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; b
 .large-display .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
 .large-display .utility, .large-display .browser-back { min-width: 150px; min-height: 72px; font-size: 21px; padding: 12px 24px; }
 .large-display .transport button.library-action { min-width: 120px; min-height: 120px; padding: 0; border-radius: 60px; }
-.large-display .settings-page .settings-title { font-size: 44px; }
 .large-display .settings-page .settings-version, .large-display .settings-page .settings-diagnostic { font-size: 23px; }
 .large-display .settings-header .settings-utilities button { font-size: 23px; }
 .large-display .settings-page .setting-line label, .large-display .settings-page .setting-line checkbutton { font-size: 23px; }
@@ -867,6 +869,12 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
 .touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
 .touch-landscape.seven-inch-settings .settings-action { min-height: 58px; }
+/* The shared seven-inch header frame sits slightly below the physical bezel.
+   Keep this single inset for Now Playing, Discover, Bus Times and Home. */
+.touch2-7-landscape .page { padding-top: 14px; }
+.touch2-7-landscape .settings-page { padding-top: 14px; }
+.original-landscape .page { padding-top: 9px; }
+.original-landscape .settings-page { padding-top: 9px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -1048,6 +1056,10 @@ class Display(Gtk.Application):
         # on their page already. They still respond, but at half the global
         # delta; headings and clocks retain the same scale as every other page.
         has_class = getattr(widget, "has_css_class", lambda _name: False)
+        # The wordmark and Settings heading are one lock-up. Scaling only the
+        # label creates a large false gap and makes the heading look heavier.
+        if has_class("settings-title"):
+            factor = 1.0
         if has_class("service-no") or has_class("arrival"):
             factor = 1.0 + (factor - 1.0) * .5
         attributes.insert(Pango.attr_scale_new(factor))
@@ -1682,9 +1694,9 @@ class Display(Gtk.Application):
             choice = self.button(title, lambda _button, selected=value: self.change_background(selected), "theme-choice"); choice.add_css_class("settings-theme-choice"); choice.set_hexpand(True); self.touch_background_buttons[value] = choice; background_choices.append(choice)
         appearance.append(self.touch_background_row)
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
-        daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("DAILY CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
+        daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("NETWORK CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
-        daily.append(self.label("INTERFACE SIZE", "eyebrow"))
+        daily.append(self.label("INTERFACE SCALING", "eyebrow"))
         self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True)
@@ -1694,7 +1706,7 @@ class Display(Gtk.Application):
         scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
-        brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(True); self.touch_brightness.set_value_pos(Gtk.PositionType.RIGHT); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_row.append(self.touch_brightness); display_column.append(brightness_row)
+        brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); brightness_control = Gtk.Box(spacing=12); brightness_control.add_css_class("brightness-control"); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(False); self.touch_brightness.set_hexpand(True); self.touch_brightness_value = self.label("100%", "brightness-value", 1); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_control.append(self.touch_brightness); brightness_control.append(self.touch_brightness_value); brightness_row.append(brightness_control); display_column.append(brightness_row)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); actions.set_valign(Gtk.Align.END); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); actions.append(reboot); card.append(actions); page.append(card)
         return page
@@ -4280,6 +4292,7 @@ class Display(Gtk.Application):
         threading.Thread(target=post_json, args=(BUS + "/api/device/home-value", {"entity_id": entity_id, "value": value}), daemon=True).start()
         return False
     def change_brightness(self, scale):
+        self.touch_brightness_value.set_text(f"{round(scale.get_value())}%")
         if self.brightness_updating: return
         if self.brightness_timeout is not None: GLib.source_remove(self.brightness_timeout)
         self.brightness_timeout = GLib.timeout_add(180, self.send_brightness, round(scale.get_value()))

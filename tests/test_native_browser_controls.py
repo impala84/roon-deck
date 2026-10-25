@@ -112,9 +112,10 @@ class PortraitRefinementTests(unittest.TestCase):
         self.assertIn('if data.get("action_menu"):\n            self.render_browser(data)', method)
         self.assertIn('/api/discovery/track-action', code)
 
-    def test_large_settings_and_dynamic_play_icon_keep_their_size(self):
+    def test_settings_lockup_and_dynamic_play_icon_keep_their_size(self):
         code = SOURCE.read_text()
-        self.assertIn('.large-display .settings-page .settings-title { font-size: 44px;', code)
+        self.assertNotIn('.large-display .settings-page .settings-title { font-size: 44px;', code)
+        self.assertIn('if has_class("settings-title"):\n            factor = 1.0', code)
         self.assertIn('.large-display .settings-header .settings-utilities button { font-size: 23px;', code)
         self.assertIn('icon_size = 80 if self.window.has_css_class("large-display") else 42', code)
         self.assertIn('self.volume_row.set_size_request(round((width - 60) * .88) if portrait else -1', code)
@@ -611,6 +612,17 @@ class NativeBrowserControlsTests(unittest.TestCase):
         scale = code.split('    def scale_text_label', 1)[1].split('    def apply_interface_size', 1)[0]
         self.assertNotIn('"bus_clock"', scale)
         self.assertNotIn('"stop"', scale)
+
+    def test_seven_inch_header_and_settings_controls_use_shared_geometry(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('.touch2-7-landscape .page { padding-top: 14px; }', code)
+        self.assertIn('.original-landscape .page { padding-top: 9px; }', code)
+        self.assertIn('self.label("NETWORK CONTROLS", "eyebrow")', code)
+        self.assertIn('self.label("INTERFACE SCALING", "eyebrow")', code)
+        self.assertIn('self.touch_brightness.set_draw_value(False)', code)
+        self.assertIn('self.touch_brightness.set_hexpand(True)', code)
+        self.assertIn('self.touch_brightness_value = self.label("100%", "brightness-value", 1)', code)
+        self.assertIn('self.touch_brightness_value.set_text(f"{round(scale.get_value())}%")', code)
 
     def test_album_actions_and_seven_inch_settings_follow_shared_layout(self):
         code = SOURCE.read_text(encoding="utf-8")
