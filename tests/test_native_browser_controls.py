@@ -642,7 +642,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('.touch2-7-landscape .page { padding-top: 10px; }', code)
         self.assertIn('.original-landscape .page { padding-top: 7px; }', code)
-        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 7px; }', code)
+        # Cog and clock icon are anchored to the top of their row (valign START), top edge 18px on every page.
+        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 18px; margin-bottom: 0; }', code)
+        self.assertIn('.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; margin-bottom: 0; }', code)
+        self.assertIn('button.set_valign(Gtk.Align.START if touch2_7_landscape else Gtk.Align.CENTER)', code)
         self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }', code)
         self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }', code)
         self.assertIn('self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))', code)

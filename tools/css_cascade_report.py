@@ -91,7 +91,7 @@ def load_css() -> list[tuple[str, str]]:
     css = re.sub(r"/\*.*?\*/", "", namespace["CSS"].decode(), flags=re.S)
     css = re.sub(r"@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}", "", css)
     return [
-        (selector.strip(), match.group(2))
+        (re.sub(r"\s*>\s*", " ", selector).strip(), match.group(2))  # child combinator modelled as descendant
         for match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css)
         for selector in match.group(1).split(",")
     ]
@@ -123,9 +123,9 @@ def declarations(body: str) -> dict[str, str]:
     return out
 
 
-def resolve(rules, window: set[str], page: str, element: str) -> dict[str, str]:
-    """Winning declarations for ``element`` inside ``page`` for a window mode."""
-    allowed_ancestors = window | {page, "page"}
+def resolve(rules, window: set[str], page: str, element: str, within: tuple[str, ...] = ()) -> dict[str, str]:
+    """Winning declarations for ``element`` inside ``page`` (and ``within`` containers) for a window mode."""
+    allowed_ancestors = window | {page, "page"} | set(within)
     element_classes = {element}
     if element == page:
         element_classes = {"page", page}

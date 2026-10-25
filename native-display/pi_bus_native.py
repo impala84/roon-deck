@@ -884,14 +884,28 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
 .touch2-7-landscape .browser-main { padding-left: 9px; }
 .touch2-7-landscape.interface-larger .browser-main { padding-left: 0; margin-left: -9px; }
-.touch2-7-landscape .browser-scrubber { min-width: 42px; padding-left: 0; }
+.touch2-7-landscape .browser-scrubber { min-width: 64px; padding-left: 0; }
 .touch2-7-landscape .bus-page,
 .touch2-7-landscape .home-page { padding-top: 0; }
-/* Measured on a beta.67 capture: the Bus/Home cog sat 2px lower (y 47) than Discover/Now Playing (y 45).
-   GTK centres the cog with its margin inside the header row, so the offset moves by half the margin change:
-   11px -> 7px raises it 2px. A prediction: confirm on the next capture (cog centre y should read 45). */
+/* Seven-inch Gen 2 header anchor. The cog and clock icon are pinned to the top
+   of their header row (valign START in adapt_display), so the row's height no
+   longer moves them. Cog top edge = row top + margin-top = 18px on every page:
+   Bus/Home rows start at 0, the Now Playing toolbar row starts at 10 (page padding).
+   Row heights are unchanged because the margins add up to no more than before. */
 .touch2-7-landscape .bus-page .page-header .discover-utility,
-.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 7px; }
+.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 18px; margin-bottom: 0; }
+.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; margin-bottom: 0; }
+/* Larger text: the clock digits sit 4px low and the page titles 6px high relative
+   to the cog. Margins move the clock without changing the row height; transforms
+   move the titles without touching layout. */
+.touch2-7-landscape.interface-larger .page-header .header-clock { margin-top: 4px; margin-bottom: 4px; }
+.touch2-7-landscape.interface-larger .bus-page .stop,
+.touch2-7-landscape.interface-larger .bus-page .stop-code,
+.touch2-7-landscape.interface-larger .home-page .page-title { transform: translateY(2px); }
+/* Now Playing: the progress bar ends under the clock icon's right edge, with the
+   time labels flush with the bar's ends (the bar is inset 12px inside its widget). */
+.touch2-7-landscape .now-playing-content { margin-right: 5px; }
+.touch2-7-landscape .now-times { margin-left: 12px; margin-right: 12px; }
 .detail-takeover.inline-detail { background: transparent; }
 .inline-detail .detail-sheet-scroll,
 .inline-detail .detail-panel,
@@ -1363,6 +1377,11 @@ class Display(Gtk.Application):
             icon.roondeck_base_size = icon_size
             if hasattr(icon, "set_pixel_size"): icon.set_pixel_size(icon_size)
             else: icon.set_size_request(icon_size, icon_size)
+        # Seven-inch Gen 2: anchor the cog and clock icon to the top of their header
+        # row instead of centring them in it. Row height differs per page (Bus and Home
+        # are taller than the Now Playing toolbar), so centring made the cog drift.
+        for button in getattr(self, "header_utility_buttons", []):
+            button.set_valign(Gtk.Align.START if touch2_7_landscape else Gtk.Align.CENTER)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
         self.now_playing_content.set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
@@ -1423,8 +1442,11 @@ class Display(Gtk.Application):
         self.browser_content.set_margin_top(0 if original_landscape else 16)
         self.browser_scroll.set_margin_bottom(0 if original_landscape else 10)
         compact_browser_scrubber = portrait or compact_landscape or touch2_7_landscape
-        self.browser_scrubber.set_size_request(54 if original_landscape else 42 if touch2_7_landscape else 52 if compact_browser_scrubber else 74, -1)
-        self.browser_scrubber.set_margin_end(0 if compact_browser_scrubber else 18)
+        # The alphabet letter is drawn 26px left of the track, so the rail needs ~64px;
+        # 42px clipped the letter. On the 7-inch Gen 2 the track sits 12px inside the
+        # page's 28px edge, centred under the clock icon.
+        self.browser_scrubber.set_size_request(54 if original_landscape else 64 if touch2_7_landscape else 52 if compact_browser_scrubber else 74, -1)
+        self.browser_scrubber.set_margin_end(28 if touch2_7_landscape else 0 if compact_browser_scrubber else 18)
         self.browser_search_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait and width < 700 else Gtk.Orientation.HORIZONTAL)
         self.discovery_body.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.discovery_sidebar.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
@@ -1528,6 +1550,7 @@ class Display(Gtk.Application):
         if isinstance(centre, Gtk.Label): centre.set_xalign(0)
         settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility"); settings.set_valign(Gtk.Align.CENTER)
         settings.set_child(self.discover_utility_icon()); settings.set_tooltip_text("Settings"); row.append(settings)
+        self.header_utility_buttons = getattr(self, "header_utility_buttons", []) + [settings]
         row.append(centre)
         spacer = Gtk.Box(); spacer.set_hexpand(True); row.append(spacer)
         if isinstance(clock, Gtk.Label): clock.set_valign(Gtk.Align.CENTER)
@@ -1593,6 +1616,7 @@ class Display(Gtk.Application):
         sleep.set_child(self.discover_utility_icon(clock=True))
         sleep.set_valign(Gtk.Align.CENTER)
         self.music_settings_button = settings; self.music_clock_button = sleep
+        self.header_utility_buttons = getattr(self, "header_utility_buttons", []) + [settings, sleep]
         self.music_full_clock = self.label("--:--", "clock", 1)
         sleep.set_tooltip_text("Sleep"); self.discover_toolbar.append(sleep)
         self.discover_toolbar.set_visible(False); page.append(self.discover_toolbar)
@@ -1620,7 +1644,7 @@ class Display(Gtk.Application):
         self.title = self.label("Waiting for Roon…", "roon-title", .5); self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL); self.title.set_wrap(True); self.title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); self.title.set_lines(2); self.title.set_ellipsize(Pango.EllipsizeMode.END); self.title.set_justify(Gtk.Justification.CENTER)
         self.artist = self.label("Enable RoonDeck in Roon", "roon-artist", .5); self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL); self.artist.set_wrap(True); self.artist.set_justify(Gtk.Justification.CENTER); centre.append(self.title); centre.append(self.artist)
         self.progress = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 1); self.progress.add_css_class("progress"); self.progress.set_draw_value(False); self.progress.set_sensitive(False); self.progress.connect("value-changed", self.change_seek); centre.append(self.progress)
-        times = Gtk.Box(); self.elapsed = self.label("0:00", "time"); self.remaining = self.label("−0:00", "time", 1); self.remaining.set_hexpand(True); times.append(self.elapsed); times.append(self.remaining); centre.append(times); self.roon_times = times
+        times = Gtk.Box(); times.add_css_class("now-times"); self.elapsed = self.label("0:00", "time"); self.remaining = self.label("−0:00", "time", 1); self.remaining.set_hexpand(True); times.append(self.elapsed); times.append(self.remaining); centre.append(times); self.roon_times = times
         self.controls = Gtk.Box(spacing=14); self.controls.set_halign(Gtk.Align.CENTER); self.controls.add_css_class("transport")
         self.controls.set_margin_top(6); self.controls.set_margin_bottom(16)
         self.library_add = self.button("", self.add_current_album); self.library_add.add_css_class("library-action"); self.library_add.set_tooltip_text("Add album to library"); self.library_add.set_visible(False)
@@ -3446,8 +3470,10 @@ class Display(Gtk.Application):
             # 122px, the full 54px scrubber, scroller chrome and safety gutter.
             available = max(140, width - 252)
             return 4, max(64, (available - 12 * 3) // 4)
-        available = max(140, width - (320 if genres else 280))
         larger_seven = profile in {"touch2-7", "touch2-5-7"} and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger"
+        # The scrubber rail is 64px with a 28px page edge, 50px wider than before.
+        # Larger covers are the only size that had no spare width for that.
+        available = max(140, width - (320 if genres else 280) - (18 if larger_seven else 0))
         # The 7-inch Gen 2 has room for four covers at the larger scale when
         # the grid uses its measured page inset and a 22px gutter. Keep the
         # same four-column rhythm for albums, artists and genre results.

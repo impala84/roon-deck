@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.7-beta.69 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: the settings cog and the clock icon are now anchored to the top of their header row (top edge 18px from the screen top) on Now Playing, Discover, Bus Times and Home, in Smaller, Standard and Larger. Before, each was centred in a row whose height differed by page, so the cog sat 4px higher on Bus Times in Standard. The beta.68 2px cog tweak is replaced by this. Row heights are unchanged, so the bottom navigation and page content do not move.
+- Seven-inch Gen 2, Larger: the Bus Times and Home clock digits and titles move onto the same centre line as the cog (clock up 4px, title down 2px).
+- Seven-inch Gen 2: the Now Playing progress bar now ends under the clock icon's right edge (it stopped 23px short), with the elapsed/remaining times flush with the bar ends.
+- Seven-inch Gen 2: the Discover/Browse alphabet scrubber moves inside the page edge (track under the clock icon) and its rail widens from 42px to 64px, so the letter is no longer clipped. Larger covers shrink about 5px (227 to 222) to make room.
+- Development: `tools/css_cascade_report.py` understands the child selector (`>`), and `tests/test_header_anchor.py` fails if the cog top edge differs between pages.
+
 ## 1.1.7-beta.68 Alpine — 25 October 2026
 
 - Seven-inch Gen 2: the Settings close control is now a perfect 52px circle instead of a 102×78 oval. A general touch-landscape Settings button rule was overriding its padding; Sleep now matches its height.
