@@ -644,8 +644,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.touch2-7-landscape .page { padding-top: 10px; }', code)
         self.assertIn('.original-landscape .page { padding-top: 7px; }', code)
         # Cog and clock icon are anchored to the top of their row (valign START), top edge 18px on every page.
-        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 18px; margin-bottom: 0; }', code)
-        self.assertIn('.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; margin-bottom: 0; }', code)
+        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 14px; margin-bottom: 0; }', code)
+        self.assertIn('.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 4px; margin-bottom: 0; }', code)
         self.assertIn('button.set_valign(Gtk.Align.START if touch2_7_landscape else Gtk.Align.CENTER)', code)
         self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }', code)
         self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }', code)
@@ -669,7 +669,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.interface-larger .album-profile .queue-meta { font-size: 21px;', code)
         self.assertIn('.touch-landscape.interface-larger .browser-back { min-width: 112px;', code)
         self.assertIn('seven_inch = original or (not portrait and 1000 <= width < 1500 and height <= 850)', code)
-        self.assertIn('for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):', code)
+        self.assertIn('for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading):', code)
         self.assertIn('control.set_visible(not seven_inch)', code)
 
     def test_detail_columns_share_copy_spacing_and_close_icon_is_prominent(self):

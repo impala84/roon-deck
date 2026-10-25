@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.70 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: fixes the Browse/Albums/Artists page making the window wider than the screen (1311px in Standard, 1293px in Larger, which pushed the clock and scrubber off the right edge). The widened scrubber rail in beta.69 left no spare width; cover grids now cap at 202px (Standard) and 206px (Larger) so everything fits inside 1280px.
+- Seven-inch Gen 2, Standard and Smaller: the cog and the clock icon sit 4px higher (top edge 14px), level with the Bus Times and Home titles. Larger is unchanged (18px).
+- Seven-inch Gen 2 Settings: the empty DISPLAY SETTINGS heading is hidden, SLEEP is larger text with more space before the close button, both sit 8px lower, and INSTALL UPDATE has 14px more space above REBOOT.
+- Seven-inch Gen 2, Larger: the artist profile page tightens its biography line spacing so the page no longer grows to 729px tall (Now Playing, Bus Times and Home already fit 720px).
+
 ## 1.1.7-beta.69 Alpine — 25 October 2026
 
 - Seven-inch Gen 2: the settings cog and the clock icon are now anchored to the top of their header row (top edge 18px from the screen top) on Now Playing, Discover, Bus Times and Home, in Smaller, Standard and Larger. Before, each was centred in a row whose height differed by page, so the cog sat 4px higher on Bus Times in Standard. The beta.68 2px cog tweak is replaced by this. Row heights are unchanged, so the bottom navigation and page content do not move.

@@ -889,12 +889,16 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .home-page { padding-top: 0; }
 /* Seven-inch Gen 2 header anchor. The cog and clock icon are pinned to the top
    of their header row (valign START in adapt_display), so the row's height no
-   longer moves them. Cog top edge = row top + margin-top = 18px on every page:
-   Bus/Home rows start at 0, the Now Playing toolbar row starts at 10 (page padding).
-   Row heights are unchanged because the margins add up to no more than before. */
+   longer moves them. Cog top edge = row top + margin-top on every page: Bus/Home
+   rows start at 0, the Now Playing toolbar row starts at 10 (page padding).
+   Standard and Smaller: 14px (centre ~36, level with the page titles).
+   Larger: 18px. Row heights are unchanged. */
 .touch2-7-landscape .bus-page .page-header .discover-utility,
-.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 18px; margin-bottom: 0; }
-.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; margin-bottom: 0; }
+.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 14px; margin-bottom: 0; }
+.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 4px; margin-bottom: 0; }
+.touch2-7-landscape.interface-larger .bus-page .page-header .discover-utility,
+.touch2-7-landscape.interface-larger .home-page .page-header .discover-utility { margin-top: 18px; }
+.touch2-7-landscape.interface-larger .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; }
 /* Larger text: the clock digits sit 4px low and the page titles 6px high relative
    to the cog. Margins move the clock without changing the row height; transforms
    move the titles without touching layout. */
@@ -918,6 +922,8 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape.interface-larger .inline-detail .detail-writeup { font-size: 18px; line-height: 1.18; }
 .touch2-7-landscape.interface-larger .inline-detail .detail-action { min-height: 56px; margin-top: 8px; padding-top: 7px; padding-bottom: 7px; }
 .touch2-7-landscape.interface-larger .artist-overlay-info .artist-name { font-size: 34px; line-height: 1.05; }
+/* Larger bio lines were 40px apart, which made the artist page 9px taller than the 720px screen. */
+.touch2-7-landscape.interface-larger .artist-profile .artist-bio { line-height: 1.2; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -957,6 +963,9 @@ window.background-black .detail-footer { background: #000; }
    (GTK min-width excludes padding and border): 48 + 2x2 border = a 52px circle; Sleep matches at 52px tall. */
 .touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }
+.touch2-7-landscape .settings-header .settings-utilities { margin-top: 8px; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { margin-right: 14px; font-size: 19px; }
+.touch2-7-landscape .settings-primary-actions { margin-bottom: 14px; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
 popover listview row { min-height: 48px; padding: 8px 14px; }
@@ -1821,7 +1830,7 @@ class Display(Gtk.Application):
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
         # despite normally being used only once during setup.
-        for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):
+        for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading):
             control.set_visible(not seven_inch)
 
     def resize_settings_wordmark(self, width, height):
@@ -3488,6 +3497,12 @@ class Display(Gtk.Application):
         # grid gap. Account for it here rather than allowing the fifth/right
         # edge to be clipped by the alphabet scrubber.
         size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 7))
+        view_width, view_height = getattr(self, "viewport_width", width), getattr(self, "viewport_height", None) or 720
+        if 1200 <= view_width < 1500 and 650 <= view_height < 850:
+            # Seven-inch Gen 2. Measured on the Pi: a 212px grid plus the 43px gutter, the 64px
+            # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
+            # These caps keep it inside 1280px with ~10px to spare.
+            size = min(size, 206 if larger_seven or (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" else 202)
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
