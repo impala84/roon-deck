@@ -500,7 +500,10 @@ class BrowseManager {
       status: 'ready', hierarchy, level, title: presentation.layout === 'home' ? 'Browse' : String(list?.title || (hierarchy === 'search' ? 'Search' : 'Browse')),
       subtitle: String(list?.subtitle || ''), count, offset: Number(loadedOffset || list?.display_offset || 0),
       items: normalised, section, search_source: this.searchSources.get(session), section_root: sectionRoot, breadcrumb: sectionRoot ? `LIBRARY / ${section.toUpperCase()}` : `${sectionTitle.toUpperCase()} / ${String(list?.title || '').toUpperCase()}`,
-      alpha_scrub: sectionRoot && ['albums', 'artists'].includes(section), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
+      // Nested album collections (for example Genre -> Pop/Rock) need the
+      // same alphabetical navigation as the library album grid once their
+      // result set spans more than one page.
+      alpha_scrub: (sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > normalised.length), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
       has_more: !filteredLibrary && presentation.layout !== 'home' && Number(loadedOffset || 0) + normalised.length < count,
       fallback_image_key: fallbackImageKey, message, error: false,
       ...(albumProfile ? {album_profile: albumProfile} : {}),

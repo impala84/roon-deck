@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.59 Alpine — 25 October 2026
+
+- Kept seven-inch album information in the Now Playing frame: tapping the cover now preserves its exact artwork, background, tabs and bottom navigation while swapping the transport column for album details.
+- Left-aligned album grids at every result count and added the alphabet scrubber to multi-page nested collections such as Genre albums.
+- Tightened and clarified the Play Album split-menu chevron.
+- Refined seven-inch header baselines and Now Playing spacing, and made album artwork fill its clipped square without exposing the holding frame.
+
 ## 1.1.7-beta.58 Alpine — 25 October 2026
 
 - Lowers the shared cog-and-clock header row slightly on both seven-inch displays while preserving identical geometry across Now Playing, Discover, Bus Times and Home.

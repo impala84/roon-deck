@@ -615,8 +615,11 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_seven_inch_header_and_settings_controls_use_shared_geometry(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('.touch2-7-landscape .page { padding-top: 14px; }', code)
-        self.assertIn('.original-landscape .page { padding-top: 9px; }', code)
+        self.assertIn('.touch2-7-landscape .page { padding-top: 10px; }', code)
+        self.assertIn('.original-landscape .page { padding-top: 7px; }', code)
+        self.assertIn('def toggle_now_playing_details(self, *_):', code)
+        self.assertIn('self.now_playing_centre.set_visible(not inline_details)', code)
+        self.assertIn('grid.set_column_homogeneous(False)', code)
         self.assertIn('self.label("NETWORK CONTROLS", "eyebrow")', code)
         self.assertIn('self.label("INTERFACE SCALING", "eyebrow")', code)
         self.assertIn('self.touch_brightness.set_draw_value(False)', code)

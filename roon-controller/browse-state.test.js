@@ -747,6 +747,16 @@ test('album and artist collections retain artwork grids', () => {
   assert.deepEqual(browserLayout('browse', 2, {title: 'Artists'}, items), {layout: 'covers', show_labels: true});
 });
 
+test('nested multi-page album collections expose the alphabet scrubber', () => {
+  const manager = new BrowseManager(() => ({}), () => ({}));
+  manager.sections.set('genre-albums', 'genres');
+  const albums = Array.from({length: 30}, (_, i) => ({title:`Pop Rock Album ${i}`, image_key:`cover-${i}`, item_key:`album-${i}`}));
+  const state = manager.store('genre-albums', 'browse', {title:'Pop/Rock', level:3, count:75}, albums, '');
+  assert.equal(state.layout, 'covers');
+  assert.equal(state.has_more, true);
+  assert.equal(state.alpha_scrub, true);
+});
+
 test('album contents with a play action use track rows and preserve supplied durations', () => {
   const items = [publicItem({title: 'Play Album', hint: 'action_list'}), {title: 'Track', image_key: 'cover'}];
   assert.equal(items[0].action, true);
