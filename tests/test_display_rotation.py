@@ -262,12 +262,22 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('wordmark = Gtk.Picture()', display)
         self.assertIn('wordmark.add_css_class("settings-wordmark")', display)
         self.assertIn('self.label("Settings", "settings-title")', display)
-        self.assertIn('appearance.append(self.label("THEME", "eyebrow"))', display)
-        self.assertIn('appearance.append(self.label("BACKGROUND", "eyebrow"))', display)
+        self.assertIn('appearance.append(self.label("DISPLAY THEME", "eyebrow"))', display)
+        self.assertIn('appearance.append(self.label("DISPLAY BACKGROUND", "eyebrow"))', display)
+        self.assertIn('daily.append(self.label("INTERFACE SIZE", "eyebrow"))', display)
+        self.assertLess(display.index('daily.append(self.label("INTERFACE SIZE", "eyebrow"))'), display.index('self.settings_daily = daily'))
         self.assertNotIn('self.label("Appearance", "eyebrow")', display)
         self.assertIn('actions.set_homogeneous(True)', display)
         self.assertIn('self.settings_row_sizes = Gtk.SizeGroup', display)
         self.assertIn(".setting-line checkbutton label { margin-left: 12px;", display)
+
+    def test_landscape_pages_share_header_geometry_and_gradient_surface(self):
+        display = (ROOT / "native-display" / "pi_bus_native.py").read_text(encoding="utf-8")
+        self.assertIn('.display-landscape .discover-toolbar { padding-top: 0; }', display)
+        self.assertIn('.display-landscape .bus-page, .display-landscape .home-page { padding-top: 8px;', display)
+        self.assertIn('.touch-landscape .roon-page { padding-top: 8px; }', display)
+        self.assertIn("CSS += ('.theme-roon .page { background-image:", display)
+        self.assertNotIn("CSS += ('.theme-roon .roon-page { background-image:", display)
 
     def test_mobile_roon_navigation_uses_compact_uppercase_labels(self):
         app = (ROOT / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")

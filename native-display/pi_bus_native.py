@@ -227,7 +227,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .header-hotspot { min-height: 42px; padding: 0; border: 0; box-shadow: none; background: transparent; background-image: none; }
 .header-hotspot:hover, .header-hotspot:active { background: transparent; box-shadow: none; }
 .header-title { padding-left: 0; }.header-clock { padding-right: 0; }
-.display-landscape .page { padding-top: 20px; padding-bottom: 4px; }
+.display-landscape .page { padding-top: 8px; padding-bottom: 4px; }
 .display-landscape .page-header, .display-landscape .discover-toolbar { margin-left: -4px; margin-right: -4px; }
 .utility { min-width: 92px; min-height: 38px; border-radius: 7px; background: #18211f; color: #d9dedb; font-size: 11px; font-weight: 750; }
 .service { background: #131c1a; border: 1px solid #26312e; border-radius: 14px; padding: 5px 16px; }
@@ -291,7 +291,7 @@ CSS += b"""
 .browser-filter.active, .touch-landscape .browser-filter.active { background: transparent; border: 0; color: #6ed9ae; }
 .browser-back, .touch-landscape .browser-back { min-width: 90px; min-height: 42px; margin: 12px 0 0; padding: 5px 12px; background: #242b28; border: 1px solid #4a514e; border-radius: 10px; color: #d5dcd8; }
 .theme-roon, .theme-roon .page { background: #151515; color: #f5f5f5; }
-.theme-roon .roon-page { background: linear-gradient(120deg, #1d1c2d, #121212 62%, #1b1519); }
+.theme-roon .page { background: linear-gradient(120deg, #1d1c2d, #121212 62%, #1b1519); }
 .theme-roon .browser-filter.active, .theme-roon .touch-landscape .browser-filter.active { color: #9868F9; }
 .theme-roon .browser-filter, .theme-roon .browser-filter.active { background: transparent; border: 0; }
 .theme-roon .artwork, .theme-roon .queue-art, .theme-roon .browser-cover-art, .theme-roon .browser-action-icon, .theme-roon .surprise-action, .theme-roon .artist-hero-frame { background: #202020; color: #9868F9; }
@@ -500,7 +500,7 @@ CSS += b"""
 .portrait .discover-toolbar { padding: 4px 0 0; }
 .discover-utility { background: transparent; border: 0; padding: 0; min-width: 36px; min-height: 42px; color: #6ed9ae; }
 .discover-sleep { color: #888; }
-.display-landscape .discover-toolbar { padding-top: 4px; }
+.display-landscape .discover-toolbar { padding-top: 0; }
 .display-landscape .discover-toolbar .roon-subnav button { border-top: 0; border-bottom: 3px solid transparent; padding-bottom: 0; }
 .display-landscape .discover-toolbar .roon-subnav button.active { border-bottom-color: #5bcbd6; }
 .display-landscape.theme-roon .discover-toolbar .roon-subnav button.active { border-bottom-color: #9868F9; }
@@ -869,7 +869,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch-landscape.seven-inch-settings .settings-action { min-height: 58px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
-CSS += ('.theme-roon .roon-page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
+CSS += ('.theme-roon .page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
         (Path(__file__).resolve().parent / 'icons/gradient-dither.svg').as_uri()).encode()
 CSS += b"""
 window.background-black, window.background-black .page,
@@ -1668,14 +1668,14 @@ class Display(Gtk.Application):
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
         self.settings_row_sizes = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
-        appearance = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance.add_css_class("settings-appearance"); self.settings_appearance = appearance; appearance.append(self.label("THEME", "eyebrow"))
+        appearance = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance.add_css_class("settings-appearance"); self.settings_appearance = appearance; appearance.append(self.label("DISPLAY THEME", "eyebrow"))
         self.touch_theme_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.touch_theme_buttons = {}
         theme_choices = Gtk.Box(spacing=16); theme_choices.set_homogeneous(True); self.touch_theme_row.append(theme_choices)
         for value, title in (("fresh-mint", "Mint"), ("roon", "Roon")):
             button = self.button(title, lambda _button, theme=value: self.change_theme(theme), "theme-choice")
             button.set_hexpand(True); button.add_css_class("settings-theme-choice"); self.touch_theme_buttons[value] = button; theme_choices.append(button)
         appearance.append(self.touch_theme_row)
-        appearance.append(self.label("BACKGROUND", "eyebrow"))
+        appearance.append(self.label("DISPLAY BACKGROUND", "eyebrow"))
         self.touch_background_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.touch_background_buttons = {}
         background_choices = Gtk.Box(spacing=16); background_choices.set_homogeneous(True); self.touch_background_row.append(background_choices)
         for value, title in (("current", "Gradient"), ("black", "Black")):
@@ -1684,8 +1684,10 @@ class Display(Gtk.Application):
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("DAILY CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
+        daily.append(self.label("INTERFACE SIZE", "eyebrow"))
+        self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
-        display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True); display_column.append(self.label("DISPLAY", "eyebrow"))
+        display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True)
         display_column.append(appearance)
         self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); display_column.append(self.touch_profile)
         self.touch_orientation = Gtk.DropDown.new_from_strings(["Orientation · Landscape", "Orientation · Portrait"]); self.touch_orientation.add_css_class("settings-select"); display_column.append(self.touch_orientation); controls.append(display_column)
@@ -1693,7 +1695,6 @@ class Display(Gtk.Application):
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
         brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(True); self.touch_brightness.set_value_pos(Gtk.PositionType.RIGHT); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_row.append(self.touch_brightness); display_column.append(brightness_row)
-        self.touch_interface_size = Gtk.DropDown.new_from_strings(["Interface size · Smaller", "Interface size · Standard", "Interface size · Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); display_column.append(self.touch_interface_size)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); actions.set_valign(Gtk.Align.END); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); actions.append(reboot); card.append(actions); page.append(card)
         return page
@@ -3060,7 +3061,7 @@ class Display(Gtk.Application):
             # fixed 330px original-panel image overflowed its 50% allocation
             # and squeezed the album column even though the parent was even.
             hero_width = 304 if original else min(480, round((viewport_width - 280) * .48))
-            hero_ratio = .66 if original else .62
+            hero_ratio = .66 if original else .68
             hero_height = round(hero_width * hero_ratio)
             panel.set_size_request(hero_width, -1); panel.set_orientation(Gtk.Orientation.VERTICAL); panel.set_spacing(0); panel.set_halign(Gtk.Align.START)
             self.browser_artist_scroll.set_size_request(1, 1); self.browser_artist_scroll.set_hexpand(True)
@@ -3114,7 +3115,7 @@ class Display(Gtk.Application):
         if seven_landscape:
             summary_slot.add_css_class("artist-profile-summary"); panel.append(summary_slot)
         else: details.append(summary_slot)
-        summary_slot.artist_summary_lines = 3 if seven_landscape else 5
+        summary_slot.artist_summary_lines = 4 if seven_landscape else 5
         summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
         self.load_artist_notes(name, summary_slot, profile)
 
@@ -4000,7 +4001,7 @@ class Display(Gtk.Application):
             source = loader.get_pixbuf()
             width, height = source.get_width(), source.get_height()
             if width <= 0 or height <= 0: return None
-            hero_ratio = .66 if getattr(self, "original_landscape", False) else .62
+            hero_ratio = .66 if getattr(self, "original_landscape", False) else .68
             target_ratio = 1 / hero_ratio
             if width / height > target_ratio:
                 crop_height = height; crop_width = max(1, round(height * target_ratio))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.56 Alpine — 25 October 2026
+
+- Makes the cog and clock use one shared landscape header position across Now Playing, Discover, Bus Times and Home on both seven-inch generations.
+- Applies the selected gradient background to every primary page instead of limiting it to the Roon pages.
+- Reorganises Settings into clear `DAILY CONTROLS`, `INTERFACE SIZE`, `DISPLAY THEME`, `DISPLAY BACKGROUND` and `DISPLAY BRIGHTNESS` groups.
+- Gives the Gen 2 seven-inch artist hero more height and allows four biography lines without making the artist page scroll.
+
 ## 1.1.7-beta.55 Alpine — 25 October 2026
 
 - Establishes one balanced landscape page frame so the settings cog and clock hold the same inset and vertical position across Now Playing, Discover, Bus Times and Home without extending the viewport.

@@ -54,9 +54,9 @@ class PortraitRefinementTests(unittest.TestCase):
     def test_both_seven_inch_artist_heroes_use_the_taller_gradual_fade(self):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn("hero_width = 304 if original else", code)
-        self.assertIn("hero_ratio = .66 if original else .62", code)
+        self.assertIn("hero_ratio = .66 if original else .68", code)
         self.assertIn("hero_height = round(hero_width * hero_ratio)", code)
-        self.assertIn('hero_ratio = .66 if getattr(self, "original_landscape", False) else .62', code)
+        self.assertIn('hero_ratio = .66 if getattr(self, "original_landscape", False) else .68', code)
         self.assertIn("target_ratio = 1 / hero_ratio", code)
         self.assertIn("fade_start_ratio=.52", code)
 
@@ -586,7 +586,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_accessible_interface_sizes_are_global_and_persistent(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('["Interface size · Smaller", "Interface size · Standard", "Interface size · Larger"]', code)
+        self.assertIn('["Smaller", "Standard", "Larger"]', code)
         self.assertIn('attributes.insert(Pango.attr_scale_new(', code)
         self.assertIn('{"section": "appearance", "interface_size": value}', code)
         self.assertIn('self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)', code)
@@ -1064,7 +1064,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.artist-albums-heading { font-size: 16px;', code)
         self.assertIn('thumb_size = 84 if original_artist_albums', code)
         self.assertIn('.original-landscape .artist-album-title { font-size: 20px;', code)
-        self.assertIn('hero_ratio = .66 if original else .62', code)
+        self.assertIn('hero_ratio = .66 if original else .68', code)
         self.assertIn('hero_height = round(hero_width * hero_ratio)', code)
         artist = code.split('    def render_artist_profile', 1)[1].split('    def load_artist_notes', 1)[0]
         self.assertLess(artist.index('details.append(title)'), artist.index('details.append(play)'))
@@ -1073,7 +1073,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('artwork_area.add_overlay(details)', code)
         self.assertIn('summary_slot.add_css_class("artist-profile-summary")', code)
         self.assertIn('panel.append(summary_slot)', code)
-        self.assertIn('summary_slot.artist_summary_lines = 3 if seven_landscape else 5', code)
+        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 5', code)
         self.assertIn('profile_text_height = 72 if original else 94', code)
         self.assertIn('picture.artist_hero = True', code)
         self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
