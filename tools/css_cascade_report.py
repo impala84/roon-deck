@@ -7,6 +7,13 @@ values). This script evaluates those same CSS statements without GTK, works out
 which rule wins for each page and display mode, and prints the effective
 horizontal and vertical insets of the shared header and navigation row.
 
+IMPORTANT: Bus and Home build their header with ``.page-header``, but the Now
+Playing page (Now Playing, Queue, Browse, Discover) hides that header at runtime
+and uses ``.discover-toolbar`` instead, which has its own margins and height.
+This report compares page padding and the ``.page-header`` rules only, so a
+"agree" result does NOT prove the cog sits at the same height on both kinds of
+page. Use ``tools/check screen layout`` (or screenshots) for the real positions.
+
 It is a *model*: it understands descendant selectors made of class names and
 applies specificity then source order. It does not model pseudo-classes,
 state classes toggled at runtime, or margins set from Python. Use

@@ -4,15 +4,16 @@ Builds the actual Display pages in a Gtk window of the viewport size, shows each
 page in turn and measures where the shared elements really sit (window
 coordinates, pixels):
 
-  header row       .page-header (Bus / Now Playing / Home) or .settings-header
-  settings button  .discover-utility inside the header
-  clock            .header-clock inside the header
+  header row       .page-header (Bus / Home), .discover-toolbar (Now Playing, which
+                   hides the shared header) or .settings-header
+  settings cog     .discover-utility inside that header
+  clock / sleep    .header-clock, or the .discover-sleep icon on music pages
   navigation row   .nav
 
 By default this only REPORTS (and writes layout-alignment.txt next to the
 screenshots when PI_HOME_SCREENSHOT_DIR is set) so the first run shows the real
 numbers. Set PI_HOME_LAYOUT_STRICT=1 to fail when Bus, Now Playing and Home
-disagree by more than PI_HOME_LAYOUT_TOLERANCE pixels (default 1).
+disagree (cog and nav) by more than PI_HOME_LAYOUT_TOLERANCE pixels (default 1).
 
 Run with: tools/check screen layout
 """
@@ -104,44 +105,65 @@ display.adapt_display()
 settle()
 
 measurements = {}
+header_kind = {}
 for name in PAGES:
     display.stack.set_visible_child_name(name)
     settle()
     page = pages[name]
-    header = find(page, "page-header") or find(page, "settings-header")
+    # The Now Playing page hides the shared .page-header and uses .discover-toolbar
+    # as its header, so measure whichever header is actually mapped.
+    header = find(page, "discover-toolbar")
+    kind = "discover-toolbar"
+    if header is None:
+        header, kind = find(page, "page-header"), "page-header"
+    if header is None:
+        header, kind = find(page, "settings-header"), "settings-header"
+    header_kind[name] = kind if header is not None else "none"
+    cog = clock = None
+    if header is not None:
+        for widget in walk(header):
+            if not widget.get_mapped():
+                continue
+            if widget.has_css_class("discover-utility") and not widget.has_css_class("discover-sleep") and cog is None:
+                cog = widget
+            if (widget.has_css_class("header-clock") or widget.has_css_class("discover-sleep")) and clock is None:
+                clock = widget
     measurements[name] = {
         "header row": bounds(header, window),
-        "settings button": bounds(find(header, "discover-utility"), window) if header is not None else None,
-        "clock": bounds(find(header, "header-clock"), window) if header is not None else None,
+        "settings cog": bounds(cog, window),
+        "clock / sleep": bounds(clock, window),
         "navigation": bounds(find(page, "nav"), window),
     }
 
 lines = [f"Layout alignment at {WIDTH}x{HEIGHT} (x, y, width, height in window pixels)"]
-for element in ("header row", "settings button", "clock", "navigation"):
+for element in ("header row", "settings cog", "clock / sleep", "navigation"):
     lines.append(f"  {element}")
     for name in PAGES:
         value = measurements[name][element]
-        lines.append(f"    {name:9} {'not present' if value is None else '%7.1f %7.1f %7.1f %7.1f' % value}")
+        suffix = f"   [{header_kind[name]}]" if element == "header row" else ""
+        lines.append(f"    {name:9} {'not present' if value is None else '%7.1f %7.1f %7.1f %7.1f' % value}{suffix}")
 
 problems = []
-for element in ("header row", "settings button", "navigation"):
+# Header rows may legitimately differ in height (different widgets); the cog and
+# navigation are the things that must stay put between pages.
+for element in ("settings cog", "navigation"):
     present = {name: measurements[name][element] for name in SHARED_PAGES if measurements[name][element]}
     if len(present) < 2:
         continue
-    for axis, label in ((0, "x"), (1, "y"), (3, "height")):
+    for axis, label in ((0, "x"), (1, "y"), (2, "width"), (3, "height")):
         values = [value[axis] for value in present.values()]
         if max(values) - min(values) > TOLERANCE:
             problems.append(f"{element}: {label} differs across pages " + ", ".join(f"{n}={v[axis]}" for n, v in present.items()))
-# The clock text width changes with content, so compare its right edge and top.
-clock = {name: measurements[name]["clock"] for name in SHARED_PAGES if measurements[name]["clock"]}
+# Clock width follows its content (full time on Bus/Home, an icon on music pages),
+# so compare only its right edge.
+clock = {name: measurements[name]["clock / sleep"] for name in SHARED_PAGES if measurements[name]["clock / sleep"]}
 if len(clock) >= 2:
-    for label, getter in (("right edge", lambda v: v[0] + v[2]), ("y", lambda v: v[1])):
-        values = [getter(v) for v in clock.values()]
-        if max(values) - min(values) > TOLERANCE:
-            problems.append(f"clock: {label} differs across pages " + ", ".join(f"{n}={getter(v):.1f}" for n, v in clock.items()))
+    values = [v[0] + v[2] for v in clock.values()]
+    if max(values) - min(values) > TOLERANCE:
+        problems.append("clock / sleep: right edge differs across pages " + ", ".join(f"{n}={v[0] + v[2]:.1f}" for n, v in clock.items()))
 
 lines.append("")
-lines.extend(["MISMATCH " + problem for problem in problems] or ["Bus / Now Playing / Home agree within %.1fpx." % TOLERANCE])
+lines.extend(["MISMATCH " + problem for problem in problems] or ["Cog and navigation agree between Bus / Now Playing / Home within %.1fpx." % TOLERANCE])
 report = "\n".join(lines)
 print(report, flush=True)
 

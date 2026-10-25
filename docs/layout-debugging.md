@@ -15,6 +15,11 @@ which rule wins for each page and display mode, and prints the effective top
 padding and the header/navigation left and right inset for each page. A
 `DRIFT:` line means Bus, Now Playing and Home disagree.
 
+Important: Now Playing (including Queue, Browse and Discover) hides the shared
+`.page-header` and uses `.discover-toolbar` as its header, while Bus and Home use
+`.page-header`. The report cannot tell whether the cog ends up at the same height
+in those two different containers; the GTK measurement below can.
+
 Limits: it models class selectors, specificity and source order only. It does
 not see pseudo-classes, classes toggled at runtime, or margins set from Python
 (`set_margin_*`, `set_size_request`). Keep `window_classes()` in the script in
