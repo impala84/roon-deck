@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.7-beta.63 Alpine — 25 October 2026
+
+- Keeps Larger Now Playing artwork inside the seven-inch Gen 2 viewport and disables accidental landscape page scrolling.
+- Shows three properly enlarged grid columns on the seven-inch Gen 2 instead of expanding a four-column canvas beyond the physical panel.
+- Limits the alphabet scrubber to album/artist cover collections; artist-profile album lists use ordinary scrolling.
+- Restores equal secondary transport controls and a larger play/pause control on the ten-inch portrait display under Larger scaling.
+- Opens the Play Album action menu beside the split button instead of over it.
+
 ## 1.1.7-beta.62 Alpine — 25 October 2026
 
 - Constrains Touch Display 2 genre grids to the configured 1280-pixel canvas, including during the first render before KMS finishes reporting its final mode.

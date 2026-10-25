@@ -832,6 +832,10 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch-landscape.interface-smaller .transport .play { min-width: 75px; min-height: 75px; border-radius: 38px; }
 .touch-landscape.interface-larger .transport button { min-width: 84px; min-height: 84px; border-radius: 42px; }
 .touch-landscape.interface-larger .transport .play { min-width: 106px; min-height: 106px; border-radius: 53px; }
+/* Do not let the generic larger rule collapse the 10-inch hierarchy. */
+.large-display.interface-larger .transport button,
+.large-display.interface-larger .transport button.library-action { min-width: 120px; min-height: 120px; border-radius: 60px; }
+.large-display.interface-larger .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
 .interface-smaller .nav button { min-height: 36px; }
 .interface-larger .nav button { min-height: 48px; }
 .touch-landscape.interface-smaller .nav button { min-height: 52px; }
@@ -1336,6 +1340,10 @@ class Display(Gtk.Application):
         # titles must shrink the artwork instead of expanding the window.
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
         artwork_size = now_playing_artwork_size(width, height, portrait, reserved)
+        # Larger typography consumes more of the fixed 720px canvas. Keep the
+        # whole composition inside it instead of producing a scrollable page.
+        if touch2_7_landscape and (self.settings_data or {}).get("interface_size") == "larger":
+            artwork_size = min(500, artwork_size)
         self.artwork_button.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.START)
         self.artwork_button.set_valign(Gtk.Align.END if original_landscape else Gtk.Align.CENTER)
         self.artwork_button.set_margin_bottom(16 if original_landscape else 0)
@@ -1417,6 +1425,7 @@ class Display(Gtk.Application):
         if previous is not None and previous != portrait:
             self.home_signature = None; self.discovery_signature = None
             if getattr(self, "browser_state", None): self.render_browser(self.browser_state)
+        self.now_playing_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
         self.apply_interface_size((self.settings_data or {}).get("interface_size", "standard"))
         return False
 
@@ -3311,9 +3320,12 @@ class Display(Gtk.Application):
             available = max(140, width - 252)
             return 4, max(64, (available - 12 * 3) // 4)
         available = max(140, width - (320 if genres else 280))
-        columns = min(4, max(1, available // 140))
+        larger_seven = profile in {"touch2-7", "touch2-5-7"} and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger"
+        # Larger intentionally shows fewer items. Four enlarged columns give
+        # GTK a 1330px natural width and the physical 1280px panel clips it.
+        columns = min(3 if larger_seven else 4, max(1, available // 140))
         gap = 24
-        cap = 228 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" and 1000 <= width < 1400 else 212
+        cap = 228 if larger_seven else 212
         # Each card contributes 3px padding on both sides in addition to the
         # grid gap. Account for it here rather than allowing the fifth/right
         # edge to be clipped by the alphabet scrubber.
@@ -3428,7 +3440,7 @@ class Display(Gtk.Application):
         self.browser_scrub_timer = None; self.request_browser("jump", letter=letter); return False
 
     def sync_browser_scrubber(self, item=None):
-        if not self.browser_state or not self.browser_state.get("alpha_scrub") or getattr(self, "browser_scrub_dragging", False) or getattr(self, "browser_scrub_timer", None) or getattr(self, "browser_pending_request", None): return
+        if not self.browser_state or not getattr(self, "browser_scrubber_active", False) or getattr(self, "browser_scrub_dragging", False) or getattr(self, "browser_scrub_timer", None) or getattr(self, "browser_pending_request", None): return
         if item is None:
             items = [entry for entry in (self.browser_state.get("items") or []) if not entry.get("action") and entry.get("title")]
             item = items[0] if items else None
@@ -3629,7 +3641,7 @@ class Display(Gtk.Application):
             popover = Gtk.Popover(); popover.add_css_class("track-menu"); popover.set_parent(anchor); popover.set_autohide(True)
             popover.set_has_arrow(False); popover.set_position(Gtk.PositionType.RIGHT)
             popover.set_valign(Gtk.Align.START)
-            rect = Gdk.Rectangle(); rect.x = min(116, max(1, anchor.get_width())) + (14 if getattr(self, "responsive_portrait", False) else -18); rect.y = 0; rect.width = 1; rect.height = 1; popover.set_pointing_to(rect)
+            rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1; popover.set_pointing_to(rect)
             self.browser_action_popover = popover
             choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
             selected = {"value": False}
@@ -3651,7 +3663,9 @@ class Display(Gtk.Application):
             popover.connect("map", lambda widget: GLib.idle_add(self.hide_native_cursor, widget))
             popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)
             return False
-        self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back"))); self.browser_scrubber.set_visible(bool(data.get("alpha_scrub")))
+        self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
+        self.browser_scrubber_active = bool(data.get("alpha_scrub")) and not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}
+        self.browser_scrubber.set_visible(self.browser_scrubber_active)
         if hasattr(self, "browser_sort"):
             self.browser_sort.set_visible(data.get("section") == "albums" and bool(data.get("section_root")) and getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000)
             self.browser_sort.set_sensitive(True)
@@ -3865,7 +3879,7 @@ class Display(Gtk.Application):
         if not self.browser_rendering: self.maybe_load_more_browser()
 
     def update_scrolled_scrubber(self):
-        if self.browser_state and self.browser_state.get("alpha_scrub"):
+        if self.browser_state and getattr(self, "browser_scrubber_active", False):
             value = self.browser_scroll.get_vadjustment().get_value()
             for card, item in getattr(self, "browser_cards", []):
                 valid, bounds = card.compute_bounds(self.browser_list)

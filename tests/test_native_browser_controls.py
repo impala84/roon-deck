@@ -785,8 +785,23 @@ class NativeBrowserControlsTests(unittest.TestCase):
         gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
         owner=SimpleNamespace(viewport_width=1920,viewport_height=1080,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
-        self.assertEqual(columns,4)
+        self.assertEqual(columns,3)
         self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 960)
+
+    def test_scrubber_is_scoped_to_cover_collections_not_artist_profiles(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}', code)
+        self.assertIn('getattr(self, "browser_scrubber_active", False)', code)
+
+    def test_larger_gen2_artwork_is_bounded_and_landscape_never_scrolls(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('artwork_size = min(500, artwork_size)', code)
+        self.assertIn('Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER', code)
+
+    def test_large_portrait_transport_retains_primary_hierarchy(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('.large-display.interface-larger .transport button,', code)
+        self.assertIn('.large-display.interface-larger .transport .play { min-width: 150px;', code)
 
     def test_original_landscape_uses_compact_dense_grids(self):
         monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))

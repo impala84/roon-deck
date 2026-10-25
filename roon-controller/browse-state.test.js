@@ -715,6 +715,7 @@ test('artist overview retains the selected portrait when returning from an album
   assert.deepEqual(opened.artist_profile,{name:'Band',image_key:'portrait'});
   const restored = manager.store('pihome-test','browse',{title:'Band',level:3},[{title:'Play Artist',hint:'action'},{title:'Album',image_key:'album-cover'}],'','album-cover');
   assert.deepEqual(restored.artist_profile,{name:'Band',image_key:'portrait'});
+  assert.equal(restored.alpha_scrub, false, 'artist-profile album lists use ordinary scrolling, never the alphabet rail');
   manager.clear(); assert.equal(manager.artistContexts.size,0);
 });
 

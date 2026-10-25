@@ -489,6 +489,8 @@ class BrowseManager {
     const section = this.sections.get(session) || '';
     const sectionTitle = section ? section[0].toUpperCase() + section.slice(1) : '';
     const sectionRoot = Boolean(section && String(list?.title || '').trim().toLowerCase() === section);
+    const artistProfile = normalised.some(item => /^play artist(?: radio)?$/i.test(item.title))
+      && this.artistContexts.has(session + ':' + list.title);
     const tracks = normalised.filter(item => !item.action && item.hint !== 'header');
     const albumProfile = normalised.some(item => item.action && /^play album$/i.test(item.title)) && tracks.length ? {
       name: String(list?.title || ''), artist: tracks[0].subtitle || '',
@@ -503,12 +505,12 @@ class BrowseManager {
       // Nested album collections (for example Genre -> Pop/Rock) need the
       // same alphabetical navigation as the library album grid once their
       // result set spans more than one page.
-      alpha_scrub: (sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > 8), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
+      alpha_scrub: !artistProfile && ((sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > 8)), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
       has_more: !filteredLibrary && presentation.layout !== 'home' && Number(loadedOffset || 0) + normalised.length < count,
       fallback_image_key: fallbackImageKey, message, error: false,
       ...(albumProfile ? {album_profile: albumProfile} : {}),
       action_menu: normalised.length > 0 && normalised.every(item => item.action || item.hint === 'header') && normalised.some(item => /^play now$/i.test(item.title)),
-      ...(normalised.some(item => /^play artist(?: radio)?$/i.test(item.title)) && this.artistContexts.has(session + ':' + list.title) ? {artist_profile:this.artistContexts.get(session + ':' + list.title)} : {}),
+      ...(artistProfile ? {artist_profile:this.artistContexts.get(session + ':' + list.title)} : {}),
       ...presentation
     });
   }
