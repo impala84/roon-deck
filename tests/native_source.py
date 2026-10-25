@@ -8,7 +8,7 @@ from pathlib import Path
 
 NATIVE = Path(__file__).resolve().parents[1] / "native-display"
 # Separate helper modules that were never part of the single display file.
-OTHER_MODULES = {"icon_family.py", "white_balance.py", "styles.py", "layout_constants.py", "pi_bus_native.py"}
+OTHER_MODULES = {"icon_family.py", "white_balance.py", "styles.py", "layout_constants.py"}
 
 
 def display_modules() -> list:

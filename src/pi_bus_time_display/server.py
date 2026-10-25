@@ -583,7 +583,7 @@ def diagnostics_snapshot(config: Config | None = None) -> dict:
         lowered = args.lower()
         executable = lowered.split()[0]
         group = None
-        if "roondeck_native.py" in lowered or "pi_bus_native.py" in lowered or "/cage" in lowered:
+        if "roondeck_native.py" in lowered or "/cage" in lowered:
             group = "display"
         elif "roon-controller/server.js" in lowered:
             group = "controller"

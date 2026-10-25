@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.94 Alpine — 26 October 2026
+
+- No visual change. The old `pi_bus_native.py` launcher is removed now that the display starts from `roondeck_native.py`. If a device on beta.91 or earlier does not offer this update, install beta.92 or later first.
+
 ## 1.1.7-beta.93 Alpine — 26 October 2026
 
 - Original 7-inch display (800x480): the cog is now in exactly the same place on Bus Times, Home and Discover (8px in, 8px down, 36px wide), and the clock ends at the same right edge on all three. This is set by the stylesheet alone; the runtime nudge that moved the cog after a page opened is switched off on this display, so it no longer jumps.

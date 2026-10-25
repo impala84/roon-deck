@@ -22,8 +22,5 @@ Each page file holds a mixin class (for example `BusPageMixin`). `Display` lists
 them as base classes, so methods still call each other as `self.render_bus()`.
 Add new methods to the page they belong to.
 
-`pi_bus_native.py` is the old name, kept as a tiny launcher for one release so an
-older updater still finds it. Delete it once every device runs this release.
-
 Rules: only one agent edits the native layout at a time, and a layout change is
 checked with `tools/check screen layout` before release.
