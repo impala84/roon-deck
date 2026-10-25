@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.87 Alpine — 26 October 2026
+
+- Loading dots: removed the fixed 213px top / 62px right offsets that put the dots in a different place on every page (the Discover pages have no sidebar and a different height). They are now centred in whatever area they fill, and on Gen 2 they are nudged to the centre of the cover area on Browse and to the centre of the screen on Discover.
+- Genres: the "Shuffle Genre / Artists / Albums" screen now uses the same fixed-size tiles as the genre grid (four across, same icon scale and label), with new Shuffle, Artist and Album tile icons, instead of three stretched cards.
+- Genres, 7-inch landscape and up: the list for a genre has a large heading with the genre name. Opening a sub-genre keeps the list above it on the left (with the one you chose highlighted) and opens the new list on the right, like a two-column browser. Back steps out one column at a time.
+- Cog position (800x480): the cog is aligned on its centre, across and down, on every page, so Bus Times, Home, Now Playing and Discover agree to the pixel.
+
 ## 1.1.7-beta.86 Alpine — 26 October 2026
 
 - 800x480 album details: found why the window grew 10px (and lost the bottom underline) when you tapped the artwork. Details left a 20px gap under the header where Now Playing uses 1px. Details now use the same 1px, so the artwork stays put and the page keeps its height.

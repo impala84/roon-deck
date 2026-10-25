@@ -147,3 +147,13 @@ popover listview row label { font-size: 19px; }
 .original-landscape .settings-column { padding: 0; }
 .original-landscape .settings-header .settings-utilities { margin-right: 0; }
 .original-landscape .settings-page .settings-action { min-height: 52px; border-radius: 10px; }
+/* Genre drill-down: a large heading over the list, and the parent list kept on the left beside the child list. */
+.genre-heading { margin: 2px 0 8px; padding: 0 6px; font-size: 32px; font-weight: 750; color: #f4f0e6; }
+.genre-heading.trail { font-size: 26px; color: #b9b3c9; }
+.genre-trail { margin-right: 18px; }
+.genre-trail-row { padding: 8px 10px; border-radius: 8px; }
+.genre-trail-row.current { background: rgba(255,255,255,.1); }
+.theme-roon .genre-trail-row.current { background: rgba(152,104,249,.22); }
+.genre-trail-title { font-size: 19px; font-weight: 650; color: #cfd2d0; }
+.genre-trail-subtitle { font-size: 13px; color: #8a918e; }
+.genre-trail-row.current .genre-trail-title { color: #fff; }

@@ -472,11 +472,11 @@ class Display(Gtk.Application):
         original = width <= 820 and height <= 500
         portrait = getattr(self, "responsive_portrait", False)
         gen2_seven = not portrait and 1200 <= width < 1500 and 650 <= height < 850
-        # Portrait: the dots sit a third of the way down. Gen 2: centred in the browse area (right of the 170px rail,
-        # left of the scrubber), which is about 62px left of the scroll area's own centre.
-        top = 18 if original else 213 if gen2_seven else round(height * .26) if portrait else 48
+        # Portrait: the dots sit about a quarter of the way down. Elsewhere they are centred in whatever area the
+        # panel fills, so Browse, Discover and Search all agree; Gen 2 Browse is then nudged to the middle of the
+        # cover area (right of the 170px rail) once the dots are on screen.
+        top = 18 if original else round(height * .26) if portrait else 48
         panel.set_margin_top(top); panel.set_margin_bottom(18 if original else 48)
-        if gen2_seven: panel.set_margin_end(62)
         dots = Gtk.Box(spacing=12); dots.set_halign(Gtk.Align.CENTER)
         labels = [self.label("●", "loading-dots") for _ in range(3)]
         for label in labels: dots.append(label)
@@ -487,7 +487,22 @@ class Display(Gtk.Application):
             for index, label in enumerate(labels):
                 label.set_opacity(.25 + .75 * (1 + math.sin(elapsed * 5 - index * 1.1)) / 2)
             return True
+        def centre(*_):
+            if not gen2_seven: return False
+            try:
+                point = panel.translate_coordinates(self.window, 0, 0)
+                if point is None: return False
+                browsing = self.roon_views.get_visible_child_name() in {"browse", "search"}
+                wanted = 687 if browsing else self.window.get_width() / 2
+                middle = point[0] + panel.get_width() / 2
+                shift = round(middle - wanted)
+                if abs(shift) > 2:
+                    if shift > 0: panel.set_margin_end(panel.get_margin_end() + 2 * shift)
+                    else: panel.set_margin_start(panel.get_margin_start() - 2 * shift)
+            except Exception: pass
+            return False
         def start(*_):
+            if gen2_seven: GLib.timeout_add(60, centre)
             if timer[0] is None:
                 started[0] = time.monotonic(); pulse(); timer[0] = GLib.timeout_add(80, pulse)
         def stop(*_):
@@ -599,8 +614,8 @@ class Display(Gtk.Application):
         # are taller than the Now Playing toolbar), so centring made the cog drift.
         # A new display geometry or interface size starts the cog alignment afresh.
         for cog in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", [])):
-            if cog is not None: cog.set_margin_start(0)
-        self.cog_reference_x = None
+            if cog is not None: cog.set_margin_start(0); cog.set_margin_top(0)
+        self.cog_reference_x = None; self.cog_reference_y = None
         GLib.timeout_add(250, lambda: self.align_header_cogs() and False)
         for button in getattr(self, "header_utility_buttons", []):
             button.set_valign(Gtk.Align.START if touch2_7_landscape or original_landscape else Gtk.Align.CENTER)
@@ -934,6 +949,10 @@ class Display(Gtk.Application):
         self.browser_artist_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.browser_artist_panel.add_css_class("artist-profile"); self.browser_artist_panel.set_visible(False)
         self.browser_artist_inline_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.browser_artist_inline_panel.add_css_class("artist-profile"); self.browser_artist_inline_panel.set_visible(False)
         self.browser_artist_scroll = Gtk.ScrolledWindow(); self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_min_content_height(1); self.browser_artist_scroll.set_size_request(-1, 1); self.browser_artist_scroll.set_child(self.browser_artist_panel); self.browser_artist_scroll.set_visible(False); content.append(self.browser_artist_scroll); content.append(browser_scroll)
+        # Genre drill-down: the parent list stays on the left while its child list opens on the right.
+        self.genre_stack = []; self.genre_pending = None; self.browser_last_action = None
+        self.browser_trail_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.browser_trail_scroll = Gtk.ScrolledWindow(); self.browser_trail_scroll.add_css_class("genre-trail"); self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_trail_scroll.set_min_content_width(300); self.browser_trail_scroll.set_max_content_width(300); self.browser_trail_scroll.set_propagate_natural_width(False); self.browser_trail_scroll.set_hexpand(False); self.browser_trail_scroll.set_child(self.browser_trail_list); self.browser_trail_scroll.set_visible(False); content.prepend(self.browser_trail_scroll)
         # Independent result scrollers must not be nested in the ordinary
         # browser viewport: that viewport measures them at minimum height.
         self.browser_search_columns = Gtk.Box(spacing=18); self.browser_search_columns.set_homogeneous(True); self.browser_search_columns.set_hexpand(True); self.browser_search_columns.set_vexpand(True); self.browser_search_columns.set_visible(False); content.append(self.browser_search_columns)
@@ -2675,7 +2694,7 @@ class Display(Gtk.Application):
             self.browser_scroll_restore = self.browser_scroll.get_vadjustment().get_value()
         elif action == "back" and (self.browser_state or {}).get("surprise_preview"): self.browser_scroll_restore = self.browser_section_scrolls.get(self.browser_state.get("return_section", "albums"), 0.0)
         elif action in {"jump", "open", "back", "surprise"}: self.browser_scroll_restore = 0.0
-        self.browser_loading = True; self.browser_message.set_visible(False)
+        self.browser_loading = True; self.browser_message.set_visible(False); self.browser_last_action = action
         threading.Thread(target=self._request_browser, args=(action, payload), daemon=True).start()
 
     def _request_browser(self, action, payload):
@@ -2902,7 +2921,11 @@ class Display(Gtk.Application):
     def open_browser_item(self, _button, item_key):
         if item_key:
             self.browser_action_anchor = _button
-            if getattr(_button, "opens_page", False) and not self.browser_loading: self.show_browser_loading()
+            if getattr(_button, "opens_page", False) and not self.browser_loading:
+                state = self.browser_state or {}
+                if state.get("section") == "genres" and not state.get("section_root") and (state.get("layout") or "list") == "list" and not state.get("artist_profile") and not state.get("album_profile"):
+                    self.genre_pending = {"title": state.get("title") or "", "items": [item for item in state.get("items", []) if item.get("hint") != "header" and not item.get("action")]}
+                self.show_browser_loading()
             if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search": self.set_roon_view("browse")
             self.request_browser("open", item_key=item_key)
 
@@ -2919,6 +2942,9 @@ class Display(Gtk.Application):
     def browser_tile_symbol(self, title, kind):
         value = (title or "").lower()
         if kind == "playlists": return "playlist"
+        if value.startswith("shuffle"): return "shuffle"
+        if value == "artists": return "artist"
+        if value == "albums": return "album"
         if "jazz" in value: return "jazz"
         if "classical" in value: return "classical"
         if "electronic" in value: return "electronic"
@@ -3082,6 +3108,40 @@ class Display(Gtk.Application):
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
 
+    def prepare_genre_columns(self, data, layout):
+        """Keep a trail of the genre lists above this one and lay them out as two columns."""
+        try:
+            if data.get("section") != "genres" or data.get("section_root"):
+                self.genre_stack = []; self.genre_pending = None
+            else:
+                action = getattr(self, "browser_last_action", None)
+                if action == "back":
+                    if self.genre_stack: self.genre_stack.pop()
+                elif self.genre_pending and action == "open": self.genre_stack.append(self.genre_pending)
+                self.genre_pending = None
+            wide = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000
+            plain_list = (layout == "list" and data.get("section") == "genres" and not data.get("section_root")
+                          and not data.get("artist_profile") and not data.get("album_profile") and not data.get("surprise_preview"))
+            columns = bool(plain_list and wide and self.genre_stack)
+            while child := self.browser_trail_list.get_first_child(): self.browser_trail_list.remove(child)
+            self.browser_trail_scroll.set_visible(columns)
+            if columns:
+                parent = self.genre_stack[-1]
+                heading = self.label(parent.get("title") or "", "genre-heading"); heading.add_css_class("trail"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
+                current = (data.get("title") or "").strip().casefold()
+                for item in parent.get("items", []):
+                    row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); row.add_css_class("genre-trail-row")
+                    if (item.get("title") or "").strip().casefold() == current: row.add_css_class("current")
+                    title = self.label(item.get("title") or "", "genre-trail-title"); title.set_ellipsize(Pango.EllipsizeMode.END); row.append(title)
+                    if item.get("subtitle"):
+                        subtitle = self.label(item.get("subtitle"), "genre-trail-subtitle"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); row.append(subtitle)
+                    self.browser_trail_list.append(row)
+            if plain_list and wide and data.get("title"):
+                heading = self.label(data.get("title"), "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_list.append(heading)
+        except Exception as error:
+            print("RoonDeck genre columns skipped: " + type(error).__name__, flush=True)
+            self.browser_trail_scroll.set_visible(False)
+
     def render_browser(self, data):
         self.browser_list.cancel_spring()
         if data.get("action_menu"):
@@ -3177,6 +3237,7 @@ class Display(Gtk.Application):
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = "list" if data.get("artist_profile") else (data.get("layout") or "list")
+        self.prepare_genre_columns(data, layout)
         if items and data.get("surprise_preview"):
             album = items[0]
             monitor = Gdk.Display.get_default().get_monitors().get_item(0)
@@ -3215,8 +3276,9 @@ class Display(Gtk.Application):
             if getattr(self, "responsive_portrait", False): grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
             for index, item in enumerate(item for item in items if item.get("hint") != "header"): grid.attach(self.browser_menu_card(item, layout == "menu"), index % columns, index // columns, 1, 1)
             self.browser_list.append(grid)
-        elif items and layout in {"covers", "tiles"}:
+        elif items and (layout in {"covers", "tiles"} or (layout == "menu" and not getattr(self, "responsive_portrait", False))):
             portrait = getattr(self, "responsive_portrait", False)
+            menu_tiles = layout == "menu"
             grid = Gtk.Grid(column_spacing=24, row_spacing=24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(False); columns = 5 if layout == "tiles" and active_section == "genres" else 4
             profile = (getattr(self, "system_data", {}) or {}).get("display_profile")
             larger_seven = (not portrait and profile in {"touch2-7", "touch2-5-7"}
@@ -3237,12 +3299,12 @@ class Display(Gtk.Application):
                 grid.set_row_spacing(30)
                 grid.set_halign(Gtk.Align.START); grid.set_hexpand(False)
             columns, self.browser_tile_size = self.browser_grid_metrics(
-                layout == "tiles" and active_section in {"genres", "playlists"},
+                menu_tiles or (layout == "tiles" and active_section in {"genres", "playlists"}),
                 active_section == "artists",
             )
-            tile_kind = active_section if layout == "tiles" else None
+            tile_kind = "genres" if menu_tiles else (active_section if layout == "tiles" else None)
             for index, item in enumerate(item for item in items if item.get("hint") != "header"):
-                card = self.browser_cover_card(item, bool(data.get("show_labels")), tile_kind); self.browser_cards.append((card, item)); grid.attach(card, index % columns, index // columns, 1, 1)
+                card = self.browser_cover_card(item, bool(data.get("show_labels")) or menu_tiles, tile_kind); self.browser_cards.append((card, item)); grid.attach(card, index % columns, index // columns, 1, 1)
             self.browser_list.append(grid)
         else:
             columns = []
@@ -3657,32 +3719,33 @@ class Display(Gtk.Application):
         GLib.timeout_add(150, self.align_header_cogs)
 
     def align_header_cogs(self, retry=True):
-        """Put Bus Times and Home's cog exactly where the music pages' cog is.
+        """Put every page's cog on the same centre point.
 
-        CSS offsets were tuned from captures and drifted between interface sizes, so measure the real
-        positions on the page now showing and nudge the header cog right by the difference."""
+        Buttons can only be pushed right or down (Python margins are never negative), so each page aligns to the
+        right-most, lowest cog centre seen on any page. Centres, not left edges: the Bus Times and Home cog box is a
+        different width from the music pages' box, so equal left edges still left the glyphs a pixel or two apart."""
         if getattr(self, "responsive_portrait", False): return False
         try:
-            def left(button):
-                point = button.translate_coordinates(self.window, 0, 0)
-                return None if point is None else point[0]
+            def centre(button):
+                point = button.translate_coordinates(self.window, button.get_width() / 2, button.get_height() / 2)
+                return None if point is None else (point[0], point[1])
             buttons = [button for button in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", []))
                        if button is not None and button.get_mapped()]
-            # Buttons can only be pushed right (Python margins are never negative), so every page aligns to the
-            # right-most cog seen on any page. Visiting each page once settles all of them on the same x.
-            target = getattr(self, "cog_reference_x", None)
+            target_x, target_y = getattr(self, "cog_reference_x", None), getattr(self, "cog_reference_y", None)
             for button in buttons:
-                x = left(button)
-                if x is not None and (target is None or x > target): target = x
-            if target is None: return False
-            self.cog_reference_x = target
+                point = centre(button)
+                if point is None: continue
+                if target_x is None or point[0] > target_x: target_x = point[0]
+                if target_y is None or point[1] > target_y: target_y = point[1]
+            if target_x is None: return False
+            self.cog_reference_x, self.cog_reference_y = target_x, target_y
             moved = False
             for button in buttons:
-                x = left(button)
-                if x is None: continue
-                delta = round(target - x)
-                if delta > 0:
-                    button.set_margin_start(button.get_margin_start() + delta); moved = True
+                point = centre(button)
+                if point is None: continue
+                dx, dy = round(target_x - point[0]), round(target_y - point[1])
+                if dx > 0: button.set_margin_start(button.get_margin_start() + dx); moved = True
+                if dy > 0: button.set_margin_top(button.get_margin_top() + dy); moved = True
             if moved and retry: GLib.timeout_add(120, lambda: self.align_header_cogs(False) and False)
         except Exception as error:
             print("RoonDeck cog alignment skipped: " + type(error).__name__, flush=True)
