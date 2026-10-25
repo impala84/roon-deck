@@ -256,8 +256,19 @@ assert mix_controls.get_first_child().get_first_child().get_child().get_first_ch
 if screen_width == 1280 and screen_height == 720:
     assert mix_controls.get_first_child().get_width() == mix_controls.get_last_child().get_width(), (mix_controls.get_first_child().get_width(), mix_controls.get_last_child().get_width())
 mix_track = mix_controls.get_next_sibling()
+# The original 800x480 viewport can leave the first mix track below the
+# scroller after the preceding Daily captures. A popover attached to an
+# unmapped row closes immediately, making this deterministic review depend on
+# the previous scroll position. Bring the action anchor into view first.
+vertical = display.discovery_scroll.get_vadjustment()
+valid_track, track_bounds = mix_track.compute_bounds(display.discovery_list)
+assert valid_track
+vertical.set_value(max(vertical.get_lower(), min(
+    vertical.get_upper() - vertical.get_page_size(), track_bounds.get_y() - 12)))
+settle()
 display.browser_action_anchor = mix_track
 display.render_browser({"status":"ready", "layout":"list", "action_menu":True, "discovery_track_actions":True, "items":[{"title":"Play Now", "action":True, "item_key":"play"},{"title":"Queue", "action":True, "item_key":"queue"}]})
+assert display.browser_action_popover is not None
 capture("mix-track-actions")
 mix_popup = display.browser_action_popover
 valid, mix_popup_bounds = mix_popup.compute_bounds(page)
