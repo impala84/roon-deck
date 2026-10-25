@@ -169,3 +169,17 @@ popover listview row label { font-size: 19px; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 52px; min-height: 52px; }
 /* Genre trail rows must never collapse to a few pixels. */
 .genre-trail-row { min-width: 260px; }
+
+/* Play Album arrow: one balanced box on every screen (the old min-width plus padding left 25-50px of empty pill around a ~15px arrow). */
+.album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 12px; }
+.large-display .album-play-menu { min-width: 0; padding: 0 20px; }
+.original-landscape .album-play-menu { min-width: 0; padding: 0 8px; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 7px; }
+/* Settings: a shorter Sleep button leaves the update progress text room to show in full. */
+.settings-sleep { min-width: 104px; padding: 0 14px; }
+.original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 84px; padding: 0 10px; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 112px; padding: 0 14px; }
+/* Gen 2 Larger: the album and artist write-up was 18px, hard to read at arm's length. */
+.touch2-7-landscape.interface-larger .detail-writeup,
+.touch2-7-landscape.interface-larger .inline-detail .detail-writeup,
+.touch2-7-landscape.interface-larger .album-focus-detail .detail-writeup { font-size: 24px; line-height: 1.25; }

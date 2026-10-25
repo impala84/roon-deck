@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.95 Alpine — 26 October 2026
+
+- Settings: the update progress text was capped at 32 characters, so "Update · Creating Python environment…" was cut short. The cap is now 64 characters and the text takes all the room next to the Sleep button. The Sleep button is also narrower on every display (84px on 800x480, 112px on Gen 2, 104px elsewhere).
+- Play Album arrow: the arrow's pill kept a fixed minimum width plus padding, so a ~15px arrow sat in 45px (Gen 2), 64px (800x480) and 130px (portrait) of pill. The minimum width is gone and padding is balanced left and right, with a smaller arrow (18px on 800x480, 20px on Gen 2, 30px on portrait).
+- Gen 2 Larger: the album and artist write-up is now 24px (it was 18px).
+- The cog is left as beta.93 set it; the measured 2.5px Discover/Bus Times offset in your latest 800x480 captures predates that release.
+
 ## 1.1.7-beta.94 Alpine — 26 October 2026
 
 - No visual change. The old `pi_bus_native.py` launcher is removed now that the display starts from `roondeck_native.py`. If a device on beta.91 or earlier does not offer this update, install beta.92 or later first.
