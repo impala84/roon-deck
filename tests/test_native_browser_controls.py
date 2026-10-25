@@ -257,6 +257,7 @@ class PortraitRefinementTests(unittest.TestCase):
         source = SOURCE.read_text()
         self.assertIn('service.get("arrivals", [])[:3]', source)
         self.assertIn('self.render_portrait_bus_card(row, service, len(visible))', source)
+        self.assertIn('top.set_homogeneous(width >= 600)', source)
         self.assertIn('sized("THEN", "bus-then"', source)
         self.assertIn('number.add_css_class("solid-route")', source)
         self.assertIn('row.append(number)', source)
