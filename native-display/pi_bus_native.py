@@ -62,6 +62,7 @@ APPLIANCE_PAGE_TOP = 8
 LANDSCAPE_PAGE_MARGIN = 28
 PORTRAIT_PAGE_MARGIN = 30
 PORTRAIT_CONTENT_GAP = 16
+
 CAROUSEL_START_INSET = 10
 CAROUSEL_END_SPACE = 30
 
@@ -883,6 +884,8 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
 .touch2-7-landscape .browser-main { padding-left: 9px; }
+.touch2-7-landscape .queue-scroll.browser-scroll-fill { margin-right: 0; }
+.touch2-7-landscape .browser-scroll-fill .queue-list { padding-right: 0; }
 .touch2-7-landscape .browser-scrubber { min-width: 64px; padding-left: 0; }
 .touch2-7-landscape .bus-page,
 .touch2-7-landscape .home-page { padding-top: 0; }
@@ -966,8 +969,8 @@ window.background-black .detail-footer { background: #000; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-sleep { margin-right: 14px; font-size: 19px; }
 .touch2-7-landscape .settings-primary-actions { margin-bottom: 14px; }
 /* 10-inch portrait Settings: a larger heading, a quiet diagnostics line, and even 24px gaps between the three action buttons. */
-.large-display.portrait .settings-page .settings-title { font-size: 56px; }
-.large-display.portrait .settings-page .settings-diagnostic { font-size: 14px; }
+.large-display.portrait .settings-page .settings-title { font-size: 44px; }
+.large-display.portrait .settings-page .settings-diagnostic { font-size: 18px; }
 .large-display.portrait .settings-primary-actions { margin-bottom: 12px; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
@@ -1027,6 +1030,8 @@ popover listview row label { font-size: 19px; }
 .large-display.portrait .bus-page .bus-route-badge { margin-top: 4px; }
 .large-display.portrait .bus-page .bus-next-unit { margin-top: -4px; }
 """
+# 10-inch portrait: "arriving now" / "minutes" sit under the numeral; the pull scales with its size.
+CSS += "".join(".large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-%d { margin-top: -%dpx; }\n" % (n, n * 4) for n in range(1, 17)).encode()
 
 
 def get_json(url: str, timeout: float = .8):
@@ -1840,6 +1845,7 @@ class Display(Gtk.Application):
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
         self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))
         if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 18)
+        if hasattr(self, "settings_utilities"): self.settings_utilities.set_spacing(32 if portrait and width >= 1000 else 12)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
@@ -1850,7 +1856,7 @@ class Display(Gtk.Application):
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
         if height > width:
-            target_height = 62 if width >= 1000 else 34 if width >= 900 else 28
+            target_height = 48 if width >= 1000 else 34 if width >= 900 else 28
         elif max(width, height) >= 1600:
             target_height = 44
         elif width >= 1200 and width > height:
@@ -1865,7 +1871,7 @@ class Display(Gtk.Application):
         # The supplied wordmark is drawn to its baseline at the bottom of the
         # SVG. Lift that edge by the adjacent title font's descent so its
         # visible baseline matches GTK labels rather than their bounding box.
-        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 9 if height > width and width < 600 else 13 if height > width and width >= 1000 else 7 if height > width else 6 if width < 1000 else 8
+        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 9 if height > width and width < 600 else 10 if height > width and width >= 1000 else 7 if height > width else 6 if width < 1000 else 8
         self.settings_wordmark_frame.set_margin_bottom(baseline_lift)
         if hasattr(self, "touch_diagnostics"):
             diagnostics_gap = 5 if max(width, height) >= 1600 else 2
@@ -2568,7 +2574,7 @@ class Display(Gtk.Application):
         entities = home.get("entities", [])[:8]
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
         self.home_status.set_visible(bool(self.home_status.get_text()))
-        self.home_grid.set_margin_top(PORTRAIT_CONTENT_GAP if portrait else 0)
+        self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
         for index, entity in enumerate(entities):
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL, spacing=18 if portrait else 4); box.add_css_class("home-tile"); box.set_vexpand(True)
             state = str(entity.get("state", "unknown")); detail = state.upper()
@@ -2621,7 +2627,7 @@ class Display(Gtk.Application):
         self.services.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
         self.services.set_vexpand(not portrait and not original_compact)
         self.bus_content.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
-        self.services.set_margin_top(PORTRAIT_CONTENT_GAP if portrait else 0)
+        self.services.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
         for index, service in enumerate(visible):
             row = Gtk.Box(spacing=12); row.add_css_class("service"); row.add_css_class("service-" + (service.get("colour") or {"40": "blue", "42": "green", "401": "violet"}.get(str(service.get("service")), "amber"))); row.set_vexpand(not original_compact)
             if len(visible) == 3: row.add_css_class("compact")
@@ -2687,12 +2693,14 @@ class Display(Gtk.Application):
         wide_portrait = width >= 1000
         gutter = max(18, round(width * (.02 if wide_portrait else .06)))
         side = round(width * (.04 if wide_portrait else .055))
-        top = Gtk.Box(spacing=gutter); top.add_css_class("bus-primary-row")
+        top = Gtk.Box(spacing=40 if wide_portrait else gutter); top.add_css_class("bus-primary-row")
         # Equal columns multiply the wider child's minimum width and can push
         # a four-route 480px portrait page beyond the physical viewport.
-        top.set_homogeneous(width >= 600); top.set_hexpand(True); top.set_vexpand(True)
+        top.set_homogeneous(width >= 600 and not wide_portrait); top.set_hexpand(True); top.set_vexpand(True)
         top.set_margin_start(side); top.set_margin_end(side)
-        badge_slot = Gtk.Box(); badge_slot.set_hexpand(True); badge_slot.set_valign(Gtk.Align.CENTER)
+        # 10-inch portrait: the route badge and the arrival form one centred group, 40px apart.
+        if wide_portrait: top.set_halign(Gtk.Align.CENTER)
+        badge_slot = Gtk.Box(); badge_slot.set_hexpand(not wide_portrait); badge_slot.set_valign(Gtk.Align.CENTER)
         badge = Gtk.Box(spacing=12); badge.add_css_class("bus-route-badge"); badge.set_halign(Gtk.Align.CENTER)
         badge.append(sized("ROUTE", "bus-route-word", caption_size))
         number = sized(str(service.get("service", "")), "service-no", route_size)
@@ -2700,7 +2708,7 @@ class Display(Gtk.Application):
         arrivals = service.get("arrivals", [])[:3]
         minutes = arrivals[0].get("minutes") if arrivals else None
         text = "Due" if minutes == 0 else "—" if minutes is None else str(minutes)
-        primary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); primary.set_hexpand(True); primary.set_vexpand(True); primary.set_valign(Gtk.Align.CENTER)
+        primary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); primary.set_hexpand(not wide_portrait); primary.set_vexpand(True); primary.set_valign(Gtk.Align.CENTER)
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0); content.set_valign(Gtk.Align.CENTER)
         if wide_portrait:
             column = (width - 100 - gutter - 2 * side) / 2
@@ -2708,7 +2716,12 @@ class Display(Gtk.Application):
         else:
             primary_size = min(primary_size, round((width - 100) / (max(2, len(text)) * .75)))
         content.append(sized(text, "bus-next", primary_size))
-        content.append(sized("arriving now" if minutes == 0 else "minutes" if minutes is not None else "no prediction", "bus-next-unit", caption_size))
+        unit = sized("arriving now" if minutes == 0 else "minutes" if minutes is not None else "no prediction", "bus-next-unit", caption_size)
+        if wide_portrait:
+            # A large numeral's line box carries ~0.24em of descent; pull the caption up under the digits.
+            unit.add_css_class("bus-unit-pull-%d" % max(1, min(16, round(primary_size * .19 / 4))))
+            primary.set_size_request(round(column * .92), -1)
+        content.append(unit)
         primary.append(content); top.append(primary); row.append(top)
         later = arrivals[1:]
         if later:
@@ -2894,6 +2907,11 @@ class Display(Gtk.Application):
         # and long track titles visibly move the artwork between tracks.
         self.now_playing_centre.set_opacity(0 if inline_details else 1)
         self.now_playing_centre.set_can_target(not inline_details)
+        # Portrait and other non-inline layouts: the Roon theme makes the sheet transparent, so the
+        # page beneath (artwork, scrubber, controls, tabs) showed through. Hide it while the sheet is up.
+        sheet_over_page = name == "details" and not inline_details
+        self.roon_page.set_opacity(0 if sheet_over_page else 1)
+        self.roon_page.set_can_target(not sheet_over_page)
         self.detail_takeover.set_visible(name == "details")
         if name != "details": self.roon_views.set_visible_child_name(name)
         self.now_playing_tab.remove_css_class("active"); self.queue_tab.remove_css_class("active"); self.browser_tab.remove_css_class("active")
@@ -3478,6 +3496,8 @@ class Display(Gtk.Application):
 
     def browser_scroll_bottom_margin(self, original_view=False):
         if original_view: return 0
+        # Standard 7-inch: two rows of 235px cards end at y~604, so the clip line moves to y~610.
+        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 10
         # Seven-inch Gen 2: 223px cards with a 22px row gap put the third row at y~600. A 28px
         # margin puts the clip line at y~592, so the first view shows exactly two rows.
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
@@ -3534,6 +3554,10 @@ class Display(Gtk.Application):
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
             # 217px covers (223px cards, 14px column gaps) end at x~1134, leaving ~54px before the rail.
             size = min(size, 217)
+            if (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger":
+                # Standard/Smaller covers fill x=197..1179. Cards (size + 6) start at x=197 and may end at view_width - 101: the 28px page edge,
+                # 64px rail, 2px gap, 3px grid padding and 4px of safety. Three 14px gaps between four cards.
+                size = max(64, min(236, (view_width - 101 - 197 - 14 * 3) // 4 - 6))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3870,6 +3894,10 @@ class Display(Gtk.Application):
         self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
         self.browser_scrubber_active = bool(data.get("alpha_scrub")) and not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}
         self.browser_scrubber.set_visible(self.browser_scrubber_active)
+        # The page's 28px right margin and the list's 8px padding are redundant next to the 7-inch rail.
+        if (self.browser_scrubber_active and not getattr(self, "responsive_portrait", False) and 1200 <= getattr(self, "viewport_width", 800) < 1500
+                and 650 <= (getattr(self, "viewport_height", None) or 720) < 850 and (self.settings_data or {}).get("interface_size") != "larger"): self.browser_scroll.add_css_class("browser-scroll-fill")
+        else: self.browser_scroll.remove_css_class("browser-scroll-fill")
         if hasattr(self, "browser_sort"):
             self.browser_sort.set_visible(data.get("section") == "albums" and bool(data.get("section_root")) and getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000)
             self.browser_sort.set_sensitive(True)
@@ -3978,7 +4006,7 @@ class Display(Gtk.Application):
                     and 650 <= (getattr(self, "viewport_height", None) or 720) < 850):
                 # Seven-inch Gen 2: tighter columns let the covers grow; a looser row gap
                 # puts the second row's bottom near the Back button's.
-                grid.set_column_spacing(14); grid.set_row_spacing(22)
+                grid.set_column_spacing(14); grid.set_row_spacing(22 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" else 26)
             original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             if original:
                 grid.set_column_spacing(12); grid.set_row_spacing(12)

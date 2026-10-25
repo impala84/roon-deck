@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.73 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse (Standard): the earlier cover change never took effect because a 212px size cap was applied first. Covers are now 229px (235px cards), sized to fill from the Back button's column to the scrubber rail, with a 26px row gap. The redundant 28px right margin and 8px list padding are dropped next to the rail, and the scroller clips beneath the second row. Larger keeps its previous sizing.
+- Ten-inch portrait Album & Artist view: the page beneath (artwork, scrubber, controls, tabs) is hidden while the sheet is open instead of showing through the transparent Roon theme.
+- Ten-inch portrait Settings: heading is smaller (48px wordmark, 44px title), the memory line is slightly larger (18px) and there is 32px between Sleep and the close button.
+- Ten-inch portrait Bus Times and Home: the route badge and arrival time form one centred group 40px apart, "arriving now" / "minutes" sit directly under the numeral, and the cards start 16px higher.
+
 ## 1.1.7-beta.72 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse: covers grow again (217px, 223px cards) by tightening the column gap to 14px, anchored top-left at the same x as before. The second row now ends about level with the Back button's bottom, and the scroller clips just beneath it so only two rows show at first.
