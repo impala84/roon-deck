@@ -1334,8 +1334,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
             display = SimpleNamespace(get_monitors=lambda:SimpleNamespace(get_n_items=lambda:1,get_item=lambda _:monitor))
             for genres in (True, False):
                 columns, size = metrics(SimpleNamespace(), genres)
-                self.assertLessEqual(columns * (size + 12) + (columns - 1) * 16, width - 266)
-                self.assertLessEqual(size, 229)
+                self.assertLessEqual(columns * (size + 12) + (columns - 1) * 16, width - (250 if width == 1280 else 266))
+                self.assertLessEqual(size, 230)
 
     def test_playback_handoff_requires_successful_navigation_response(self):
         for data, expected in (({"navigate":"now"}, ["render", "now"]), ({}, ["render"]), ({"navigate":"now","error":"failed"}, ["render"])):

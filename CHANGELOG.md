@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.81 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: covers are back to their full 230px (Standard and Larger) and the window still stays at 1280px. The cause of the overflow was that the "fill" layout, which drops the 28px page margin and 8px list padding beside the scrubber, was skipped on Larger; it now applies to both sizes, which frees the width the larger covers need.
+- Seven-inch Gen 2 Browse: the visible area runs down to the bottom of the Back button (clip line y~605), and covers start at y~101.
+
 ## 1.1.7-beta.80 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse: beta.79's bigger covers made the page 1312px wide, pushing the cog, clock and scrubber off the right edge. The measured right-hand reserve (133px) is now part of the sizing, so covers are 221px (Larger 218px) with 12px gaps and the page stays at 1280px.

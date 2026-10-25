@@ -3555,10 +3555,9 @@ class Display(Gtk.Application):
         if original_view: return 0
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         gen2_seven = not getattr(self, "responsive_portrait", False) and 1200 <= width < 1500 and 650 <= height < 850
-        # The clip line sits at y = 609 - margin. Covers start ~10px higher than before (browser-main margin), so
-        # two rows end near y~578 and the third row starts near y~600; clip just above that.
-        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 16
-        return 19 if gen2_seven else 10
+        # The clip line sits at y = 609 - margin. Covers start at y~101 and 230px covers put the third row at
+        # y~614, so a 4px margin lets the visible area run to the bottom of the Back button (y~605).
+        return 4 if gen2_seven else 10
 
     def browser_grid_metrics(self, genres=False, artists=False):
         monitors = Gdk.Display.get_default().get_monitors()
@@ -3610,10 +3609,11 @@ class Display(Gtk.Application):
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
             # 217px covers (223px cards, 14px column gaps) end at x~1134, leaving ~54px before the rail.
             size = min(size, 217)
-            # Measured on the Pi: with 229px covers the window grew to 1312px, so everything right of the grid
-            # (scroll margin, 64px rail, page edge) needs 133px. Four cards (size + 6) from x=197, three 12px
-            # gaps, 24px for card padding and 4px spare must fit in what remains. Larger keeps 12px more in reserve.
-            size = max(64, min(236, (view_width - 133 - 197 - 12 * 3 - 24 - 4 - (12 if larger_seven else 0)) // 4))
+            # Measured on the Pi: without the fill class (it used to skip Larger) everything right of the grid took 133px
+            # and 229px covers made the window 1312px wide. The fill class removes the 28px scroll margin and 8px list
+            # padding, leaving 97px for the rail and page edge. Four cards (size + 6) from x=197, three 12px gaps and
+            # 6px spare must fit in the rest, so the covers keep their full size and the window stays 1280px.
+            size = max(64, min(236, (view_width - 97 - 197 - 12 * 3 - 24 - 6) // 4))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3967,7 +3967,7 @@ class Display(Gtk.Application):
         self.browser_scrubber.set_visible(self.browser_scrubber_active)
         # The page's 28px right margin and the list's 8px padding are redundant next to the 7-inch rail.
         if (self.browser_scrubber_active and not getattr(self, "responsive_portrait", False) and 1200 <= getattr(self, "viewport_width", 800) < 1500
-                and 650 <= (getattr(self, "viewport_height", None) or 720) < 850 and (self.settings_data or {}).get("interface_size") != "larger"): self.browser_scroll.add_css_class("browser-scroll-fill")
+                and 650 <= (getattr(self, "viewport_height", None) or 720) < 850): self.browser_scroll.add_css_class("browser-scroll-fill")
         else: self.browser_scroll.remove_css_class("browser-scroll-fill")
         if hasattr(self, "browser_sort"):
             self.browser_sort.set_visible(data.get("section") == "albums" and bool(data.get("section_root")) and getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000)
