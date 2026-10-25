@@ -420,8 +420,21 @@ class AlpineSetupTests(unittest.TestCase):
         service = self.root / "etc/init.d/netdata"; service.parent.mkdir(parents=True); service.touch()
         self.setup.handle({"action": "netdata_enable"})
         self.assertEqual(self.run.call_args.args[0], ["rc-service", "netdata", "start"])
+        self.run.reset_mock()
         self.setup.handle({"action": "netdata_disable"})
-        self.assertEqual(self.run.call_args.args[0], ["rc-update", "del", "netdata", "default"])
+        self.assertEqual(self.run.call_args_list[0].args[0], ["rc-update", "del", "netdata", "default"])
+        self.assertEqual(self.run.call_args_list[1].args[0], ["rc-service", "netdata", "stop"])
+
+    def test_netdata_disable_persists_even_when_the_agent_is_not_running_under_openrc(self):
+        self.setup.save({"complete": True})
+        agent = self.root / "usr/sbin/netdata"; agent.parent.mkdir(parents=True); agent.touch()
+        service = self.root / "etc/init.d/netdata"; service.parent.mkdir(parents=True); service.touch()
+        def run(args):
+            if args == ["rc-service", "netdata", "stop"]: raise ValueError("Could not apply that setting.")
+            return ""
+        self.run.side_effect = run
+        self.assertEqual(self.setup.handle({"action": "netdata_disable"}), {"ok": True})
+        self.run.assert_any_call(["rc-update", "del", "netdata", "default"])
 
     def test_official_static_netdata_gets_a_managed_openrc_service(self):
         agent = self.root / "opt/netdata/bin/netdata"; agent.parent.mkdir(parents=True); agent.touch()

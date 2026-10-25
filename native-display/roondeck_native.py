@@ -774,6 +774,9 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         right-most, lowest cog centre seen on any page. Centres, not left edges: the Bus Times and Home cog box is a
         different width from the music pages' box, so equal left edges still left the glyphs a pixel or two apart."""
         if getattr(self, "responsive_portrait", False): return False
+        # The original 7-inch display has identical cog geometry on every page from CSS alone;
+        # moving it at run time could only make it visibly jump.
+        if getattr(self, "viewport_width", 0) <= 820 and getattr(self, "viewport_height", 0) <= 500: return False
         try:
             def centre(button):
                 point = button.translate_coordinates(self.window, button.get_width() / 2, button.get_height() / 2)

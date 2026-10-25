@@ -57,10 +57,15 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--screen", choices=("settings", "discover", "layout", "all"), default="all")
     parser.add_argument("--output", type=Path, default=ROOT / "dist" / "native-review")
+    parser.add_argument("--viewport", action="append", help="Only this viewport id from tools/viewports.json (repeatable)")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
 
     matrix = json.loads(MATRIX.read_text(encoding="utf-8"))["viewports"]
+    if args.viewport:
+        matrix = [viewport for viewport in matrix if viewport["id"] in args.viewport]
+        if not matrix:
+            raise SystemExit("No such viewport id in tools/viewports.json")
     base = {
         **os.environ,
         "GDK_BACKEND": "x11",

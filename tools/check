@@ -11,7 +11,7 @@ usage() {
   cat <<'EOF'
 Usage:
   tools/check fast
-  tools/check screen [settings|discover|layout|all]
+  tools/check screen [settings|discover|layout|all] [viewport-id]
   tools/check candidate
   tools/check image
 
@@ -68,17 +68,20 @@ build_native_image() {
 
 native() {
   local target=${1:-all}
+  local only=${2:-}
   local output
   case "$target" in settings|discover|layout|all) ;; *) usage; exit 2 ;; esac
   build_native_image
   output="$repo/dist/native-review/$target"
   mkdir -p "$output"
+  local extra=()
+  [[ -n "$only" ]] && extra=(--viewport "$only")
   docker run --rm \
     -v "$repo:/opt/pi-home:ro" \
     -v "$repo/dist/native-review:/opt/pi-home/dist/native-review" \
     -w /opt/pi-home \
     "$native_image" \
-    python3 tools/run_native_matrix.py --screen "$target" --output "/opt/pi-home/dist/native-review/$target"
+    python3 tools/run_native_matrix.py --screen "$target" --output "/opt/pi-home/dist/native-review/$target" ${extra[@]+"${extra[@]}"}
 }
 
 candidate() {
@@ -103,7 +106,7 @@ candidate() {
 
 case "$mode" in
   fast) fast ;;
-  screen) native "$screen" ;;
+  screen) native "$screen" "${3:-}" ;;
   candidate) candidate ;;
   image)
     candidate

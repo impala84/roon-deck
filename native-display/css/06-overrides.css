@@ -118,8 +118,8 @@ popover listview row label { font-size: 19px; }
 .original-landscape .roon-page.now-layout .discover-toolbar { min-height: 44px; }
 .original-landscape .page-header .discover-utility,
 .original-landscape .discover-toolbar > .discover-utility { margin-top: 7px; margin-bottom: 0; }
-.original-landscape .page-header .discover-utility { margin-left: -4px; }
-.original-landscape .page-header .header-clock { margin-top: 7px; margin-right: 3px; }
+.original-landscape .page-header .discover-utility { min-width: 36px; }
+.original-landscape .page-header .header-clock { margin-top: 7px; }
 .original-landscape .volume-number.fixed-volume-label { margin-top: 6px; font-size: 12px; letter-spacing: 1.5px; }
 .original-landscape .now-volume-row { margin-top: 0; }
 /* 800x480 Settings: even 11px inset, a round 40px close control and a compact Sleep button. */

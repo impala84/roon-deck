@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.93 Alpine — 26 October 2026
+
+- Original 7-inch display (800x480): the cog is now in exactly the same place on Bus Times, Home and Discover (8px in, 8px down, 36px wide), and the clock ends at the same right edge on all three. This is set by the stylesheet alone; the runtime nudge that moved the cog after a page opened is switched off on this display, so it no longer jumps.
+- Netdata: turning it off in the backend now sticks across reboots. It is removed from the boot list first, so a failed stop can no longer leave it enabled.
+- Development: `tools/check screen layout touch-v1-landscape` runs the layout check for one screen size (about 40 seconds instead of four minutes).
+
 ## 1.1.7-beta.92 Alpine — 26 October 2026
 
 - No visual change. The display program is renamed from `pi_bus_native.py` to `roondeck_native.py`, and the start-up scripts, updater, tests and docs follow. A small `pi_bus_native.py` stays for this release so the updater already on your Pi can still find it; it will be removed in a later release.

@@ -761,11 +761,20 @@ class Setup:
                 except OSError: pass
                 if not running: self.run(["rc-service", "netdata", "start"])
             else:
-                self.run(["rc-service", "netdata", "stop"])
+                # Remove it from the boot list first. Stopping can fail when the
+                # Agent is not running under OpenRC (for example started by the
+                # installer); that must never leave it enabled at boot.
+                self.run(["rc-update", "del", "netdata", "default"])
+                try:
+                    self.run(["rc-service", "netdata", "stop"])
+                except ValueError:
+                    pass
                 cli = self.root / "opt/netdata/bin/netdatacli"
                 if cli.is_file():
-                    subprocess.run([str(cli), "shutdown-agent"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-                self.run(["rc-update", "del", "netdata", "default"])
+                    try:
+                        subprocess.run([str(cli), "shutdown-agent"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+                    except (OSError, subprocess.SubprocessError):
+                        pass
             return {"ok": True}
         if action in {"roon_start", "roon_stop", "roon_restart"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing services.")
