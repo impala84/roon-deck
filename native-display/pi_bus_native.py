@@ -887,6 +887,11 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .browser-scrubber { min-width: 42px; padding-left: 0; }
 .touch2-7-landscape .bus-page,
 .touch2-7-landscape .home-page { padding-top: 0; }
+/* Measured on a beta.67 capture: the Bus/Home cog sat 2px lower (y 47) than Discover/Now Playing (y 45).
+   GTK centres the cog with its margin inside the header row, so the offset moves by half the margin change:
+   11px -> 7px raises it 2px. A prediction: confirm on the next capture (cog centre y should read 45). */
+.touch2-7-landscape .bus-page .page-header .discover-utility,
+.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 7px; }
 .detail-takeover.inline-detail { background: transparent; }
 .inline-detail .detail-sheet-scroll,
 .inline-detail .detail-panel,
