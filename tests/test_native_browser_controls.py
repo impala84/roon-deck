@@ -50,6 +50,13 @@ class PortraitRefinementTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('GLib.idle_add(self.adapt_display)', code[code.index('def change_interface_size'):])
 
+    def test_saved_interface_scaling_reflows_after_config_load(self):
+        code = SOURCE.read_text(encoding="utf-8")
+        apply = code.split('    def apply(self, target, status, roon, config, system, device, image_key, image):', 1)[1].split('    def ', 1)[0]
+        self.assertIn('previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")', apply)
+        self.assertIn('if config.get("interface_size", "standard") != previous_interface_size:', apply)
+        self.assertIn('GLib.idle_add(self.adapt_display)', apply)
+
     def test_artist_catalogue_request_keeps_the_standard_browse_deadline(self):
         timeout = native_method("browser_request_timeout")
         self.assertEqual(timeout("artist"), 35.0)
@@ -635,6 +642,10 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('.touch2-7-landscape .page { padding-top: 10px; }', code)
         self.assertIn('.original-landscape .page { padding-top: 7px; }', code)
+        self.assertIn('.touch2-7-landscape .bus-page .page-header .discover-utility,\n.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 7px; }', code)
+        self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }', code)
+        self.assertIn('.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }', code)
+        self.assertIn('self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))', code)
         self.assertIn('def toggle_now_playing_details(self, *_):', code)
         self.assertIn('self.now_playing_centre.set_opacity(0 if inline_details else 1)', code)
         self.assertIn('self.now_playing_centre.set_can_target(not inline_details)', code)
