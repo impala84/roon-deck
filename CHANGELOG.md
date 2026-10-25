@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.65 Alpine — 25 October 2026
+
+- Restores four-column album, artist and genre Browse grids on the seven-inch Gen 2 display at Larger interface scaling.
+- Moves those larger Browse grids exactly 9 pixels left and tightens each inter-column gutter from 24 to 23 pixels, preserving clearance for the alphabet scrubber.
+- Improves the Settings header controls and enlarges the touchscreen-profile dropdown choices for easier use at larger interface scaling.
+
 ## 1.1.7-beta.64 Alpine — 25 October 2026
 
 - Restores the four-column artist browser on the seven-inch Gen 2 display at Larger interface scaling without changing the constrained album and genre grids.

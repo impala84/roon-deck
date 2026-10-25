@@ -883,6 +883,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
 .touch2-7-landscape .browser-main { padding-left: 9px; }
+.touch2-7-landscape.interface-larger .browser-main { padding-left: 0; }
 .detail-takeover.inline-detail { background: transparent; }
 .inline-detail .detail-sheet-scroll,
 .inline-detail .detail-panel,
@@ -928,7 +929,13 @@ window.background-black .detail-footer { background: #000; }
 
 .settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .theme-roon .settings-close { border-color: #9868F9; }
-.settings-sleep { min-width: 128px; min-height: 58px; }
+.settings-sleep { min-width: 128px; min-height: 58px; background: #303030; color: #f4f0e6; font-weight: 750; }
+.settings-page .settings-title { font-size: 34px; }
+.settings-page .settings-diagnostic { font-size: 11px; }
+popover listview row { min-height: 48px; padding: 8px 14px; }
+popover listview row label { font-size: 19px; }
+.interface-larger popover listview row { min-height: 58px; }
+.interface-larger popover listview row label { font-size: 22px; }
 .settings-action-stack { padding-top: 4px; padding-bottom: 6px; }
 .portrait .settings-page { padding-top: 24px; padding-bottom: 28px; }
 .portrait .settings-header { min-height: 84px; }
@@ -1796,7 +1803,7 @@ class Display(Gtk.Application):
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
         utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START)
         sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
-        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 28, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
+        close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 28, stroke_width=3)); close.connect("clicked", self.close_settings); utilities.append(close)
         top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
@@ -3404,11 +3411,11 @@ class Display(Gtk.Application):
             return 4, max(64, (available - 12 * 3) // 4)
         available = max(140, width - (320 if genres else 280))
         larger_seven = profile in {"touch2-7", "touch2-5-7"} and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger"
-        # Larger cover collections intentionally show fewer items. Artist
-        # browsing is the exception: four portraits fit this viewport and are
-        # part of the established artist-browser rhythm.
-        columns = min(4 if artists or not larger_seven else 3, max(1, available // 140))
-        gap = 24
+        # The 7-inch Gen 2 has room for four covers at the larger scale when
+        # the grid uses its measured page inset and a 23px gutter. Keep the
+        # same four-column rhythm for albums, artists and genre results.
+        columns = min(4, max(1, available // 140))
+        gap = 23 if larger_seven else 24
         cap = 228 if larger_seven else 212
         # Each card contributes 3px padding on both sides in addition to the
         # grid gap. Account for it here rather than allowing the fifth/right
@@ -3849,6 +3856,11 @@ class Display(Gtk.Application):
         elif items and layout in {"covers", "tiles"}:
             portrait = getattr(self, "responsive_portrait", False)
             grid = Gtk.Grid(column_spacing=24, row_spacing=24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(False); columns = 5 if layout == "tiles" and active_section == "genres" else 4
+            profile = (getattr(self, "system_data", {}) or {}).get("display_profile")
+            larger_seven = (not portrait and profile in {"touch2-7", "touch2-5-7"}
+                            and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger")
+            if larger_seven:
+                grid.set_column_spacing(23)
             original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             if original:
                 grid.set_column_spacing(12); grid.set_row_spacing(12)

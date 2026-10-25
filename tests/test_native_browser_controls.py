@@ -793,8 +793,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
         owner=SimpleNamespace(viewport_width=1920,viewport_height=1080,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
-        self.assertEqual(columns,3)
-        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 960)
+        self.assertEqual(columns,4)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 23, 960)
 
     def test_larger_gen2_artist_grid_keeps_four_columns(self):
         monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
