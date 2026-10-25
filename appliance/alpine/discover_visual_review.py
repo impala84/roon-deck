@@ -268,9 +268,12 @@ vertical.set_value(max(vertical.get_lower(), min(
 settle()
 display.browser_action_anchor = mix_track
 display.render_browser({"status":"ready", "layout":"list", "action_menu":True, "discovery_track_actions":True, "items":[{"title":"Play Now", "action":True, "item_key":"play"},{"title":"Queue", "action":True, "item_key":"queue"}]})
-assert display.browser_action_popover is not None
-capture("mix-track-actions")
 mix_popup = display.browser_action_popover
+assert mix_popup is not None
+# Screenshot capture moves focus under Xvfb. Keep this review-only popover open
+# so the focus transition cannot trigger its normal application autohide path.
+mix_popup.set_autohide(False)
+capture("mix-track-actions")
 valid, mix_popup_bounds = mix_popup.compute_bounds(page)
 valid_anchor, mix_anchor_bounds = mix_track.compute_bounds(page)
 assert valid and valid_anchor
