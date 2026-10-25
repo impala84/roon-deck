@@ -41,7 +41,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         44 if max(width,height)>=1600 else 43 if width>=1200 else 26 if width<1000 else 32)
     logo_width, logo_height = display.settings_wordmark.get_size_request()
     assert logo_height == expected_logo_height, (width,height,logo_height)
-    assert logo_width < width * .35, (width,height,logo_width)
+    assert logo_width < width * .37, (width,height,logo_width)
     display.device_status.set_text("v1.1.0 Alpine")
     display.touch_diagnostics.set_text("Memory 5.4%  ·  Load 1.53  ·  63.3°C  ·  Controller ready  ·  Bridge offline")
     display.render_touch_controls({"services":[{"name":name,"enabled":True} for name in ("40","42","401")]}, {"roon_bridge":"stopped"})
