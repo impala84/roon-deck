@@ -25,10 +25,8 @@ window.theme-roon .detail-takeover.inline-detail { background: transparent; }
 .high-resolution .detail-footer .detail-primary-action { font-size: 25px; }
 
 /* Only the installation-profile picker receives the larger menu treatment. */
-.touch-profile-select { font-size: 22px; }
 .touch-profile-select popover listview row { min-height: 60px; padding: 9px 16px; }
 .touch-profile-select popover listview row label { font-size: 22px; }
-.portrait .touch-profile-select,
 .portrait .touch-profile-select popover listview row label { font-size: 27px; }
 .portrait .touch-profile-select popover listview row { min-height: 72px; }
 
@@ -157,3 +155,17 @@ popover listview row label { font-size: 19px; }
 .genre-trail-title { font-size: 19px; font-weight: 650; color: #cfd2d0; }
 .genre-trail-subtitle { font-size: 13px; color: #8a918e; }
 .genre-trail-row.current .genre-trail-title { color: #fff; }
+/* Seven-inch Gen 2 Settings: one corner radius (10px), one control height (64px), one gap (16px) and one
+   control font size (22px). The title block, version and diagnostics keep their sizes. */
+.touch2-7-landscape .settings-page .setting-line,
+.touch2-7-landscape .settings-page .settings-select,
+.touch2-7-landscape .settings-page .settings-theme-choice,
+.touch2-7-landscape .settings-page .settings-action { min-height: 64px; border-radius: 10px; font-size: 22px; }
+.touch2-7-landscape .settings-page .setting-line label,
+.touch2-7-landscape .settings-page .setting-line checkbutton label { font-size: 22px; font-weight: 600; }
+.touch2-7-landscape .settings-page .settings-select label { font-size: 22px; }
+.touch2-7-landscape .settings-page .settings-action { font-weight: 750; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 140px; min-height: 52px; padding: 0 20px; border-radius: 10px; margin-right: 4px; font-size: 20px; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 52px; min-height: 52px; }
+/* Genre trail rows must never collapse to a few pixels. */
+.genre-trail-row { min-width: 260px; }

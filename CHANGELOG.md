@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.7-beta.88 Alpine — 26 October 2026
+
+- Cog (800x480): found the real jump. The runtime alignment I added reset the cog margins every time the display re-laid out, which also happens on every track change and Browse render, so the cog snapped back and then moved again 250ms later. It now only restarts when the screen size or interface size changes, so Now Playing and Discover settle on the Bus Times / Home position and stay there.
+- Genre browser: the left column was squeezed to about 44px because a scroller with no horizontal scrolling takes its content's minimum width. It now has a fixed 300px width.
+- Genre screen "Shuffle Genre / Artists / Albums": it is a "home" layout, which my last change missed. It now uses the same fixed-size tiles, icon size and stroke weight as the main genre grid.
+- Portrait Settings: the Profile drop-down text was 22px (27px in portrait) while Orientation and Rotation used the standard select size. It now matches them.
+- Seven-inch Gen 2 Settings: one 10px corner radius, one 64px control height, one 16px gap between buttons and one 22px control font. Sleep is 52px tall like the close button, with a 16px gap between them. Title, version and diagnostics keep their sizes.
+
 ## 1.1.7-beta.87 Alpine — 26 October 2026
 
 - Loading dots: removed the fixed 213px top / 62px right offsets that put the dots in a different place on every page (the Discover pages have no sidebar and a different height). They are now centred in whatever area they fill, and on Gen 2 they are nudged to the centre of the cover area on Browse and to the centre of the screen on Discover.

@@ -613,10 +613,15 @@ class Display(Gtk.Application):
         # row instead of centring them in it. Row height differs per page (Bus and Home
         # are taller than the Now Playing toolbar), so centring made the cog drift.
         # A new display geometry or interface size starts the cog alignment afresh.
-        for cog in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", [])):
-            if cog is not None: cog.set_margin_start(0); cog.set_margin_top(0)
-        self.cog_reference_x = None; self.cog_reference_y = None
-        GLib.timeout_add(250, lambda: self.align_header_cogs() and False)
+        # adapt_display also runs on every track change and Browse render, so only restart when the geometry changed;
+        # resetting the margins each time made the cog visibly jump back and forth.
+        cog_signature = (width, height, (self.settings_data or {}).get("interface_size"))
+        if cog_signature != getattr(self, "cog_signature", None):
+            self.cog_signature = cog_signature
+            for cog in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", [])):
+                if cog is not None: cog.set_margin_start(0); cog.set_margin_top(0)
+            self.cog_reference_x = None; self.cog_reference_y = None
+            GLib.timeout_add(250, lambda: self.align_header_cogs() and False)
         for button in getattr(self, "header_utility_buttons", []):
             button.set_valign(Gtk.Align.START if touch2_7_landscape or original_landscape else Gtk.Align.CENTER)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
@@ -952,7 +957,7 @@ class Display(Gtk.Application):
         # Genre drill-down: the parent list stays on the left while its child list opens on the right.
         self.genre_stack = []; self.genre_pending = None; self.browser_last_action = None
         self.browser_trail_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        self.browser_trail_scroll = Gtk.ScrolledWindow(); self.browser_trail_scroll.add_css_class("genre-trail"); self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_trail_scroll.set_min_content_width(300); self.browser_trail_scroll.set_max_content_width(300); self.browser_trail_scroll.set_propagate_natural_width(False); self.browser_trail_scroll.set_hexpand(False); self.browser_trail_scroll.set_child(self.browser_trail_list); self.browser_trail_scroll.set_visible(False); content.prepend(self.browser_trail_scroll)
+        self.browser_trail_scroll = Gtk.ScrolledWindow(); self.browser_trail_scroll.add_css_class("genre-trail"); self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_trail_scroll.set_size_request(300, -1); self.browser_trail_scroll.set_hexpand(False); self.browser_trail_scroll.set_vexpand(True); self.browser_trail_scroll.set_child(self.browser_trail_list); self.browser_trail_scroll.set_visible(False); content.prepend(self.browser_trail_scroll)
         # Independent result scrollers must not be nested in the ordinary
         # browser viewport: that viewport measures them at minimum height.
         self.browser_search_columns = Gtk.Box(spacing=18); self.browser_search_columns.set_homogeneous(True); self.browser_search_columns.set_hexpand(True); self.browser_search_columns.set_vexpand(True); self.browser_search_columns.set_visible(False); content.append(self.browser_search_columns)
@@ -1063,7 +1068,7 @@ class Display(Gtk.Application):
         # button padding from stretching it into an oval.
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
         self.settings_close.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
-        if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 18)
+        if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 16)
         if hasattr(self, "settings_utilities"): self.settings_utilities.set_spacing(32 if portrait and width >= 1000 else 12)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
         # Both seven-inch landscape panels: Install Update on the left, Reboot on the right in one row.
@@ -1133,7 +1138,7 @@ class Display(Gtk.Application):
         appearance.append(self.touch_background_row)
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("NETWORK CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
-        self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=12); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
+        self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=16); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
         daily.append(self.label("INTERFACE SCALING", "eyebrow"))
         self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
@@ -1772,7 +1777,7 @@ class Display(Gtk.Application):
             if child.has_css_class("setting-line"): self.settings_row_sizes.remove_widget(child)
             self.touch_daily.remove(child)
         bridge_state = (system or {}).get("roon_bridge")
-        service_pair = Gtk.Box(spacing=12); service_pair.set_homogeneous(True)
+        service_pair = Gtk.Box(spacing=16); service_pair.set_homogeneous(True)
         if bridge_state in {"active", "running", "inactive", "stopped"}:
             bridge = Gtk.Box(spacing=8); bridge.add_css_class("setting-line"); bridge_check = Gtk.CheckButton(label="Roon Bridge"); bridge_check.set_active(bridge_state in {"active", "running"}); bridge_check.connect("toggled", self.toggle_bridge); bridge.append(bridge_check); service_pair.append(bridge)
         netdata_state = (system or {}).get("netdata")
@@ -3276,9 +3281,9 @@ class Display(Gtk.Application):
             if getattr(self, "responsive_portrait", False): grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
             for index, item in enumerate(item for item in items if item.get("hint") != "header"): grid.attach(self.browser_menu_card(item, layout == "menu"), index % columns, index // columns, 1, 1)
             self.browser_list.append(grid)
-        elif items and (layout in {"covers", "tiles"} or (layout == "menu" and not getattr(self, "responsive_portrait", False))):
+        elif items and (layout in {"covers", "tiles"} or (layout in {"home", "menu"} and not getattr(self, "responsive_portrait", False))):
             portrait = getattr(self, "responsive_portrait", False)
-            menu_tiles = layout == "menu"
+            menu_tiles = layout in {"home", "menu"}
             grid = Gtk.Grid(column_spacing=24, row_spacing=24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(False); columns = 5 if layout == "tiles" and active_section == "genres" else 4
             profile = (getattr(self, "system_data", {}) or {}).get("display_profile")
             larger_seven = (not portrait and profile in {"touch2-7", "touch2-5-7"}
