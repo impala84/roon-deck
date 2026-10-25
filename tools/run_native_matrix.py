@@ -55,7 +55,7 @@ def write_gallery(output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--screen", choices=("settings", "discover", "all"), default="all")
+    parser.add_argument("--screen", choices=("settings", "discover", "layout", "all"), default="all")
     parser.add_argument("--output", type=Path, default=ROOT / "dist" / "native-review")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
@@ -81,6 +81,9 @@ def main() -> None:
         }
         if args.screen in ("discover", "all"):
             xvfb(size, "appliance/alpine/discover_visual_review.py", environment)
+        if args.screen == "layout":
+            # Report-only by default; not part of "all" until its numbers are trusted.
+            xvfb(size, "appliance/alpine/layout_alignment_smoke.py", environment)
         if args.screen in ("settings", "all"):
             xvfb(
                 size,

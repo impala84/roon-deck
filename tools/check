@@ -11,12 +11,13 @@ usage() {
   cat <<'EOF'
 Usage:
   tools/check fast
-  tools/check screen [settings|discover|all]
+  tools/check screen [settings|discover|layout|all]
   tools/check candidate
   tools/check image
 
 fast       Python, controller, shell and version checks.
 screen     Cached Alpine/GTK rendering across the supported viewport matrix.
+           "layout" reports real header/nav positions per page (not part of "all").
 candidate  Fast checks, all native layouts and deterministic appliance smoke tests.
 image      Candidate checks plus the complete ARM64 disk image (ARM64 Linux only).
 EOF
@@ -68,7 +69,7 @@ build_native_image() {
 native() {
   local target=${1:-all}
   local output
-  case "$target" in settings|discover|all) ;; *) usage; exit 2 ;; esac
+  case "$target" in settings|discover|layout|all) ;; *) usage; exit 2 ;; esac
   build_native_image
   output="$repo/dist/native-review/$target"
   mkdir -p "$output"
