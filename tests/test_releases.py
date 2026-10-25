@@ -114,3 +114,16 @@ class ReleaseTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+
+class GithubJsonTests(unittest.TestCase):
+    def test_rate_limit_is_reported_clearly_and_not_as_a_generic_failure(self):
+        import io, urllib.error
+        from unittest import mock
+        from pi_bus_time_display import releases
+        error = urllib.error.HTTPError("u", 403, "rate limited", {"X-RateLimit-Reset": str(int(__import__("time").time()) + 600)}, io.BytesIO(b"{}"))
+        with mock.patch.object(releases.urllib.request, "urlopen", side_effect=error), mock.patch.object(releases, "CACHE_PATH", releases.Path("/nonexistent/x.json")):
+            with self.assertRaises(releases.RateLimited) as caught:
+                releases.github_json("https://api.github.com/x")
+        self.assertIn("limiting requests", str(caught.exception))
+        self.assertIn("minute", str(caught.exception))

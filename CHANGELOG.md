@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.90 Alpine — 26 October 2026
+
+- Updates: the Pis share one home network address and GitHub only allows 60 anonymous lookups an hour per address. Each update attempt, check and Settings refresh spends several of them, so three Pis can use the allowance up together; it then recovers by itself, which is why waiting sometimes worked. Lookups now re-use the last answer when GitHub says nothing changed (those replies do not count against the allowance), and a rate-limited network now says so and when it resets instead of "Download or application preparation failed". Any other failure now shows its cause, such as the HTTP code.
+- This only takes effect once a Pi has installed it, so the first update may still need a retry.
+- With the old releases now deleted the list is one page instead of two, which already halves the lookups.
+
 ## 1.1.7-beta.89 Alpine — 26 October 2026
 
 - No visual change. The updater now accepts release tags with or without the `-alpine` ending, so later releases can drop it. Install this one before that happens: beta.88 and earlier only see `-alpine` tags.

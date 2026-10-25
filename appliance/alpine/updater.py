@@ -28,7 +28,7 @@ MANAGED_RELEASE = re.compile(r"[0-9a-f]{40}-[0-9]+")
 UPDATE_RESERVE_BYTES = 96_000_000
 MIN_STAGE_BYTES = 160_000_000
 sys.path.insert(0, str(APP / "src"))
-from pi_bus_time_display.releases import published_releases, select_release
+from pi_bus_time_display.releases import github_json, published_releases, select_release
 CONFIG = Path("/etc/pi-home/config.toml")
 
 
@@ -61,8 +61,8 @@ def run(args, timeout=300):
 
 
 def fetch_json(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "Pi-Home-Alpine-Updater", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(request, timeout=30) as response: return json.load(response)
+    # Shared with the release list: unchanged answers are re-validated for free and a rate-limited network says so.
+    return github_json(url, timeout=30)
 
 
 def wait_for_clock(timeout=45):
@@ -352,7 +352,11 @@ def main():
             if isinstance(reason, ssl.SSLCertVerificationError):
                 message = "HTTPS certificate check failed. Check the Pi clock and network time sync; existing installation retained"
             else:
-                message = str(error) if isinstance(error, RuntimeError) else "Download or application preparation failed; existing installation retained"
+                if isinstance(error, RuntimeError): message = str(error)
+                else:
+                    code = getattr(error, "code", None)
+                    detail = f"HTTP {code}" if code else str(getattr(error, "reason", error))[:80] or type(error).__name__
+                    message = f"Download or application preparation failed ({detail}); existing installation retained"
             status("Failed: " + message)
             raise SystemExit(1)
 
