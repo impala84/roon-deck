@@ -56,6 +56,12 @@ class SettingsPageMixin:
             if control.get_parent() is not target:
                 control.get_parent().remove(control); target.append(control)
         self.settings_display_row.set_visible(wide_portrait); self.performance_graph.set_visible(wide_portrait)
+        # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
+        self.settings_wide_portrait = wide_portrait
+        self.settings_appearance_group.set_visible(wide_portrait)
+        self.settings_appearance.set_visible(not wide_portrait)
+        self.settings_scaling_heading.set_visible(not wide_portrait); self.touch_interface_size.set_visible(not wide_portrait)
+        self.sync_diagnostics_visibility(); self.sync_appearance_selects()
         self.settings_display_column.set_vexpand(wide_portrait)
         self.settings_controls.set_valign(Gtk.Align.FILL if wide_portrait else Gtk.Align.START)
         (self.window.add_css_class if wide_portrait else self.window.remove_css_class)("settings-with-graph")
@@ -117,7 +123,7 @@ class SettingsPageMixin:
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("NETWORK CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=16); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
-        daily.append(self.label("INTERFACE SCALING", "eyebrow"))
+        daily.append(self.label("INTERFACE SCALING", "eyebrow")); self.settings_scaling_heading = daily.get_last_child()
         self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True)
@@ -142,6 +148,20 @@ class SettingsPageMixin:
         self.settings_display_row = display_row; display_column.append(display_row); display_column.reorder_child_after(display_row, self.touch_mounting)
         self.performance_graph = PerformanceGraph(); self.performance_graph.set_visible(False)
         display_column.append(self.performance_graph); display_column.reorder_child_after(self.performance_graph, display_row)
+        # The same three choices as drop-downs, for the 10-inch page: Appearance = scaling, theme, background.
+        appearance_group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance_group.set_visible(False); self.settings_appearance_group = appearance_group
+        appearance_group.append(self.label("APPEARANCE", "eyebrow"))
+        appearance_row = Gtk.Box(spacing=16); appearance_row.set_homogeneous(True); appearance_row.add_css_class("settings-appearance-row"); appearance_group.append(appearance_row)
+        self.scaling_select = Gtk.DropDown.new_from_strings(["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"])
+        self.theme_select = Gtk.DropDown.new_from_strings(["Theme · Mint", "Theme · Roon"])
+        self.background_select = Gtk.DropDown.new_from_strings(["Background · Gradient", "Background · Black"])
+        for select in (self.scaling_select, self.theme_select, self.background_select):
+            select.add_css_class("settings-select"); appearance_row.append(select); self.settings_row_sizes.add_widget(select)
+        self.scaling_select.connect("notify::selected", self.appearance_select_changed)
+        self.theme_select.connect("notify::selected", self.appearance_select_changed)
+        self.background_select.connect("notify::selected", self.appearance_select_changed)
+        display_column.append(appearance_group); display_column.reorder_child_after(appearance_group, None)
+        self.touch_diagnostics.connect("notify::label", self.sync_diagnostics_visibility)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
         actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
@@ -251,6 +271,34 @@ class SettingsPageMixin:
                 return False
             GLib.idle_add(finish)
         threading.Thread(target=save, daemon=True).start()
+
+    def sync_diagnostics_visibility(self, *_):
+        """10-inch: the graph shows the live figures, so the health line only appears when it carries a message."""
+        text = self.touch_diagnostics.get_text() or ""
+        health = text.startswith(("Memory", "Loading diagnostics"))
+        self.touch_diagnostics.set_visible(not (getattr(self, "settings_wide_portrait", False) and health))
+
+    def sync_appearance_selects(self):
+        """Show the current scaling, theme and background in the 10-inch drop-downs without re-saving them."""
+        if not hasattr(self, "scaling_select"): return
+        data = self.settings_data or {}
+        wanted = ((self.scaling_select, {"smaller": 0, "standard": 1, "larger": 2}.get(data.get("interface_size"), 1)),
+                  (self.theme_select, 1 if data.get("display_theme") == "roon" else 0),
+                  (self.background_select, 1 if data.get("display_background", "current") == "black" else 0))
+        self.appearance_select_updating = True
+        for select, index in wanted:
+            if select.get_selected() != index: select.set_selected(index)
+        self.appearance_select_updating = False
+
+    def appearance_select_changed(self, select, *_):
+        if getattr(self, "appearance_select_updating", False): return
+        index = select.get_selected()
+        if select is self.scaling_select:
+            if self.touch_interface_size.get_selected() != index: self.touch_interface_size.set_selected(index)
+        elif select is self.theme_select:
+            self.change_theme("roon" if index == 1 else "fresh-mint")
+        elif select is self.background_select:
+            self.change_background("black" if index == 1 else "current")
 
     def change_interface_size(self, dropdown, *_):
         if getattr(self, "interface_size_updating", False): return

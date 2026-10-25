@@ -764,7 +764,7 @@ class BrowsePageMixin:
                 button.browse_item_key = item.get("item_key")
                 button.set_vexpand(False); button.set_valign(Gtk.Align.START)
                 if item.get("action"): button.add_css_class("browser-action")
-                else: button.opens_page = True
+                else: button.opens_page = not album_profile
                 button.connect("clicked", self.open_browser_item, item.get("item_key")); target.append(button)
         GLib.timeout_add(100, self.load_visible_browser_artwork)
         GLib.timeout_add(60, self.finish_browser_render)

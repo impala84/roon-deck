@@ -58,7 +58,7 @@ class PerformanceGraphTests(unittest.TestCase):
         code = native_text()
         self.assertIn("wide_portrait = portrait and width >= 1000", code)
         self.assertIn("self.settings_display_row.set_visible(wide_portrait); self.performance_graph.set_visible(wide_portrait)", code)
-        self.assertIn(".portrait.large-portrait .settings-display-row .settings-select { font-size: 21px; }", code)
+        self.assertIn(".portrait.large-portrait .settings-display-row .settings-select, .portrait.large-portrait .settings-appearance-row .settings-select { font-size: 21px; }", code)
 
 
 if __name__ == "__main__":

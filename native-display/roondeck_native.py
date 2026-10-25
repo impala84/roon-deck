@@ -616,6 +616,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             requested_interface_size = {"smaller": 0, "standard": 1, "larger": 2}.get(config.get("interface_size"), 1)
             if self.touch_interface_size.get_selected() != requested_interface_size:
                 self.interface_size_updating = True; self.touch_interface_size.set_selected(requested_interface_size); self.interface_size_updating = False
+            self.sync_appearance_selects()
             for button in self.roon_nav_buttons: button.set_label("Now Playing")
             self.now_playing_tab.set_label((config.get("roon_now_playing_name") or "Now Playing").upper())
             self.queue_tab.set_label((config.get("roon_queue_name") or "Queue").upper())
@@ -805,5 +806,8 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
 
 
 if __name__ == "__main__":
+    # A native crash (segfault) now leaves a Python traceback in /var/log/pi-home/display-error.log.
+    import faulthandler
+    faulthandler.enable(all_threads=True)
     publish_display_source()
     Display().run(None)

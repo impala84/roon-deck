@@ -57,3 +57,20 @@ class GenreShortcutIconTests(unittest.TestCase):
         code = native_text()
         self.assertIn('genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums"} or row_title.startswith("shuffle")))', code)
         self.assertIn('self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut', code)
+
+
+class TenInchSettingsTests(unittest.TestCase):
+    def setUp(self):
+        self.code = native_text()
+
+    def test_appearance_is_one_row_of_three_dropdowns_on_the_10_inch(self):
+        for text in ('["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"]', '["Theme · Mint", "Theme · Roon"]',
+                     '["Background · Gradient", "Background · Black"]', 'appearance_group.append(self.label("APPEARANCE", "eyebrow"))',
+                     "self.settings_appearance.set_visible(not wide_portrait)"):
+            self.assertIn(text, self.code)
+
+    def test_health_line_is_hidden_on_the_10_inch_unless_it_carries_a_message(self):
+        self.assertIn('health = text.startswith(("Memory", "Loading diagnostics"))', self.code)
+
+    def test_tapping_a_track_plays_it_without_blanking_the_album(self):
+        self.assertIn("else: button.opens_page = not album_profile", self.code)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.101 Alpine — 26 October 2026
+
+- 10-inch Settings: Interface scaling, Display theme and Display background are now one "Appearance" row of three drop-downs (Scaling, Theme, Background), which gives the page breathing space. The health line under the title (Memory, Load, temperature) is hidden because the graph shows it; it still appears if a setting fails to save.
+- Tapping a track in an album no longer blanks the album with the loading dots first. A track plays and goes to Now Playing, it does not open a page, and the blanking removed the tapped button from inside its own tap, which is the most likely cause of the crash on the 10-inch. I could not reproduce the crash here, so this is not confirmed.
+- If the display does crash from a native fault, it now writes a Python traceback to /var/log/pi-home/display-error.log so the cause can be read.
+
 ## 1.1.7-beta.100 Alpine — 26 October 2026
 
 - Genre lists: Shuffle Genre, Artists and Albums are actions on the genre itself, so they now use the larger key-line icons from the genre grid (shuffle, head-and-shoulders and album, 62px instead of 42px) in the same purple. The sub-genres below them keep the plain thumbnail, so the rows that act now look different from the rows that open another column.
