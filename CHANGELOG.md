@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.80 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: beta.79's bigger covers made the page 1312px wide, pushing the cog, clock and scrubber off the right edge. The measured right-hand reserve (133px) is now part of the sizing, so covers are 221px (Larger 218px) with 12px gaps and the page stays at 1280px.
+- Seven-inch Gen 2 Browse: the cover area starts 10px higher and the visible area now runs lower (clip line about 10-19px above the Back button's bottom edge instead of about 30px), so two full rows show without a sliver of a third.
+
 ## 1.1.7-beta.79 Alpine — 25 October 2026
 
 - Seven-inch Gen 2 Browse: Larger now fills the area too (226px covers, up from 217); Standard stays at 229px.

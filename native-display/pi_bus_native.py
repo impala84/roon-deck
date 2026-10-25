@@ -885,7 +885,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .display-landscape .page-header .discover-utility { margin-top: 7px; }
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
 .touch2-7-landscape .browser-sidebar { min-width: 144px; }
-.touch2-7-landscape .browser-main { padding-left: 9px; }
+.touch2-7-landscape .browser-main { padding-left: 9px; margin-top: -10px; }
 .touch2-7-landscape .queue-scroll.browser-scroll-fill { margin-right: 0; }
 .touch2-7-landscape .browser-scroll-fill .queue-list { padding-right: 0; }
 .touch2-7-landscape .browser-scrubber { min-width: 64px; padding-left: 0; }
@@ -3555,11 +3555,10 @@ class Display(Gtk.Application):
         if original_view: return 0
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         gen2_seven = not getattr(self, "responsive_portrait", False) and 1200 <= width < 1500 and 650 <= height < 850
-        # Standard 7-inch: two rows of 235px cards end at y~604, so the clip line sits at y~610.
-        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 10
-        # Larger 7-inch Gen 2: 223px cards with a 22px row gap put the third row at y~600. A 28px
-        # margin puts the clip line at y~592, so the first view shows exactly two rows.
-        return 28 if gen2_seven else 10
+        # The clip line sits at y = 609 - margin. Covers start ~10px higher than before (browser-main margin), so
+        # two rows end near y~578 and the third row starts near y~600; clip just above that.
+        if gen2_seven and (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger": return 16
+        return 19 if gen2_seven else 10
 
     def browser_grid_metrics(self, genres=False, artists=False):
         monitors = Gdk.Display.get_default().get_monitors()
@@ -3611,10 +3610,10 @@ class Display(Gtk.Application):
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
             # 217px covers (223px cards, 14px column gaps) end at x~1134, leaving ~54px before the rail.
             size = min(size, 217)
-            # Standard/Smaller/Larger covers fill x=197..1179. Cards (size + 6) start at x=197 and may end at view_width - 101: the
-            # 28px page edge, 64px rail, 2px gap, 3px grid padding and 4px of safety. Three 14px gaps between four cards.
-            # Larger keeps 12px more in reserve (3px a cover) because its wider text has pushed the window past 1280 before.
-            size = max(64, min(236, (view_width - 101 - 197 - 14 * 3 - (12 if larger_seven else 0)) // 4 - 6))
+            # Measured on the Pi: with 229px covers the window grew to 1312px, so everything right of the grid
+            # (scroll margin, 64px rail, page edge) needs 133px. Four cards (size + 6) from x=197, three 12px
+            # gaps, 24px for card padding and 4px spare must fit in what remains. Larger keeps 12px more in reserve.
+            size = max(64, min(236, (view_width - 133 - 197 - 12 * 3 - 24 - 4 - (12 if larger_seven else 0)) // 4))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -4078,7 +4077,7 @@ class Display(Gtk.Application):
                     and 650 <= (getattr(self, "viewport_height", None) or 720) < 850):
                 # Seven-inch Gen 2: tighter columns let the covers grow; a looser row gap
                 # puts the second row's bottom near the Back button's.
-                grid.set_column_spacing(14); grid.set_row_spacing(22 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" else 26)
+                grid.set_column_spacing(12); grid.set_row_spacing(22 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" else 26)
             original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             if original:
                 grid.set_column_spacing(12); grid.set_row_spacing(12)
