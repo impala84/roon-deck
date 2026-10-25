@@ -2295,8 +2295,14 @@ class Display(Gtk.Application):
         if status and "display_theme" in status and config is None: self.apply_theme(status["display_theme"])
         if isinstance(config, dict) and config:
             grid_changed = self.settings_data.get("portrait_discovery_columns", 2) != config.get("portrait_discovery_columns", 2)
+            previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")
             self.settings_data = config
             self.apply_interface_size(config.get("interface_size", "standard"))
+            if config.get("interface_size", "standard") != previous_interface_size:
+                # Artwork size, line counts and other pixel budgets depend on the interface size, but
+                # adapt_display first runs before the saved config has loaded. Recalculate when the saved
+                # size arrives, as change_interface_size already does when the dropdown is used.
+                GLib.idle_add(self.adapt_display)
             if grid_changed and getattr(self, "responsive_portrait", False) and hasattr(self, "discovery_data"):
                 self.discovery_signature = None
                 self.render_discover(self.discovery_request, self.discovery_data)
