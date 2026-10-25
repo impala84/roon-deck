@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.98 Alpine — 26 October 2026
+
+- Genre screens "Shuffle Genre / Artists / Albums / sub-genres": found why they kept stretching. An older layout path caught every menu screen first, so the fixed-size tiles from beta.87 and beta.88 never ran there. These screens now use the same fixed-size tile grid as the genre grid: four columns, two rows, the same tile size, large icons with one stroke weight, and the grid never grows to fill the screen (three items show three tiles, in the same place and size).
+- Genre two-column browser: the left column scrolls without a visible scrollbar and has a wider gutter, so the right column starts further across.
+- Genre two-column browser: tapping another row in the left column now opens it and updates the right column (it steps back to that list and opens the row for you).
+
 ## 1.1.7-beta.97 Alpine — 26 October 2026
 
 - Cog (800x480): beta.96 left the Discover and Now Playing cog's left and top edges on the Bus Times cog's, but it was drawn a pixel smaller because its icon was centred in its box while the Bus Times and Home icon fills the box. The music-page icon now fills its 36px box exactly as the Bus Times and Home icon does, so both are laid out and drawn identically.

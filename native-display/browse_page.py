@@ -107,6 +107,7 @@ class BrowsePageMixin:
             self.request_browser(pending[0], **pending[1])
             return False
         try:
+            if getattr(self, "genre_sibling_target", None) and self.follow_genre_sibling(data): return False
             self.render_browser(data)
         except Exception as error:
             # A rendering exception must not permanently lock navigation.
@@ -482,6 +483,29 @@ class BrowsePageMixin:
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
 
+    def select_genre_sibling(self, item, parent_title):
+        """Left column tap: step back to the parent list, then open the chosen sibling so the right column updates."""
+        if self.browser_loading or not item.get("title"): return
+        self.genre_sibling_target = {"title": (item.get("title") or "").strip().casefold(), "parent": (parent_title or "").strip().casefold()}
+        self.show_browser_loading()
+        self.request_browser("back")
+
+    def follow_genre_sibling(self, data):
+        """When the parent list arrives for a pending sibling choice, open that sibling without drawing the parent."""
+        target = getattr(self, "genre_sibling_target", None)
+        if not target: return False
+        self.genre_sibling_target = None
+        if (data.get("title") or "").strip().casefold() != target["parent"]: return False
+        for item in data.get("items", []):
+            if item.get("item_key") and not item.get("action") and (item.get("title") or "").strip().casefold() == target["title"]:
+                self.browser_state = data
+                if self.genre_stack: self.genre_stack.pop()
+                self.genre_pending = {"title": data.get("title") or "", "items": [row for row in data.get("items", []) if row.get("hint") != "header" and not row.get("action")]}
+                self.browser_loading = False
+                self.request_browser("open", item_key=item["item_key"])
+                return True
+        return False
+
     def prepare_genre_columns(self, data, layout):
         """Keep a trail of the genre lists above this one and lay them out as two columns."""
         try:
@@ -504,11 +528,13 @@ class BrowsePageMixin:
                 heading = self.label(parent.get("title") or "", "genre-heading"); heading.add_css_class("trail"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
                 current = (data.get("title") or "").strip().casefold()
                 for item in parent.get("items", []):
-                    row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); row.add_css_class("genre-trail-row")
-                    if (item.get("title") or "").strip().casefold() == current: row.add_css_class("current")
-                    title = self.label(item.get("title") or "", "genre-trail-title"); title.set_ellipsize(Pango.EllipsizeMode.END); row.append(title)
+                    copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); copy.set_halign(Gtk.Align.START)
+                    title = self.label(item.get("title") or "", "genre-trail-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); copy.append(title)
                     if item.get("subtitle"):
-                        subtitle = self.label(item.get("subtitle"), "genre-trail-subtitle"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); row.append(subtitle)
+                        subtitle = self.label(item.get("subtitle"), "genre-trail-subtitle"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); subtitle.set_xalign(0); copy.append(subtitle)
+                    row = Gtk.Button(); row.add_css_class("genre-trail-row"); row.set_child(copy); row.set_focusable(False)
+                    if (item.get("title") or "").strip().casefold() == current: row.add_css_class("current")
+                    else: row.connect("clicked", lambda _button, choice=item, parent_title=parent.get("title") or "": self.select_genre_sibling(choice, parent_title))
                     self.browser_trail_list.append(row)
             if plain_list and wide and data.get("title"):
                 heading = self.label(data.get("title"), "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_list.append(heading)
@@ -645,7 +671,7 @@ class BrowsePageMixin:
             if play_controls:
                 play_controls.set_margin_top(round(getattr(self, "viewport_height", 1280) * .072)); preview.append(play_controls)
             self.browser_list.append(preview)
-        elif items and layout in {"home", "menu"}:
+        elif items and layout in {"home", "menu"} and (getattr(self, "responsive_portrait", False) or data.get("section") != "genres"):
             grid = Gtk.Grid(column_spacing=12, row_spacing=12); grid.add_css_class("browser-home-grid"); grid.set_column_homogeneous(True); grid.set_row_homogeneous(True); columns = 4 if not getattr(self, "responsive_portrait", False) or getattr(self, "viewport_width", 800) >= 1000 else 2
             if getattr(self, "responsive_portrait", False): grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
             for index, item in enumerate(item for item in items if item.get("hint") != "header"): grid.attach(self.browser_menu_card(item, layout == "menu"), index % columns, index // columns, 1, 1)

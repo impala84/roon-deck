@@ -33,3 +33,20 @@ class Beta95PolishTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GenreBrowserTests(unittest.TestCase):
+    def setUp(self):
+        self.code = native_text()
+
+    def test_genre_menu_screens_use_the_fixed_size_tile_grid(self):
+        self.assertIn('elif items and layout in {"home", "menu"} and (getattr(self, "responsive_portrait", False) or data.get("section") != "genres"):', self.code)
+
+    def test_left_column_rows_are_buttons_that_pick_a_sibling(self):
+        self.assertIn('row = Gtk.Button(); row.add_css_class("genre-trail-row")', self.code)
+        self.assertIn("self.select_genre_sibling(choice, parent_title)", self.code)
+        self.assertIn("self.follow_genre_sibling(data): return False", self.code)
+
+    def test_left_column_has_no_visible_scrollbar_and_a_wider_gutter(self):
+        self.assertIn("self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)", self.code)
+        self.assertIn(".genre-trail { margin-right: 40px; }", self.code)
