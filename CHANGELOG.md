@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.91 Alpine — 26 October 2026
+
+- No visual change. The display's code moves out of one 4,400-line `pi_bus_native.py` into page files: `bus_page.py`, `home_page.py`, `now_playing_page.py`, `discover_page.py`, `browse_page.py`, `settings_page.py`, `sleep_and_touch.py`, `artwork.py`, `screen_preview.py` and a shared `native_common.py`. `pi_bus_native.py` is now 806 lines and still the file that starts the display. See `native-display/README.md`.
+- All 184 methods were moved without editing them, and checked to be identical to beta.90. The layout and fit reports for all six screen sizes match beta.90 exactly.
+- If the display fails to start, select beta.90 in Settings → Software.
+
 ## 1.1.7-beta.90 Alpine — 26 October 2026
 
 - Updates: the Pis share one home network address and GitHub only allows 60 anonymous lookups an hour per address. Each update attempt, check and Settings refresh spends several of them, so three Pis can use the allowance up together; it then recovers by itself, which is why waiting sometimes worked. Lookups now re-use the last answer when GitHub says nothing changed (those replies do not count against the allowance), and a rate-limited network now says so and when it resets instead of "Download or application preparation failed". Any other failure now shows its cause, such as the HTTP code.

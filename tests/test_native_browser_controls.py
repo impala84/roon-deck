@@ -9,17 +9,22 @@ import subprocess
 import uuid
 from unittest.mock import Mock
 
-from native_source import native_text
+from native_source import display_modules, method_source, native_text, python_tree
 
 
 SOURCE = Path(__file__).parents[1] / "native-display" / "pi_bus_native.py"
 
 
 def native_method(name, dependencies=None):
-    tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
-    method = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == name)
+    for source in display_modules():
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        method = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == name), None)
+        if method:
+            break
+    else:
+        raise LookupError(name)
     namespace = dict(dependencies or {})
-    exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), "exec"), namespace)
+    exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), "exec"), namespace)
     return namespace[name]
 
 
@@ -879,7 +884,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.settings_data["portrait_discovery_columns"] = 3
         for section in ("recent", "daily", "releases"):
             self.assertEqual(native_method("discovery_grid_metrics", {"Gdk": gdk})(owner, section), (3, 200))
-        self.assertIn('self.discovery_recent_mode = "added"', SOURCE.read_text())
+        self.assertIn('self.discovery_recent_mode = "added"', native_text())
 
     def test_new_release_detail_uses_discover_back_rail_not_browse_search(self):
         source=native_text()
@@ -888,7 +893,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_discover_fetch_is_not_queued_behind_the_general_status_poll(self):
         source=native_text()
-        poll=source[source.index('    def poll(self):'):source.index('    def capture_display',source.index('    def poll(self):'))]
+        poll=method_source('poll')
         self.assertNotIn('/api/discovery?',poll)
         self.assertIn('threading.Thread(target=self._fetch_discovery',source)
         self.assertIn('GLib.timeout_add(600 if data and data.get("status") == "loading" else 1200',source)
@@ -959,7 +964,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('("recommendations", "FOR YOU")',code)
 
     def test_mix_duotone_preserves_alpha_and_maps_black_white_and_coloured_pixels(self):
-        tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        tree = python_tree()
         function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "mix_duotone_matrix")
         namespace = {}; exec(compile(ast.Module(body=[function], type_ignores=[]), str(SOURCE), "exec"), namespace)
         matrix = namespace["mix_duotone_matrix"]()
@@ -1024,9 +1029,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_now_playing_keeps_fixed_artwork_while_replacement_arrives(self):
         code=native_text()
-        build=code[code.index('    def build_roon'):code.index('    def build_home')]
-        apply=code[code.index('    def apply(self,'):code.index('    def apply_artwork',code.index('    def apply(self,'))]
-        missing=code[code.index('    def note_missing_artwork'):code.index('    def open_settings')]
+        build=method_source('build_roon')
+        apply=method_source('apply')
+        missing=method_source('note_missing_artwork')
         self.assertIn('self.set_browser_placeholder(self.artwork)',build)
         self.assertNotIn('self.set_browser_placeholder(self.artwork)',apply)
         self.assertIn('self.set_browser_placeholder(self.artwork)',missing)
@@ -1131,15 +1136,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(owner.browser_pending_request, ("artist", {"name":"The Beatles"}))
 
     def test_artist_panel_keeps_portrait_and_name_without_biography(self):
-        tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        tree = python_tree()
         method = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "render_artist_profile")
         code = ast.unparse(method)
         self.assertIn('Gtk.Picture()', code)
         self.assertIn("'artist-name'", code)
         self.assertNotIn('artist_bio', code)
         self.assertNotIn('get_json', code)
-        self.assertIn('self.render_artist_profile(data.get("artist_profile"), artist_play)', SOURCE.read_text(encoding="utf-8"))
-        self.assertIn('"Play Artist Radio"', SOURCE.read_text(encoding="utf-8"))
+        self.assertIn('self.render_artist_profile(data.get("artist_profile"), artist_play)', native_text())
+        self.assertIn('"Play Artist Radio"', native_text())
         web = (SOURCE.parents[1] / "roon-controller" / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn('renderArtistProfile(data.artist_profile, artistPlay)', web)
         self.assertNotIn('Artist background is unavailable.', web)
@@ -1185,8 +1190,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px;', code)
         self.assertIn('layout = "list" if data.get("artist_profile")', code)
         self.assertNotIn('slot.append(self.label(profile["source"], "artist-source"))', code)
-        self.assertIn('browser_content.set_homogeneous(False)', SOURCE.read_text(encoding='utf-8'))
-        self.assertIn('summary.add_css_class("artist-bio")', SOURCE.read_text(encoding='utf-8'))
+        self.assertIn('browser_content.set_homogeneous(False)', native_text())
+        self.assertIn('summary.add_css_class("artist-bio")', native_text())
         self.assertIn('self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)', code)
 
     def test_original_discovery_sidebar_aligns_with_browse_sidebar(self):

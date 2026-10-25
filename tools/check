@@ -56,7 +56,7 @@ fast() {
     "$repo/scripts/pi-bus-update" "$repo/scripts/pi-bus-appliance-mode" \
     "$repo/scripts/pi-bus-cage-launch" "$repo/tools/check"
   PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/roondeck-pycache" "$python" -m py_compile \
-    "$repo/native-display/pi_bus_native.py" "$repo/scripts/pi-bus-system-action" \
+    "$repo"/native-display/*.py "$repo/scripts/pi-bus-system-action" \
     "$repo/tools/run_native_matrix.py"
   git -C "$repo" diff --check
 }
