@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.96 Alpine — 26 October 2026
+
+- Cog (800x480): beta.93 gave the Bus Times and Home cog a 36px box with the glyph centred, but the Discover and Now Playing cog is a 36px box with the glyph pinned to its left edge, which left it 3px further left. Both now centre the glyph, so the cog is at the same place on Bus Times, Home, Now Playing and Discover.
+
 ## 1.1.7-beta.95 Alpine — 26 October 2026
 
 - Settings: the update progress text was capped at 32 characters, so "Update · Creating Python environment…" was cut short. The cap is now 64 characters and the text takes all the room next to the Sleep button. The Sleep button is also narrower on every display (84px on 800x480, 112px on Gen 2, 104px elsewhere).

@@ -355,7 +355,10 @@ class NowPlayingPageMixin:
         child = self.music_full_clock if full else self.music_clock_icon
         if self.music_clock_button.get_child() is not child: self.music_clock_button.set_child(child)
         reserve = 140 if full else 44 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 36
-        self.music_settings_button.get_child().set_halign(Gtk.Align.START)
+        # 800x480: the Bus Times and Home cog is a 36px box with its glyph centred (centre 18px in). The music pages
+        # pinned the glyph to the left edge of the same 36px box (centre 15px in), 3px left of that cog.
+        original = getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        self.music_settings_button.get_child().set_halign(Gtk.Align.CENTER if original and not full else Gtk.Align.START)
         self.music_settings_button.set_size_request(reserve, -1)
         self.music_clock_button.set_size_request(reserve, -1)
 

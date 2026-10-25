@@ -22,6 +22,10 @@ class Beta95PolishTests(unittest.TestCase):
             self.assertIn(rule, self.code)
         self.assertIn('FamilyIcon("chevron-play", 30 if min(vw, vh) >= 1000 else 18 if vw <= 820 and vh <= 500 else 20)', self.code)
 
+    def test_original_music_cog_is_centred_like_the_bus_and_home_cog(self):
+        self.assertIn("Gtk.Align.CENTER if original and not full else Gtk.Align.START", self.code)
+        self.assertIn(".original-landscape .page-header .discover-utility { min-width: 36px; }", self.code)
+
     def test_gen2_larger_writeup_is_bigger(self):
         self.assertIn(".touch2-7-landscape.interface-larger .detail-writeup,", self.code)
         self.assertIn("{ font-size: 24px; line-height: 1.25; }", self.code)
