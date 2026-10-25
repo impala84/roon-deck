@@ -4233,6 +4233,10 @@ class Display(Gtk.Application):
             detail_subtitle = ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
         for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, -1)
+        # Wide portrait: both headings get the taller one's height and sit on its last line, so the two
+        # columns' last heading lines share a baseline and both write-ups start on the same line grid.
+        for heading in (self.detail_artist_name, self.detail_title):
+            heading.set_yalign(1.0 if getattr(self, "large_detail_portrait", False) else .5)
         if getattr(self, "large_detail_portrait", False):
             # Measure against the real card width. An unconstrained measure can
             # claim an album title fits on one line, only for GTK to wrap it
@@ -4240,7 +4244,12 @@ class Display(Gtk.Application):
             heading_width = max(1, getattr(self, "detail_heading_width", 500))
             heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1] for heading in (self.detail_artist_name, self.detail_title))
             for heading in (self.detail_artist_name, self.detail_title): heading.set_size_request(-1, heading_height)
-        writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""; self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
+        writeup = metadata.get("full_writeup") or metadata.get("writeup") or ""
+        if not writeup and getattr(self, "large_detail_portrait", False):
+            # The album summary arrives after the page opens (and can be unavailable). Keep the column's
+            # copy slot visible, as the artist column does, instead of leaving it blank.
+            writeup = "Loading album summary…" if details.get("metadata_pending") else "Album summary is unavailable."
+        self.detail_writeup.set_text(writeup); self.detail_writeup.set_visible(bool(writeup))
         self.detail_source.set_text(""); self.detail_source.set_visible(False)
         while child := self.detail_facts.get_first_child(): self.detail_facts.remove(child)
         facts = []

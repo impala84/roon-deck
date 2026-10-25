@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.78 Alpine — 25 October 2026
+
+- Ten-inch portrait Album & Artist: the artist name and album title are both bottom-aligned in equal-height boxes, so a one-line artist name sits on the same baseline as the album title's last line and both write-ups start on the same line grid, like two magazine columns.
+- Ten-inch portrait Album & Artist: the album summary column no longer goes blank while the summary is still loading or unavailable; it shows "Loading album summary…" or "Album summary is unavailable." in the same slot as the artist's text.
+
 ## 1.1.7-beta.77 Alpine — 25 October 2026
 
 - 800x480 Now Playing: the title block is anchored at the top, so the transport controls sit about 45px higher and a two-line title still fits above the volume row. The gaps below the controls are tighter and "FIXED VOLUME" is smaller (12px) and sits directly under them.
