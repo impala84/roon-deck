@@ -781,7 +781,7 @@ display.device_status.set_text("v1.1.7-beta.15 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
-assert display.settings_actions.get_last_child().has_css_class("reboot-action")
+assert display.settings_actions.get_parent().get_last_child().has_css_class("reboot-action")
 assert display.touch_bus_enabled.get_visible()
 assert display.touch_bus_heading.get_visible() == (screen_height > screen_width or screen_width > 1280)
 assert display.touch_bus_enabled.get_label() == "Bus Times"
