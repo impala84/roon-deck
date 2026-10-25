@@ -697,11 +697,9 @@ assert valid and valid_menu and popup_bounds.get_x() >= 0 and popup_bounds.get_y
 # inside the physical viewport.
 assert menu_bounds.get_x() >= 0 and menu_bounds.get_x() + menu_bounds.get_width() <= screen_width, (menu_bounds.get_x(), menu_bounds.get_width(), screen_width)
 if screen_height <= 600:
-    expected_x = anchor_bounds.get_x() + min(116, anchor_bounds.get_width()) - 18
-    # GTK includes the compact popover's opaque dismissal gutter in these
-    # bounds; the visible bordered menu remains aligned with the text column.
-    assert abs(popup_bounds.get_x() - expected_x) <= 64, (popup_bounds.get_x(), expected_x)
-    assert popup_bounds.get_height() < 340, popup_bounds.get_height()
+    menu_gap = menu_bounds.get_x() - anchor_bounds.get_x() - anchor_bounds.get_width()
+    assert 0 <= menu_gap <= 24, (menu_bounds.get_x(), anchor_bounds.get_x(), anchor_bounds.get_width())
+    assert menu_bounds.get_height() < 340, menu_bounds.get_height()
 # Dismiss without issuing a fixture request to the real controller.
 if isinstance(popup, Gtk.Popover): popup.unparent()
 display.set_roon_view("now")
