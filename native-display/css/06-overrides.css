@@ -171,10 +171,10 @@ popover listview row label { font-size: 19px; }
 .genre-trail-row { min-width: 260px; }
 
 /* Play Album arrow: one balanced box on every screen (the old min-width plus padding left 25-50px of empty pill around a ~15px arrow). */
-.album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 12px; }
-.large-display .album-play-menu { min-width: 0; padding: 0 20px; }
-.original-landscape .album-play-menu { min-width: 0; padding: 0 8px; }
-.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 7px; }
+.album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 18px 0 16px; }
+.large-display .album-play-menu { min-width: 0; padding: 0 30px 0 28px; }
+.original-landscape .album-play-menu { min-width: 0; padding: 0 14px 0 12px; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 20px 0 18px; }
 /* Settings: a shorter Sleep button leaves the update progress text room to show in full. */
 .settings-sleep { min-width: 104px; padding: 0 14px; }
 .original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 84px; padding: 0 10px; }
@@ -205,3 +205,11 @@ button.genre-trail-row.current { background: rgba(255,255,255,.1); }
 .perf-memory .perf-check { color: #9968FA; }
 .perf-temp .perf-check { color: #FFA64D; }
 .perf-network .perf-check { color: #40D99E; }
+
+/* Genre page, left column: Shuffle / Artists / Albums act on the genre, so their icons are inverted (purple tile, dark symbol). */
+.genre-action-icon { background: #1fd6a3; border-radius: 18px; min-width: 84px; min-height: 84px; }
+.theme-roon .genre-action-icon { background: #9868F9; }
+.genre-action-icon .browser-tile-icon, .theme-roon .genre-action-icon .browser-tile-icon { color: #111; }
+button.genre-action-row { min-height: 0; padding: 8px 10px; border: 0; border-radius: 12px; box-shadow: none; background: transparent; background-image: none; }
+button.genre-action-row:hover, button.genre-action-row:active { background: rgba(255,255,255,.06); }
+.genre-action-title { font-size: 26px; font-weight: 650; color: #f4f0e6; }

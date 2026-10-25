@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.7-beta.102 Alpine — 26 October 2026
+
+- Genre pages (wide landscape): left column is now Shuffle Genre, Genre Artists and Genre Albums with inverted icons (purple tile, dark symbol); the right column lists the sub-genres. Opening a sub-genre keeps the same three actions, now for that sub-genre, with its own sub-genres on the right. The old parent-list trail is gone.
+- Opening an album from Discover (Recent, Added) no longer flashes "This item could not be opened". The request now sends the section so the controller can rebuild a card that a background refresh replaced, retries once, and leaves the cards on screen if it still fails.
+- Play Album arrow: much more padding around a smaller arrow on every display, so the round end of the button has room.
+- Track and album action menus open beside the tapped row instead of at the far right edge.
+- Cursor: also blanked on every press/touch start, not only on pointer movement.
+- Startup: the saved interface size and background are applied before the first frame, so the UI no longer draws at standard size and rescales about a second later.
+
 ## 1.1.7-beta.101 Alpine — 26 October 2026
 
 - 10-inch Settings: Interface scaling, Display theme and Display background are now one "Appearance" row of three drop-downs (Scaling, Theme, Background), which gives the page breathing space. The health line under the title (Memory, Load, temperature) is hidden because the graph shows it; it still appears if a setting fails to save.

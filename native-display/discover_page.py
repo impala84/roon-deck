@@ -409,15 +409,25 @@ class DiscoverPageMixin:
         self.discovery_action_key = key
         request = self.discovery_request = self.discovery_request + 1
         self.discovery_signature = None
+        section = "mix" if self.discovery_mix else ("daily-home" if self.discovery_section == "daily" else self.discovery_section)
+        if section == "recent" and getattr(self, "discovery_recent_mode", "added") == "added": section = "added"
         def load():
-            result = post_json(ROON + "/api/discovery/open", {"session": "touch", "key": key}, timeout=20.0)
+            # Send the section so the controller can rebuild a card key that a background refresh replaced, and retry once
+            # before reporting failure: a first attempt that races the refresh used to flash "could not be opened".
+            payload = {"session": "touch", "key": key, "section": section, "id": self.discovery_mix}
+            result = post_json(ROON + "/api/discovery/open", payload, timeout=20.0)
+            if not result or result.get("error"):
+                time.sleep(0.4)
+                retry = post_json(ROON + "/api/discovery/open", payload, timeout=20.0)
+                if retry and not retry.get("error"): result = retry
             GLib.idle_add(self.apply_discovery_item, request, result)
         threading.Thread(target=load, daemon=True).start()
 
     def apply_discovery_item(self, request, data):
         if request != self.discovery_request or not self.discovery_active: return False
         if not data or data.get("error"):
-            while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
+            # Keep the cards on screen; only report the failure once the retry has also failed.
+            self.discovery_opening = False
             self.discovery_list.append(self.label((data or {}).get("error") or "This item could not be opened. Try again from Discover.", "browser-message")); return False
         self.discovery_opening = False
         if data.get("action_menu"):

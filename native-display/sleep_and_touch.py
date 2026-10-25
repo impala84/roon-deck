@@ -88,7 +88,13 @@ class SleepAndTouchMixin:
         # events. A powered-down panel can consume the beginning of the first
         # contact, so accept its release as a wake gesture as well.
         event_type = event.get_event_type()
-        if event_type in {Gdk.EventType.ENTER_NOTIFY, Gdk.EventType.MOTION_NOTIFY}:
+        if event_type in {Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN}:
+            # Remember where the finger landed (window coordinates) so action menus open beside the tapped row.
+            try:
+                position = event.get_position()
+                if position[0] is not False and len(position) >= 3: self.last_tap_point = (position[-2], position[-1])
+            except (AttributeError, TypeError, ValueError): pass
+        if event_type in {Gdk.EventType.ENTER_NOTIFY, Gdk.EventType.MOTION_NOTIFY, Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN}:
             # A pointer entering or moving re-asserts the compositor's cursor; blank it on the surface too.
             try: self.window.get_surface().set_cursor(Gdk.Cursor.new_from_name("none", None))
             except (AttributeError, TypeError, GLib.Error): pass

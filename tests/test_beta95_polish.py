@@ -16,11 +16,11 @@ class Beta95PolishTests(unittest.TestCase):
         self.assertIn(".touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 112px; padding: 0 14px; }", self.code)
 
     def test_play_album_arrow_has_no_extra_min_width(self):
-        for rule in (".album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 12px; }",
-                     ".large-display .album-play-menu { min-width: 0; padding: 0 20px; }",
-                     ".original-landscape .album-play-menu { min-width: 0; padding: 0 8px; }"):
+        for rule in (".album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 18px 0 16px; }",
+                     ".large-display .album-play-menu { min-width: 0; padding: 0 30px 0 28px; }",
+                     ".original-landscape .album-play-menu { min-width: 0; padding: 0 14px 0 12px; }"):
             self.assertIn(rule, self.code)
-        self.assertIn('FamilyIcon("chevron-play", 30 if min(vw, vh) >= 1000 else 18 if vw <= 820 and vh <= 500 else 20)', self.code)
+        self.assertIn('FamilyIcon("chevron-play", 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16)', self.code)
 
     def test_original_music_cog_is_centred_like_the_bus_and_home_cog(self):
         self.assertIn("Gtk.Align.FILL if original and not full else Gtk.Align.START", self.code)
@@ -42,10 +42,13 @@ class GenreBrowserTests(unittest.TestCase):
     def test_genre_menu_screens_use_the_fixed_size_tile_grid(self):
         self.assertIn('elif items and layout in {"home", "menu"} and (getattr(self, "responsive_portrait", False) or data.get("section") != "genres"):', self.code)
 
-    def test_left_column_rows_are_buttons_that_pick_a_sibling(self):
-        self.assertIn('row = Gtk.Button(); row.add_css_class("genre-trail-row")', self.code)
-        self.assertIn("self.select_genre_sibling(choice, parent_title)", self.code)
-        self.assertIn("self.follow_genre_sibling(data): return False", self.code)
+    def test_genre_actions_sit_in_the_left_column_with_inverted_icons(self):
+        self.assertIn('row.add_css_class("genre-action-row")', self.code)
+        self.assertIn('frame.add_css_class("genre-action-icon")', self.code)
+        self.assertIn("items = self.prepare_genre_columns(data, layout, items)", self.code)
+        self.assertIn(".theme-roon .genre-action-icon { background: #9868F9;", self.code)
+        self.assertIn(".genre-action-icon .browser-tile-icon, .theme-roon .genre-action-icon .browser-tile-icon { color: #111; }", self.code)
+        self.assertIn('self.label("SUB-GENRES", "browser-section")', self.code)
 
     def test_left_column_has_no_visible_scrollbar_and_a_wider_gutter(self):
         self.assertIn("self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)", self.code)
@@ -55,7 +58,7 @@ class GenreBrowserTests(unittest.TestCase):
 class GenreShortcutIconTests(unittest.TestCase):
     def test_genre_list_shortcuts_use_the_larger_key_line_tile_icons(self):
         code = native_text()
-        self.assertIn('genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums"} or row_title.startswith("shuffle")))', code)
+        self.assertIn('genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums", "genre artists", "genre albums"} or row_title.startswith("shuffle")))', code)
         self.assertIn('self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut', code)
 
 

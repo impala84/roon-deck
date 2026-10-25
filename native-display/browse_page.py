@@ -7,7 +7,7 @@ import threading
 import unicodedata
 import urllib.error
 import urllib.request
-from gi.repository import GLib, Gdk, Gtk, Pango
+from gi.repository import GLib, Gdk, Graphene, Gtk, Pango
 
 
 class BrowsePageMixin:
@@ -107,7 +107,6 @@ class BrowsePageMixin:
             self.request_browser(pending[0], **pending[1])
             return False
         try:
-            if getattr(self, "genre_sibling_target", None) and self.follow_genre_sibling(data): return False
             self.render_browser(data)
         except Exception as error:
             # A rendering exception must not permanently lock navigation.
@@ -298,8 +297,6 @@ class BrowsePageMixin:
             self.browser_action_anchor = _button
             if getattr(_button, "opens_page", False) and not self.browser_loading:
                 state = self.browser_state or {}
-                if state.get("section") == "genres" and not state.get("section_root") and (state.get("layout") or "list") == "list" and not state.get("artist_profile") and not state.get("album_profile"):
-                    self.genre_pending = {"title": state.get("title") or "", "items": [item for item in state.get("items", []) if item.get("hint") != "header" and not item.get("action")]}
                 self.show_browser_loading()
             if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search": self.set_roon_view("browse")
             self.request_browser("open", item_key=item_key)
@@ -318,8 +315,8 @@ class BrowsePageMixin:
         value = (title or "").lower()
         if kind == "playlists": return "playlist"
         if value.startswith("shuffle"): return "shuffle"
-        if value == "artists": return "artist"
-        if value == "albums": return "album"
+        if value in {"artists", "genre artists"}: return "artist"
+        if value in {"albums", "genre albums"}: return "album"
         if "jazz" in value: return "jazz"
         if "classical" in value: return "classical"
         if "electronic" in value: return "electronic"
@@ -443,7 +440,7 @@ class BrowsePageMixin:
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-play", 30 if min(vw, vh) >= 1000 else 18 if vw <= 820 and vh <= 500 else 20))
+            menu.set_child(FamilyIcon("chevron-play", 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -483,64 +480,44 @@ class BrowsePageMixin:
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
 
-    def select_genre_sibling(self, item, parent_title):
-        """Left column tap: step back to the parent list, then open the chosen sibling so the right column updates."""
-        if self.browser_loading or not item.get("title"): return
-        self.genre_sibling_target = {"title": (item.get("title") or "").strip().casefold(), "parent": (parent_title or "").strip().casefold()}
-        self.show_browser_loading()
-        self.request_browser("back")
+    @staticmethod
+    def genre_action_item(item):
+        """Shuffle Genre, Genre Artists and Genre Albums act on the genre itself; everything else is a sub-genre."""
+        title = (item.get("title") or "").strip().lower()
+        return bool(item.get("action") or (not item.get("image_key") and (title in {"artists", "albums", "genre artists", "genre albums"} or title.startswith("shuffle"))))
 
-    def follow_genre_sibling(self, data):
-        """When the parent list arrives for a pending sibling choice, open that sibling without drawing the parent."""
-        target = getattr(self, "genre_sibling_target", None)
-        if not target: return False
-        self.genre_sibling_target = None
-        if (data.get("title") or "").strip().casefold() != target["parent"]: return False
-        for item in data.get("items", []):
-            if item.get("item_key") and not item.get("action") and (item.get("title") or "").strip().casefold() == target["title"]:
-                self.browser_state = data
-                if self.genre_stack: self.genre_stack.pop()
-                self.genre_pending = {"title": data.get("title") or "", "items": [row for row in data.get("items", []) if row.get("hint") != "header" and not row.get("action")]}
-                self.browser_loading = False
-                self.request_browser("open", item_key=item["item_key"])
-                return True
-        return False
-
-    def prepare_genre_columns(self, data, layout):
-        """Keep a trail of the genre lists above this one and lay them out as two columns."""
+    def prepare_genre_columns(self, data, layout, items):
+        """Wide genre pages: actions for this genre on the left, its sub-genres on the right. Returns the right-hand items."""
+        columns = False
         try:
-            if data.get("section") != "genres" or data.get("section_root"):
-                self.genre_stack = []; self.genre_pending = None
-            else:
-                action = getattr(self, "browser_last_action", None)
-                if action == "back":
-                    if self.genre_stack: self.genre_stack.pop()
-                elif self.genre_pending and action == "open": self.genre_stack.append(self.genre_pending)
-                self.genre_pending = None
             wide = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000
             plain_list = (layout == "list" and data.get("section") == "genres" and not data.get("section_root")
                           and not data.get("artist_profile") and not data.get("album_profile") and not data.get("surprise_preview"))
-            columns = bool(plain_list and wide and self.genre_stack)
+            actions = [item for item in items if item.get("hint") != "header" and self.genre_action_item(item)]
+            columns = bool(plain_list and wide and actions)
             while child := self.browser_trail_list.get_first_child(): self.browser_trail_list.remove(child)
             self.browser_trail_scroll.set_visible(columns)
-            if columns:
-                parent = self.genre_stack[-1]
-                heading = self.label(parent.get("title") or "", "genre-heading"); heading.add_css_class("trail"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
-                current = (data.get("title") or "").strip().casefold()
-                for item in parent.get("items", []):
-                    copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); copy.set_halign(Gtk.Align.START)
-                    title = self.label(item.get("title") or "", "genre-trail-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); copy.append(title)
-                    if item.get("subtitle"):
-                        subtitle = self.label(item.get("subtitle"), "genre-trail-subtitle"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); subtitle.set_xalign(0); copy.append(subtitle)
-                    row = Gtk.Button(); row.add_css_class("genre-trail-row"); row.set_child(copy); row.set_focusable(False)
-                    if (item.get("title") or "").strip().casefold() == current: row.add_css_class("current")
-                    else: row.connect("clicked", lambda _button, choice=item, parent_title=parent.get("title") or "": self.select_genre_sibling(choice, parent_title))
-                    self.browser_trail_list.append(row)
-            if plain_list and wide and data.get("title"):
-                heading = self.label(data.get("title"), "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_list.append(heading)
+            if not columns: return items
+            heading = self.label(data.get("title") or "", "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
+            for item in actions:
+                copy = Gtk.Box(spacing=18); copy.set_valign(Gtk.Align.CENTER)
+                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(84, 84); frame.set_valign(Gtk.Align.CENTER)
+                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62)); copy.append(frame)
+                title = self.label(item.get("title") or "", "genre-action-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); title.set_hexpand(True); copy.append(title)
+                row = Gtk.Button(); row.add_css_class("genre-action-row"); row.set_child(copy); row.set_focusable(False)
+                row.set_sensitive(bool(item.get("item_key"))); row.browse_item_key = item.get("item_key")
+                if item.get("action"): row.add_css_class("browser-action")
+                else: row.opens_page = True
+                row.connect("clicked", self.open_browser_item, item.get("item_key")); self.browser_trail_list.append(row)
+            rest = [item for item in items if item.get("hint") == "header" or not self.genre_action_item(item)]
+            self.browser_list.append(self.label("SUB-GENRES", "browser-section"))
+            if not [item for item in rest if item.get("hint") != "header"]:
+                self.browser_list.append(self.label("No sub-genres", "queue-empty", 0))
+            return rest
         except Exception as error:
             print("RoonDeck genre columns skipped: " + type(error).__name__, flush=True)
             self.browser_trail_scroll.set_visible(False)
+            return items
 
     def render_browser(self, data):
         self.browser_list.cancel_spring()
@@ -550,7 +527,17 @@ class BrowsePageMixin:
             popover = Gtk.Popover(); popover.add_css_class("track-menu"); popover.set_parent(anchor); popover.set_autohide(True)
             popover.set_has_arrow(False); popover.set_position(Gtk.PositionType.RIGHT)
             popover.set_valign(Gtk.Align.START)
-            rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1; popover.set_pointing_to(rect)
+            rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1
+            tap = getattr(self, "last_tap_point", None)
+            if tap and getattr(self, "window", None) is not None:
+                # Open beside the finger rather than at the far edge of a full-width row.
+                try:
+                    point = self.window.compute_point(anchor, Graphene.Point().init(tap[0], tap[1]))
+                    if point is not None:
+                        rect.x = round(max(1, min(anchor.get_width() - 1, point.x))) + 12
+                        rect.y = round(max(0, min(anchor.get_height() - 1, point.y)))
+                except (AttributeError, TypeError, GLib.Error): pass
+            popover.set_pointing_to(rect)
             self.browser_action_popover = popover
             choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
             selected = {"value": False}
@@ -637,7 +624,7 @@ class BrowsePageMixin:
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = "list" if data.get("artist_profile") else (data.get("layout") or "list")
-        self.prepare_genre_columns(data, layout)
+        items = self.prepare_genre_columns(data, layout, items)
         if items and data.get("surprise_preview"):
             album = items[0]
             monitor = Gdk.Display.get_default().get_monitors().get_item(0)
@@ -731,7 +718,7 @@ class BrowsePageMixin:
                 row_title = (item.get("title") or "").strip().lower()
                 # Genre lists: Shuffle Genre / Artists / Albums act on the genre itself, so they get the larger
                 # key-line tile icons; the sub-genres below them open another list and keep the plain thumbnail.
-                genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums"} or row_title.startswith("shuffle")))
+                genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums", "genre artists", "genre albums"} or row_title.startswith("shuffle")))
                 if item.get("action") or genre_shortcut:
                     action_icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut else FamilyIcon(self.browser_action_icon(item.get("title")), 42)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_hexpand(False); action_frame.set_halign(Gtk.Align.START); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
