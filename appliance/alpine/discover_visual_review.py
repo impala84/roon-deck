@@ -689,9 +689,13 @@ assert "image" in capture_results[-1], capture_results[-1]
 (OUTPUT / "track-actions-live-capture.png").write_bytes(base64.b64decode(capture_results[-1]["image"]))
 popup = display.browser_action_popover
 valid, popup_bounds = popup.compute_bounds(page)
+valid_menu, menu_bounds = popup.get_child().compute_bounds(page)
 anchor_bounds = display.browser_action_anchor.compute_bounds(page)[1]
-assert valid and popup_bounds.get_x() >= 0 and popup_bounds.get_y() >= 0
-assert popup_bounds.get_x() + popup_bounds.get_width() <= screen_width
+assert valid and valid_menu and popup_bounds.get_x() >= 0 and popup_bounds.get_y() >= 0
+# GTK includes the popover's transparent dismissal gutter in its outer
+# allocation. The bordered menu child is the visible surface that must remain
+# inside the physical viewport.
+assert menu_bounds.get_x() >= 0 and menu_bounds.get_x() + menu_bounds.get_width() <= screen_width, (menu_bounds.get_x(), menu_bounds.get_width(), screen_width)
 if screen_height <= 600:
     expected_x = anchor_bounds.get_x() + min(116, anchor_bounds.get_width()) - 18
     # GTK includes the compact popover's opaque dismissal gutter in these
