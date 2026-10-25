@@ -697,8 +697,12 @@ assert valid and valid_menu and popup_bounds.get_x() >= 0 and popup_bounds.get_y
 # inside the physical viewport.
 assert menu_bounds.get_x() >= 0 and menu_bounds.get_x() + menu_bounds.get_width() <= screen_width, (menu_bounds.get_x(), menu_bounds.get_width(), screen_width)
 if screen_height <= 600:
-    menu_gap = menu_bounds.get_x() - anchor_bounds.get_x() - anchor_bounds.get_width()
-    assert 0 <= menu_gap <= 24, (menu_bounds.get_x(), anchor_bounds.get_x(), anchor_bounds.get_width())
+    # The row expands across the browser column, so GTK may flip the RIGHT
+    # popover over the row's unused tail. Its visible card must stay in the
+    # right half with the same compact edge inset seen on the touchscreen.
+    menu_right_inset = screen_width - menu_bounds.get_x() - menu_bounds.get_width()
+    assert menu_bounds.get_x() >= screen_width / 2, menu_bounds.get_x()
+    assert 0 <= menu_right_inset <= 48, menu_right_inset
     assert menu_bounds.get_height() < 340, menu_bounds.get_height()
 # Dismiss without issuing a fixture request to the real controller.
 if isinstance(popup, Gtk.Popover): popup.unparent()
