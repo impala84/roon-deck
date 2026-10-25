@@ -21,8 +21,8 @@ class BrowseFillTests(unittest.TestCase):
         # Four cards (size + 6) and three 14px gaps from x=197 end before the 64px rail at x=1188.
         self.assertLessEqual(197 + 4 * (size + 6) + 3 * 14, 1280 - 101)
 
-    def test_larger_keeps_its_smaller_covers(self):
-        self.assertEqual(metrics("larger")[1], 217)
+    def test_larger_fills_with_a_small_reserve(self):
+        self.assertEqual(metrics("larger")[1], 226)
 
 
 if __name__ == "__main__":

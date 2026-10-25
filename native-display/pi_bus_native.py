@@ -948,6 +948,13 @@ window.background-black .detail-takeover,
 window.background-black .detail-header,
 window.background-black .detail-sheet-scroll,
 window.background-black .detail-footer { background: #000; }
+/* Inline details sit beside the artwork. They must stay transparent or, on a black background,
+   they paint an opaque box over the header's tab underline and clock. */
+window.background-black .detail-takeover.inline-detail,
+window.background-black .inline-detail .detail-header,
+window.background-black .inline-detail .detail-sheet-scroll,
+window.background-black .inline-detail .detail-footer,
+window.theme-roon .detail-takeover.inline-detail { background: transparent; }
 .detail-footer .detail-primary-action { font-size: 22px; }
 .high-resolution .detail-footer .detail-primary-action { font-size: 25px; }
 
@@ -1035,13 +1042,19 @@ popover listview row label { font-size: 19px; }
 /* 800x480: one header line near the top. The cog, tabs/title and clock sit 6px higher than before
    (page padding 7px -> 1px, cog and clock keep a 7px top margin), the cog is 4px further left on
    Bus Times and Home to match the music pages, and the Bus/Home clock ends at the clock icon's edge. */
+/* Large portrait: BACK is set like the ALBUMS / ARTISTS / SEARCH row it sits beside: same size, same line box. */
+.portrait.large-portrait .browser-back { margin: 0; min-height: 52px; padding: 6px 28px; font-size: 24px; font-weight: 500; }
+.original-landscape .home-tile { min-height: 0; padding: 4px 8px 6px; }
+.original-landscape .home-device-button, .original-landscape .home-level { min-height: 0; }
+.original-landscape .home-name { font-size: 15px; line-height: 1.05; }
+.original-landscape .home-state { font-size: 10px; }
 .original-landscape .page { padding-top: 1px; }
 .original-landscape .roon-page.now-layout .discover-toolbar { min-height: 44px; }
 .original-landscape .page-header .discover-utility,
 .original-landscape .discover-toolbar > .discover-utility { margin-top: 7px; margin-bottom: 0; }
 .original-landscape .page-header .discover-utility { margin-left: -4px; }
 .original-landscape .page-header .header-clock { margin-top: 7px; margin-right: 3px; }
-.original-landscape .volume-number.fixed-volume-label { margin-top: 2px; font-size: 12px; letter-spacing: 1.5px; }
+.original-landscape .volume-number.fixed-volume-label { margin-top: 6px; font-size: 12px; letter-spacing: 1.5px; }
 .original-landscape .now-volume-row { margin-top: 0; }
 /* 800x480 Settings: even 11px inset, a round 40px close control and a compact Sleep button. */
 .original-landscape .settings-page { padding: 11px 12px 8px; }
@@ -1433,17 +1446,21 @@ class Display(Gtk.Application):
         # Seven-inch Gen 2: anchor the cog and clock icon to the top of their header
         # row instead of centring them in it. Row height differs per page (Bus and Home
         # are taller than the Now Playing toolbar), so centring made the cog drift.
+        # A new display geometry or interface size starts the cog alignment afresh.
+        for cog in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", [])):
+            if cog is not None: cog.set_margin_start(0)
+        self.cog_reference_x = None
+        GLib.timeout_add(250, lambda: self.align_header_cogs() and False)
         for button in getattr(self, "header_utility_buttons", []):
             button.set_valign(Gtk.Align.START if touch2_7_landscape or original_landscape else Gtk.Align.CENTER)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
         self.now_playing_content.set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
         self.now_playing_content.set_margin_bottom(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
-        self.now_playing_centre.set_valign(Gtk.Align.START if portrait or original_landscape else Gtk.Align.CENTER)
-        # 800x480: anchor the title block at the top so the transport sits high and a two-line title
-        # still fits above the volume row; tighten the gaps below the controls.
+        self.now_playing_centre.set_valign(Gtk.Align.START if portrait else Gtk.Align.CENTER)
+        # 800x480: centre the block on the artwork; a two-line title still fits inside the artwork's height.
         self.now_playing_centre.set_spacing(4 if original_landscape else 7)
-        self.controls.set_margin_top(2 if original_landscape else 6); self.controls.set_margin_bottom(4 if original_landscape else 16)
+        self.controls.set_margin_top(2 if original_landscape else 6); self.controls.set_margin_bottom(10 if original_landscape else 16)
         if hasattr(self, "volume_row"):
             mute_parent = self.mute.get_parent()
             target = self.now_playing_centre if large_display and portrait else self.volume_row
@@ -1580,9 +1597,10 @@ class Display(Gtk.Application):
             viewport.set_size_request(detail_size, detail_size)
             viewport.set_halign(Gtk.Align.START); viewport.set_valign(Gtk.Align.START)
         for label in (self.detail_artist_writeup, self.detail_writeup):
-            label.set_lines(3 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
+            label.set_lines(2 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail or large_detail_portrait else Pango.EllipsizeMode.NONE)
-        self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)
+        # EXTERNAL does not feed the text's minimum height into the window, so opening details can never grow it.
+        self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if inline_detail else Gtk.PolicyType.AUTOMATIC)
         self.detail_sheet.set_kinetic_scrolling(not inline_detail)
         self.detail_artist_facts.set_visible(not large_detail_portrait)
         self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)
@@ -2603,11 +2621,13 @@ class Display(Gtk.Application):
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
         self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
-        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait}, sort_keys=True, default=str)
+        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape")}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
         while child := self.home_grid.get_first_child(): self.home_grid.remove(child)
         entities = home.get("entities", [])[:8]
+        original = self.window.has_css_class("original-landscape")
+        self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
         self.home_status.set_visible(bool(self.home_status.get_text()))
         self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
@@ -2622,6 +2642,7 @@ class Display(Gtk.Application):
             scene = domain == "scene"
             if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"
             icon_size = 108 if self.window.has_css_class("high-resolution") else 82
+            if original: icon_size = 82 if (len(entities) == 6 and index < 2) else 50
             if portrait: icon_size = max(64, min(240, round((self.window.get_height() - 190) / max(4, len(entities)) * .7)))
             icon_slot = icon_size; icon_size = round(icon_size * .75)
             icon = FamilyIcon("check" if scene else domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size); icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
@@ -3590,10 +3611,10 @@ class Display(Gtk.Application):
             # scrubber rail and the 28px page edge made the window 1311px wide (1293px in Larger).
             # 217px covers (223px cards, 14px column gaps) end at x~1134, leaving ~54px before the rail.
             size = min(size, 217)
-            if (getattr(self, "settings_data", {}) or {}).get("interface_size") != "larger":
-                # Standard/Smaller covers fill x=197..1179. Cards (size + 6) start at x=197 and may end at view_width - 101: the 28px page edge,
-                # 64px rail, 2px gap, 3px grid padding and 4px of safety. Three 14px gaps between four cards.
-                size = max(64, min(236, (view_width - 101 - 197 - 14 * 3) // 4 - 6))
+            # Standard/Smaller/Larger covers fill x=197..1179. Cards (size + 6) start at x=197 and may end at view_width - 101: the
+            # 28px page edge, 64px rail, 2px gap, 3px grid padding and 4px of safety. Three 14px gaps between four cards.
+            # Larger keeps 12px more in reserve (3px a cover) because its wider text has pushed the window past 1280 before.
+            size = max(64, min(236, (view_width - 101 - 197 - 14 * 3 - (12 if larger_seven else 0)) // 4 - 6))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3719,9 +3740,19 @@ class Display(Gtk.Application):
         first = unicodedata.normalize("NFKD", title)[:1].upper(); value = ord(first) - 65 if "A" <= first <= "Z" else 0
         self.browser_scrub_sync = True; self.browser_scrub_scale.set_value(value); self.browser_scrub_sync = False; self.position_browser_scrub_letter(chr(65 + value), value)
 
+    def show_browser_loading(self):
+        """Leave the old page immediately and show the loading dots while Roon builds the next one."""
+        self.browser_scroll.set_visible(True)
+        self.browser_artist_scroll.set_visible(False); self.browser_search_columns.set_visible(False)
+        self.browser_scrubber.set_visible(False); self.browser_message.set_visible(False)
+        while child := self.browser_list.get_first_child(): self.browser_list.remove(child)
+        self.browser_list.set_orientation(Gtk.Orientation.VERTICAL)
+        self.browser_list.append(self.loading_notice())
+
     def open_browser_item(self, _button, item_key):
         if item_key:
             self.browser_action_anchor = _button
+            if getattr(_button, "opens_page", False) and not self.browser_loading: self.show_browser_loading()
             if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search": self.set_roon_view("browse")
             self.request_browser("open", item_key=item_key)
 
@@ -3832,6 +3863,7 @@ class Display(Gtk.Application):
         shell = Gtk.ScrolledWindow(); shell.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); shell.set_propagate_natural_width(False); shell.set_propagate_natural_height(False); shell.set_min_content_width(size); shell.set_max_content_width(size); shell.set_min_content_height(size + (caption_height if show_labels else 0)); shell.set_max_content_height(size + (caption_height if show_labels else 0)); shell.set_child(content)
         button = Gtk.Button(); button.add_css_class("browser-cover-card")
         if tile_kind: button.add_css_class(f"{tile_kind[:-1]}-tile")
+        button.opens_page = True
         button.set_child(shell); button.set_sensitive(bool(item.get("item_key"))); button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
 
     def album_header(self, profile, items):
@@ -3856,11 +3888,11 @@ class Display(Gtk.Application):
         if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
             split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
-            menu = self.icon_button("chevron-down", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
+            menu = self.icon_button("chevron-play", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-down", 64 if min(vw, vh) >= 1000 else 30 if vw <= 820 and vh <= 500 else 46))
+            menu.set_child(FamilyIcon("chevron-play", 72 if min(vw, vh) >= 1000 else 26 if vw <= 820 and vh <= 500 else 40))
             menu.get_child().set_pixel_size(22)
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
@@ -4117,6 +4149,7 @@ class Display(Gtk.Application):
                 button.browse_item_key = item.get("item_key")
                 button.set_vexpand(False); button.set_valign(Gtk.Align.START)
                 if item.get("action"): button.add_css_class("browser-action")
+                else: button.opens_page = True
                 button.connect("clicked", self.open_browser_item, item.get("item_key")); target.append(button)
         GLib.timeout_add(100, self.load_visible_browser_artwork)
         GLib.timeout_add(60, self.finish_browser_render)
@@ -4484,20 +4517,23 @@ class Display(Gtk.Application):
             def left(button):
                 point = button.translate_coordinates(self.window, 0, 0)
                 return None if point is None else point[0]
-            reference = getattr(self, "music_settings_button", None)
-            if reference is not None and reference.get_mapped():
-                x = left(reference)
-                if x is not None: self.cog_reference_x = x
+            buttons = [button for button in [getattr(self, "music_settings_button", None)] + list(getattr(self, "header_cogs", []))
+                       if button is not None and button.get_mapped()]
+            # Buttons can only be pushed right (Python margins are never negative), so every page aligns to the
+            # right-most cog seen on any page. Visiting each page once settles all of them on the same x.
             target = getattr(self, "cog_reference_x", None)
+            for button in buttons:
+                x = left(button)
+                if x is not None and (target is None or x > target): target = x
             if target is None: return False
+            self.cog_reference_x = target
             moved = False
-            for button in getattr(self, "header_cogs", []):
-                if not button.get_mapped(): continue
+            for button in buttons:
                 x = left(button)
                 if x is None: continue
                 delta = round(target - x)
-                if delta:
-                    button.set_margin_start(max(0, button.get_margin_start() + delta)); moved = True
+                if delta > 0:
+                    button.set_margin_start(button.get_margin_start() + delta); moved = True
             if moved and retry: GLib.timeout_add(120, lambda: self.align_header_cogs(False) and False)
         except Exception as error:
             print("RoonDeck cog alignment skipped: " + type(error).__name__, flush=True)
@@ -4517,6 +4553,10 @@ class Display(Gtk.Application):
         # events. A powered-down panel can consume the beginning of the first
         # contact, so accept its release as a wake gesture as well.
         event_type = event.get_event_type()
+        if event_type in {Gdk.EventType.ENTER_NOTIFY, Gdk.EventType.MOTION_NOTIFY}:
+            # A pointer entering or moving re-asserts the compositor's cursor; blank it on the surface too.
+            try: self.window.get_surface().set_cursor(Gdk.Cursor.new_from_name("none", None))
+            except (AttributeError, TypeError, GLib.Error): pass
         contact_started = event_type in {Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN, Gdk.EventType.KEY_PRESS}
         contact_finished = event_type in {Gdk.EventType.BUTTON_RELEASE, Gdk.EventType.TOUCH_END}
         if not contact_started and not contact_finished:

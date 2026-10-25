@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.7-beta.79 Alpine — 25 October 2026
+
+- Seven-inch Gen 2 Browse: Larger now fills the area too (226px covers, up from 217); Standard stays at 229px.
+- Hidden cursor: the transparent cursor theme now covers every cursor shape name (previously unlisted shapes fell back to the visible default arrow, which flashed up occasionally), and the pointer is blanked again whenever it enters or moves.
+- Seven-inch Gen 2 details: on a black background the album sheet painted an opaque black box over the Now Playing tab underline and the clock. Inline details are now always transparent.
+- Cog position: every page now aligns to the right-most cog measured on any page (the old alignment could only move Bus Times/Home toward the music cog, never the other way), and it resets when the display size or interface size changes.
+- 800x480 Home: tiles are compacted (smaller icons, 15px names, tighter padding and gaps) so six devices no longer push the navigation off the screen.
+- 800x480 Now Playing: the title, transport and Fixed Volume are centred vertically on the artwork again, with more room above Fixed Volume.
+- 800x480 album details: opening the album text no longer grows the window or moves the artwork down. The sheet can't feed its text height into the window, and the summary shows two lines.
+- Ten-inch portrait Browse: BACK now uses the same size and line box as ALBUMS / ARTISTS / GENRES / PLAYLISTS / SEARCH.
+- Browse: tapping an album, artist or genre now leaves the current page at once and shows the loading dots while Roon builds the next page, instead of freezing on the old page.
+- Play Album arrow: uses a new tightly cropped chevron (about 78% of its box instead of 47%) at 72px on the 10-inch portrait, 40px on Gen 2 and 26px on 800x480, so it is genuinely larger and easier to see.
+
 ## 1.1.7-beta.78 Alpine — 25 October 2026
 
 - Ten-inch portrait Album & Artist: the artist name and album title are both bottom-aligned in equal-height boxes, so a one-line artist name sits on the same baseline as the album title's last line and both write-ups start on the same line grid, like two magazine columns.

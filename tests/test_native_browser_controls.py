@@ -683,7 +683,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('self.detail_album_section_label.set_text(detail_heading)', code)
         self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
         self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
-        self.assertIn('label.set_lines(3 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail', code)
+        self.assertIn('label.set_lines(2 if original_landscape else 4 if inline_detail and (self.settings_data or {}).get("interface_size") == "larger" else 5 if album_focus_detail', code)
         self.assertIn('self.detail_artist_facts.set_visible(not large_detail_portrait)', code)
         self.assertIn('self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)', code)
         self.assertIn('and not getattr(self, "large_detail_portrait", False)', code)
@@ -694,8 +694,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)', code)
-        self.assertIn('label.set_lines(3 if original_landscape else 4 if inline_detail', code)
+        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if inline_detail else Gtk.PolicyType.AUTOMATIC)', code)
+        self.assertIn('label.set_lines(2 if original_landscape else 4 if inline_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
         self.assertIn('.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
         self.assertIn('.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }', code)
