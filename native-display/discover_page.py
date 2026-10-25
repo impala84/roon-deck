@@ -439,7 +439,9 @@ class DiscoverPageMixin:
     def render_artist_profile(self, profile, play_action=None):
         portrait = getattr(self, "responsive_portrait", False)
         original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
-        seven_landscape = not portrait and getattr(self, "viewport_height", 480) <= 720
+        # 800x480 stacks the profile above the albums as one full-width column (small picture, name,
+        # Play Artist Radio and a short summary), so album names are readable.
+        seven_landscape = not portrait and not original and getattr(self, "viewport_height", 480) <= 720
         panel = self.browser_artist_panel
         inactive = self.browser_artist_inline_panel
         inactive.set_visible(False)
@@ -478,8 +480,17 @@ class DiscoverPageMixin:
         else:
             # Keep the established 10-inch composition. The wide, overlaid
             # hero is reserved for the two seven-inch landscape profiles.
-            panel.set_size_request(-1 if portrait else 260, -1)
-            if portrait:
+            panel.set_size_request(-1 if portrait or original else 260, -1)
+            if original:
+                panel.set_orientation(Gtk.Orientation.HORIZONTAL); panel.set_spacing(16); panel.set_halign(Gtk.Align.FILL)
+                self.browser_artist_scroll.set_hexpand(True); self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START)
+                self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_size_request(-1, 116)
+                self.browser_artist_scroll.set_min_content_height(116); self.browser_artist_scroll.set_max_content_height(116)
+                size = 100
+                artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
+                artwork.set_min_content_width(size); artwork.set_max_content_width(size); artwork.set_min_content_height(size); artwork.set_max_content_height(size); artwork.set_size_request(size, size); artwork.set_valign(Gtk.Align.START)
+                artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
+            elif portrait:
                 panel.set_orientation(Gtk.Orientation.HORIZONTAL); panel.set_spacing(28)
                 self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START); self.browser_artist_scroll.set_propagate_natural_height(True)
                 size = min(460 if viewport_width >= 1000 else 320, round(viewport_width * (.38 if viewport_width >= 1000 else .315)))
@@ -502,22 +513,22 @@ class DiscoverPageMixin:
             cached = cached or self.queue_thumbnail_cache.get(key)
             if cached: picture.set_paintable(cached)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if seven_landscape else 12)
-        details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER); details.set_hexpand(True)
+        details.set_valign(Gtk.Align.START if seven_landscape else Gtk.Align.CENTER if not original else Gtk.Align.START); details.set_hexpand(True)
         if seven_landscape:
             details.add_css_class("artist-overlay-info"); details.set_halign(Gtk.Align.FILL); details.set_valign(Gtk.Align.END); details.set_hexpand(True)
             details.set_size_request(hero_width, -1); artwork_area.add_overlay(details)
         else: panel.append(details)
-        title = self.label(name, "artist-name", 0 if portrait else .5); title.set_wrap(True); title.set_max_width_chars(20); details.append(title)
+        title = self.label(name, "artist-name", 0 if portrait or original else .5); title.set_wrap(True); title.set_max_width_chars(30 if original else 20); details.append(title)
         if seven_landscape: title.set_xalign(0)
         if play_action:
             play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
-            play.set_halign(Gtk.Align.START if portrait or seven_landscape else Gtk.Align.CENTER); details.append(play)
+            play.set_halign(Gtk.Align.START if portrait or seven_landscape or original else Gtk.Align.CENTER); details.append(play)
         summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         if seven_landscape:
             summary_slot.add_css_class("artist-profile-summary"); panel.append(summary_slot)
         else: details.append(summary_slot)
-        summary_slot.artist_summary_lines = 4 if seven_landscape else 5
-        summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 52
+        summary_slot.artist_summary_lines = 4 if seven_landscape else 2 if original else 5
+        summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 60 if original else 52
         self.load_artist_notes(name, summary_slot, profile)
 
     def load_artist_notes(self, name, slot, seed=None):

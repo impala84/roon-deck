@@ -117,7 +117,7 @@ def curve(cr, points):
 class PerformanceGraph(Gtk.Box):
     def __init__(self):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        self.add_css_class("perf-card"); self.set_vexpand(True); self.set_hexpand(True)
+        self.add_css_class("perf-card"); self.set_vexpand(False); self.set_valign(Gtk.Align.START); self.set_hexpand(True)
         self.sampler = PerformanceSampler(); self.enabled = {key: True for key, _name, _colour in SERIES}; self.timer = None
         header = Gtk.Box(spacing=12)
         title = Gtk.Label(label="SYSTEM PERFORMANCE"); title.add_css_class("eyebrow"); title.set_xalign(0); title.set_hexpand(True); header.append(title)
@@ -133,7 +133,7 @@ class PerformanceGraph(Gtk.Box):
             chip.set_child(row); chip.connect("clicked", lambda _button, series=key: self.toggle(series))
             self.chips[key] = chip; self.chip_values[key] = value; self.chip_checks[key] = check; chips.append(chip)
         self.append(chips)
-        self.area = Gtk.DrawingArea(); self.area.set_hexpand(True); self.area.set_vexpand(True); self.area.set_size_request(-1, 200)
+        self.area = Gtk.DrawingArea(); self.area.set_hexpand(True); self.area.set_vexpand(False); self.area.set_size_request(-1, 470)
         self.area.set_draw_func(self.draw); self.append(self.area)
         self.connect("map", self.start); self.connect("unmap", self.stop)
 
@@ -184,5 +184,5 @@ class PerformanceGraph(Gtk.Box):
             points = [(right - (count - 1 - index) * step, bottom - value / 100 * (bottom - top)) for index, value in enumerate(values)]
             curve(cr, points); cr.line_to(points[-1][0], bottom); cr.line_to(points[0][0], bottom); cr.close_path()
             cr.set_source_rgba(*colour, .14); cr.fill()
-            curve(cr, points); cr.set_source_rgb(*colour); cr.set_line_width(3.5); cr.set_line_join(1); cr.set_line_cap(1); cr.stroke()
+            curve(cr, points); cr.set_source_rgb(*colour); cr.set_line_width(2); cr.set_line_join(1); cr.set_line_cap(1); cr.stroke()
         cr.restore()

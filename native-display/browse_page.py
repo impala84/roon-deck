@@ -418,14 +418,16 @@ class BrowsePageMixin:
         width = getattr(self, "viewport_width", 800)
         narrow_portrait = bool(getattr(self, "responsive_portrait", False) and width < 600)
         header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL, spacing=16 if narrow_portrait else 24); header.add_css_class("album-profile")
-        size = min(380, round(width * .32)) if width >= 1000 else min(240, round(width * .3))
+        original_view = not getattr(self, "responsive_portrait", False) and width <= 820 and getattr(self, "viewport_height", 480) <= 500
+        # Larger text on the 800x480 panel leaves little height, so the cover stays a modest square there.
+        size = (min(190, round(width * .24)) if original_view else min(380, round(width * .32))) if width >= 1000 or original_view else min(240, round(width * .3))
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         self.set_browser_placeholder(picture)
         slot = Gtk.ScrolledWindow(); slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         slot.set_propagate_natural_width(False); slot.set_propagate_natural_height(False)
         slot.set_min_content_width(size); slot.set_max_content_width(size)
         slot.set_min_content_height(size); slot.set_max_content_height(size)
-        slot.set_size_request(size, size); slot.set_child(picture); header.append(slot)
+        slot.set_size_request(size, size); slot.set_valign(Gtk.Align.START); slot.set_hexpand(False); slot.set_child(picture); header.append(slot)
         if key := profile.get("image_key"): self.load_preview_artwork(picture, key)
         copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); copy.set_hexpand(True); copy.set_valign(Gtk.Align.START if width <= 820 and getattr(self, "viewport_height", 480) <= 500 else Gtk.Align.CENTER)
         title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(28); copy.append(title)
@@ -450,7 +452,7 @@ class BrowsePageMixin:
                 play_slot.set_child(split); copy.append(play_slot)
             else: copy.append(split)
         if review := profile.get("review"):
-            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
+            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(2 if original_view else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
         else:
             summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); copy.append(summary_slot)
             self.load_album_notes(profile, summary_slot)
@@ -474,7 +476,7 @@ class BrowsePageMixin:
                 if slot.get_root() is None: return False
                 while child := slot.get_first_child(): slot.remove(child)
                 summary = self.label(notes.get("writeup") or "No album summary is available.", "queue-meta")
-                summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
+                summary.set_wrap(True); summary.set_lines(2 if original_view else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
                 slot.append(summary)
                 return False
             GLib.idle_add(apply)
@@ -620,7 +622,7 @@ class BrowsePageMixin:
         self.browser_list.set_valign(Gtk.Align.START if data.get("layout") == "list" else Gtk.Align.FILL)
         browser_content = self.browser_artist_scroll.get_parent()
         browser_content.set_homogeneous(False)
-        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
+        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and (getattr(self, "responsive_portrait", False) or original_view) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = "list" if data.get("artist_profile") else (data.get("layout") or "list")

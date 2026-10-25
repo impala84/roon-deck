@@ -1166,7 +1166,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('artwork_area.add_overlay(details)', code)
         self.assertIn('summary_slot.add_css_class("artist-profile-summary")', code)
         self.assertIn('panel.append(summary_slot)', code)
-        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 5', code)
+        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 2 if original else 5', code)
         self.assertIn('profile_text_height = 72 if original else 94', code)
         self.assertIn('picture.artist_hero = True', code)
         self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)

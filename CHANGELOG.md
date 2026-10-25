@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.103 Alpine — 26 October 2026
+
+- 800x480 Album page: the cover no longer stretches into a tall cropped rectangle (it is a fixed square, aligned to the top) and the album summary is cut to two lines, so Larger text no longer overwhelms the page.
+- 800x480 Artist page: now one full-width column. A small picture, the artist name, Play Artist Radio and a two-line summary sit at the top, with the albums listed underneath at full width so their names can be read.
+- 10-inch Settings: the System Performance panel is about 25% shorter, sits clear of the section above it, and the graph lines are thinner (2px, was 3.5px).
+
 ## 1.1.7-beta.102 Alpine — 26 October 2026
 
 - Genre pages (wide landscape): left column is now Shuffle Genre, Genre Artists and Genre Albums with inverted icons (purple tile, dark symbol); the right column lists the sub-genres. Opening a sub-genre keeps the same three actions, now for that sub-genre, with its own sub-genres on the right. The old parent-list trail is gone.
