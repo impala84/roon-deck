@@ -730,6 +730,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = SOURCE.read_text(encoding="utf-8")
         self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)
         self.assertIn('Gtk.CheckButton(label="Bus Times")', code)
+        self.assertIn('self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL)', code)
+        self.assertIn('self.settings_utilities.set_halign(Gtk.Align.END if narrow_portrait else Gtk.Align.START)', code)
 
     def test_secondary_navigation_is_section_specific_and_actions_preserve_context(self):
         navigation = native_method("discovery_secondary_navigation")
