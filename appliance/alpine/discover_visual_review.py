@@ -542,8 +542,16 @@ display.detail_album_artwork.set_filename(str(fixture_art("album-fact", "ALBUM")
 display.set_roon_view("details")
 capture("album-artist-fact-sheet")
 takeover_bounds = display.detail_takeover.compute_bounds(window)[1]
-assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_bounds.get_x(), takeover_bounds.get_y())
-assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
+if display.inline_detail:
+    # Compact landscape deliberately overlays the detail copy beside the
+    # artwork instead of covering it. Verify the configured inset exactly.
+    assert takeover_bounds.get_x() == display.detail_takeover.get_margin_start(), (takeover_bounds.get_x(), display.detail_takeover.get_margin_start())
+    assert takeover_bounds.get_y() == display.detail_takeover.get_margin_top(), (takeover_bounds.get_y(), display.detail_takeover.get_margin_top())
+    assert takeover_bounds.get_x() + takeover_bounds.get_width() == screen_width - display.detail_takeover.get_margin_end()
+    assert takeover_bounds.get_y() + takeover_bounds.get_height() == screen_height - display.detail_takeover.get_margin_bottom()
+else:
+    assert takeover_bounds.get_x() == 0 and takeover_bounds.get_y() == 0, (takeover_bounds.get_x(), takeover_bounds.get_y())
+    assert takeover_bounds.get_width() == screen_width and takeover_bounds.get_height() == screen_height, (takeover_bounds.get_width(), takeover_bounds.get_height(), screen_width, screen_height)
 assert display.detail_close.get_visible()
 if display.album_focus_detail:
     assert display.detail_album_action.get_visible()
