@@ -32,6 +32,13 @@ class Entry:
 
 
 class PortraitRefinementTests(unittest.TestCase):
+    def test_release_period_uses_month_when_known_and_never_invents_one(self):
+        period = native_method("release_period_label", {"re": __import__("re"), "datetime": __import__("datetime").datetime})
+        self.assertEqual(period("2008-04-14"), "April 2008")
+        self.assertEqual(period("2008-04"), "April 2008")
+        self.assertEqual(period("2008"), "2008")
+        self.assertEqual(period(""), "")
+
     def test_artist_catalogue_request_keeps_the_standard_browse_deadline(self):
         timeout = native_method("browser_request_timeout")
         self.assertEqual(timeout("artist"), 35.0)
@@ -646,7 +653,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('year = released[:4] if released else ""', code)
         self.assertIn('if getattr(self, "detail_year_only", False):', code)
         self.assertIn('self.detail_subtitle.set_visible(bool(detail_subtitle))', code)
-        self.assertIn('self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "detail_year_only", False) and year else "ALBUM")', code)
+        self.assertIn('self.detail_album_section_label.set_text(release_label if getattr(self, "detail_year_only", False) and release_label else "ALBUM")', code)
         self.assertIn('heading_width = max(1, getattr(self, "detail_heading_width", 500))', code)
         self.assertIn('heading_height = max(heading.measure(Gtk.Orientation.VERTICAL, heading_width)[1]', code)
         self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait', code)
@@ -660,7 +667,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_original_detail_sheet_is_fixed_and_uses_primary_artist_action(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)', code)
+        self.assertIn('self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)', code)
         self.assertIn('label.set_lines(3 if original_landscape else 5 if album_focus_detail', code)
         self.assertIn('re.sub(r"\\[\\[\\d+\\|([^\\]]+)\\]\\]", r"\\1", details.get("subtitle") or "")', code)
         self.assertIn('.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111;', code)
@@ -767,6 +774,15 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('30 if portrait_grid or self.discovery_section == "releases"',source)
         self.assertIn('size = min(212, size)',source)
         self.assertNotIn('MORE RECOMMENDATIONS',source)
+
+    def test_genre_grid_is_bounded_by_the_realised_viewport(self):
+        monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
+        monitors=SimpleNamespace(get_n_items=lambda:1,get_item=lambda _index:monitor)
+        gdk=SimpleNamespace(Display=SimpleNamespace(get_default=lambda:SimpleNamespace(get_monitors=lambda:monitors)))
+        owner=SimpleNamespace(viewport_width=1280,viewport_height=720,responsive_portrait=False,settings_data={"interface_size":"larger"})
+        columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
+        self.assertEqual(columns,5)
+        self.assertLessEqual(columns * size + (columns - 1) * 24, 1000)
 
     def test_original_landscape_uses_compact_dense_grids(self):
         monitor = SimpleNamespace(get_geometry=lambda: SimpleNamespace(width=800))

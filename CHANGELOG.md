@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.7-beta.61 Alpine — 25 October 2026
+
+- Keeps Now Playing selected while seven-inch album information is open.
+- Replaces the compact album eyebrow with the release month and year when an exact date is available.
+- Fits the larger seven-inch information view without internal scrolling and tightens its copy rhythm.
+- Uses the realised viewport—not an oversized monitor report—to keep Album and Genre grids within the screen.
+- Restores centred Now Playing artwork on portrait displays while preserving the fixed left anchor in landscape.
+- Adds balanced upper and lower breathing room to seven-inch Settings actions.
+- Removes visible loading text while retaining the animated progress dots.
+
 ## 1.1.7-beta.60 Alpine — 25 October 2026
 
 - Keeps the Browse Artist hero clean while its full-resolution image loads instead of briefly showing the generic artist glyph.

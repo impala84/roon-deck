@@ -865,7 +865,7 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .album-play-menu { min-width: 36px; padding: 0 5px 0 3px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; }
 .theme-roon .album-play-menu { background: #9868F9; color: #111; }
 .interface-larger .album-play-menu { min-width: 40px; padding-left: 4px; padding-right: 6px; }
-.touch-landscape.seven-inch-settings .settings-page { padding: 14px 28px 12px; }
+.touch-landscape.seven-inch-settings .settings-page { padding: 18px 28px; }
 .touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
 .touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
 .touch-landscape.seven-inch-settings .settings-action { min-height: 58px; }
@@ -886,6 +886,10 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .inline-detail .detail-panel { padding: 0; }
 .inline-detail .detail-section-label { margin-top: 0; }
 .inline-detail .detail-action { margin-top: 12px; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-title { font-size: 34px; line-height: 1.05; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-artist { font-size: 23px; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-writeup { font-size: 19px; line-height: 1.24; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-action { min-height: 56px; margin-top: 8px; padding-top: 7px; padding-bottom: 7px; }
 """
 # Small static texture: no animation, full-screen image download or per-frame work.
 CSS += ('.theme-roon .page { background-image: url("%s"), linear-gradient(120deg, #1d1c2d, #121212 62%%, #1b1519); background-repeat: repeat, no-repeat; background-size: 128px 128px, cover; }' %
@@ -931,6 +935,16 @@ def browser_request_timeout(action: str) -> float:
     if action in {"sort", "jump", "section", "search", "surprise", "artist"}: return 35.0
     if action in {"surprise_play", "open"}: return 15.0
     return 4.0
+
+
+def release_period_label(value) -> str:
+    """Return a human release period without inventing a missing month."""
+    released = str(value or "")
+    year = released[:4] if re.match(r"^\d{4}", released) else ""
+    match = re.fullmatch(r"(\d{4})-(\d{2})(?:-\d{2})?", released)
+    if match and 1 <= int(match.group(2)) <= 12:
+        return f"{datetime(2000, int(match.group(2)), 1).strftime('%B')} {match.group(1)}"
+    return year
 
 
 def get_bytes(url: str, timeout: float = 1.2):
@@ -1137,7 +1151,7 @@ class Display(Gtk.Application):
         dots = Gtk.Box(spacing=12); dots.set_halign(Gtk.Align.CENTER)
         labels = [self.label("●", "loading-dots") for _ in range(3)]
         for label in labels: dots.append(label)
-        panel.append(dots); panel.append(self.label("Loading…", "loading-notice", .5))
+        panel.append(dots)
         timer = [None]; started = [0.0]
         def pulse():
             elapsed = time.monotonic() - started[0]
@@ -1321,6 +1335,7 @@ class Display(Gtk.Application):
         # titles must shrink the artwork instead of expanding the window.
         reserved = max(560, 120 + sum(widget.measure(Gtk.Orientation.VERTICAL, max(1, width - 64))[0] for widget in (self.discover_toolbar, self.now_playing_centre, self.music_navigation))) if portrait else 0
         artwork_size = now_playing_artwork_size(width, height, portrait, reserved)
+        self.artwork_button.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.START)
         self.artwork_button.set_valign(Gtk.Align.END if original_landscape else Gtk.Align.CENTER)
         self.artwork_button.set_margin_bottom(16 if original_landscape else 0)
         self.artwork.set_size_request(artwork_size, artwork_size); self.artwork_button.set_size_request(artwork_size, artwork_size)
@@ -1384,8 +1399,8 @@ class Display(Gtk.Application):
         for label in (self.detail_artist_writeup, self.detail_writeup):
             label.set_lines(3 if original_landscape else 5 if album_focus_detail else 24 if large_detail_portrait else 3 if compact_detail else -1)
             label.set_ellipsize(Pango.EllipsizeMode.END if compact_detail or large_detail_portrait else Pango.EllipsizeMode.NONE)
-        self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if original_landscape else Gtk.PolicyType.AUTOMATIC)
-        self.detail_sheet.set_kinetic_scrolling(not original_landscape)
+        self.detail_sheet.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER if inline_detail else Gtk.PolicyType.AUTOMATIC)
+        self.detail_sheet.set_kinetic_scrolling(not inline_detail)
         self.detail_artist_facts.set_visible(not large_detail_portrait)
         self.detail_facts.set_visible(not original_landscape and not large_detail_portrait)
         self.detail_tracks.set_visible(False)
@@ -2686,7 +2701,7 @@ class Display(Gtk.Application):
         self.now_playing_tab.remove_css_class("active"); self.queue_tab.remove_css_class("active"); self.browser_tab.remove_css_class("active")
         if name == "queue": self.queue_tab.add_css_class("active")
         elif name in {"browse", "search"}: self.browser_tab.add_css_class("active")
-        elif name == "now": self.now_playing_tab.add_css_class("active")
+        elif name in {"now", "details"}: self.now_playing_tab.add_css_class("active")
         if name == "queue": GLib.idle_add(self.scroll_queue_to_current)
 
     def show_roon_now(self, *_):
@@ -3268,7 +3283,8 @@ class Display(Gtk.Application):
         monitor = monitors.get_item(0) if monitors.get_n_items() else None
         # Never derive minimum tile sizes from content that may have already
         # expanded the window. Reserve the section rail, scrubber and padding.
-        width = monitor.get_geometry().width if monitor else 800
+        monitor_width = monitor.get_geometry().width if monitor else 800
+        width = min(monitor_width, getattr(self, "viewport_width", monitor_width))
         if getattr(self, "responsive_portrait", False):
             width = min(self.window.get_width() or width, width)
             # Includes outer margins, the alphabet rail, queue-list padding
@@ -3884,7 +3900,7 @@ class Display(Gtk.Application):
         self.detail_browse_action.set_sensitive(bool(details.get("artist")))
         subtitle = re.sub(r"\[\[\d+\|([^\]]+)\]\]", r"\1", details.get("subtitle") or "")
         if subtitle.strip().casefold() == (details.get("artist") or "").strip().casefold(): subtitle = ""
-        detail_subtitle = "Loading…" if details.get("status") == "loading" else subtitle
+        detail_subtitle = "" if details.get("status") == "loading" else subtitle
         self.library_status = details.get("library_status") or "unknown"
         if self.library_album_id != details.get("album_id") and not self.library_pending: self.library_message.set_visible(False)
         self.library_album_id = details.get("album_id"); self.library_favorite = details.get("favorite")
@@ -3896,9 +3912,10 @@ class Display(Gtk.Application):
         self.set_library_busy(self.library_pending or bool(details.get("library_busy")))
         self.set_library_icon(self.library_favorite is True)
         metadata = details.get("metadata") or {}
-        released = str(metadata.get("year") or metadata.get("release_date") or "")
+        released = str(metadata.get("release_date") or metadata.get("year") or "")
         year = released[:4] if released else ""
-        self.detail_album_section_label.set_text(f"ALBUM · {year}" if getattr(self, "detail_year_only", False) and year else "ALBUM")
+        release_label = release_period_label(released)
+        self.detail_album_section_label.set_text(release_label if getattr(self, "detail_year_only", False) and release_label else "ALBUM")
         if getattr(self, "detail_year_only", False):
             detail_subtitle = ""
         self.detail_subtitle.set_text(detail_subtitle); self.detail_subtitle.set_visible(bool(detail_subtitle))
@@ -3943,8 +3960,11 @@ class Display(Gtk.Application):
         self.queue_signature = signature; self.queue_pictures = {}; self.queue_artwork_keys = []; self.queue_play_badges = {}
         while child := self.queue_list.get_first_child(): self.queue_list.remove(child)
         if not items:
-            message = "Loading…" if queue.get("status") == "loading" else "Nothing is queued"
-            self.queue_list.append(self.label(message, "queue-empty", .5)); return
+            if queue.get("status") == "loading":
+                self.queue_list.append(self.loading_notice())
+            else:
+                self.queue_list.append(self.label("Nothing is queued", "queue-empty", .5))
+            return
         self.queue_current_index = 0
         for index, item in enumerate(items):
             row = Gtk.Box(spacing=12); row.set_hexpand(True)
