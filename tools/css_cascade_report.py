@@ -23,7 +23,6 @@ Usage: python3 tools/css_cascade_report.py [viewport-id ...]
 """
 from __future__ import annotations
 
-import ast
 import json
 import re
 import sys
@@ -72,23 +71,10 @@ def window_classes(width: int, height: int) -> set[str]:
 
 
 def load_css() -> list[tuple[str, str]]:
-    tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
-    namespace: dict = {"Path": Path, "re": re, "json": json, "__file__": str(SOURCE)}
-    for node in tree.body:
-        is_css = (
-            isinstance(node, ast.Assign)
-            and isinstance(node.targets[0], ast.Name)
-            and node.targets[0].id == "CSS"
-        ) or (isinstance(node, ast.AugAssign) and getattr(node.target, "id", "") == "CSS")
-        is_constant = (
-            isinstance(node, ast.Assign)
-            and isinstance(node.targets[0], ast.Name)
-            and node.targets[0].id.isupper()
-            and isinstance(node.value, ast.Constant)
-        )
-        if is_css or is_constant:
-            exec(compile(ast.Module([node], []), str(SOURCE), "exec"), namespace)
-    css = re.sub(r"/\*.*?\*/", "", namespace["CSS"].decode(), flags=re.S)
+    sys.path.insert(0, str(ROOT / "native-display"))
+    import styles  # no GTK needed
+
+    css = re.sub(r"/\*.*?\*/", "", styles.load_css().decode(), flags=re.S)
     css = re.sub(r"@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}", "", css)
     return [
         (re.sub(r"\s*>\s*", " ", selector).strip(), match.group(2))  # child combinator modelled as descendant

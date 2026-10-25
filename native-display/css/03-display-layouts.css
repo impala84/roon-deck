@@ -1,0 +1,82 @@
+/* Part 3 of the original single stylesheet. Cascade order matters: files load in filename order. */
+/* Words between two @ signs are placeholders filled in by native-display/styles.py. */
+.settings-icon { color: #6ed9ae; }
+.theme-roon .settings-icon { color: #9868F9; }
+.bus-page, .home-page { padding-top: @APPLIANCE_PAGE_TOP@px; }
+.display-landscape .bus-page, .display-landscape .home-page { padding-left: @LANDSCAPE_PAGE_MARGIN@px; padding-right: @LANDSCAPE_PAGE_MARGIN@px; }
+.portrait .bus-page, .portrait .home-page { padding-left: @PORTRAIT_PAGE_MARGIN@px; padding-right: @PORTRAIT_PAGE_MARGIN@px; }
+.service, .home-tile { border-width: @PANEL_STROKE@px; }
+.home-grid { padding-top: 0; }
+.daily-track { padding-left: @CAROUSEL_START_INSET@px; }
+scrolledwindow overshoot, scrolledwindow undershoot { background: transparent; background-image: none; box-shadow: none; border: 0; }
+@keyframes library-pulse {
+  from { box-shadow: 0 0 0 1px alpha(#6ed9ae, .25), 0 0 3px alpha(#6ed9ae, .10); }
+  to { box-shadow: 0 0 0 3px alpha(#6ed9ae, .8), 0 0 10px alpha(#6ed9ae, .35); }
+}
+@keyframes library-pulse-roon {
+  from { box-shadow: 0 0 0 1px alpha(#9868F9, .25), 0 0 3px alpha(#9868F9, .10); }
+  to { box-shadow: 0 0 0 3px alpha(#9868F9, .8), 0 0 10px alpha(#9868F9, .35); }
+}
+.transport button.library-action.library-busy:disabled { opacity: 1; color: #6ed9ae; animation: library-pulse 900ms ease-in-out infinite alternate; }
+.theme-roon .transport button.library-action.library-busy:disabled { color: #9868F9; animation-name: library-pulse-roon; }
+.large-display .transport button { min-width: 120px; min-height: 120px; border-radius: 60px; }
+.large-display .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
+.large-display .utility, .large-display .browser-back { min-width: 150px; min-height: 72px; font-size: 21px; padding: 12px 24px; }
+.large-display .transport button.library-action { min-width: 120px; min-height: 120px; padding: 0; border-radius: 60px; }
+.large-display .settings-page .settings-version, .large-display .settings-page .settings-diagnostic { font-size: 23px; }
+.large-display .settings-header .settings-utilities button { font-size: 23px; }
+.large-display .settings-page .setting-line label, .large-display .settings-page .setting-line checkbutton { font-size: 23px; }
+.large-display .settings-page .settings-theme-choice { font-size: 24px; min-height: 72px; }
+.large-display .settings-page scale value { font-size: 21px; }
+.large-display.portrait .discover-toolbar .roon-subnav button { padding-left: 5px; padding-right: 5px; }
+.large-display .source-volume { font-size: 400px; font-weight: 300; }
+.large-display .source-mute { min-width: 240px; min-height: 82px; font-size: 26px; }
+.source-step, .theme-roon .source-step { color: #fff; padding: 0; border-radius: 999px; }
+.large-display .browser-back { min-width: 132px; min-height: 64px; padding: 10px 20px; }
+.portrait .browser-back { min-height: 38px; padding: 4px 16px; }
+.portrait.large-portrait .browser-back { min-height: 52px; }
+.browser-sort { min-height: 48px; padding: 8px 12px; border-radius: 8px; background: #282828; color: #6ed9ae; }
+.browser-sort:hover { background: #303033; }
+.large-display .home-name { font-size: 34px; }
+.large-display .home-state { font-size: 24px; }
+.large-display .browser-home-title { font-size: 24px; }
+.portrait .browser-home-card, .portrait .browser-home-card.compact { min-height: 0; padding: 12px; }
+.large-display .artist-albums-heading { font-size: 24px; }
+.large-display .artist-album-title { font-size: 30px; }
+.large-display .recommendation-heading { font-size: 21px; margin-top: 18px; margin-bottom: 0; }
+.large-display .recommendation-album { font-size: 25px; }
+.album-profile { padding: 12px 0 24px; }
+.album-artist { background: transparent; padding: 0; color: #aaa; font-size: 22px; }
+.large-display .album-artist { font-size: 28px; }
+.large-display .service-no { font-weight: 300; }
+.large-display.portrait .now-volume-row { margin-top: 30px; }
+.large-display.portrait .now-mute { margin-top: 36px; }
+.portrait.large-portrait .roon-page { padding-top: 15px; }
+.large-display.display-landscape .roon-page { padding-top: 5px; }
+.compact-portrait .source-step { min-width: 64px; min-height: 64px; border-radius: 32px; }
+.compact-portrait .source-volume { font-size: 84px; }
+.compact-portrait .browser-filter { padding-left: 2px; padding-right: 2px; }
+.compact-portrait .browser-back { min-width: 56px; padding-left: 8px; padding-right: 8px; }
+.large-display .settings-select, .large-display .setting-line { min-height: 72px; font-size: 22px; }
+.large-display .settings-action { min-height: 82px; font-size: 22px; }
+.large-display .discovery-card .queue-title { font-size: 27px; }
+.large-display .discovery-card .queue-subtitle { font-size: 22px; }
+.large-display .queue-row { min-height: 138px; }
+.queue-row:hover, .queue-row:active, .queue-row:focus, .theme-roon .queue-row:hover, .theme-roon .queue-row:active, .theme-roon .queue-row:focus { background: transparent; box-shadow: none; }
+.queue-row.current, .queue-row.current:hover, .queue-row.current:active, .queue-row.current:focus { background: #121e1c; }
+.theme-roon .queue-row.current, .theme-roon .queue-row.current:hover, .theme-roon .queue-row.current:active, .theme-roon .queue-row.current:focus { background: #292733; }
+.queue-play-badge, .theme-roon .queue-play-badge { background: transparent; color: #fff; }
+.queue-play-badge.light-art, .theme-roon .queue-play-badge.light-art { color: #392772; }
+.large-display .queue-title { font-size: 30px; }
+.large-display .queue-meta, .large-display .queue-duration { font-size: 23px; }
+.large-display .browser-cover-title, .large-display .browser-cover-title.tile { font-size: 26px; }
+.large-display .browser-cover-subtitle { font-size: 21px; }
+.large-display .queue-art, .large-display .browser-action-icon { min-width: 116px; min-height: 116px; }
+.large-display .artist-name { font-size: 38px; }
+.large-display .artist-play, .large-display .queue-pill { min-height: 76px; font-size: 27px; }
+.large-display .surprise-title { font-size: 42px; }
+.large-display .surprise-artist { font-size: 30px; }
+.large-display .surprise-action { min-width: 108px; min-height: 108px; }
+.large-display .surprise-caption { font-size: 24px; }
+.large-display .time { font-size: 23px; }
+.large-display .roon-artist { font-size: 32px; }

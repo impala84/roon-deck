@@ -1,0 +1,138 @@
+/* Part 6 of the original single stylesheet. Cascade order matters: files load in filename order. */
+window.background-black, window.background-black .page,
+window.background-black .roon-page, window.background-black .home-page,
+window.background-black .settings-page, window.background-black .sleep {
+    background-color: #000; background-image: none;
+}
+
+/* Beta 64: one shared frame and density system for physical displays. */
+window.theme-roon .detail-takeover,
+window.theme-roon .detail-header,
+window.theme-roon .detail-sheet-scroll,
+window.theme-roon .detail-footer { background: transparent; }
+window.background-black .detail-takeover,
+window.background-black .detail-header,
+window.background-black .detail-sheet-scroll,
+window.background-black .detail-footer { background: #000; }
+/* Inline details sit beside the artwork. They must stay transparent or, on a black background,
+   they paint an opaque box over the header's tab underline and clock. */
+window.background-black .detail-takeover.inline-detail,
+window.background-black .inline-detail .detail-header,
+window.background-black .inline-detail .detail-sheet-scroll,
+window.background-black .inline-detail .detail-footer,
+window.theme-roon .detail-takeover.inline-detail { background: transparent; }
+.detail-footer .detail-primary-action { font-size: 22px; }
+.high-resolution .detail-footer .detail-primary-action { font-size: 25px; }
+
+/* Only the installation-profile picker receives the larger menu treatment. */
+.touch-profile-select { font-size: 22px; }
+.touch-profile-select popover listview row { min-height: 60px; padding: 9px 16px; }
+.touch-profile-select popover listview row label { font-size: 22px; }
+.portrait .touch-profile-select,
+.portrait .touch-profile-select popover listview row label { font-size: 27px; }
+.portrait .touch-profile-select popover listview row { min-height: 72px; }
+
+.settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
+.theme-roon .settings-close { border-color: #9868F9; }
+.settings-sleep { min-width: 128px; min-height: 58px; padding: 0 24px; border-radius: 8px; background: #303030; color: #f4f0e6; font-size: 16px; font-weight: 750; }
+/* 7-inch Gen 2 landscape: ".touch-landscape .settings-page button" (padding: 8px 20px) outranks the two
+   rules above, which stretched the 58px close circle to 102x78. These outrank it. Sizes are content-box
+   (GTK min-width excludes padding and border): 48 + 2x2 border = a 52px circle; Sleep matches at 52px tall. */
+.touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 48px; min-height: 48px; padding: 0; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }
+.touch2-7-landscape .settings-header .settings-utilities { margin-top: 8px; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { margin-right: 14px; font-size: 19px; }
+.touch2-7-landscape .settings-primary-actions { margin-bottom: 0; }
+/* 10-inch portrait Settings: a larger heading, a quiet diagnostics line, and even 24px gaps between the three action buttons. */
+.large-display.portrait .settings-page .settings-title { font-size: 44px; }
+.large-display.portrait .settings-page .settings-diagnostic { font-size: 18px; }
+.large-display.portrait .settings-primary-actions { margin-bottom: 12px; }
+.settings-page .settings-title { font-size: 34px; }
+.settings-page .settings-diagnostic { font-size: 11px; }
+popover listview row { min-height: 48px; padding: 8px 14px; }
+popover listview row label { font-size: 19px; }
+.interface-larger popover listview row { min-height: 58px; }
+.interface-larger popover listview row label { font-size: 22px; }
+.settings-action-stack { padding-top: 4px; padding-bottom: 6px; }
+.portrait .settings-page { padding-top: 24px; padding-bottom: 12px; }
+.portrait .settings-header { min-height: 84px; }
+.portrait .settings-title { font-size: 38px; font-weight: 600; }
+.portrait .settings-version { font-size: 17px; }
+.portrait .settings-diagnostic { font-size: 17px; }
+.portrait .settings-card { padding-bottom: 10px; }
+.portrait .settings-action-stack { padding-top: 18px; padding-bottom: 0; }
+.portrait .settings-primary-actions { margin-bottom: 22px; }
+.portrait .settings-action { min-height: 72px; }
+
+/* The same page-edge geometry drives all four primary pages. */
+.touch-landscape .page-header,
+.touch-landscape .discover-toolbar { margin-left: -8px; margin-right: -8px; }
+.touch-landscape .page-header .discover-utility,
+.touch-landscape .discover-toolbar > .discover-utility { margin-top: 11px; }
+.touch-landscape .header-clock,
+.touch-landscape .discover-sleep { margin-top: 8px; }
+
+/* One physical anchor for the utility controls on every 10-inch page.
+   Keep this after device-specific rules so the shared position wins. */
+.large-display .page-header,
+.large-display .discover-toolbar { min-height: 64px; }
+.large-display .page-header .discover-utility,
+.large-display .discover-toolbar > .discover-utility,
+.large-display .header-clock,
+.large-display .discover-sleep { margin-top: 0; margin-bottom: 0; }
+.large-display .page-header > button,
+.large-display .discover-toolbar > button { min-height: 56px; margin-top: 4px; margin-bottom: 4px; }
+.touch2-7-landscape .browser-back { min-width: 112px; min-height: 58px; padding: 8px 15px; font-size: 18px; }
+/* Larger: the clock digits are a little smaller and end on the cards' right edge. The row keeps its
+   83px height, so nothing below moves. */
+.touch2-7-landscape.interface-larger .page-header { min-height: 83px; }
+.touch2-7-landscape.interface-larger .page-header .clock { font-size: 42px; }
+.touch2-7-landscape.interface-larger .page-header .header-clock { margin-right: 4px; }
+/* 10-inch portrait: Bus Times and Home headers sat 9px lower than Discover and Now Playing (cog centre
+   y 61.5 against 52.5). Cog, title and clock move up together so the line stays balanced. */
+.large-display.portrait .bus-page .page-header > *,
+.large-display.portrait .home-page .page-header > * { transform: translateY(-9px); }
+.touch2-7-landscape .nav { min-height: 60px; padding-top: 0; margin-top: 0; margin-bottom: 0; }
+.touch2-7-landscape .nav button { min-height: 58px; }
+.touch2-7-landscape .bus-page .service.compact { padding-top: 2px; padding-bottom: 2px; }
+.touch2-7-landscape .bus-page .service.compact .service-no,
+.touch2-7-landscape .bus-page .service.compact .arrival { font-size: 66px; }
+.touch2-7-landscape .bus-page .stop-row { margin-bottom: 4px; }
+.touch2-7-landscape .bus-page .bus-footer { min-height: 18px; }
+
+.large-display.portrait .bus-page .service.compact,
+.large-display.portrait .bus-page .service.dense { padding-top: 3px; padding-bottom: 3px; }
+.large-display.portrait .bus-page .bus-route-badge { margin-top: 4px; }
+.large-display.portrait .bus-page .bus-next-unit { margin-top: -4px; }
+
+/* 800x480: one header line near the top. The cog, tabs/title and clock sit 6px higher than before
+   (page padding 7px -> 1px, cog and clock keep a 7px top margin), the cog is 4px further left on
+   Bus Times and Home to match the music pages, and the Bus/Home clock ends at the clock icon's edge. */
+/* Large portrait: BACK is set like the ALBUMS / ARTISTS / SEARCH row it sits beside: same size, same line box. */
+.portrait.large-portrait .browser-back { margin: 0; min-height: 52px; padding: 6px 28px; font-size: 24px; font-weight: 500; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 6px 0 4px; }
+.touch2-7-landscape .album-play-split .artist-play { padding-right: 14px; }
+.original-landscape .home-tile { min-height: 0; padding: 4px 8px 6px; }
+.original-landscape .home-device-button, .original-landscape .home-level { min-height: 0; }
+.original-landscape .home-name { font-size: 15px; line-height: 1.05; }
+.original-landscape .home-state { font-size: 10px; }
+.original-landscape .page { padding-top: 1px; }
+.original-landscape .roon-page.now-layout .discover-toolbar { min-height: 44px; }
+.original-landscape .page-header .discover-utility,
+.original-landscape .discover-toolbar > .discover-utility { margin-top: 7px; margin-bottom: 0; }
+.original-landscape .page-header .discover-utility { margin-left: -4px; }
+.original-landscape .page-header .header-clock { margin-top: 7px; margin-right: 3px; }
+.original-landscape .volume-number.fixed-volume-label { margin-top: 6px; font-size: 12px; letter-spacing: 1.5px; }
+.original-landscape .now-volume-row { margin-top: 0; }
+/* 800x480 Settings: even 11px inset, a round 40px close control and a compact Sleep button. */
+.original-landscape .settings-page { padding: 11px 12px 8px; }
+.original-landscape .settings-header .settings-utilities { margin-top: 0; }
+.original-landscape .settings-header .settings-utilities .settings-close { min-width: 40px; min-height: 40px; padding: 0; }
+.original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 96px; min-height: 40px; padding: 0 14px; border: 2px solid transparent; font-size: 15px; }
+/* 800x480 scaling dropdown and its menu: the 23px / 22px Larger sizes were enormous here. */
+.original-landscape.interface-larger .settings-select { font-size: 15px; }
+.original-landscape.interface-smaller .settings-select { font-size: 13px; }
+.original-landscape popover listview row { min-height: 40px; padding: 4px 12px; }
+.original-landscape popover listview row label,
+.original-landscape.interface-larger popover listview row label { font-size: 16px; }
+.original-landscape.interface-larger popover listview row { min-height: 44px; }

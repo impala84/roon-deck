@@ -1,0 +1,281 @@
+/* Part 4 of the original single stylesheet. Cascade order matters: files load in filename order. */
+popover.track-menu > contents { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.55); }
+.browser-sort, .browser-sort:hover { background: transparent; }
+.detail-header { min-height: 92px; padding-top: 14px; padding-bottom: 14px; }
+.detail-heading { color: #f4f0e6; font-size: 28px; font-weight: 700; }
+.high-resolution .detail-header { min-height: 112px; padding: 18px 52px; }
+.high-resolution .detail-heading { font-size: 36px; }
+.high-resolution.portrait .detail-title { font-size: 49px; }
+.high-resolution.portrait .detail-section-label { font-size: 22px; letter-spacing: 2.2px; }
+.high-resolution.portrait .detail-artist { font-size: 30px; }
+.high-resolution.portrait .detail-subtitle { margin-top: 2px; color: #96919a; font-size: 21px; }
+.high-resolution.portrait .detail-writeup { font-size: 24px; line-height: 1.34; }
+.high-resolution.portrait .detail-close { min-width: 88px; min-height: 88px; }
+.high-resolution.portrait .detail-close-glyph { min-width: 60px; min-height: 60px; }
+.compact-detail .detail-heading { font-size: 24px; }
+.detail-close { border: 0; background: transparent; color: #fff; }
+.detail-close-glyph { border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
+.compact-detail .detail-header { min-height: 68px; padding-top: 10px; padding-bottom: 10px; }
+.compact-detail .detail-close-glyph { min-width: 40px; min-height: 40px; }
+.detail-source { margin-top: 4px; margin-bottom: 14px; }
+.detail-facts { padding-top: 0; }
+.primary-play { background: #6ed9ae; color: #111; font-weight: 800; }
+.primary-play:hover, .primary-play:active, .primary-play:focus { background: #83e6bd; color: #111; }
+.theme-roon .primary-play { background: #9868F9; color: #111; }
+.theme-roon .primary-play:hover, .theme-roon .primary-play:active, .theme-roon .primary-play:focus { background: #a77cff; color: #111; }
+.surprise-action.primary-play, .theme-roon .surprise-action.primary-play { border-radius: 50%; }
+.volume-step { min-width: 48px; min-height: 48px; padding: 0; border-radius: 24px; background: transparent; color: #6ed9ae; }
+.large-display .volume-step { min-width: 68px; min-height: 68px; border-radius: 34px; }
+.track-menu-action { min-height: 52px; padding: 10px 16px; border-radius: 8px; background: #18211f; color: #6ed9ae; font-size: 18px; }
+.track-menu-action:hover { background: #34323a; }
+.track-menu-action:active, .track-menu-action:focus { background: #292929; box-shadow: none; }
+.track-menu-action.primary-play, .track-menu-action.primary-play:hover, .track-menu-action.primary-play:active, .track-menu-action.primary-play:focus { border-radius: 8px; background: #6ed9ae; color: #111; }
+.track-menu-action.primary-play:disabled { background: #6ed9ae; color: #111; opacity: .72; }
+.mix-track-row { min-height: 72px; padding-top: 3px; padding-bottom: 3px; }
+.volume-number.fixed-volume-label { min-width: 150px; margin-top: 34px; color: #3d3b40; font-size: 16px; font-weight: 350; letter-spacing: 2px; }
+.artist-overlay-info { padding: 62px 16px 12px; background: transparent; }
+.artist-hero-frame, .artist-hero-frame viewport, .artist-hero-image,
+.theme-roon .artist-hero-frame, .theme-roon .artist-hero-frame viewport, .theme-roon .artist-hero-image { border-top-left-radius: 8px; border-top-right-radius: 8px; background: transparent; background-image: none; }
+.artist-overlay-info .artist-name { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
+.artist-overlay-play { box-shadow: 0 6px 22px rgba(0,0,0,.55); }
+.touch2-7-landscape .artist-profile .artist-name { font-size: 31px; }
+.touch2-7-landscape .artist-profile .artist-bio { font-size: 21px; line-height: 1.34; }
+.original-landscape .artist-overlay-info { padding: 34px 12px 9px; }
+.original-landscape .artist-overlay-info .artist-name { font-size: 22px; }
+.original-landscape .artist-overlay-play { min-height: 38px; padding: 4px 12px; }
+.original-landscape .artist-profile .artist-bio { font-size: 15px; line-height: 1.25; }
+.artist-profile-summary { padding: 8px 16px 0; }
+.artist-albums-heading { padding-top: 3px; }
+popover.sort-menu .track-menu-action:hover,
+popover.sort-menu .track-menu-action:focus { background: #18211f; box-shadow: none; }
+popover.sort-menu .track-menu-action.active,
+popover.sort-menu .track-menu-action.active:hover,
+popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: #111; box-shadow: none; }
+.large-display .track-menu-action { min-height: 64px; font-size: 24px; }
+.compact-landscape popover.track-menu > contents { padding: 7px; border-radius: 10px; }
+.compact-landscape .track-menu-action { min-height: 42px; padding: 5px 12px; font-size: 16px; }
+.compact-landscape .page { padding: 10px 12px 8px; }
+.compact-landscape .browser-sidebar { min-width: 112px; padding-right: 2px; }
+.compact-landscape .browser-filter { min-height: 44px; padding: 6px; font-size: 14px; }
+.compact-landscape .browser-scrubber { min-width: 44px; }
+.compact-landscape .browser-search-entry { min-height: 42px; padding: 4px 10px; font-size: 18px; }
+.compact-landscape .browser-key { min-width: 0; min-height: 32px; padding: 3px; font-size: 14px; }
+.compact-landscape .clock { font-size: 24px; }
+.compact-landscape .settings-page { padding: 8px 12px; }
+.compact-landscape .settings-page .settings-title { font-size: 26px; }
+.compact-landscape .settings-page .settings-version, .compact-landscape .settings-page .settings-diagnostic { font-size: 11px; }
+.compact-landscape .settings-header .settings-utilities button { min-height: 38px; padding: 4px 12px; }
+.compact-landscape .settings-page .setting-line, .compact-landscape .settings-page .settings-select { min-height: 40px; padding: 3px 10px; }
+.compact-landscape .settings-page .settings-action { min-height: 46px; padding: 4px 10px; }
+.compact-landscape .settings-page .settings-theme-choice { min-height: 40px; font-size: 14px; }
+.compact-landscape .settings-page .settings-controls { padding-top: 2px; }
+.compact-detail .detail-header { min-height: 61px; padding: 7px 20px 2px; }
+.compact-detail .detail-close { min-width: 52px; min-height: 52px; padding: 0; }
+.compact-detail .detail-panel { padding: 8px 20px 14px; }
+.compact-detail .detail-entity { padding: 0; }
+.compact-detail .detail-section-label { margin-top: 3px; font-size: 14px; letter-spacing: 1.6px; }
+.compact-detail .detail-title { font-size: 30px; }
+.compact-detail .detail-artist { font-size: 21px; }
+.compact-detail .detail-subtitle { font-size: 15px; }.compact-detail .detail-writeup { font-size: 17px; line-height: 1.32; }
+.compact-detail .detail-fact, .compact-detail .detail-track-title { color: #858b89; font-size: 13px; font-weight: 500; }
+.compact-detail .detail-action { min-height: 43px; padding: 6px 12px; font-size: 14px; }
+.compact-detail .detail-rule { margin: 7px 0; }
+.compact-detail .detail-footer { padding: 10px 20px 20px; }
+.compact-detail .detail-footer .detail-primary-action { min-height: 56px; font-size: 21px; }
+.album-focus-detail .detail-panel { padding: 10px 20px 13px; }
+.album-focus-detail .detail-entity { padding: 0; }
+.album-focus-detail .detail-album-card { padding: 0; }
+.album-focus-detail .detail-artwork-frame { margin: 0; }
+.album-focus-detail .detail-section-label { margin-top: 0; font-size: 18px; letter-spacing: 1.9px; }
+.album-focus-detail .detail-title { font-size: 36px; }
+.album-focus-detail .detail-artist { font-size: 25px; }
+.album-focus-detail .detail-writeup { font-size: 19px; line-height: 1.38; }
+.touch2-7-landscape .album-focus-detail .detail-action,
+.touch2-7-landscape.theme-roon .album-focus-detail .detail-action { min-height: 54px; margin-top: 14px; padding: 8px 22px; border-radius: 10px; background: #9868F9; color: #111; font-size: 18px; font-weight: 800; }
+
+/* The original 800x480 DSI panel has its own density profile.  Keep these
+   rules out of the 1024x600 and larger landscape layouts. */
+.original-landscape .page { padding: 5px 12px 5px; }
+.original-landscape .discover-toolbar { min-height: 44px; margin-bottom: 5px; padding-top: 0; }
+.original-landscape .roon-page.now-layout .discover-toolbar { min-height: 40px; }
+.original-landscape .discover-utility { min-width: 34px; min-height: 34px; padding: 0; }
+.original-landscape .roon-subnav button { min-height: 34px; padding: 3px 8px 0; font-size: 14px; letter-spacing: .2px; }
+.original-landscape .discover-toolbar .roon-subnav button { border-bottom-width: 2px; }
+.original-landscape .browser-sidebar { min-width: 116px; padding: 4px 6px 2px 0; }
+.original-landscape .browser-sidebar.library-sidebar { margin-top: -12px; }
+.original-landscape .browser-sidebar.discovery-sidebar { margin-top: -12px; }
+.original-landscape .browser-filter { min-height: 39px; padding: 3px 6px; font-size: 14px; letter-spacing: .2px; }
+.original-landscape .browser-back { min-height: 38px; margin-top: 6px; }
+.original-landscape .browser-main { margin-top: -16px; margin-bottom: -10px; padding-left: 0; }
+.original-landscape .browser-cover-grid { padding: 1px 12px 10px 1px; }
+.original-landscape .browser-cover-card { padding: 2px; }
+.original-landscape .browser-cover-title { padding-top: 4px; font-size: 13px; }
+.original-landscape .browser-cover-title.tile { padding: 5px 4px 6px; font-size: 15px; line-height: 1.05; }
+.original-landscape .browser-cover-subtitle { font-size: 10px; }
+.original-landscape .artist-album-title { font-size: 20px; }
+.original-landscape .browser-scrubber scale { padding: 5px; }
+.original-landscape .browser-scrub-letter { min-width: 28px; min-height: 28px; font-size: 14px; }
+.original-landscape .discovery-scroll { margin-bottom: 2px; }
+.original-landscape .discovery-card .queue-title { font-size: 17px; line-height: 1.05; }
+.original-landscape .discovery-card .queue-subtitle { font-size: 13px; line-height: 1.05; }
+.original-landscape .daily-card .queue-title { font-size: 18px; }
+.original-landscape .daily-card .queue-subtitle { font-size: 14px; }
+.original-landscape .daily-track { padding-left: 6px; padding-right: 0; }
+.original-landscape .daily-scroll { margin-right: -4px; }
+.original-landscape .roon-page.daily-edge { padding-right: 0; }
+.original-landscape .roon-page.daily-edge .discovery-scroll { margin-right: -16px; }
+.original-landscape .roon-page.daily-edge .discover-toolbar,
+.original-landscape .roon-page.daily-edge > .nav { margin-right: 12px; }
+.original-landscape .recommendation-heading { margin-top: 8px; }
+.original-landscape .loading-dots { font-size: 24px; }
+.original-landscape .loading-notice { font-size: 15px; }
+.original-landscape .surprise-action { min-width: 62px; min-height: 62px; padding: 5px; }
+.original-landscape .surprise-caption { font-size: 14px; }
+.original-landscape .surprise-title { font-size: 24px; line-height: 1.05; }
+.original-landscape .surprise-artist { font-size: 17px; }
+.original-landscape .now-playing-content { margin-top: 0; margin-bottom: 0; }
+.original-landscape .artwork, .original-landscape .artwork-button { border-radius: 6px; }
+.original-landscape .roon-title { font-size: 34px; }
+.original-landscape .now-mute { min-width: 54px; padding-left: 8px; padding-right: 8px; }
+.original-landscape .volume-step { min-width: 36px; min-height: 36px; border-radius: 18px; }
+.original-landscape .source-title { font-size: 22px; font-weight: 600; }
+.original-landscape .source-step { min-width: 72px; min-height: 72px; border-radius: 36px; font-size: 38px; }
+.original-landscape .source-volume { font-size: 112px; font-weight: 400; }
+.original-landscape .settings-page { padding: 10px 12px 6px; }
+.original-landscape .settings-card { padding: 7px 8px; border: 0; background: transparent; }
+.original-landscape .settings-controls { padding: 0; }
+.original-landscape .settings-column { padding: 0 3px; }
+.original-landscape .settings-page .setting-line,
+.original-landscape .settings-page .settings-select { min-height: 34px; padding: 2px 8px; }
+.original-landscape .settings-page .settings-theme-choice { min-height: 31px; padding-top: 2px; padding-bottom: 2px; }
+.original-landscape .settings-page .settings-action { min-height: 41px; }
+.original-landscape .settings-header .settings-utilities button { min-height: 34px; }
+.original-landscape .brightness-setting { padding: 2px 0; }
+.original-landscape .artist-profile { padding: 3px 10px 4px 0; }
+.original-landscape .artist-name { font-size: 25px; }
+.original-landscape .artist-play { min-height: 38px; margin-top: 3px; padding: 4px 17px 4px 12px; font-size: 16px; }
+.original-landscape .queue-pill { min-height: 38px; padding: 4px 14px; font-size: 15px; }
+.original-landscape.compact-detail .detail-header { min-height: 46px; padding: 1px 20px 0; }
+.original-landscape.compact-detail .detail-close { min-width: 37px; min-height: 37px; }
+.original-landscape.compact-detail .detail-close-glyph { min-width: 31px; min-height: 31px; }
+.original-landscape.compact-detail .detail-panel { padding-top: 3px; padding-bottom: 6px; }
+.original-landscape.compact-detail .detail-album-content { margin: 0; }
+.original-landscape.compact-detail .detail-writeup { font-size: 16px; line-height: 1.25; }
+.original-landscape.compact-detail .detail-footer { padding-top: 6px; padding-bottom: 12px; }
+.original-landscape.compact-detail .detail-footer .detail-primary-action { min-height: 48px; font-size: 18px; }
+.original-landscape .compact-detail .detail-album-card .detail-action { min-height: 38px; margin-top: 3px; padding: 4px 12px; background: #6ed9ae; color: #111; font-size: 14px; font-weight: 800; }
+.original-landscape.theme-roon .compact-detail .detail-album-card .detail-action { background: #9868F9; color: #111; }
+.original-landscape .album-focus-detail .detail-section-label { font-size: 14px; letter-spacing: 1.5px; }
+.original-landscape .album-focus-detail .detail-title { font-size: 28px; line-height: 1.08; }
+.original-landscape .album-focus-detail .detail-artist { font-size: 19px; }
+.original-landscape .album-focus-detail .detail-writeup { font-size: 16px; line-height: 1.28; }
+.touch2-7-landscape .album-focus-detail .detail-section-label { font-size: 17px; letter-spacing: 1.7px; }
+.touch2-7-landscape .album-focus-detail .detail-title { font-size: 36px; line-height: 1.08; }
+.touch2-7-landscape .album-focus-detail .detail-artist { font-size: 25px; }
+.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 21px; line-height: 1.36; }
+.touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
+.touch2-7-landscape .transport button { min-width: 76px; min-height: 76px; border-radius: 38px; }
+.touch2-7-landscape .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }
+.interface-smaller .transport button { min-width: 43px; min-height: 43px; border-radius: 22px; }
+.interface-smaller .transport .play { min-width: 58px; min-height: 58px; border-radius: 29px; }
+.interface-larger .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
+.interface-larger .transport .play { min-width: 82px; min-height: 82px; border-radius: 41px; }
+.touch-landscape.interface-smaller .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
+.touch-landscape.interface-smaller .transport .play { min-width: 75px; min-height: 75px; border-radius: 38px; }
+.touch-landscape.interface-larger .transport button { min-width: 84px; min-height: 84px; border-radius: 42px; }
+.touch-landscape.interface-larger .transport .play { min-width: 106px; min-height: 106px; border-radius: 53px; }
+/* Do not let the generic larger rule collapse the 10-inch hierarchy. */
+.large-display.interface-larger .transport button,
+.large-display.interface-larger .transport button.library-action { min-width: 120px; min-height: 120px; border-radius: 60px; }
+.large-display.interface-larger .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
+.interface-smaller .nav button { min-height: 36px; }
+.interface-larger .nav button { min-height: 48px; }
+.touch-landscape.interface-smaller .nav button { min-height: 52px; }
+.touch-landscape.interface-larger .nav button { min-height: 70px; }
+.interface-smaller .detail-action { min-height: 49px; padding-top: 5px; padding-bottom: 5px; }
+.interface-larger .detail-action { min-height: 70px; padding-top: 10px; padding-bottom: 10px; }
+.touch-landscape.interface-smaller .detail-action { min-height: 46px; }
+.touch-landscape.interface-larger .detail-action { min-height: 65px; }
+/* Shared semantic heading tier. Display profiles change geometry, not rank. */
+.page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }
+.stop-code { font-size: 18px; font-weight: 550; }
+.high-resolution .page-title, .high-resolution .stop,
+.high-resolution .settings-title, .high-resolution .detail-heading { font-size: 34px; }
+.high-resolution .stop-code { font-size: 22px; }
+.touch-landscape .page-title, .touch-landscape .stop,
+.touch-landscape .settings-title, .touch-landscape .detail-heading { font-size: 31px; }
+.touch-landscape .stop-code { font-size: 21px; }
+.original-landscape .page-title, .original-landscape .stop,
+.original-landscape .settings-title, .original-landscape .detail-heading { font-size: 23px; }
+.original-landscape .stop-code { font-size: 16px; }
+/* Interface-size variants must affect every shared control family. */
+.interface-larger .browser-back { min-width: 96px; min-height: 52px; padding: 8px 15px; font-size: 16px; }
+.touch-landscape.interface-larger .browser-back { min-width: 112px; min-height: 58px; font-size: 18px; }
+.interface-larger .album-profile .artist-name { font-size: 34px; }
+.interface-larger .album-profile .album-artist { font-size: 26px; }
+.interface-larger .album-profile .queue-meta { font-size: 21px; line-height: 1.35; }
+.interface-larger .settings-select { font-size: 23px; }
+.interface-smaller .settings-select { font-size: 16px; }
+.album-play-split { margin-top: 2px; }
+.album-play-split .artist-play { border-top-right-radius: 0; border-bottom-right-radius: 0; margin: 0; }
+.album-play-menu { min-width: 64px; padding: 0 12px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; }
+.theme-roon .album-play-menu { background: #9868F9; color: #111; }
+.interface-larger .album-play-menu { min-width: 72px; padding: 0 14px; }
+.large-display .album-play-menu { min-width: 96px; padding: 0 16px; }
+.original-landscape .album-play-menu { min-width: 46px; padding: 0 8px; }
+.touch-landscape.seven-inch-settings .settings-page { padding: 18px 28px; }
+.touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
+.touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
+.touch-landscape.seven-inch-settings .settings-action { min-height: 58px; }
+/* The shared seven-inch header frame sits slightly below the physical bezel.
+   Keep this single inset for Now Playing, Discover, Bus Times and Home. */
+.touch2-7-landscape .page { padding-top: 10px; }
+.touch2-7-landscape .settings-page { padding-top: 10px; }
+.original-landscape .page { padding-top: 7px; }
+.original-landscape .settings-page { padding-top: 7px; }
+.display-landscape .page-header .discover-utility { margin-top: 7px; }
+.display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
+.touch2-7-landscape .browser-sidebar { min-width: 144px; }
+.touch2-7-landscape .browser-main { padding-left: 9px; margin-top: -10px; }
+.touch2-7-landscape .queue-scroll.browser-scroll-fill { margin-right: 0; }
+.touch2-7-landscape .browser-scroll-fill .queue-list { padding-right: 0; }
+.touch2-7-landscape .browser-scrubber { min-width: 64px; padding-left: 0; }
+.touch2-7-landscape .bus-page,
+.touch2-7-landscape .home-page { padding-top: 0; }
+/* Seven-inch Gen 2 header anchor. The cog and clock icon are pinned to the top
+   of their header row (valign START in adapt_display), so the row's height no
+   longer moves them. Cog top edge = row top + margin-top on every page: Bus/Home
+   rows start at 0, the Now Playing toolbar row starts at 10 (page padding).
+   Standard and Smaller: 14px (centre ~36, level with the page titles).
+   Larger: 18px. Row heights are unchanged. */
+.touch2-7-landscape .bus-page .page-header .discover-utility,
+.touch2-7-landscape .home-page .page-header .discover-utility { margin-top: 14px; margin-bottom: 0; }
+.touch2-7-landscape .roon-page .discover-toolbar > .discover-utility { margin-top: 4px; margin-bottom: 0; }
+.touch2-7-landscape.interface-larger .bus-page .page-header .discover-utility,
+.touch2-7-landscape.interface-larger .home-page .page-header .discover-utility { margin-top: 18px; }
+.touch2-7-landscape.interface-larger .roon-page .discover-toolbar > .discover-utility { margin-top: 8px; }
+/* Larger text: the clock digits sit 4px low and the page titles 6px high relative
+   to the cog. Margins move the clock without changing the row height; transforms
+   move the titles without touching layout. */
+.touch2-7-landscape.interface-larger .page-header .header-clock { margin-top: 4px; margin-bottom: 4px; }
+.touch2-7-landscape.interface-larger .bus-page .stop,
+.touch2-7-landscape.interface-larger .bus-page .stop-code,
+.touch2-7-landscape.interface-larger .home-page .page-title { transform: translateY(2px); }
+/* Now Playing: the progress bar ends under the clock icon's right edge, with the
+   time labels flush with the bar's ends (the bar is inset 12px inside its widget). */
+.touch2-7-landscape .now-playing-content { margin-right: 5px; }
+.touch2-7-landscape .now-times { margin-left: 12px; margin-right: 12px; }
+.detail-takeover.inline-detail { background: transparent; }
+.inline-detail .detail-sheet-scroll,
+.inline-detail .detail-panel,
+.inline-detail .detail-entity { background: transparent; }
+.inline-detail .detail-panel { padding: 0; }
+.inline-detail .detail-section-label { margin-top: 0; }
+.inline-detail .detail-action { margin-top: 12px; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-title { font-size: 34px; line-height: 1.05; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-artist { font-size: 23px; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-writeup { font-size: 18px; line-height: 1.18; }
+.touch2-7-landscape.interface-larger .inline-detail .detail-action { min-height: 56px; margin-top: 8px; padding-top: 7px; padding-bottom: 7px; }
+.touch2-7-landscape.interface-larger .artist-overlay-info .artist-name { font-size: 34px; line-height: 1.05; }
+/* Larger bio lines were 40px apart, which made the artist page 9px taller than the 720px screen. */
+.touch2-7-landscape.interface-larger .artist-profile .artist-bio { line-height: 1.2; }
