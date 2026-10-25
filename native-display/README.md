@@ -12,6 +12,7 @@ The GTK4 touchscreen app. `roondeck_native.py` starts it.
 | `discover_page.py` | Discover: daily sections, mixes, recent plays, artist profiles |
 | `browse_page.py` | Albums, artists, genres, search, scrubber, album headers |
 | `settings_page.py` | Settings page and the actions behind it |
+| `performance_graph.py` | The live CPU / memory / temperature / network graph on the 10-inch Settings page |
 | `sleep_and_touch.py` | Screen sleep and wake, touch wake-up, cursor hiding |
 | `artwork.py` | Artwork loading, decoding and thumbnails |
 | `screen_preview.py` | Remote screen preview and view requests |

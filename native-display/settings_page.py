@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from native_common import BUS, FamilyIcon, elastic_vertical_scroll, post_json, wordmark_paintable_tinted
+from performance_graph import PerformanceGraph
 import threading
 from gi.repository import GLib, Gtk, Pango
 
@@ -48,6 +49,16 @@ class SettingsPageMixin:
         # despite normally being used only once during setup.
         for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading):
             control.set_visible(not seven_inch)
+        # 10-inch portrait: one row of three drop-downs, then the performance graph in the remaining height.
+        wide_portrait = portrait and width >= 1000
+        for control in (self.touch_profile, self.touch_orientation, self.touch_mounting):
+            target = self.settings_display_row if wide_portrait else self.settings_display_column
+            if control.get_parent() is not target:
+                control.get_parent().remove(control); target.append(control)
+        self.settings_display_row.set_visible(wide_portrait); self.performance_graph.set_visible(wide_portrait)
+        self.settings_display_column.set_vexpand(wide_portrait)
+        self.settings_controls.set_valign(Gtk.Align.FILL if wide_portrait else Gtk.Align.START)
+        (self.window.add_css_class if wide_portrait else self.window.remove_css_class)("settings-with-graph")
 
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""
@@ -125,6 +136,12 @@ class SettingsPageMixin:
         display_column.reorder_child_after(self.touch_profile, self.display_settings_heading)
         display_column.reorder_child_after(self.touch_orientation, self.touch_profile)
         display_column.reorder_child_after(self.touch_mounting, self.touch_orientation)
+        # 10-inch portrait: the three installation drop-downs share one row and the space they free holds a live
+        # performance graph. Other displays keep the drop-downs stacked and never show the graph.
+        display_row = Gtk.Box(spacing=16); display_row.set_homogeneous(True); display_row.add_css_class("settings-display-row"); display_row.set_visible(False)
+        self.settings_display_row = display_row; display_column.append(display_row); display_column.reorder_child_after(display_row, self.touch_mounting)
+        self.performance_graph = PerformanceGraph(); self.performance_graph.set_visible(False)
+        display_column.append(self.performance_graph); display_column.reorder_child_after(self.performance_graph, display_row)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
         actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)

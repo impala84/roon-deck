@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.99 Alpine — 26 October 2026
+
+- 10-inch Settings: the Profile, Orientation and Rotation drop-downs now sit in one row of three (21px text), which frees about 200px. That space holds a live System Performance graph of the last 60 seconds: CPU, Memory, Temp and Network, sampled once a second while Settings is open. Tap a chip (CPU, Memory, Temp or Network) to show or hide its line. Network has no fixed ceiling, so its line is scaled to its recent peak; the chip shows the real Mb/s. Temp is plotted against 100°C. The page still fits on one screen and the other displays are unchanged.
+
 ## 1.1.7-beta.98 Alpine — 26 October 2026
 
 - Genre screens "Shuffle Genre / Artists / Albums / sub-genres": found why they kept stretching. An older layout path caught every menu screen first, so the fixed-size tiles from beta.87 and beta.88 never ran there. These screens now use the same fixed-size tile grid as the genre grid: four columns, two rows, the same tile size, large icons with one stroke weight, and the grid never grows to fill the screen (three items show three tiles, in the same place and size).
