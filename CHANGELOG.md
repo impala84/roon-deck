@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.68 Alpine — 25 October 2026
+
+- Seven-inch Gen 2: the Settings close control is now a perfect 52px circle instead of a 102×78 oval. A general touch-landscape Settings button rule was overriding its padding; Sleep now matches its height.
+- Seven-inch Gen 2 with Larger interface scaling: the layout is recalculated when the saved interface size loads, so Now Playing fits the 720px screen (the cover stays at its 480px cap) and the bottom navigation no longer sits 12px lower than on Discover, Bus Times and Home.
+- Seven-inch Gen 2: the Bus Times and Home cog moves up 2px to match Discover and Now Playing.
+- Adds layout diagnostics for development: `tools/css_cascade_report.py` and `tools/check screen layout` (report-only; not part of `screen all`). No effect on the running appliance.
+
 ## 1.1.7-beta.67 Alpine — 25 October 2026
 
 - Pulls the seven-inch Gen 2 Larger Browse grid inward, tightens its gutters and reserves enough width for the complete alphabet scrubber inside the physical 1280-pixel viewport.
