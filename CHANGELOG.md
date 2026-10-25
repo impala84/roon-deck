@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.75 Alpine — 25 October 2026
+
+- 800x480 header: the cog, tabs/title and clock sit 6px higher and share one line on Now Playing, Discover, Bus Times and Home. The cog is anchored to the page top so it no longer shifts between pages, and it is 4px further left on Bus Times and Home to match the music pages. The Bus/Home clock ends 3px further in, at the clock icon's edge. Discover and Now Playing content keeps its position.
+- 800x480 Settings: even 11px inset around the RoonDeck lockup, a perfectly round 40px close button, a compact 96x40 Sleep button.
+- 800x480 interface scaling: the dropdown text and its menu no longer use the 23px/22px Larger sizes (15px and 16px).
+- Both seven-inch landscape displays: Install Update sits on the left and Reboot on the right in one row, giving the controls more height.
+
 ## 1.1.7-beta.74 Alpine — 25 October 2026
 
 - Fix: beta.73 raised an error in the Browse scroll-margin helper (a variable used before it was defined). That stopped layout midway on every screen except the 800x480 display, which left the 10-inch portrait Now Playing artwork as a small thumbnail at top-left. The helper is fixed and now has a test that calls it for each screen size.

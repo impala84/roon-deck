@@ -967,7 +967,7 @@ window.background-black .detail-footer { background: #000; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 124px; min-height: 48px; padding: 0 20px; border: 2px solid transparent; }
 .touch2-7-landscape .settings-header .settings-utilities { margin-top: 8px; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-sleep { margin-right: 14px; font-size: 19px; }
-.touch2-7-landscape .settings-primary-actions { margin-bottom: 14px; }
+.touch2-7-landscape .settings-primary-actions { margin-bottom: 0; }
 /* 10-inch portrait Settings: a larger heading, a quiet diagnostics line, and even 24px gaps between the three action buttons. */
 .large-display.portrait .settings-page .settings-title { font-size: 44px; }
 .large-display.portrait .settings-page .settings-diagnostic { font-size: 18px; }
@@ -1029,6 +1029,28 @@ popover listview row label { font-size: 19px; }
 .large-display.portrait .bus-page .service.dense { padding-top: 3px; padding-bottom: 3px; }
 .large-display.portrait .bus-page .bus-route-badge { margin-top: 4px; }
 .large-display.portrait .bus-page .bus-next-unit { margin-top: -4px; }
+
+/* 800x480: one header line near the top. The cog, tabs/title and clock sit 6px higher than before
+   (page padding 7px -> 1px, cog and clock keep a 7px top margin), the cog is 4px further left on
+   Bus Times and Home to match the music pages, and the Bus/Home clock ends at the clock icon's edge. */
+.original-landscape .page { padding-top: 1px; }
+.original-landscape .roon-page.now-layout .discover-toolbar { min-height: 44px; }
+.original-landscape .page-header .discover-utility,
+.original-landscape .discover-toolbar > .discover-utility { margin-top: 7px; margin-bottom: 0; }
+.original-landscape .page-header .discover-utility { margin-left: -4px; }
+.original-landscape .page-header .header-clock { margin-top: 7px; margin-right: 3px; }
+/* 800x480 Settings: even 11px inset, a round 40px close control and a compact Sleep button. */
+.original-landscape .settings-page { padding: 11px 12px 8px; }
+.original-landscape .settings-header .settings-utilities { margin-top: 0; }
+.original-landscape .settings-header .settings-utilities .settings-close { min-width: 40px; min-height: 40px; padding: 0; }
+.original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 96px; min-height: 40px; padding: 0 14px; border: 2px solid transparent; font-size: 15px; }
+/* 800x480 scaling dropdown and its menu: the 23px / 22px Larger sizes were enormous here. */
+.original-landscape.interface-larger .settings-select { font-size: 15px; }
+.original-landscape.interface-smaller .settings-select { font-size: 13px; }
+.original-landscape popover listview row { min-height: 40px; padding: 4px 12px; }
+.original-landscape popover listview row label,
+.original-landscape.interface-larger popover listview row label { font-size: 16px; }
+.original-landscape.interface-larger popover listview row { min-height: 44px; }
 """
 # 10-inch portrait: "arriving now" / "minutes" sit under the numeral; the pull scales with its size.
 CSS += "".join(".large-display.portrait .bus-page .bus-next-unit.bus-unit-pull-%d { margin-top: -%dpx; }\n" % (n, n * 4) for n in range(1, 17)).encode()
@@ -1408,7 +1430,7 @@ class Display(Gtk.Application):
         # row instead of centring them in it. Row height differs per page (Bus and Home
         # are taller than the Now Playing toolbar), so centring made the cog drift.
         for button in getattr(self, "header_utility_buttons", []):
-            button.set_valign(Gtk.Align.START if touch2_7_landscape else Gtk.Align.CENTER)
+            button.set_valign(Gtk.Align.START if touch2_7_landscape or original_landscape else Gtk.Align.CENTER)
         self.now_playing_content.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.now_playing_content.set_spacing(24 if portrait else 20 if original_landscape else 26)
         self.now_playing_content.set_margin_top(0 if original_landscape else 3 if not portrait and width >= 1200 else 8)
@@ -1843,10 +1865,15 @@ class Display(Gtk.Application):
         # The size request is the floor; the CSS below stops the generic Settings
         # button padding from stretching it into an oval.
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
-        self.settings_close.set_size_request(*((52, 52) if gen2_seven_landscape else (58, 58)))
+        self.settings_close.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
         if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 18)
         if hasattr(self, "settings_utilities"): self.settings_utilities.set_spacing(32 if portrait and width >= 1000 else 12)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
+        # Both seven-inch landscape panels: Install Update on the left, Reboot on the right in one row.
+        if hasattr(self, "settings_reboot"):
+            target = self.settings_actions if seven_inch and not portrait else self.settings_action_stack
+            if self.settings_reboot.get_parent() is not target:
+                self.settings_reboot.get_parent().remove(self.settings_reboot); target.append(self.settings_reboot)
         # Profile, mounting and orientation are installation controls. On the
         # two seven-inch panels they consume most of the daily Settings view,
         # despite normally being used only once during setup.
@@ -1932,7 +1959,7 @@ class Display(Gtk.Application):
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
         actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
-        reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); card.append(action_stack); page.append(card)
+        reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); self.settings_reboot = reboot; self.settings_action_stack = action_stack; card.append(action_stack); page.append(card)
         return page
 
     def build_sleep(self):
@@ -2893,7 +2920,7 @@ class Display(Gtk.Application):
         self.roon_page.set_spacing(0 if original_landscape and name in {"now", "details"} else 4)
         daily_edge = original_landscape and self.discovery_active and getattr(self, "discovery_section", "") == "daily" and name == "discover"
         (self.roon_page.add_css_class if daily_edge else self.roon_page.remove_css_class)("daily-edge")
-        self.discover_toolbar.set_margin_bottom(1 if original_landscape and name == "now" else 14)
+        self.discover_toolbar.set_margin_bottom(1 if original_landscape and name == "now" else 20 if original_landscape else 14)
         self.sync_music_navigation(name)
         for button in self.roon_nav_buttons:
             if exploring: button.remove_css_class("active")

@@ -15,9 +15,12 @@ class HeaderAnchorTest(unittest.TestCase):
     def test_larger_cog_top_edge_matches_on_every_primary_page(self):
         self.check({"interface-larger"}, 18)
 
-    def check(self, extra, expected):
+    def test_original_800x480_cog_top_edge_matches_on_every_primary_page(self):
+        self.check(set(), 8, 800, 480)
+
+    def check(self, extra, expected, width=1280, height=720):
         rules = report.load_css()
-        window = report.window_classes(1280, 720) | extra
+        window = report.window_classes(width, height) | extra
         tops = {}
         for page, element in (("bus-page", "page-header"), ("home-page", "page-header"), ("roon-page", "discover-toolbar")):
             padding = report.px(report.resolve(rules, window, page, page).get("padding-top"))
