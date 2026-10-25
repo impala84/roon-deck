@@ -254,7 +254,7 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .settings-select { min-height: 48px; border-radius: 8px; background: #0d1412; color: #f4f0e6; }.settings-row { padding: 7px 0; }.settings-diagnostic { color: #aab4b0; font-size: 12px; }
 .settings-controls { padding: 4px 0; }.settings-column { padding: 0 5px; }.setting-line { min-height: 52px; padding: 0 12px; border-radius: 8px; background: #0d1412; }.setting-line label { font-size: 14px; font-weight: 650; }.setting-line checkbutton { font-size: 14px; font-weight: 650; }.setting-line checkbutton label { margin-left: 12px; }.setting-line check { min-width: 22px; min-height: 22px; border-radius: 5px; border: 2px solid #61706b; background: #111a18; }.setting-line check:checked { background: #6ed9ae; border-color: #6ed9ae; color: #082018; }
 .brightness-setting { padding-top: 7px; padding-bottom: 7px; }
-.stop-row { margin-bottom: 4px; }.home-grid { padding: 5px 0 1px; }.home-tile { min-height: 112px; border-radius: 20px; padding: 7px 9px 6px; background: #131c1a; border: 1px solid #293633; color: #aab4b0; }.home-tile.on { background: #173229; border-color: #35785f; color: #f4f0e6; }.home-tile.activated { background: #173b31; border-color: #6ed9ae; box-shadow: 0 0 18px rgba(110,217,174,.6); }.home-device-button { min-height: 88px; padding: 0; background: transparent; color: #9aaba5; }.home-tile.on .home-device-button, .home-tile.activated .home-device-button { color: #6ed9ae; }.home-icon { opacity: .82; }.home-name { font-size: 15px; font-weight: 700; }.home-state { color: #7f8b87; font-size: 11px; }.home-level { min-width: 28px; min-height: 88px; }.home-level trough { min-width: 7px; border-radius: 4px; background: #303a37; }.home-level highlight { background: #6ed9ae; border-radius: 4px; }.home-level slider { min-width: 20px; min-height: 20px; border-radius: 10px; background: #f4f0e6; }
+.stop-row { margin-bottom: 4px; }.home-grid { padding: 5px 0 1px; }.home-tile { min-height: 112px; border-radius: 20px; padding: 7px 9px 11px; background: #131c1a; border: 1px solid #293633; color: #aab4b0; }.home-tile.on { background: #173229; border-color: #35785f; color: #f4f0e6; }.home-tile.activated { background: #173b31; border-color: #6ed9ae; box-shadow: 0 0 18px rgba(110,217,174,.6); }.home-device-button { min-height: 88px; padding: 0; background: transparent; color: #9aaba5; }.home-tile.on .home-device-button, .home-tile.activated .home-device-button { color: #6ed9ae; }.home-icon { opacity: .82; }.home-name { font-size: 15px; font-weight: 700; }.home-state { color: #7f8b87; font-size: 11px; }.home-level { min-width: 28px; min-height: 88px; }.home-level trough { min-width: 7px; border-radius: 4px; background: #303a37; }.home-level highlight { background: #6ed9ae; border-radius: 4px; }.home-level slider { min-width: 20px; min-height: 20px; border-radius: 10px; background: #f4f0e6; }
 .high-resolution .page { padding: 21px 30px 15px; }.high-resolution .stop, .high-resolution .stop-code { font-size: 38px; }.high-resolution .clock { font-size: 47px; }.high-resolution .eyebrow { font-size: 17px; }.high-resolution .service { border-radius: 20px; padding: 8px 24px; }.high-resolution .service-no, .high-resolution .arrival { font-size: 123px; }.high-resolution .service.compact .service-no, .high-resolution .service.compact .arrival { font-size: 89px; }.high-resolution .service.dense .service-no, .high-resolution .service.dense .arrival { font-size: 68px; }.high-resolution .arrival-sub { font-size: 15px; }.high-resolution .muted { font-size: 16px; }.high-resolution .artwork { min-width: 420px; min-height: 420px; }.high-resolution .roon-title { font-size: 52px; }.high-resolution .roon-artist { font-size: 27px; }.high-resolution .nav button { min-height: 60px; font-size: 21px; }
 .high-resolution .roon-subnav button { min-height: 44px; font-size: 15px; }.high-resolution .transport button { min-width: 75px; min-height: 75px; border-radius: 38px; }.high-resolution .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }.high-resolution .queue-row { min-height: 99px; }.high-resolution .queue-art, .high-resolution .browser-action-icon { min-width: 84px; min-height: 84px; }.high-resolution .queue-title { font-size: 24px; }.high-resolution .queue-meta, .high-resolution .queue-duration { font-size: 18px; }.high-resolution .detail-header { min-height: 92px; padding: 14px 52px 0; }.high-resolution .detail-close { min-width: 72px; min-height: 72px; }.high-resolution .detail-panel { padding: 10px 34px 64px; }.high-resolution .detail-entity { padding: 0 18px; }.high-resolution .detail-section-label { font-size: 18px; }.high-resolution .detail-title { font-size: 45px; }.high-resolution .detail-artist { font-size: 28px; }.high-resolution .detail-writeup { font-size: 24px; }.high-resolution .detail-source { font-size: 15px; }.high-resolution .detail-fact { font-size: 18px; }.high-resolution .detail-action { min-height: 74px; font-size: 23px; }.high-resolution .detail-footer .detail-primary-action { min-height: 82px; font-size: 30px; }.high-resolution .detail-track-title { font-size: 20px; }
 .touch-landscape .page { padding: 18px 28px 14px; }.touch-landscape .service-no, .touch-landscape .arrival { font-size: 138px; }.touch-landscape .service-no { min-width: 205px; }.touch-landscape .arrival-sub { font-size: 17px; }.touch-landscape .stop, .touch-landscape .stop-code { font-size: 42px; }.touch-landscape .clock { font-size: 50px; }.touch-landscape .nav button { min-height: 58px; font-size: 22px; }.touch-landscape .roon-subnav button { min-height: 54px; padding: 8px 18px 5px; font-size: 18px; }.touch-landscape .artwork { min-width: 320px; min-height: 320px; }.touch-landscape .roon-title { font-size: 46px; }.touch-landscape .roon-artist { font-size: 25px; }.touch-landscape .transport button { min-width: 70px; min-height: 70px; border-radius: 35px; }.touch-landscape .transport .play { min-width: 88px; min-height: 88px; border-radius: 44px; }.touch-landscape .settings-title { font-size: 43px; }.touch-landscape .settings-card { padding: 24px 28px; }.touch-landscape .settings-card .muted, .touch-landscape .settings-diagnostic { font-size: 17px; }.touch-landscape .settings-select { min-height: 70px; font-size: 19px; }.touch-landscape .setting-line { min-height: 78px; padding: 0 18px; }.touch-landscape .setting-line label, .touch-landscape .setting-line checkbutton { font-size: 19px; }.touch-landscape .setting-line check { min-width: 30px; min-height: 30px; }.touch-landscape .settings-action { min-height: 74px; font-size: 20px; }.touch-landscape .settings-controls { padding: 12px 0; }.touch-landscape .utility { min-width: 118px; min-height: 52px; font-size: 16px; }
@@ -877,6 +877,8 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .original-landscape .settings-page { padding-top: 7px; }
 .display-landscape .page-header .discover-utility { margin-top: 7px; }
 .display-landscape .discover-toolbar > .discover-utility { margin-top: 7px; }
+.touch2-7-landscape .browser-sidebar { min-width: 144px; }
+.touch2-7-landscape .browser-main { padding-left: 9px; }
 .detail-takeover.inline-detail { background: transparent; }
 .inline-detail .detail-sheet-scroll,
 .inline-detail .detail-panel,
@@ -1491,9 +1493,9 @@ class Display(Gtk.Application):
         self.discovery_body.append(self.discovery_sidebar); self.discovery_body.append(self.discovery_scroll)
         self.roon_views.add_named(self.discovery_body, "discover")
         content = Gtk.Box(spacing=26); content.add_css_class("now-playing-content"); content.set_vexpand(True); content.set_margin_start(0); content.set_margin_end(8); content.set_margin_top(12); content.set_margin_bottom(8); self.now_playing_content = content
-        self.artwork = Gtk.Picture(); self.artwork.add_css_class("artwork"); self.artwork.set_size_request(280, 280); self.artwork.set_halign(Gtk.Align.FILL); self.artwork.set_valign(Gtk.Align.FILL); self.artwork.set_hexpand(True); self.artwork.set_vexpand(True); self.artwork.set_can_shrink(True); self.artwork.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(self.artwork)
+        self.artwork = Gtk.Picture(); self.artwork.add_css_class("artwork"); self.artwork.set_size_request(280, 280); self.artwork.set_halign(Gtk.Align.FILL); self.artwork.set_valign(Gtk.Align.FILL); self.artwork.set_can_shrink(True); self.artwork.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(self.artwork)
         self.artwork_viewport = Gtk.ScrolledWindow(); self.artwork_viewport.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.artwork_viewport.set_propagate_natural_width(False); self.artwork_viewport.set_propagate_natural_height(False); self.artwork_viewport.set_child(self.artwork)
-        artwork_button = Gtk.Button(); artwork_button.add_css_class("artwork-button"); artwork_button.set_halign(Gtk.Align.CENTER); artwork_button.set_valign(Gtk.Align.CENTER); artwork_button.set_child(self.artwork_viewport); artwork_button.connect("clicked", self.toggle_now_playing_details); content.append(artwork_button); self.artwork_button = artwork_button
+        artwork_button = Gtk.Button(); artwork_button.add_css_class("artwork-button"); artwork_button.set_halign(Gtk.Align.START); artwork_button.set_valign(Gtk.Align.CENTER); artwork_button.set_hexpand(False); artwork_button.set_child(self.artwork_viewport); artwork_button.connect("clicked", self.toggle_now_playing_details); content.append(artwork_button); self.artwork_button = artwork_button
         centre = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); centre.set_valign(Gtk.Align.CENTER); centre.set_hexpand(True); self.now_playing_centre = centre
         self.title = self.label("Waiting for Roon…", "roon-title", .5); self.title.set_hexpand(True); self.title.set_halign(Gtk.Align.FILL); self.title.set_wrap(True); self.title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); self.title.set_lines(2); self.title.set_ellipsize(Pango.EllipsizeMode.END); self.title.set_justify(Gtk.Justification.CENTER)
         self.artist = self.label("Enable RoonDeck in Roon", "roon-artist", .5); self.artist.set_hexpand(True); self.artist.set_halign(Gtk.Align.FILL); self.artist.set_wrap(True); self.artist.set_justify(Gtk.Justification.CENTER); centre.append(self.title); centre.append(self.artist)
@@ -2674,7 +2676,11 @@ class Display(Gtk.Application):
             if exploring and button.navigation_page == "roon": button.add_css_class("active")
             else: button.remove_css_class("active")
         inline_details = name == "details" and getattr(self, "inline_detail", False)
-        self.now_playing_centre.set_visible(not inline_details)
+        # Preserve the transport column's allocation while details are shown.
+        # Removing it makes the remaining cover absorb spare width, so short
+        # and long track titles visibly move the artwork between tracks.
+        self.now_playing_centre.set_opacity(0 if inline_details else 1)
+        self.now_playing_centre.set_can_target(not inline_details)
         self.detail_takeover.set_visible(name == "details")
         if name != "details": self.roon_views.set_visible_child_name(name)
         self.now_playing_tab.remove_css_class("active"); self.queue_tab.remove_css_class("active"); self.browser_tab.remove_css_class("active")
@@ -3098,7 +3104,9 @@ class Display(Gtk.Application):
         viewport_width = getattr(self, "viewport_width", 800)
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         picture.add_css_class("artist-hero-image")
-        self.set_browser_placeholder(picture, artist=True)
+        # Keep the hero blank while the full artist image loads. The generic
+        # artist glyph reads as part of the composition at this scale and then
+        # flashes away when the real artwork arrives.
         name = profile.get("name", "")
         if seven_landscape:
             # Leave real inner space inside each half-width column. The old
@@ -3276,9 +3284,11 @@ class Display(Gtk.Application):
             # 122px, the full 54px scrubber, scroller chrome and safety gutter.
             available = max(140, width - 252)
             return 4, max(64, (available - 12 * 3) // 4)
-        available = max(140, width - 266)
+        available = max(140, width - 280)
         columns = 4 if width < 1000 and width > 600 else min(5 if genres else 4, max(1, available // 140))
-        size = max(64, min(212, (available - 16 * (columns - 1)) // columns - 12))
+        gap = 24
+        cap = 228 if (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger" and 1000 <= width < 1400 else 212
+        size = max(64, min(cap, (available - gap * (columns - 1)) // columns - 4))
         return columns, size
 
     def discovery_grid_metrics(self, section="releases"):
@@ -3323,7 +3333,9 @@ class Display(Gtk.Application):
         cr.set_source_rgb(*track); cr.set_line_width(5); cr.set_line_cap(1); cr.move_to(x, 16); cr.line_to(x, max(16, height - 16)); cr.stroke()
         accent = (.506, .478, .922) if getattr(self, "settings_data", {}).get("display_theme") == "roon" else (.431, .851, .682)
         cr.set_source_rgb(*accent); cr.arc(x, center, 9, 0, 6.283185307); cr.fill()
-        cr.select_font_face("Inter", 0, 1); cr.set_font_size(25 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 18)
+        cr.select_font_face("Inter", 0, 1)
+        large_interface = getattr(self, "settings_data", {}).get("interface_size") == "larger"
+        cr.set_font_size(25 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 22 if large_interface else 18)
         letter = chr(65 + value); extents = cr.text_extents(letter)
         cr.move_to(x - 26 - extents[2], center - extents[1] - extents[3] / 2); cr.show_text(letter)
 
@@ -3710,7 +3722,7 @@ class Display(Gtk.Application):
             self.browser_list.append(grid)
         elif items and layout in {"covers", "tiles"}:
             portrait = getattr(self, "responsive_portrait", False)
-            grid = Gtk.Grid(column_spacing=24 if portrait else 16, row_spacing=18 if portrait else 24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(False); columns = 5 if layout == "tiles" and active_section == "genres" else 4
+            grid = Gtk.Grid(column_spacing=24, row_spacing=24); grid.add_css_class("browser-cover-grid"); grid.set_column_homogeneous(False); grid.set_halign(Gtk.Align.START); grid.set_hexpand(False); columns = 5 if layout == "tiles" and active_section == "genres" else 4
             original = not portrait and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             if original:
                 grid.set_column_spacing(12); grid.set_row_spacing(12)

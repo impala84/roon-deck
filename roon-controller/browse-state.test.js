@@ -751,9 +751,9 @@ test('nested multi-page album collections expose the alphabet scrubber', () => {
   const manager = new BrowseManager(() => ({}), () => ({}));
   manager.sections.set('genre-albums', 'genres');
   const albums = Array.from({length: 30}, (_, i) => ({title:`Pop Rock Album ${i}`, image_key:`cover-${i}`, item_key:`album-${i}`}));
-  const state = manager.store('genre-albums', 'browse', {title:'Pop/Rock', level:3, count:75}, albums, '');
+  const state = manager.store('genre-albums', 'browse', {title:'Pop/Rock', level:3, count:30}, albums, '');
   assert.equal(state.layout, 'covers');
-  assert.equal(state.has_more, true);
+  assert.equal(state.has_more, false);
   assert.equal(state.alpha_scrub, true);
 });
 

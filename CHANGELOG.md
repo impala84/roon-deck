@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.7-beta.60 Alpine — 25 October 2026
+
+- Keeps the Browse Artist hero clean while its full-resolution image loads instead of briefly showing the generic artist glyph.
+
+- Fixed Now Playing artwork to a stable left anchor so title length, track changes and the in-place information view cannot move or resize it.
+- Preserved the transport column's allocation while album information is open, preventing the detail panel from overlapping the cover.
+- Rebalanced seven-inch album and genre grids with larger artwork under Larger scaling, equal row/column gaps and a better menu inset.
+- Exposed the alphabet scrubber for any nested cover collection spanning more than one visible page, and enlarged its active letter under Larger scaling.
+- Added more lower padding to landscape Home control tiles.
+
 ## 1.1.7-beta.59 Alpine — 25 October 2026
 
 - Kept seven-inch album information in the Now Playing frame: tapping the cover now preserves its exact artwork, background, tabs and bottom navigation while swapping the transport column for album details.

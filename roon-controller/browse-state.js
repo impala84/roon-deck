@@ -503,7 +503,7 @@ class BrowseManager {
       // Nested album collections (for example Genre -> Pop/Rock) need the
       // same alphabetical navigation as the library album grid once their
       // result set spans more than one page.
-      alpha_scrub: (sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > normalised.length), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
+      alpha_scrub: (sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > 8), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
       has_more: !filteredLibrary && presentation.layout !== 'home' && Number(loadedOffset || 0) + normalised.length < count,
       fallback_image_key: fallbackImageKey, message, error: false,
       ...(albumProfile ? {album_profile: albumProfile} : {}),
