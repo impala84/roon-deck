@@ -292,7 +292,7 @@ def update():
         run(["npm", "--prefix", str(target / "roon-controller"), "ci", "--omit=dev", "--no-audit", "--no-fund"])
         status("Update · Checking prepared application…")
         run([str(target / ".venv/bin/python"), "-c", "import gi; gi.require_version('Gtk', '4.0'); gi.require_foreign('cairo'); from pi_bus_time_display import __version__"])
-        for path in ("native-display/pi_bus_native.py", "scripts/pi-bus-cage-launch", "appliance/alpine/display-session"):
+        for path in ("native-display/roondeck_native.py", "scripts/pi-bus-cage-launch", "appliance/alpine/display-session"):
             (target / path).chmod(0o755)
     except Exception:
         if target.exists() and managed_release(target, releases):

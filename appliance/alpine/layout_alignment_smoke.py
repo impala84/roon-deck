@@ -27,7 +27,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gtk
 
-spec = importlib.util.spec_from_file_location("native_layout", "/opt/pi-home/native-display/pi_bus_native.py")
+spec = importlib.util.spec_from_file_location("native_layout", "/opt/pi-home/native-display/roondeck_native.py")
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 Gtk.init()

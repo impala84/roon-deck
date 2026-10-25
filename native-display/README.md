@@ -1,10 +1,10 @@
 # Native display
 
-The GTK4 touchscreen app. `pi_bus_native.py` starts it.
+The GTK4 touchscreen app. `roondeck_native.py` starts it.
 
 | File | What lives there |
 |---|---|
-| `pi_bus_native.py` | The `Display` class: start-up, the status poll, applying new state, headers and navigation. It inherits everything below. |
+| `roondeck_native.py` | The `Display` class: start-up, the status poll, applying new state, headers and navigation. It inherits everything below. |
 | `native_common.py` | Shared imports, constants, small helpers and the scrolling/mix widgets. |
 | `bus_page.py` | Bus Times page |
 | `home_page.py` | Home page (Home Assistant) |
@@ -21,6 +21,9 @@ The GTK4 touchscreen app. `pi_bus_native.py` starts it.
 Each page file holds a mixin class (for example `BusPageMixin`). `Display` lists
 them as base classes, so methods still call each other as `self.render_bus()`.
 Add new methods to the page they belong to.
+
+`pi_bus_native.py` is the old name, kept as a tiny launcher for one release so an
+older updater still finds it. Delete it once every device runs this release.
 
 Rules: only one agent edits the native layout at a time, and a layout change is
 checked with `tools/check screen layout` before release.

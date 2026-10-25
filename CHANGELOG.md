@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.92 Alpine — 26 October 2026
+
+- No visual change. The display program is renamed from `pi_bus_native.py` to `roondeck_native.py`, and the start-up scripts, updater, tests and docs follow. A small `pi_bus_native.py` stays for this release so the updater already on your Pi can still find it; it will be removed in a later release.
+- From this release, releases are tagged `v1.1.7-beta.92` without the `-alpine` ending. Beta.89 and later see them; if a device on beta.88 or earlier does not offer this update, install beta.89–91 first.
+- If the display fails to start, select beta.91 in Settings → Software.
+
 ## 1.1.7-beta.91 Alpine — 26 October 2026
 
 - No visual change. The display's code moves out of one 4,400-line `pi_bus_native.py` into page files: `bus_page.py`, `home_page.py`, `now_playing_page.py`, `discover_page.py`, `browse_page.py`, `settings_page.py`, `sleep_and_touch.py`, `artwork.py`, `screen_preview.py` and a shared `native_common.py`. `pi_bus_native.py` is now 806 lines and still the file that starts the display. See `native-display/README.md`.

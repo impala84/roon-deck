@@ -18,7 +18,7 @@ ART = Path("/tmp/pi-home-visual-art")
 OUTPUT.mkdir(parents=True, exist_ok=True)
 ART.mkdir(parents=True, exist_ok=True)
 
-source = Path("/opt/pi-home/native-display/pi_bus_native.py")
+source = Path("/opt/pi-home/native-display/roondeck_native.py")
 spec = importlib.util.spec_from_file_location("pi_home_native_visual", source)
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)

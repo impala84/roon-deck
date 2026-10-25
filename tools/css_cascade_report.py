@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "native-display" / "pi_bus_native.py"
+SOURCE = ROOT / "native-display" / "roondeck_native.py"
 MATRIX = ROOT / "tools" / "viewports.json"
 
 PAGES = {
@@ -43,7 +43,7 @@ PAGES = {
 def window_classes(width: int, height: int) -> set[str]:
     """Mirror Display.adapt_display and configure_settings_layout class choices.
 
-    Keep in sync with native-display/pi_bus_native.py when those change.
+    Keep in sync with native-display/roondeck_native.py when those change.
     """
     portrait = height > width
     original = not portrait and width <= 820 and height <= 500

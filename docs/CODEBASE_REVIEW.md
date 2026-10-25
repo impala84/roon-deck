@@ -23,7 +23,7 @@ behaviour-preserving slices.
 
 ### 1. Native display is a monolith
 
-`native-display/pi_bus_native.py` is approximately 3,500 lines and contains app
+`native-display/roondeck_native.py` is approximately 3,500 lines and contains app
 startup, HTTP interaction, screen construction, responsive layout, artwork,
 navigation, gesture handling and settings. Small layout changes consequently
 touch a file with a very large behavioural surface.

@@ -10,7 +10,7 @@ python3 tools/css_cascade_report.py                    # every viewport in tools
 python3 tools/css_cascade_report.py touch-v2-7-landscape
 ```
 
-It evaluates the CSS that `native-display/pi_bus_native.py` builds, works out
+It evaluates the CSS that `native-display/roondeck_native.py` builds, works out
 which rule wins for each page and display mode, and prints the effective top
 padding and the header/navigation left and right inset for each page. A
 `DRIFT:` line means Bus, Now Playing and Home disagree.

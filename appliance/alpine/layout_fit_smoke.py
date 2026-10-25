@@ -35,7 +35,7 @@ OUTPUT.mkdir(parents=True, exist_ok=True)
 ART = Path("/tmp/pi-home-fit-art")
 ART.mkdir(parents=True, exist_ok=True)
 
-spec = importlib.util.spec_from_file_location("native_fit", "/opt/pi-home/native-display/pi_bus_native.py")
+spec = importlib.util.spec_from_file_location("native_fit", "/opt/pi-home/native-display/roondeck_native.py")
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 Gtk.init()

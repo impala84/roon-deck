@@ -8,13 +8,13 @@ from pathlib import Path
 
 NATIVE = Path(__file__).resolve().parents[1] / "native-display"
 # Separate helper modules that were never part of the single display file.
-OTHER_MODULES = {"icon_family.py", "white_balance.py", "styles.py", "layout_constants.py"}
+OTHER_MODULES = {"icon_family.py", "white_balance.py", "styles.py", "layout_constants.py", "pi_bus_native.py"}
 
 
 def display_modules() -> list:
     """The entry point first, then every module split out of it."""
-    rest = sorted(p for p in NATIVE.glob("*.py") if p.name not in OTHER_MODULES | {"pi_bus_native.py"})
-    return [NATIVE / "pi_bus_native.py"] + rest
+    rest = sorted(p for p in NATIVE.glob("*.py") if p.name not in OTHER_MODULES | {"roondeck_native.py"})
+    return [NATIVE / "roondeck_native.py"] + rest
 
 
 def native_text() -> str:

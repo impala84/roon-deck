@@ -12,7 +12,7 @@ from unittest.mock import Mock
 from native_source import display_modules, method_source, native_text, python_tree
 
 
-SOURCE = Path(__file__).parents[1] / "native-display" / "pi_bus_native.py"
+SOURCE = Path(__file__).parents[1] / "native-display" / "roondeck_native.py"
 
 
 def native_method(name, dependencies=None):
@@ -450,7 +450,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_display_runtime_publishes_the_resolved_source_revision(self):
         import tempfile
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder); source = root / "native-display" / "pi_bus_native.py"
+            root = Path(folder); source = root / "native-display" / "roondeck_native.py"
             source.parent.mkdir(); source.write_text("")
             (root / ".source-commit").write_text("a" * 40)
             run = root / "run"; run.mkdir()

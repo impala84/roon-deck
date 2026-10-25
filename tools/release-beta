@@ -26,9 +26,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BRANCH = "hotfix/beta27-physical-baseline"
 REPO = "impala84/roon-deck"
-# beta.89 teaches the updater to accept plain tags. Once it is installed on the
-# Pi, set this to "" and new releases are published as v1.1.7-beta.N.
-TAG_SUFFIX = "-alpine"
+# Releases from beta.92 are tagged v1.1.7-beta.N. Devices running beta.88 or
+# earlier only see "-alpine" tags; beta.89 and later accept both.
+TAG_SUFFIX = ""
 HEADING = re.compile(r"^## (1\.1\.7-beta\.(\d+)) Alpine — .+$", re.M)
 
 
