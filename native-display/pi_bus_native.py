@@ -867,9 +867,11 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .interface-smaller .settings-select { font-size: 16px; }
 .album-play-split { margin-top: 2px; }
 .album-play-split .artist-play { border-top-right-radius: 0; border-bottom-right-radius: 0; margin: 0; }
-.album-play-menu { min-width: 36px; padding: 0 5px 0 3px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; }
+.album-play-menu { min-width: 64px; padding: 0 12px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; }
 .theme-roon .album-play-menu { background: #9868F9; color: #111; }
-.interface-larger .album-play-menu { min-width: 40px; padding-left: 4px; padding-right: 6px; }
+.interface-larger .album-play-menu { min-width: 72px; padding: 0 14px; }
+.large-display .album-play-menu { min-width: 96px; padding: 0 16px; }
+.original-landscape .album-play-menu { min-width: 46px; padding: 0 8px; }
 .touch-landscape.seven-inch-settings .settings-page { padding: 18px 28px; }
 .touch-landscape.seven-inch-settings .settings-controls { padding-top: 4px; }
 .touch-landscape.seven-inch-settings .settings-select { min-height: 56px; }
@@ -3848,6 +3850,10 @@ class Display(Gtk.Application):
             split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
             menu = self.icon_button("chevron-down", lambda arrow, key=play.get("item_key"): self.open_album_play_menu(arrow, key), "album-play-menu")
+            # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
+            # icon (the button's own min-width and padding give a wide touch area).
+            vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
+            menu.set_child(FamilyIcon("chevron-down", 64 if min(vw, vh) >= 1000 else 30 if vw <= 820 and vh <= 500 else 46))
             menu.get_child().set_pixel_size(22)
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:

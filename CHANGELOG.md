@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.76 Alpine — 25 October 2026
+
+- Album page: the drop-down arrow beside Play Album is larger (a 64px icon on the 10-inch display, 46px on the Touch Display 2 7-inch, 30px on 800x480) and sits in a wider button (96px, 64px and 46px) with even padding either side, so it is easy to see and tap.
+
 ## 1.1.7-beta.75 Alpine — 25 October 2026
 
 - 800x480 header: the cog, tabs/title and clock sit 6px higher and share one line on Now Playing, Discover, Bus Times and Home. The cog is anchored to the page top so it no longer shifts between pages, and it is 4px further left on Bus Times and Home to match the music pages. The Bus/Home clock ends 3px further in, at the clock icon's edge. Discover and Now Playing content keeps its position.
