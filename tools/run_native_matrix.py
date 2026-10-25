@@ -84,6 +84,7 @@ def main() -> None:
         if args.screen == "layout":
             # Report-only by default; not part of "all" until its numbers are trusted.
             xvfb(size, "appliance/alpine/layout_alignment_smoke.py", environment)
+            xvfb(size, "appliance/alpine/layout_fit_smoke.py", environment)
         if args.screen in ("settings", "all"):
             xvfb(
                 size,
