@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.83 Alpine — 25 October 2026
+
+- Play Album arrow: beta.82 overshot. The arrow is now 44px on the 10-inch portrait (was 72), 30px on Gen 2 (was 40) and 22px on 800x480 (was 26), so it is clearly visible but in proportion with the Play Album label.
+
 ## 1.1.7-beta.82 Alpine — 25 October 2026
 
 - Play Album arrow: found why it never grew. A leftover line reset the icon to 22px right after it was created, so every earlier size change was overridden. It now really is 72px (10-inch), 40px (Gen 2) and 26px (800x480).
