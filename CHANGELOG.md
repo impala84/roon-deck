@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.97 Alpine — 26 October 2026
+
+- Cog (800x480): beta.96 left the Discover and Now Playing cog's left and top edges on the Bus Times cog's, but it was drawn a pixel smaller because its icon was centred in its box while the Bus Times and Home icon fills the box. The music-page icon now fills its 36px box exactly as the Bus Times and Home icon does, so both are laid out and drawn identically.
+
 ## 1.1.7-beta.96 Alpine — 26 October 2026
 
 - Cog (800x480): beta.93 gave the Bus Times and Home cog a 36px box with the glyph centred, but the Discover and Now Playing cog is a 36px box with the glyph pinned to its left edge, which left it 3px further left. Both now centre the glyph, so the cog is at the same place on Bus Times, Home, Now Playing and Discover.
