@@ -206,13 +206,11 @@ button.genre-trail-row.current { background: rgba(255,255,255,.1); }
 .perf-temp .perf-check { color: #FFA64D; }
 .perf-network .perf-check { color: #40D99E; }
 
-/* Genre page, left column: Shuffle / Artists / Albums act on the genre, so their icons are inverted (purple tile, dark symbol). */
-.genre-action-icon { background: #1fd6a3; border-radius: 18px; min-width: 84px; min-height: 84px; }
-.theme-roon .genre-action-icon { background: #9868F9; }
-.genre-action-icon .browser-tile-icon, .theme-roon .genre-action-icon .browser-tile-icon { color: #111; }
-button.genre-action-row { min-height: 0; padding: 8px 10px; border: 0; border-radius: 12px; box-shadow: none; background: transparent; background-image: none; }
-button.genre-action-row:hover, button.genre-action-row:active { background: rgba(255,255,255,.06); }
-.genre-action-title { font-size: 26px; font-weight: 650; color: #f4f0e6; }
+/* Genre page, left column: three stacked rounded cards like the genre tiles (key-line icon left, title right). */
+.genre-action-icon { background: transparent; min-width: 64px; min-height: 64px; }
+button.genre-action-row { min-height: 96px; padding: 12px 18px; margin-bottom: 8px; border: 0; border-radius: 14px; box-shadow: none; background: #202020; background-image: none; }
+button.genre-action-row:hover, button.genre-action-row:active { background: #292929; }
+.genre-action-title { font-size: 26px; font-weight: 700; color: #f4f0e6; }
 
 /* 800x480 Larger: a compact album/artist header so nothing is cropped. */
 .original-landscape.interface-larger .album-profile .artist-name { font-size: 26px; }

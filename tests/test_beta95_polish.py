@@ -46,8 +46,8 @@ class GenreBrowserTests(unittest.TestCase):
         self.assertIn('row.add_css_class("genre-action-row")', self.code)
         self.assertIn('frame.add_css_class("genre-action-icon")', self.code)
         self.assertIn("items = self.prepare_genre_columns(data, layout, items)", self.code)
-        self.assertIn(".theme-roon .genre-action-icon { background: #9868F9;", self.code)
-        self.assertIn(".genre-action-icon .browser-tile-icon, .theme-roon .genre-action-icon .browser-tile-icon { color: #111; }", self.code)
+        self.assertIn("button.genre-action-row { min-height: 96px;", self.code)
+        self.assertIn('short = "Shuffle" if raw.startswith("shuffle")', self.code)
         self.assertIn('self.label("SUB-GENRES", "browser-section")', self.code)
 
     def test_left_column_has_no_visible_scrollbar_and_a_wider_gutter(self):

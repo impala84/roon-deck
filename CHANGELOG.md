@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7-beta.104 Alpine — 26 October 2026
+
+- Action menus (Play Now / Add Next / Queue / Start Radio) now open next to your finger. The earlier fix silently failed because GTK returns the converted position as a pair; that is handled now.
+- Tapping a track and then tapping away no longer jumps the page back to the top. Dismissing the menu steps Roon back quietly without redrawing the album, and opening it no longer queues a scroll reset.
+- Genre pages: Shuffle, Artists and Albums are three stacked rounded cards like the genre tiles, icon on the left, title on the right.
+- Album pages on 7-inch landscape displays: the write-up is limited to three lines.
+
 ## 1.1.7-beta.103 Alpine — 26 October 2026
 
 - 800x480 Album page: the cover no longer stretches into a tall cropped rectangle (it is a fixed square, aligned to the top) and the album summary is cut to two lines, so Larger text no longer overwhelms the page.

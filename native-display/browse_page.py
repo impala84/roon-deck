@@ -81,6 +81,12 @@ class BrowsePageMixin:
         if self.browser_loading:
             if action in {"jump", "section", "search", "surprise", "artist"}: self.browser_pending_request = (action, payload)
             return
+        if action == "back" and payload.pop("silent", False):
+            # Dismissing an action menu steps Roon back one level but must not redraw the page or lose the scroll position.
+            self.browser_silent_back = True
+            self.browser_loading = True
+            threading.Thread(target=self._request_browser, args=(action, payload), daemon=True).start()
+            return
         if action == "surprise" and not (self.browser_state or {}).get("surprise_preview"):
             self.browser_section_scrolls[(self.browser_state or {}).get("section", "albums")] = self.browser_scroll.get_vadjustment().get_value()
         if action in {"section", "search"}:
@@ -101,6 +107,10 @@ class BrowsePageMixin:
         GLib.idle_add(self.apply_browser_response, result or {"status": "ready", "title": "Browse", "items": [], "message": "Roon Browse did not respond.", "error": True})
 
     def apply_browser_response(self, data):
+        if getattr(self, "browser_silent_back", False):
+            self.browser_silent_back = False; self.browser_loading = False
+            if data and not data.get("error") and not data.get("action_menu"): self.browser_state = data
+            return False
         pending = getattr(self, "browser_pending_request", None)
         if pending:
             self.browser_pending_request = None; self.browser_loading = False
@@ -452,7 +462,7 @@ class BrowsePageMixin:
                 play_slot.set_child(split); copy.append(play_slot)
             else: copy.append(split)
         if review := profile.get("review"):
-            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(2 if original_view else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
+            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(2 if original_view else 3 if (not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_height", 480) <= 720) else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
         else:
             summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); copy.append(summary_slot)
             self.load_album_notes(profile, summary_slot)
@@ -476,7 +486,7 @@ class BrowsePageMixin:
                 if slot.get_root() is None: return False
                 while child := slot.get_first_child(): slot.remove(child)
                 summary = self.label(notes.get("writeup") or "No album summary is available.", "queue-meta")
-                summary.set_wrap(True); summary.set_lines(2 if original_view else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
+                summary.set_wrap(True); summary.set_lines(2 if original_view else 3 if (not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_height", 480) <= 720) else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
                 slot.append(summary)
                 return False
             GLib.idle_add(apply)
@@ -503,9 +513,11 @@ class BrowsePageMixin:
             heading = self.label(data.get("title") or "", "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
             for item in actions:
                 copy = Gtk.Box(spacing=18); copy.set_valign(Gtk.Align.CENTER)
-                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(84, 84); frame.set_valign(Gtk.Align.CENTER)
-                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62)); copy.append(frame)
-                title = self.label(item.get("title") or "", "genre-action-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); title.set_hexpand(True); copy.append(title)
+                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(64, 64); frame.set_valign(Gtk.Align.CENTER)
+                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 56)); copy.append(frame)
+                raw = (item.get("title") or "").strip().lower()
+                short = "Shuffle" if raw.startswith("shuffle") else "Artists" if "artists" in raw else "Albums" if "albums" in raw else item.get("title") or ""
+                title = self.label(short, "genre-action-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); title.set_hexpand(True); copy.append(title)
                 row = Gtk.Button(); row.add_css_class("genre-action-row"); row.set_child(copy); row.set_focusable(False)
                 row.set_sensitive(bool(item.get("item_key"))); row.browse_item_key = item.get("item_key")
                 if item.get("action"): row.add_css_class("browser-action")
@@ -525,6 +537,7 @@ class BrowsePageMixin:
         self.browser_list.cancel_spring()
         if data.get("action_menu"):
             self.browser_state = data; self.browser_loading = False; self.browser_rendering = False
+            self.browser_scroll_restore = None
             anchor = getattr(self, "browser_action_anchor", None) or self.browser_body
             popover = Gtk.Popover(); popover.add_css_class("track-menu"); popover.set_parent(anchor); popover.set_autohide(True)
             popover.set_has_arrow(False); popover.set_position(Gtk.PositionType.RIGHT)
@@ -535,6 +548,8 @@ class BrowsePageMixin:
                 # Open beside the finger rather than at the far edge of a full-width row.
                 try:
                     point = self.window.compute_point(anchor, Graphene.Point().init(tap[0], tap[1]))
+                    # PyGObject returns (ok, point) for this out-parameter call.
+                    if isinstance(point, tuple): point = point[1] if point[0] else None
                     if point is not None:
                         rect.x = round(max(1, min(anchor.get_width() - 1, point.x))) + 12
                         rect.y = round(max(0, min(anchor.get_height() - 1, point.y)))
@@ -556,7 +571,7 @@ class BrowsePageMixin:
             def closed(*_):
                 self.browser_action_popover = None
                 popover.unparent()
-                if not selected["value"] and not discovery_actions: self.request_browser("back")
+                if not selected["value"] and not discovery_actions: self.request_browser("back", silent=True)
             popover.connect("closed", closed)
             popover.connect("map", lambda widget: GLib.idle_add(self.hide_native_cursor, widget))
             popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)
