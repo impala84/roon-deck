@@ -929,7 +929,7 @@ window.background-black .detail-footer { background: #000; }
 
 .settings-close { min-width: 58px; min-height: 58px; padding: 0; border: 2px solid #6ed9ae; border-radius: 50%; background: transparent; color: #fff; }
 .theme-roon .settings-close { border-color: #9868F9; }
-.settings-sleep { min-width: 128px; min-height: 58px; background: #303030; color: #f4f0e6; font-weight: 750; }
+.settings-sleep { min-width: 128px; min-height: 58px; padding: 0 24px; border-radius: 8px; background: #303030; color: #f4f0e6; font-weight: 750; }
 .settings-page .settings-title { font-size: 34px; }
 .settings-page .settings-diagnostic { font-size: 11px; }
 popover listview row { min-height: 48px; padding: 8px 14px; }
@@ -937,13 +937,14 @@ popover listview row label { font-size: 19px; }
 .interface-larger popover listview row { min-height: 58px; }
 .interface-larger popover listview row label { font-size: 22px; }
 .settings-action-stack { padding-top: 4px; padding-bottom: 6px; }
-.portrait .settings-page { padding-top: 24px; padding-bottom: 28px; }
+.portrait .settings-page { padding-top: 24px; padding-bottom: 12px; }
 .portrait .settings-header { min-height: 84px; }
 .portrait .settings-title { font-size: 38px; font-weight: 600; }
 .portrait .settings-version { font-size: 17px; }
 .portrait .settings-diagnostic { font-size: 17px; }
 .portrait .settings-card { padding-bottom: 10px; }
-.portrait .settings-action-stack { padding-top: 18px; }
+.portrait .settings-action-stack { padding-top: 18px; padding-bottom: 0; }
+.portrait .settings-primary-actions { margin-bottom: 22px; }
 .portrait .settings-action { min-height: 72px; }
 
 /* The same page-edge geometry drives all four primary pages. */
@@ -953,6 +954,17 @@ popover listview row label { font-size: 19px; }
 .touch-landscape .discover-toolbar > .discover-utility { margin-top: 11px; }
 .touch-landscape .header-clock,
 .touch-landscape .discover-sleep { margin-top: 8px; }
+
+/* One physical anchor for the utility controls on every 10-inch page.
+   Keep this after device-specific rules so the shared position wins. */
+.large-display .page-header,
+.large-display .discover-toolbar { min-height: 64px; }
+.large-display .page-header .discover-utility,
+.large-display .discover-toolbar > .discover-utility,
+.large-display .header-clock,
+.large-display .discover-sleep { margin-top: 0; margin-bottom: 0; }
+.large-display .page-header > button,
+.large-display .discover-toolbar > button { min-height: 56px; margin-top: 4px; margin-bottom: 4px; }
 .touch2-7-landscape .nav { min-height: 60px; padding-top: 0; margin-top: 0; margin-bottom: 0; }
 .touch2-7-landscape .nav button { min-height: 58px; }
 .touch2-7-landscape .bus-page .service.compact { padding-top: 2px; padding-bottom: 2px; }
@@ -1397,8 +1409,9 @@ class Display(Gtk.Application):
         self.browser_body.set_margin_end(0)
         self.browser_content.set_margin_top(0 if original_landscape else 16)
         self.browser_scroll.set_margin_bottom(0 if original_landscape else 10)
-        self.browser_scrubber.set_size_request(54 if original_landscape else 52 if portrait or compact_landscape else 74, -1)
-        self.browser_scrubber.set_margin_end(0 if portrait or compact_landscape else 18)
+        compact_browser_scrubber = portrait or compact_landscape or touch2_7_landscape
+        self.browser_scrubber.set_size_request(54 if original_landscape else 52 if compact_browser_scrubber else 74, -1)
+        self.browser_scrubber.set_margin_end(0 if compact_browser_scrubber else 18)
         self.browser_search_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait and width < 700 else Gtk.Orientation.HORIZONTAL)
         self.discovery_body.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.discovery_sidebar.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
@@ -1411,7 +1424,7 @@ class Display(Gtk.Application):
         # Larger typography consumes more of the fixed 720px canvas. Keep the
         # whole composition inside it instead of producing a scrollable page.
         if touch2_7_landscape and (self.settings_data or {}).get("interface_size") == "larger":
-            artwork_size = min(500, artwork_size)
+            artwork_size = min(480, artwork_size)
         self.artwork_button.set_halign(Gtk.Align.CENTER if portrait else Gtk.Align.START)
         self.artwork_button.set_valign(Gtk.Align.END if original_landscape else Gtk.Align.CENTER)
         self.artwork_button.set_margin_bottom(16 if original_landscape else 0)
@@ -1500,13 +1513,13 @@ class Display(Gtk.Application):
     def header(self, centre, clock):
         row = Gtk.Box(spacing=10); row.add_css_class("page-header")
         if isinstance(centre, Gtk.Label): centre.set_xalign(0)
-        settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility"); settings.set_valign(Gtk.Align.START)
+        settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility"); settings.set_valign(Gtk.Align.CENTER)
         settings.set_child(self.discover_utility_icon()); settings.set_tooltip_text("Settings"); row.append(settings)
         row.append(centre)
         spacer = Gtk.Box(); spacer.set_hexpand(True); row.append(spacer)
-        if isinstance(clock, Gtk.Label): clock.set_valign(Gtk.Align.BASELINE)
+        if isinstance(clock, Gtk.Label): clock.set_valign(Gtk.Align.CENTER)
         clock.set_xalign(1)
-        clock_button = Gtk.Button(); clock_button.add_css_class("header-hotspot"); clock_button.add_css_class("header-clock"); clock_button.set_child(clock); clock_button.connect("clicked", self.sleep); row.append(clock_button)
+        clock_button = Gtk.Button(); clock_button.add_css_class("header-hotspot"); clock_button.add_css_class("header-clock"); clock_button.set_valign(Gtk.Align.CENTER); clock_button.set_child(clock); clock_button.connect("clicked", self.sleep); row.append(clock_button)
         return row
 
     def navigation(self, active):
@@ -1559,13 +1572,13 @@ class Display(Gtk.Application):
         self.discover_toolbar.set_margin_end(0); self.discover_toolbar.set_margin_bottom(14)
         settings = self.icon_button("emblem-system-symbolic", lambda *_: self.open_settings(), "discover-utility")
         settings.set_child(self.discover_utility_icon())
-        settings.set_tooltip_text("Settings"); settings.set_valign(Gtk.Align.START); self.discover_toolbar.append(settings)
+        settings.set_tooltip_text("Settings"); settings.set_valign(Gtk.Align.CENTER); self.discover_toolbar.append(settings)
         self.discover_toolbar_tabs = Gtk.Box(); self.discover_toolbar_tabs.set_hexpand(True)
         self.discover_toolbar_tabs.set_halign(Gtk.Align.CENTER)
         self.discover_toolbar.append(self.discover_toolbar_tabs)
         sleep = self.icon_button("preferences-system-time-symbolic", lambda *_: self.sleep(), "discover-utility discover-sleep")
         sleep.set_child(self.discover_utility_icon(clock=True))
-        sleep.set_valign(Gtk.Align.START)
+        sleep.set_valign(Gtk.Align.CENTER)
         self.music_settings_button = settings; self.music_clock_button = sleep
         self.music_full_clock = self.label("--:--", "clock", 1)
         sleep.set_tooltip_text("Sleep"); self.discover_toolbar.append(sleep)
@@ -1845,7 +1858,7 @@ class Display(Gtk.Application):
         display_column.reorder_child_after(self.touch_mounting, self.touch_orientation)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
-        actions = Gtk.Box(spacing=18); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
+        actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
         reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); card.append(action_stack); page.append(card)
         return page
 
@@ -3412,10 +3425,10 @@ class Display(Gtk.Application):
         available = max(140, width - (320 if genres else 280))
         larger_seven = profile in {"touch2-7", "touch2-5-7"} and (getattr(self, "settings_data", {}) or {}).get("interface_size") == "larger"
         # The 7-inch Gen 2 has room for four covers at the larger scale when
-        # the grid uses its measured page inset and a 23px gutter. Keep the
+        # the grid uses its measured page inset and a 22px gutter. Keep the
         # same four-column rhythm for albums, artists and genre results.
         columns = min(4, max(1, available // 140))
-        gap = 23 if larger_seven else 24
+        gap = 22 if larger_seven else 24
         cap = 228 if larger_seven else 212
         # Each card contributes 3px padding on both sides in addition to the
         # grid gap. Account for it here rather than allowing the fifth/right

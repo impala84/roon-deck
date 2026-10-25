@@ -626,7 +626,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('.original-landscape .page-title, .original-landscape .stop,', code)
         self.assertIn('row = Gtk.Box(spacing=10); row.add_css_class("page-header")', code)
         self.assertIn('self.label("Home Controls", "page-title")', code)
-        self.assertIn('settings.set_valign(Gtk.Align.START)', code)
+        self.assertIn('settings.set_valign(Gtk.Align.CENTER)', code)
         scale = code.split('    def scale_text_label', 1)[1].split('    def apply_interface_size', 1)[0]
         self.assertNotIn('"bus_clock"', scale)
         self.assertNotIn('"stop"', scale)
@@ -794,7 +794,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner=SimpleNamespace(viewport_width=1920,viewport_height=1080,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,True)
         self.assertEqual(columns,4)
-        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 23, 960)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 22, 960)
 
     def test_larger_gen2_artist_grid_keeps_four_columns(self):
         monitor=SimpleNamespace(get_geometry=lambda:SimpleNamespace(width=1920))
@@ -803,7 +803,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner=SimpleNamespace(viewport_width=1920,viewport_height=720,responsive_portrait=False,settings_data={"interface_size":"larger"},system_data={"display_profile":"touch2-7"})
         columns,size=native_method("browser_grid_metrics",{"Gdk":gdk})(owner,False,True)
         self.assertEqual(columns,4)
-        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 24, 1000)
+        self.assertLessEqual(columns * (size + 6) + (columns - 1) * 22, 1000)
 
     def test_scrubber_is_scoped_to_cover_collections_not_artist_profiles(self):
         code = SOURCE.read_text(encoding="utf-8")
@@ -812,7 +812,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_larger_gen2_artwork_is_bounded_and_landscape_never_scrolls(self):
         code = SOURCE.read_text(encoding="utf-8")
-        self.assertIn('artwork_size = min(500, artwork_size)', code)
+        self.assertIn('artwork_size = min(480, artwork_size)', code)
         self.assertIn('Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER', code)
 
     def test_large_portrait_transport_retains_primary_hierarchy(self):

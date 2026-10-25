@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.66 Alpine — 25 October 2026
+
+- Locks the ten-inch cog and clock to one shared header anchor across Now Playing, Discover, Bus Times and Home so they no longer jump between pages.
+- Adds the requested breathing room above the portrait Settings Reboot button, between it and the Install Update / Apply Display row, without adding unnecessary space below it.
+- Retains the seven-inch Gen 2 larger Browse-grid fit and responsive layout corrections from the preceding beta.
+
 ## 1.1.7-beta.65 Alpine — 25 October 2026
 
 - Restores four-column album, artist and genre Browse grids on the seven-inch Gen 2 display at Larger interface scaling.
