@@ -34,6 +34,12 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
    notes, and confirms it is listed. `tools/release-beta --dry-run` shows what
    it would do. Update affected web asset cache versions yourself first.
 
+Without a local checkout: pushing a commit to `main` that adds the next
+`## 1.1.7-beta.N Alpine` entry to `CHANGELOG.md` (with the version files bumped
+in the same commit) makes the `Publish beta release` GitHub Action publish the
+prerelease. Claude sessions cannot run `gh release`, so this is how they
+release. `tools/release-beta` remains the way to do it from the user's computer.
+
 ### Limits
 
 - Do not overwrite unrelated user changes, force-push, or publish known failing
