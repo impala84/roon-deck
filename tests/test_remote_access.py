@@ -384,16 +384,30 @@ class GestureTests(unittest.TestCase):
         self.assertIsNone(g.event(EV_KEY, BTN_0, 0, 1)); self.assertIsNone(g.tick(2))
 
     def test_rotation_is_bounded_and_acceleration_resets(self):
-        g = Gestures(); g.event(EV_REL, REL_DIAL, 10000, 0)
-        self.assertEqual(g.tick(1), {"kind": "rotate", "steps": 24, "fast": False})
-        g.event(EV_REL, REL_DIAL, -1, 1.05)
-        self.assertEqual(g.tick(1.05), {"kind": "rotate", "steps": -1, "fast": True})
+        g = Gestures(200); g.event(EV_REL, REL_DIAL, 100000, 0)
+        self.assertEqual(g.tick(.01), {"kind": "rotate", "steps": 3, "fast": False})
         g.reset(); self.assertIsNone(g.tick(2))
 
+    def test_small_turns_accumulate_into_whole_steps_and_nudges_expire(self):
+        g = Gestures(200)
+        for index in range(9): g.event(EV_REL, REL_DIAL, 10, index * .02)
+        self.assertIsNone(g.tick(.2))            # 90 counts: less than one step
+        g.event(EV_REL, REL_DIAL, 120, .22)
+        self.assertEqual(g.tick(.23)["steps"], 1); self.assertIsNone(g.tick(.24))   # 210 counts: one step, 10 left over
+        g.event(EV_REL, REL_DIAL, -50, 1.0)       # the leftover has expired: a nudge never turns into a step
+        self.assertIsNone(g.tick(1.01))
+        slow = Gestures(300)
+        slow.event(EV_REL, REL_DIAL, -310, 0)
+        self.assertEqual(slow.tick(.01)["steps"], -1)
+
+    def test_wheel_axis_is_ignored_once_the_dial_axis_reports(self):
+        g = Gestures(200); g.event(EV_REL, REL_DIAL, 200, 0); g.event(EV_REL, 8, 200, 0)
+        self.assertEqual(g.tick(.01)["steps"], 1); self.assertIsNone(g.tick(.02))
+
     def test_dropped_events_wait_for_sync_and_do_not_replay(self):
-        g = Gestures(); g.event(EV_REL, REL_DIAL, 3, 0); g.event(EV_SYN, SYN_DROPPED, 0, 0)
-        g.event(EV_REL, REL_DIAL, 4, 0); self.assertIsNone(g.tick(1))
-        g.event(EV_SYN, 0, 0, 1); g.event(EV_REL, REL_DIAL, 1, 1)
+        g = Gestures(200); g.event(EV_REL, REL_DIAL, 300, 0); g.event(EV_SYN, SYN_DROPPED, 0, 0)
+        g.event(EV_REL, REL_DIAL, 400, 0); self.assertIsNone(g.tick(1))
+        g.event(EV_SYN, 0, 0, 1); g.event(EV_REL, REL_DIAL, 200, 1)
         self.assertEqual(g.tick(1)["steps"], 1)
 
     def test_input_matches_paired_address_not_vendor(self):

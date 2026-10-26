@@ -69,10 +69,10 @@ class AccessoryControl {
       }
       if (action !== 'volume' || !Number.isInteger(event.steps) || event.steps === 0 || Math.abs(event.steps) > 24) throw new Error('Invalid Dial rotation.');
       const step = Number.isFinite(volume.step) && volume.step > 0 ? volume.step : volume.type === 'db' ? .5 : 1;
-      const sensitivity = {fine: 1, normal: 2, fast: 3}[config.sensitivity] || 1;
+      // Sensitivity is applied by the Dial reader (degrees of turning per step), so each step here is one Roon step.
       const acceleration = config.acceleration && event.fast === true ? 2 : 1;
       if (step > (volume.type === 'db' ? 2 : 4)) throw new Error('This Roon output uses volume steps too large for safe Dial control.');
-      const delta = Math.sign(event.steps) * Math.min(Math.abs(event.steps) * sensitivity * acceleration, 4, Math.floor((volume.type === 'db' ? 2 : 4) / step)) * step;
+      const delta = Math.sign(event.steps) * Math.min(Math.abs(event.steps) * acceleration, 3, Math.floor((volume.type === 'db' ? 2 : 4) / step)) * step;
       const minimum = Number.isFinite(volume.min) ? volume.min : volume.type === 'db' ? -100 : 0;
       const maximum = Number.isFinite(volume.max) ? volume.max : 100;
       const limit = config.maximum_volume;

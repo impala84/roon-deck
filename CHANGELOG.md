@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.8 Alpine — 27 October 2026
+
+- Surface Dial rotation is now measured in degrees instead of raw counts. One Roon volume step needs about 30° (Fine), 20° (Normal) or 12° (Fast) of turning, so a full turn is roughly 12, 18 or 30 steps. Small movements add up into whole steps instead of each tick being rounded up, a slight nudge expires, and a burst sends at most three steps at a time. Previously one tick could move the volume up to 2 dB or 4 units.
+- If both dial axes report the same movement, only the precise one is counted.
+
 ## 1.1.8-beta.7 Alpine — 27 October 2026
 
 - Surface Dial: when Bluetooth is connected but the Pi has no input device (the Dial connected before HID support was loaded, so `bluetoothd` logged "input-hog profile accept failed"), reconnect the Dial automatically once HID support is present, at most once every two minutes. Confirmed on hardware that a manual disconnect and connect creates the Dial's input devices.

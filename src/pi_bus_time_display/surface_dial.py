@@ -17,9 +17,17 @@ EV_KEY, EV_REL, EV_SYN = 1, 2, 0
 REL_DIAL, REL_WHEEL, BTN_0, BTN_LEFT, SYN_DROPPED = 7, 8, 256, 272, 3
 
 
+# REL_DIAL counts are tenths of a degree (3600 per turn). One volume step needs this much turning, so a
+# full turn is roughly 12 / 18 / 30 steps. Smaller movements accumulate instead of being rounded up.
+COUNTS_PER_STEP = {"fine": 300, "normal": 200, "fast": 120}
+MAX_STEPS_PER_COMMAND = 3
+STALE_ROTATION_SECONDS = .5
+
+
 class Gestures:
     """Button edges become exclusive single/double/long actions; drops reset all."""
-    def __init__(self):
+    def __init__(self, counts_per_step=COUNTS_PER_STEP["normal"]):
+        self.counts_per_step = counts_per_step
         self.reset()
 
     def reset(self):
@@ -27,6 +35,7 @@ class Gestures:
         self.single_at = None
         self.long_sent = False
         self.rotation = 0
+        self.last_motion = None
         self.last_rotation = None
         self.second_press = False
         self.synchronising = False
@@ -40,7 +49,12 @@ class Gestures:
             if kind == EV_SYN and code == 0: self.synchronising = False
             return
         if kind == EV_REL and code in {REL_DIAL, REL_WHEEL}:
-            self.rotation = max(-24, min(24, self.rotation + value))
+            # Some kernels report both axes for one movement; REL_DIAL is the precise one.
+            if code == REL_DIAL: self.dial_seen = True
+            if code == REL_DIAL or not getattr(self, "dial_seen", False):
+                if self.rotation and self.last_motion is not None and now - self.last_motion > STALE_ROTATION_SECONDS: self.rotation = 0
+                self.rotation = max(-24 * self.counts_per_step, min(24 * self.counts_per_step, self.rotation + value))
+                self.last_motion = now
         if kind != EV_KEY or code not in {BTN_0, BTN_LEFT} or value not in {0, 1}: return
         if value == 1:
             if self.pressed_at is None:
@@ -65,8 +79,12 @@ class Gestures:
         if self.single_at is not None and self.pressed_at is None and now >= self.single_at:
             self.single_at = None
             return {"kind": "single"}
-        if self.rotation:
-            steps, self.rotation = self.rotation, 0
+        if self.rotation and self.last_motion is not None and now - self.last_motion > STALE_ROTATION_SECONDS:
+            self.rotation = 0   # a slight nudge that never reached a full step is forgotten
+        whole = int(self.rotation / self.counts_per_step)
+        if whole:
+            steps = max(-MAX_STEPS_PER_COMMAND, min(MAX_STEPS_PER_COMMAND, whole))
+            self.rotation -= steps * self.counts_per_step
             fast = self.last_rotation is not None and now - self.last_rotation < .12
             self.last_rotation = now
             return {"kind": "rotate", "steps": steps, "fast": fast}
@@ -132,6 +150,7 @@ def main():
                 status("Disabled")
                 time.sleep(2)
                 continue
+            gestures.counts_per_step = COUNTS_PER_STEP.get(config["sensitivity"], COUNTS_PER_STEP["normal"])
             paths = input_paths(config["address"])
             if not paths:
                 status("Waiting for paired Surface Dial input." if Path("/dev/uhid").exists() else

@@ -19,12 +19,12 @@ function fixture(extra = {}) {
 }
 test('rotation changes Roon output volume and bounds a rapid burst', async () => {
   const f = fixture(); await f.adapter.run({kind: 'rotate', steps: 24, fast: true});
-  assert.deepEqual(f.calls, [{output: 'dac', mode: 'absolute', value: 44}]);
+  assert.deepEqual(f.calls, [{output: 'dac', mode: 'absolute', value: 43}]);
 });
 test('maximum volume clamps increases without jumping down from an external higher volume', async () => {
   const f = fixture({maximum_volume: 41}); await f.adapter.run({kind: 'rotate', steps: 10}); assert.equal(f.output.volume.value, 41);
   f.output.volume.value = 60; await f.adapter.run({kind: 'rotate', steps: 1}); assert.equal(f.calls.length, 1);
-  await f.adapter.run({kind: 'rotate', steps: -1}); assert.equal(f.output.volume.value, 58);
+  await f.adapter.run({kind: 'rotate', steps: -1}); assert.equal(f.output.volume.value, 59);
 });
 test('dB limits and increments use the Roon output scale', async () => {
   const f = fixture({maximum_volume: -20}); Object.assign(f.output.volume, {type: 'db', value: -21, min: -80, max: 0, step: .5});
@@ -36,7 +36,7 @@ test('a fresh Roon query wins over an old subscription after interruption', asyn
   f.transport.get_zones = done => done(false, {zones: [{...f.zone, outputs: [fresh]}]});
   f.transport.change_volume = (output, mode, value, done) => { f.calls.push({value}); f.output.volume.value = value; done(); };
   await f.adapter.run({kind: 'rotate', steps: 1});
-  assert.equal(f.calls[0].value, 72);
+  assert.equal(f.calls[0].value, 71);
 });
 test('a fractional ceiling rounds down to a supported volume step', async () => {
   const f = fixture({maximum_volume: 41.5});
