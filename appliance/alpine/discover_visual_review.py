@@ -746,6 +746,9 @@ else:
     assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height(), screen_width, screen_height)
 
 home = display.build_home(); window.set_child(home)
+display.home_color_provider = Gtk.CssProvider()
+Gtk.StyleContext.add_provider_for_display(window.get_display(), display.home_color_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+display.apply_home_colors(display.settings_data)
 display.settings_data["display_theme"] = "roon"
 display.render_home({"status": "ok", "entities": [{"entity_id": f"{domain}.fixture{index}", "domain": domain, "name": name, "state": "on", "available": True, "supports_level": domain in ("fan", "light"), "percentage": 50} for index, (domain, name) in enumerate((("fan", "Living Room Fan"), ("light", "Living Room"), ("switch", "Pi-Hole Master"), ("switch", "Pi-Hole Slave"), ("scene", "Bedroom Energize"), ("scene", "Bedroom Ruby Romance")))]})
 capture("home")

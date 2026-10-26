@@ -248,6 +248,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             initial_config = tomllib.loads(Path("/etc/pi-home/config.toml").read_text())
             if initial_config.get("display_theme") == "roon": self.window.add_css_class("theme-roon")
         except (OSError, ValueError): pass
+        self.apply_home_colors(initial_config)
         self.window.set_cursor_from_name("none")
         try: Gtk.Settings.get_default().set_property("gtk-cursor-theme-name", "pi-home-touch")
         except (AttributeError, TypeError): pass

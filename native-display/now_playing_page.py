@@ -231,7 +231,10 @@ class NowPlayingPageMixin:
         for key in ("roon_bridge", "netdata"):
             if (system or {}).get(key) is not None: remembered[key] = system[key]
         system = {**(system or {}), **{key: value for key, value in remembered.items() if (system or {}).get(key) is None}}
-        signature = json.dumps({"services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
+        features = device.get("accessory_features", {})
+        if hasattr(self, "sync_accessory_visibility"): self.sync_accessory_visibility(features)
+        enabled = (system or {}).get("network_controls", {})
+        signature = json.dumps({"accessory_features": features, "network_controls": enabled, "services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
         if signature == getattr(self, "touch_controls_signature", None): return
         self.touch_controls_signature = signature
         while child := self.touch_daily.get_last_child():
@@ -239,12 +242,16 @@ class NowPlayingPageMixin:
             self.touch_daily.remove(child)
         bridge_state = (system or {}).get("roon_bridge")
         service_pair = Gtk.Box(spacing=16); service_pair.set_homogeneous(True)
-        if bridge_state in {"active", "running", "inactive", "stopped"}:
+        if enabled.get("roon_bridge", bridge_state in {"active", "running"}) and bridge_state in {"active", "running", "inactive", "stopped"}:
             bridge = Gtk.Box(spacing=8); bridge.add_css_class("setting-line"); bridge_check = Gtk.CheckButton(label="Roon Bridge"); bridge_check.set_active(bridge_state in {"active", "running"}); bridge_check.connect("toggled", self.toggle_bridge); bridge.append(bridge_check); service_pair.append(bridge)
         netdata_state = (system or {}).get("netdata")
-        if netdata_state in {"active", "running", "inactive", "stopped"}:
+        if enabled.get("netdata", netdata_state in {"active", "running"}) and netdata_state in {"active", "running", "inactive", "stopped"}:
             netdata = Gtk.Box(spacing=8); netdata.add_css_class("setting-line"); netdata_check = Gtk.CheckButton(label="Netdata"); netdata_check.set_active(netdata_state in {"active", "running"}); netdata_check.connect("toggled", self.toggle_netdata); netdata.append(netdata_check); service_pair.append(netdata)
         if service_pair.get_first_child(): self.touch_daily.append(service_pair)
+        if any(features.values()) and hasattr(self, "settings_accessories_button"):
+            self.touch_daily.append(self.settings_accessories_button)
+        self.touch_daily.set_visible(self.touch_daily.get_first_child() is not None)
+        if hasattr(self, "network_controls_heading"): self.network_controls_heading.set_visible(self.touch_daily.get_first_child() is not None)
         for value, choice in self.touch_background_buttons.items():
             if value == self.settings_data.get("display_background", "current"): choice.add_css_class("active")
             else: choice.remove_css_class("active")

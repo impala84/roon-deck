@@ -5,9 +5,10 @@ from native_common import BUS, FamilyIcon, elastic_vertical_scroll, post_json, w
 from performance_graph import PerformanceGraph
 import threading
 from gi.repository import GLib, Gtk, Pango
+from accessories_page import AccessoriesPageMixin
 
 
-class SettingsPageMixin:
+class SettingsPageMixin(AccessoriesPageMixin):
     def configure_settings_layout(self, width, height):
         portrait = height > width
         compact = not portrait and (height <= 600 or width < 1000)
@@ -108,6 +109,14 @@ class SettingsPageMixin:
             self.touch_diagnostics.set_margin_top(diagnostics_gap)
 
     def build_settings(self):
+        self.settings_sections = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE)
+        self.settings_sections.set_hhomogeneous(False); self.settings_sections.set_vhomogeneous(False)
+        self.settings_sections.add_named(self.build_main_settings(), "main")
+        self.settings_sections.add_named(self.build_accessories(), "accessories")
+        self.settings_sections.set_visible_child_name("main")
+        return self.settings_sections
+
+    def build_main_settings(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); page.add_css_class("page"); page.add_css_class("settings-page")
         top = Gtk.Box(spacing=20); top.add_css_class("settings-header"); self.settings_header = top
         heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); heading.set_hexpand(True)
@@ -138,7 +147,7 @@ class SettingsPageMixin:
             choice = self.button(title, lambda _button, selected=value: self.change_background(selected), "theme-choice"); choice.add_css_class("settings-theme-choice"); choice.set_hexpand(True); self.touch_background_buttons[value] = choice; background_choices.append(choice)
         appearance.append(self.touch_background_row)
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
-        daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); daily.append(self.label("NETWORK CONTROLS", "eyebrow")); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
+        daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); self.network_controls_heading = self.label("NETWORK CONTROLS", "eyebrow"); daily.append(self.network_controls_heading); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
         self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=16); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
         daily.append(self.label("INTERFACE SCALING", "eyebrow")); self.settings_scaling_heading = daily.get_last_child()
         self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
@@ -151,6 +160,7 @@ class SettingsPageMixin:
         scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
         # Controls sit in a body box so a full-width performance graph can sit below the two columns on Touch Display 2.
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.settings_body = body; body.set_vexpand(True); body.append(controls)
+        self.settings_accessories_button = self.button("REMOTE & BLUETOOTH", self.open_accessories, "settings-action"); self.settings_accessories_button.set_visible(False)
         scroll.set_child(body); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)

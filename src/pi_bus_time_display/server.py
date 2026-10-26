@@ -26,6 +26,7 @@ from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
 from . import __version__
 from .releases import ReleaseChecker
+from .remote_access import load_json
 
 
 CONTROL_REQUEST_LOCK = threading.Lock()
@@ -45,6 +46,26 @@ SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
 def display_version():
     suffix = " Alpine" if os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype" else ""
     return __version__ + suffix
+
+
+def accessory_request(data):
+    """Only called after HTTP authentication. Keep keys out of generic actions."""
+    if os.getenv("PI_HOME_APPLIANCE_PLATFORM") != "alpine-prototype":
+        raise ValueError("Remote Access and Bluetooth Accessories require the Alpine appliance.")
+    payload = json.dumps({**data, "action": "accessories"}).encode() + b"\n"
+    if len(payload) > 32768: raise ValueError("Accessory request is too large.")
+    try:
+        with socket.socket(socket.AF_UNIX) as client:
+            client.settimeout(60)
+            client.connect("/run/pi-home-setup.sock")
+            client.sendall(payload)
+            reply = client.makefile("rb").readline(32769)
+        if len(reply) > 32768: raise ValueError("Accessory response is too large.")
+        result = json.loads(reply)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("The appliance helper is unavailable. Retry when software updates have finished.") from exc
+    if not result.get("ok"): raise ValueError(result.get("error", "Accessory operation failed."))
+    return result
 
 
 class State:
@@ -101,6 +122,7 @@ class State:
             view_request = dict(self.display_view_request) if self.display_view_request else None
         return {
             "services": [{"name": service, "enabled": service in self.enabled_services} for service in self.config.services],
+            "accessory_features": {name: load_json(self.state_dir / "accessory-features.json", {}).get(name) is True for name in ("vpn", "dial")},
             "home": self.home_data,
             "display_brightness": self.display_brightness,
             "capture_request": capture_id,
@@ -833,6 +855,8 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "wifi_ssid": active_wifi,
         "network": network,
         "roon_bridge": roon_service,
+        "network_controls": {"roon_bridge": roon_service in {"active", "running"} or Path("/etc/runlevels/default/roonbridge").exists(),
+                             "netdata": netdata["service"] in {"active", "running"} or Path("/etc/runlevels/default/netdata").exists()},
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
         "airplay": airplay_service,
         "airplay_name": (state_dir / "airplay-name").read_text().strip() if (state_dir / "airplay-name").is_file() else "RoonDeck",
@@ -948,6 +972,13 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().end_headers()
 
         def do_GET(self):
+            if self.path == "/api/admin/accessories":
+                if not self.authorised(): return
+                try:
+                    self.send_json(200, json.dumps(accessory_request({"operation": "status"})).encode())
+                except (ValueError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path in {"/", "/index.html"} and not state.config.bus_enabled:
                 self.send_response(302); self.send_header("Location", "/roon/"); self.end_headers(); return
             if self.path == "/home":
@@ -984,7 +1015,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_header("Location", "/admin.html")
                 self.end_headers()
                 return
-            if self.path == "/admin.html" and not self.is_authorised():
+            if self.path.split("?", 1)[0] in {"/admin.html", "/accessories.html"} and not self.is_authorised():
                 self.send_response(302)
                 self.send_header("Location", "/login.html")
                 self.end_headers()
@@ -1110,8 +1141,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_json(200, json.dumps(controls).encode())
                 return
             path = self.path.split("?", 1)[0]
-            if path in {"/", "/index.html", "/home.html", "/admin.html", "/preview.html"}:
-                if path in {"/admin.html", "/preview.html"} and not self.authorised(): return
+            if path in {"/", "/index.html", "/home.html", "/admin.html", "/preview.html", "/accessories.html"}:
+                if path in {"/admin.html", "/preview.html", "/accessories.html"} and not self.authorised(): return
                 theme = "roon" if state.config.display_theme == "roon" else "fresh-mint"
                 body = (static / ("index.html" if path == "/" else path[1:])).read_text(encoding="utf-8")
                 body = body.replace("<body", f'<body data-theme="{theme}"', 1)
@@ -1122,6 +1153,17 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().do_GET()
 
         def do_POST(self):
+            if self.path == "/api/admin/accessories":
+                if not self.authorised(): return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 30000: raise ValueError("Accessory request is too large.")
+                    data = json.loads(self.rfile.read(length))
+                    if not isinstance(data, dict): raise ValueError("Invalid accessory request.")
+                    self.send_json(200, json.dumps(accessory_request(data)).encode())
+                except (ValueError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path == "/api/admin/preview-capture":
                 if not self.authorised(): return
                 try: self.send_json(202, json.dumps({"id": state.start_preview_capture()}).encode())

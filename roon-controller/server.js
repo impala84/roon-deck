@@ -1,6 +1,7 @@
 'use strict';
 
 const http = require('http');
+const {AccessoryControl} = require('./accessory-control');
 const fs = require('fs');
 const path = require('path');
 const RoonApi = require('node-roon-api');
@@ -139,6 +140,8 @@ function selectedOutput(zone) {
   return (requested ? outputs.find(output => output.display_name === requested || (remembered && output.output_id === remembered)) : null) ||
     outputs.find(output => output.volume) || outputs[0] || null;
 }
+
+
 
 function resumeRoon(zone) {
   const play = () => transport.control(zone, 'play', () => {});
@@ -356,6 +359,15 @@ function body(request) {
   });
 }
 
+const accessoryControl = new AccessoryControl({
+  config: () => {
+    try { return JSON.parse(fs.readFileSync('/var/lib/pi-home/accessories.json', 'utf8')); }
+    catch { return {enabled: false}; }
+  },
+  zone: () => selectedZone(), output: zone => selectedOutput(zone),
+  zones: () => [...zones.values()], transport: () => transport,
+});
+
 function serveStatic(request, response) {
   const names = {'/': 'index.html', '/icons.js': 'icons.js', '/app.js': 'app.js', '/discovery.js': 'discovery.js', '/discovery.css': 'discovery.css', '/style.css': 'style.css', '/refinements.css': 'refinements.css', '/favicon.svg': 'favicon.svg', '/favicon-roon.svg': 'favicon-roon.svg'};
   const pathname = new URL(request.url, 'http://localhost').pathname;
@@ -369,6 +381,8 @@ function serveStatic(request, response) {
   response.end(data);
   return true;
 }
+
+
 
 http.createServer(async (request, response) => {
   try {
@@ -444,7 +458,13 @@ http.createServer(async (request, response) => {
       if(!jpeg&&!png) return response.writeHead(404).end();
       response.writeHead(200,{'Content-Type':jpeg?'image/jpeg':'image/png','Cache-Control':'private, max-age=300'});return response.end(bytes);
     }
+    if (request.method === 'GET' && url.pathname === '/api/accessory/outputs') {
+      return json(response, 200, {outputs: [...zones.values()].flatMap(zone => (zone.outputs || []).map(output => ({id: output.output_id, name: output.display_name, zone: zone.display_name})))});
+    }
     if (request.method === 'POST' && url.pathname.startsWith('/api/')) {
+      if (url.pathname === '/api/accessory/control') {
+        return json(response, 200, await accessoryControl.run(await body(request)));
+      }
       const data = await body(request); const zone = selectedZone();
       if (url.pathname === '/api/bluos/input') {
         await bluos.selectInput(data.input_id); return json(response, 200, {ok: true});

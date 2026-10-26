@@ -1205,7 +1205,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
         code = native_text()
         allowed = ("theme-roon", "library-pulse-roon", 'accent="#9868F9"',
                    'replace("#9868F9", accent)', 'accent = "#9868F9"',
-                   "alpha(#9868F9")
+                   # Home entity colours are user-selected, independent of theme.
+                   '"switch": "#9868f9"', "alpha(#9868F9")
         leaked = [line.strip() for line in code.splitlines()
                   if any(token in line.lower() for token in ("#9868f9", "#a77cff", "152,104,249"))
                   and not any(marker in line for marker in allowed)]

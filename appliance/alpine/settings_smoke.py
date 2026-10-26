@@ -49,7 +49,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     assert logo_width < width * .37, (width,height,logo_width)
     display.device_status.set_text("v1.1.0 Alpine")
     display.touch_diagnostics.set_text("Memory 5.4%  ·  Load 1.53  ·  63.3°C  ·  Controller ready  ·  Bridge offline")
-    display.render_touch_controls({"services":[{"name":name,"enabled":True} for name in ("40","42","401")]}, {"roon_bridge":"stopped"})
+    display.render_touch_controls({"services":[{"name":name,"enabled":True} for name in ("40","42","401")]}, {"roon_bridge":"stopped", "network_controls":{"roon_bridge":True}})
     window.present(); settle(); display.adapt_display(); settle()
     title_baseline = display.settings_title_label.get_allocation().y + display.settings_title_label.get_baseline()
     version_baseline = display.device_status.get_allocation().y + display.device_status.get_baseline()
@@ -102,5 +102,25 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert bridge_check.get_active() and bridge_check.get_sensitive()
         assert "Could not change Roon Bridge" in display.touch_diagnostics.get_text()
         restore_post_json()
+    # Exercise the actual new native page at the same authoritative viewport.
+    display.finish_accessory_operation({"features": {"vpn": True, "dial": True}, "vpn": {"status": "Connected", "address": "10.10.10.2/32", "pending_token": "trial", "confirm_seconds": 75},
+        "dial": {"enabled": False, "address": "AA:BB:CC:DD:EE:FF", "target": "selected", "output_id": "", "sensitivity": "normal", "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"},
+        "devices": [{"address": "AA:BB:CC:DD:EE:FF", "paired": True, "connected": True, "battery": 80}]},
+        {"outputs": [{"id": "dac", "name": "Local Roon Bridge USB DAC"}]}, {}, "", True)
+    display.settings_sections.set_visible_child_name("accessories"); settle()
+    assert display.accessory_confirm.get_visible()
+    assert window.get_width() == width and window.get_height() == height, ("accessories",width,height,window.get_width(),window.get_height())
+    for widget in (*display.accessory_buttons, display.accessory_device, display.accessory_target, display.accessory_sensitivity, display.accessory_limit, *display.accessory_mappings.values()):
+        bounds = widget.compute_bounds(window)[1]
+        assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", width,height,bounds.get_x(),bounds.get_width())
+    if output:
+        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"accessories-{width}x{height}.png")],check=True)
+    adjustment = display.accessory_scroll.get_vadjustment()
+    adjustment.set_value(adjustment.get_upper()); settle()
+    if output:
+        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"accessories-controls-{width}x{height}.png")],check=True)
+    display.sync_accessory_visibility({"vpn": False, "dial": False})
+    assert not display.settings_accessories_button.get_visible()
+    assert not display.accessory_vpn_section.get_visible() and not display.accessory_dial_section.get_visible()
     window.destroy(); settle()
 print("Real GTK Settings: equal-height rows, equal-width actions and viewport bounds checked.")

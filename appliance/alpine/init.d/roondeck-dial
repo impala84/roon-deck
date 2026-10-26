@@ -1,0 +1,12 @@
+#!/sbin/openrc-run
+description="Optional Surface Dial controls for the selected Roon zone"
+supervisor=supervise-daemon
+command=/opt/pi-home/.venv/bin/python
+command_args="-m pi_bus_time_display.surface_dial"
+command_user=morningbus:input
+directory=/var/lib/pi-home
+respawn_delay=5
+respawn_max=0
+output_log=/var/log/pi-home/dial.log
+error_log=/var/log/pi-home/dial-error.log
+depend() { need bluetooth pi-home-roon; after pi-home-api; }

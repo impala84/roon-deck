@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.8-beta.1 Alpine — 26 October 2026
+
+- Adds optional Surface Dial controls using the existing Roon connection: selected-zone or specific-output targeting, sensitivity, bounded acceleration, a Dial volume ceiling and configurable single/double/long press actions. Fixed-volume and unavailable outputs report an error instead of changing the Pi mixer. Pairing never changes volume.
+- Adds Bluetooth discovery, pairing, connection status, battery reporting when available, disconnect/forget and persistent settings. Bluetooth support packages are installed only when requested. The input service is enabled only after saving enabled Dial controls.
+- Adds a WireGuard connectivity prototype: import a plain single-peer UniFi profile, Full/Split routing, optional connect-on-boot after confirmation, handshake/transfer diagnostics and a 90-second connection trial with an independent rollback watchdog. Private keys remain in a root-only NetworkManager profile. Existing Roon Bridge and audio configuration are preserved.
+- Adds independent backend enable switches for WireGuard and Surface Dial, both off by default. Turning support off also stops its VPN/Dial operations. Disabled features are hidden from the touchscreen; Roon Bridge and Netdata controls are shown only while enabled. Adds Remote Access & Bluetooth settings in the native touchscreen and authenticated web Settings. Profile import and routing configuration are available in web Settings; the touchscreen can connect, confirm, disconnect, pair and configure the Dial.
+- Sets Home multi-colour defaults and Restore colour defaults to orange lights (#FB923C), sky-blue fans (#60A5FA), purple switches (#9868F9) and lime scenes (#A3E635). Saved custom colours are retained.
+- Updates beta release tooling for 1.1.8 and later versions.
+
+Hardware acceptance pending: this first beta is for testing on the user's Surface Dial and VLAN. Physical input/reconnection, Bluetooth firmware support and remote Roon Bridge discovery/audio playback are not yet verified. No discovery relay or haptic driver is bundled. A successful WireGuard tunnel alone does not establish remote audio support. See docs/REMOTE-ACCESS-AND-DIAL.md for the staged test procedure.
+
 ## 1.1.7 Alpine — 26 October 2026
 
 RoonDeck 1.1.7 Alpine is a full clean-install ARM64 image for Raspberry Pi, rolling up beta.102 to beta.117.

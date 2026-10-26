@@ -18,7 +18,7 @@ class HomePageMixin:
         page.append(self.navigation("home")); return page
 
     def apply_home_colors(self, config):
-        defaults = {"light": "#f4c95d", "fan": "#5bcbd6", "switch": "#6ed9ae", "scene": "#6ed9ae"}
+        defaults = {"light": "#fb923c", "fan": "#60a5fa", "switch": "#9868f9", "scene": "#a3e635"}
         def colour(domain):
             key = "home_assistant_single_color" if config.get("home_assistant_color_mode") == "single" else f"home_assistant_{domain}_color"
             value = str(config.get(key, defaults[domain]))

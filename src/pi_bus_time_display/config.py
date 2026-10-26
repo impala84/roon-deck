@@ -58,10 +58,10 @@ class Config:
     home_assistant_entities: tuple[str, ...] = ()
     home_assistant_color_mode: str = "multi"
     home_assistant_single_color: str = "#9868f9"
-    home_assistant_light_color: str = "#f4c95d"
-    home_assistant_fan_color: str = "#5bcbd6"
-    home_assistant_switch_color: str = "#6ed9ae"
-    home_assistant_scene_color: str = "#6ed9ae"
+    home_assistant_light_color: str = "#fb923c"
+    home_assistant_fan_color: str = "#60a5fa"
+    home_assistant_switch_color: str = "#9868f9"
+    home_assistant_scene_color: str = "#a3e635"
     openobserve_enabled: bool = False
     openobserve_url: str = ""
     openobserve_org: str = "default"

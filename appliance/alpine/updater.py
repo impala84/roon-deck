@@ -238,6 +238,8 @@ def restart():
     run(["rc-service", "--nodeps", "seatd", "restart"], timeout=45)
     for service in ("pi-home-setup", "pi-home-api", "pi-home-roon"):
         run(["rc-service", "--nodeps", service, "restart"], timeout=45)
+    if Path("/etc/runlevels/default/roondeck-dial").exists() and (APP / "src/pi_bus_time_display/surface_dial.py").is_file():
+        run(["rc-service", "--nodeps", "roondeck-dial", "restart"], timeout=45)
     try: DISPLAY_REVISION.unlink()
     except FileNotFoundError: pass
     run(["rc-service", "--nodeps", "pi-home-display", "start"], timeout=45)

@@ -19,7 +19,11 @@ import tempfile
 import tarfile
 import urllib.request
 import uuid
+import sys
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from pi_bus_time_display.remote_access import AccessoryManager
 
 SOCKET = "/run/pi-home-setup.sock"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
@@ -444,6 +448,7 @@ def update_locked(root=Path("/")):
 class Setup:
     def __init__(self, root=Path("/"), run=command, roon=None, login_credentials=set_login_credentials):
         self.root = Path(root); self.run = run; self.roon = roon or self.roon_state
+        self.accessories = None
         self.login_credentials = login_credentials
         self.tools_lock = threading.Lock()
         self.netdata_install_lock = threading.Lock()
@@ -662,6 +667,11 @@ class Setup:
 
     def handle(self, data):
         state = self.saved(); action = data.get("action")
+        if action == "accessories":
+            if self.software_lock.locked() or update_locked(self.root):
+                raise ValueError("Wait for the current software operation to finish.")
+            if self.accessories is None: self.accessories = AccessoryManager(self.root)
+            return self.accessories.handle(data)
         if action == "status":
             if state.get("software_status", "").startswith("Installing") and not self.software_lock.locked():
                 state.update(software=False, software_status="Installation was interrupted. Retry to continue."); self.save(state)
@@ -1035,8 +1045,8 @@ def serve():
                 peer = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
                 if peer[1] != uid: continue
                 try:
-                    message = connection.makefile("rb").readline(4097)
-                    if len(message) > 4096: raise ValueError("Setup request is too large.")
+                    message = connection.makefile("rb").readline(32769)
+                    if len(message) > 32768: raise ValueError("Setup request is too large.")
                     data = json.loads(message)
                     if not isinstance(data, dict): raise ValueError("Invalid setup request.")
                     result = app.handle(data)

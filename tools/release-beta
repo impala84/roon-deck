@@ -3,7 +3,7 @@
 
 Write the new entry at the top of CHANGELOG.md first:
 
-    ## 1.1.7-beta.87 Alpine — 27 October 2026
+    ## 1.1.8-beta.1 Alpine — 27 October 2026
 
     - What changed, in plain words.
 
@@ -26,10 +26,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BRANCH = "main"
 REPO = "impala84/roon-deck"
-# Releases from beta.92 are tagged v1.1.7-beta.N. Devices running beta.88 or
+# Releases from beta.92 are tagged vX.Y.Z-beta.N. Devices running beta.88 or
 # earlier only see "-alpine" tags; beta.89 and later accept both.
 TAG_SUFFIX = ""
-HEADING = re.compile(r"^## (1\.1\.7-beta\.(\d+)) Alpine — .+$", re.M)
+HEADING = re.compile(r"^## ((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-beta\.(\d+)) Alpine — .+$", re.M)
 
 
 def run(*cmd, capture=False):
@@ -44,9 +44,12 @@ def top_entry():
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     matches = list(HEADING.finditer(text))
     if not matches:
-        sys.exit("CHANGELOG.md has no '## 1.1.7-beta.N Alpine — date' entry at the top.")
+        sys.exit("CHANGELOG.md has no '## X.Y.Z-beta.N Alpine — date' entry at the top.")
     first = matches[0]
-    end = matches[1].start() if len(matches) > 1 else len(text)
+    if re.search(r"^## ", text, re.M).start() != first.start():
+        sys.exit("Add the new beta release entry above the current stable release.")
+    next_heading = re.search(r"^## ", text[first.end():], re.M)
+    end = first.end() + next_heading.start() if next_heading else len(text)
     return first.group(1), text[first.start():end].strip()
 
 
@@ -73,6 +76,12 @@ def bump(old, new):
     sub_once("roon-controller/package-lock.json", rf'"version": "{esc}"', f'"version": "{new}"', count=2)
 
 
+def version_order(value):
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?", value)
+    if not match: sys.exit("Unsupported release version.")
+    return tuple(int(match[i]) for i in (1, 2, 3)) + (1 if match[4] is None else 0, int(match[4] or 0))
+
+
 def main():
     dry = "--dry-run" in sys.argv
     version, notes = top_entry()
@@ -82,7 +91,7 @@ def main():
 
     if run("git", "branch", "--show-current", capture=True) != BRANCH:
         sys.exit(f"Switch to the {BRANCH} branch first.")
-    if int(version.rsplit(".", 1)[1]) < int(old.rsplit(".", 1)[1]):
+    if version_order(version) <= version_order(old) and version != old:
         sys.exit("The changelog entry is older than the current version.")
     published = json.loads(run("gh", "release", "list", "--repo", REPO, "--limit", "5",
                                "--json", "tagName", capture=True))
@@ -109,4 +118,4 @@ def main():
     print(f"\nPublished {tag}. Install it from Settings → Software on the Beta channel.")
 
 
-main()
+if __name__ == "__main__": main()

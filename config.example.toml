@@ -47,3 +47,10 @@ openobserve_username = ""
 # Retained for configuration compatibility. The one-card appliance keeps running
 # Roon Bridge and changes the touchscreen to its quiet clock outside the window.
 end_action = "display"
+
+# Home tile defaults; saved custom colours are preserved during updates.
+home_assistant_color_mode = "multi"
+home_assistant_light_color = "#fb923c"
+home_assistant_fan_color = "#60a5fa"
+home_assistant_switch_color = "#9868f9"
+home_assistant_scene_color = "#a3e635"

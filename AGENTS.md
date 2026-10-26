@@ -16,7 +16,7 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
   The Pi installs tagged releases, not a branch, so pushing alone changes
   nothing on a Pi until a release is published.
 - The Pi's Beta channel installs the newest published GitHub **prerelease** that
-  is tagged `v1.1.7-beta.N` (releases up to beta.91 end in `-alpine`; the updater
+  is tagged `vX.Y.Z-beta.N` (current development: `v1.1.8-beta.N`) (releases up to beta.91 end in `-alpine`; the updater
   accepts both), at that tag's exact commit. It does not require the Alpine
   verification workflow to pass (see `appliance/alpine/updater.py`).
 - Stable is different: it requires a passing Alpine verification run and is
@@ -25,7 +25,7 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
 ### Steps for a beta release
 
 1. Implement and verify the change locally (see the checks below).
-2. Add a `## 1.1.7-beta.N Alpine — <date>` entry at the top of `CHANGELOG.md`
+2. Add a `## X.Y.Z-beta.N Alpine — <date>` entry at the top of `CHANGELOG.md`
    (N is the next number; check `gh release list --repo impala84/roon-deck`).
 3. Run `tools/release-beta` from the `main` branch.
    It bumps the version in every file, runs `tools/check fast`, commits,
@@ -35,7 +35,7 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
    it would do. Update affected web asset cache versions yourself first.
 
 Without a local checkout: pushing a commit to `main` that adds the next
-`## 1.1.7-beta.N Alpine` entry to `CHANGELOG.md` (with the version files bumped
+`## X.Y.Z-beta.N Alpine` entry to `CHANGELOG.md` (with the version files bumped
 in the same commit) makes the `Publish beta release` GitHub Action publish the
 prerelease. Claude sessions cannot run `gh release`, so this is how they
 release. `tools/release-beta` remains the way to do it from the user's computer.
@@ -75,3 +75,7 @@ The viewport matrix lives only in `tools/viewports.json`. Do not duplicate it in
 workflow YAML or another test. Inspect the relevant gallery below
 `dist/native-review/` before
 pushing layout work. See `docs/DEVELOPMENT.md` for the complete release sequence.
+
+## Optional remote/accessory beta
+
+1.1.8 adds optional features, disabled for existing installations. Hardware acceptance is required for Surface Dial input, reconnection, and actual Roon Bridge playback across WireGuard. A tunnel handshake is not audio acceptance. Preserve Roon Bridge and all saved custom Home colours. Follow docs/REMOTE-ACCESS-AND-DIAL.md; do not claim unperformed physical tests.

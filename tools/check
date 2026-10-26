@@ -92,6 +92,7 @@ candidate() {
     --build-arg "PI_HOME_SOURCE_SHA=$(git -C "$repo" rev-parse HEAD)" \
     -t "$appliance_image" -f "$repo/appliance/alpine/Dockerfile" "$repo"
   docker run --rm --user morningbus "$appliance_image" .venv/bin/python appliance/alpine/smoke.py
+  docker run --rm "$appliance_image" .venv/bin/python appliance/alpine/accessory_smoke.py
   local source_archive
   source_archive=$(mktemp "$repo/.roondeck-source.XXXXXX")
   trap 'rm -f "$source_archive"' RETURN

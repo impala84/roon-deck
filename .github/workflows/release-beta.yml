@@ -1,6 +1,6 @@
 name: Publish beta release
 
-# Publishes the GitHub prerelease for the newest "## 1.1.7-beta.N Alpine" entry in CHANGELOG.md once a commit that
+# Publishes the GitHub prerelease for the newest "## X.Y.Z-beta.N Alpine" entry in CHANGELOG.md once a commit that
 # changes the changelog lands on main. It is what tools/release-beta does at the end, without needing a local checkout.
 # A Pi on the Beta channel installs published prereleases; pushing code alone never changes a Pi.
 
@@ -29,11 +29,13 @@ jobs:
           python3 - <<'PY'
           import os, re, subprocess, sys
           text = open("CHANGELOG.md", encoding="utf-8").read()
-          heading = re.compile(r"^## (1\.1\.7-beta\.(\d+)) Alpine — .+$", re.M)
+          heading = re.compile(r"^## (\d+\.\d+\.\d+-beta\.(\d+)) Alpine — .+$", re.M)
           matches = list(heading.finditer(text))
-          if not matches: sys.exit("No beta entry at the top of CHANGELOG.md")
+          if not matches or re.search(r"^## ", text, re.M).start() != matches[0].start():
+              print("No beta release at the top of CHANGELOG.md."); sys.exit(0)
           first = matches[0]
-          end = matches[1].start() if len(matches) > 1 else len(text)
+          next_heading = re.search(r"^## ", text[first.end():], re.M)
+          end = first.end() + next_heading.start() if next_heading else len(text)
           version, notes = first.group(1), text[first.start():end].strip()
           tag = "v" + version
           exists = subprocess.run(["gh", "release", "view", tag], capture_output=True).returncode == 0
