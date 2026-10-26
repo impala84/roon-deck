@@ -2,6 +2,7 @@
 """Native GTK4 touchscreen for RoonDeck."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -248,6 +249,9 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             if initial_config.get("display_theme") == "roon": self.window.add_css_class("theme-roon")
         except (OSError, ValueError): pass
         self.window.set_cursor_from_name("none")
+        try: Gtk.Settings.get_default().set_property("gtk-cursor-theme-name", "pi-home-touch")
+        except (AttributeError, TypeError): pass
+        print("RoonDeck cursor theme: XCURSOR_THEME=%s XCURSOR_PATH=%s" % (os.environ.get("XCURSOR_THEME"), os.environ.get("XCURSOR_PATH")), flush=True)
         activity = Gtk.EventControllerLegacy(); activity.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); activity.connect("event", self.note_activity); self.window.add_controller(activity)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE, transition_duration=0)
         self.stack.set_hhomogeneous(False); self.stack.set_vhomogeneous(False)

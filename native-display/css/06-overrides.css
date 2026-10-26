@@ -235,3 +235,7 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 .touch2-7-landscape.settings-with-graph .brightness-control scale { min-height: 34px; padding: 2px 0; }
 .perf-card.compact .perf-note { font-size: 12px; color: #5d6360; }
 .perf-card.compact { padding: 12px 14px 8px; }
+/* Roon theme: the menu's Play button must stay purple while pressed or focused (the base rule turned it mint). */
+.theme-roon .track-menu-action.primary-play, .theme-roon .track-menu-action.primary-play:hover, .theme-roon .track-menu-action.primary-play:active,
+.theme-roon .track-menu-action.primary-play:focus, .theme-roon .track-menu-action.primary-play:focus-visible, .theme-roon .track-menu-action.primary-play:checked { background: #9868F9; color: #111; box-shadow: none; }
+.theme-roon .track-menu-action.primary-play:active { background: #a77cff; }

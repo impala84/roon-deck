@@ -8,4 +8,5 @@ export PYTHONUNBUFFERED=1
 python3 /opt/pi-home/appliance/alpine/cursor_theme.py
 export XCURSOR_PATH=/run/pi-home/cursors
 export XCURSOR_THEME=pi-home-touch
+export XCURSOR_SIZE=24
 exec dbus-run-session cage -d -s -- /opt/pi-home/appliance/alpine/display-session

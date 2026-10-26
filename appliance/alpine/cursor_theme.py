@@ -17,6 +17,11 @@ CURSOR_NAMES = (
 )
 
 
+# Libraries fall back to these theme names when a cursor is missing from the chosen one. Every fallback is transparent too,
+# so no lookup can ever reach a visible arrow.
+FALLBACK_THEMES = ("default", "Adwaita", "DMZ-White", "DMZ-Black", "whiteglass", "redglass", "hicolor")
+
+
 def prepare(base=Path("/run/pi-home/cursors")):
     theme = base / "pi-home-touch"
     cursors = theme / "cursors"
@@ -29,6 +34,11 @@ def prepare(base=Path("/run/pi-home/cursors")):
     data += struct.pack("<I", 0)
     for name in CURSOR_NAMES:
         (cursors / name).write_bytes(data)
+    for fallback in FALLBACK_THEMES:
+        folder = base / fallback / "cursors"
+        folder.mkdir(parents=True, exist_ok=True)
+        (base / fallback / "index.theme").write_text(f"[Icon Theme]\nName={fallback}\nInherits=\n")
+        for name in CURSOR_NAMES: (folder / name).write_bytes(data)
     return theme
 
 

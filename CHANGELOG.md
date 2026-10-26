@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.110 Alpine — 26 October 2026
+
+- Menu "Play Now" no longer flashes mint when tapped in the Roon theme. The base mint pressed/focused style outranked the purple one; the Roon theme now overrides every state.
+- Cursor: the transparent cursor theme is now also installed under the fallback names libraries fall back to (default, Adwaita, DMZ, ...), the app tells GTK to use it, and XCURSOR_SIZE is set to match, so no lookup can reach a visible arrow. The display log now prints "RoonDeck cursor theme: ..." at startup so the environment can be checked if the cursor still shows.
+
 ## 1.1.7-beta.109 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings: found why the performance chips stayed tall: the "compact" style was never being applied to the graph card, so they used the full-size 78px chip. It is applied now, so the chips are about 40px and the graph gets the height.
