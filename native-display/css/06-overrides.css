@@ -229,3 +229,9 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 .perf-card.compact .perf-chip { min-height: 34px; }
 .perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 14px; }
 .perf-card.compact .perf-note, .perf-card.compact .eyebrow { font-size: 13px; }
+/* Touch Display 2 Settings final spacing: title lower, Sleep/close higher, brightness slider close to its heading, quieter note. */
+.touch2-7-landscape .settings-page { padding-top: 18px; }
+.touch2-7-landscape.settings-with-graph .brightness-setting { padding-top: 0; padding-bottom: 0; }
+.touch2-7-landscape.settings-with-graph .brightness-control scale { min-height: 34px; padding: 2px 0; }
+.perf-card.compact .perf-note { font-size: 12px; color: #5d6360; }
+.perf-card.compact { padding: 12px 14px 8px; }

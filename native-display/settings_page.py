@@ -68,6 +68,8 @@ class SettingsPageMixin:
         # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
         self.settings_wide_portrait = graph_layout
         self.settings_short_appearance = gen2_seven_landscape
+        self.settings_brightness_row.set_spacing(0 if gen2_seven_landscape else 8)
+        self.settings_title_row.set_margin_top(14 if gen2_seven_landscape else 0)
         self.settings_appearance_group.set_visible(graph_layout)
         self.settings_appearance.set_visible(not graph_layout)
         self.settings_scaling_heading.set_visible(not graph_layout); self.touch_interface_size.set_visible(not graph_layout)
@@ -147,7 +149,7 @@ class SettingsPageMixin:
         scroll.set_child(body); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
-        brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); brightness_control = Gtk.Box(spacing=12); brightness_control.add_css_class("brightness-control"); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(False); self.touch_brightness.set_hexpand(True); self.touch_brightness_value = self.label("100%", "brightness-value", 1); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_control.append(self.touch_brightness); brightness_control.append(self.touch_brightness_value); brightness_row.append(brightness_control); display_column.append(brightness_row)
+        brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.settings_brightness_row = brightness_row; brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); brightness_control = Gtk.Box(spacing=12); brightness_control.add_css_class("brightness-control"); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(False); self.touch_brightness.set_hexpand(True); self.touch_brightness_value = self.label("100%", "brightness-value", 1); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_control.append(self.touch_brightness); brightness_control.append(self.touch_brightness_value); brightness_row.append(brightness_control); display_column.append(brightness_row)
         # Appearance first, then the everyday brightness control, followed by
         # the rarely-used installation fields as one clearly labelled group.
         display_column.reorder_child_after(brightness_row, appearance)

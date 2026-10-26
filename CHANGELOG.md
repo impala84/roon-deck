@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.109 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings: found why the performance chips stayed tall: the "compact" style was never being applied to the graph card, so they used the full-size 78px chip. It is applied now, so the chips are about 40px and the graph gets the height.
+- The brightness slider sits right under its heading. The RoonDeck Settings title is 14px lower and the page is 8px higher, so Sleep and the close button move up and clear the divider line.
+- "Last 60 seconds" is smaller and a darker grey. The graph card has a little more height.
+
 ## 1.1.7-beta.108 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings overflowed the screen: the three Appearance drop-downs asked for about 1170px, which stretched the whole page to roughly 1850px and pushed the right half off screen. They now use short labels (Larger / Roon / Gradient under the Appearance heading) so the page fits 1280px. The graph chips are smaller (no tick marks, 14px text) so the graph and the Install Update / Reboot buttons fit without scrolling.
