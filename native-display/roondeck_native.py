@@ -521,9 +521,9 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         monitors = Gdk.Display.get_default().get_monitors()
         monitor = monitors.get_item(0) if monitors.get_n_items() else None
         shortest = min(monitor.get_geometry().width, monitor.get_geometry().height) if monitor else 480
-        logo_height = 120 if shortest >= 1000 else 52
+        logo_height = 88 if shortest >= 1000 else 52
         paintable, width = wordmark_paintable(logo_height)
-        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, logo_height); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); logo.set_margin_bottom(240 if shortest >= 1000 else 0); page.append(logo)
+        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, logo_height); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); logo.set_margin_bottom(200 if shortest >= 1000 else 0); page.append(logo)
         return page
 
     def tick(self):

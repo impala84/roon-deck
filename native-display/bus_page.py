@@ -80,7 +80,8 @@ class BusPageMixin:
         budget = max(180, (height - chrome - (count - 1) * gap) / count)
         route_size = max(26, min(110, round(budget * .145)))
         primary_size = max(46, min(248, round(budget * .34)))
-        secondary_size = max(24, min(86, round(budget * .115)))
+        # 10-inch: the two buses after the next one were too small to read across the room.
+        secondary_size = max(24, min(132, round(budget * .175))) if width >= 1000 else max(24, min(86, round(budget * .115)))
         caption_size = max(14, min(42, round(budget * .055)))
         row.set_orientation(Gtk.Orientation.VERTICAL); row.set_vexpand(False)
         row.set_spacing(max(4, min(16, round(budget * .02))))
@@ -131,7 +132,7 @@ class BusPageMixin:
         if later:
             rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); rule.add_css_class("bus-rule")
             rule.set_margin_start(round(width * .055)); rule.set_margin_end(round(width * .055)); row.append(rule)
-            row.append(sized("THEN", "bus-then", max(13, round(caption_size * .75))))
+            row.append(sized("THEN", "bus-then", max(13, round(caption_size * (.95 if width >= 1000 else .75)))))
             following = Gtk.Box(spacing=12); following.set_homogeneous(True)
             following.set_margin_bottom(max(8, round(budget * .025)))
             for arrival in later:

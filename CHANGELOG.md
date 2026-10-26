@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.116 Alpine — 26 October 2026
+
+- 10-inch Bus Times: the two buses after the next one are about 50% larger (up to 132px, was 86px), with a larger "THEN" caption.
+- 10-inch boot logo scaled back to 88px (was 120px) and nudged lower (200px above centre).
+
 ## 1.1.7-beta.115 Alpine — 26 October 2026
 
 - New backend option "Touchscreen Settings page" (admin page > Appearance, or `settings_layout = "graph" | "simple"` in config.toml). Graph shows the live performance graph on the 7-inch Touch Display 2 and the 10-inch display; Simple keeps the earlier layout with no graph. The display switches as soon as the setting is saved.
