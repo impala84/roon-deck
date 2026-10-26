@@ -577,6 +577,9 @@ class BrowsePageMixin:
         scrim.connect("clicked", popdown)
         # Where the finger landed, in main-window coordinates.
         width, height = overlay.get_width() or getattr(self, "viewport_width", 1280), overlay.get_height() or getattr(self, "viewport_height", 720)
+        # On a narrow screen the window can measure wider than the display; keep the menu on the visible part.
+        if getattr(self, "viewport_width", 0): width = min(width, self.viewport_width)
+        if getattr(self, "viewport_height", 0): height = min(height, self.viewport_height)
         px, py = width - 260, height // 2
         local = getattr(anchor, "press_point", None)
         try:
