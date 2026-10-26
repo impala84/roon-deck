@@ -125,8 +125,8 @@ class AlpineSetupTests(unittest.TestCase):
         theme = cursor.prepare(self.root / "cursors")
         data = (theme / "cursors/left_ptr").read_bytes()
         self.assertEqual(struct.unpack("<4I", data[:16]), (0x72756358, 16, 0x10000, 1))
-        self.assertEqual(len(data), 68)
-        self.assertEqual(data[-4:], b"\0\0\0\0")
+        self.assertEqual(len(data), 16 + 12 + 36 + 24 * 24 * 4)
+        self.assertEqual(data[64:], bytes(24 * 24 * 4))
 
     def test_version_label_identifies_alpine_only(self):
         from pi_bus_time_display import server, __version__

@@ -1,5 +1,118 @@
 # Changelog
 
+## 1.1.7-beta.116 Alpine — 26 October 2026
+
+- 10-inch Bus Times: the two buses after the next one are about 50% larger (up to 132px, was 86px), with a larger "THEN" caption.
+- 10-inch boot logo scaled back to 88px (was 120px) and nudged lower (200px above centre).
+
+## 1.1.7-beta.115 Alpine — 26 October 2026
+
+- New backend option "Touchscreen Settings page" (admin page > Appearance, or `settings_layout = "graph" | "simple"` in config.toml). Graph shows the live performance graph on the 7-inch Touch Display 2 and the 10-inch display; Simple keeps the earlier layout with no graph. The display switches as soon as the setting is saved.
+- Roon Bridge and Netdata no longer disappear from Network Controls when a system poll is missed or slow; the last known state is kept.
+- 10-inch boot screen: the RoonDeck wordmark is more than twice as large (120px, was 52px) and sits higher up the screen.
+
+## 1.1.7-beta.114 Alpine — 26 October 2026
+
+- Cursor flashing when the track/album action menu opens: the menu was a popover, which is its own Wayland surface, and the compositor shows the pointer cursor whenever a new surface appears. The menu is now drawn inside the main window (an overlay layer), so no new surface exists to flash. It still opens beside your finger, and tapping anywhere else closes it without redrawing the page. The sort menu and Settings drop-downs are still popovers.
+
+## 1.1.7-beta.113 Alpine — 26 October 2026
+
+- Cursor, next attempt: the compositor (Cage) hides the pointer only when no pointer device exists, and otherwise draws the theme cursor. Our transparent cursor was a 1x1 image, which can misbehave on the Pi's hardware cursor plane (the likely "pop"). It is now a full 24x24 transparent image, and the display starts with WLR_NO_HARDWARE_CURSORS=1 so the cursor is drawn in software. Needs a reboot (or display restart) after updating.
+- At each display start the input devices are written to /run/pi-home/input-devices.txt, so a stray mouse-type device (which would make the cursor visible) can be spotted.
+
+## 1.1.7-beta.112 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings: the performance card now fills the free space down to the Install Update / Reboot buttons (it was pinned to the top, leaving a gap), so the graph and its axis labels are no longer cramped. Chips are a little taller with 16px text, and the divider under Sleep and close sits 12px lower. The Appearance drop-downs now line up with the Roon Bridge / Netdata row (same heading gap).
+
+## 1.1.7-beta.111 Alpine — 26 October 2026
+
+- Returning to Now Playing while you are browsing: two causes fixed. (1) When music restarts between tracks the display treated it as a new start and jumped to Now Playing; it now only does that after real silence (20 s) and never within 30 s of a touch while you are browsing. (2) The idle timer only counted the first touch of a gesture and ignored taps inside action menus; dragging or flicking a list and every browse request now reset it.
+
+## 1.1.7-beta.110 Alpine — 26 October 2026
+
+- Menu "Play Now" no longer flashes mint when tapped in the Roon theme. The base mint pressed/focused style outranked the purple one; the Roon theme now overrides every state.
+- Cursor: the transparent cursor theme is now also installed under the fallback names libraries fall back to (default, Adwaita, DMZ, ...), the app tells GTK to use it, and XCURSOR_SIZE is set to match, so no lookup can reach a visible arrow. The display log now prints "RoonDeck cursor theme: ..." at startup so the environment can be checked if the cursor still shows.
+
+## 1.1.7-beta.109 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings: found why the performance chips stayed tall: the "compact" style was never being applied to the graph card, so they used the full-size 78px chip. It is applied now, so the chips are about 40px and the graph gets the height.
+- The brightness slider sits right under its heading. The RoonDeck Settings title is 14px lower and the page is 8px higher, so Sleep and the close button move up and clear the divider line.
+- "Last 60 seconds" is smaller and a darker grey. The graph card has a little more height.
+
+## 1.1.7-beta.108 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings overflowed the screen: the three Appearance drop-downs asked for about 1170px, which stretched the whole page to roughly 1850px and pushed the right half off screen. They now use short labels (Larger / Roon / Gradient under the Appearance heading) so the page fits 1280px. The graph chips are smaller (no tick marks, 14px text) so the graph and the Install Update / Reboot buttons fit without scrolling.
+
+## 1.1.7-beta.107 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings re-laid out: Network Controls and Bus Times on the left, Appearance (three drop-downs) and Brightness on the right, the System Performance graph full width underneath with full chip names, and shallower Install Update / Reboot buttons.
+- Action menus: each row now remembers exactly where it was pressed, in its own coordinates, and the menu opens there. The earlier window-coordinate approach did not take effect on the panel. If it still falls back, the display log prints "RoonDeck menu anchor fallback".
+
+## 1.1.7-beta.106 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings, simplified: the performance graph moves to the empty space under Network Controls and Bus Times on the left and fills it (taller, wider than the sliver beside the brightness slider). The right column is just Appearance and Brightness. Chips use short names (CPU, Mem, Temp, Net) so all four fit on one line.
+
+## 1.1.7-beta.105 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings: the live System Performance graph now fits. Scaling, Theme and Background become one row of three drop-downs on the right, which frees the height for brightness and a compact graph with the four tappable CPU / Memory / Temp / Network chips. The health line is hidden while the graph shows the same figures.
+
+## 1.1.7-beta.104 Alpine — 26 October 2026
+
+- Action menus (Play Now / Add Next / Queue / Start Radio) now open next to your finger. The earlier fix silently failed because GTK returns the converted position as a pair; that is handled now.
+- Tapping a track and then tapping away no longer jumps the page back to the top. Dismissing the menu steps Roon back quietly without redrawing the album, and opening it no longer queues a scroll reset.
+- Genre pages: Shuffle, Artists and Albums are three stacked rounded cards like the genre tiles, icon on the left, title on the right.
+- Album pages on 7-inch landscape displays: the write-up is limited to three lines.
+
+## 1.1.7-beta.103 Alpine — 26 October 2026
+
+- 800x480 Album page: the cover no longer stretches into a tall cropped rectangle (it is a fixed square, aligned to the top) and the album summary is cut to two lines, so Larger text no longer overwhelms the page.
+- 800x480 Artist page: now one full-width column. A small picture, the artist name, Play Artist Radio and a two-line summary sit at the top, with the albums listed underneath at full width so their names can be read.
+- 10-inch Settings: the System Performance panel is about 25% shorter, sits clear of the section above it, and the graph lines are thinner (2px, was 3.5px).
+
+## 1.1.7-beta.102 Alpine — 26 October 2026
+
+- Genre pages (wide landscape): left column is now Shuffle Genre, Genre Artists and Genre Albums with inverted icons (purple tile, dark symbol); the right column lists the sub-genres. Opening a sub-genre keeps the same three actions, now for that sub-genre, with its own sub-genres on the right. The old parent-list trail is gone.
+- Opening an album from Discover (Recent, Added) no longer flashes "This item could not be opened". The request now sends the section so the controller can rebuild a card that a background refresh replaced, retries once, and leaves the cards on screen if it still fails.
+- Play Album arrow: much more padding around a smaller arrow on every display, so the round end of the button has room.
+- Track and album action menus open beside the tapped row instead of at the far right edge.
+- Cursor: also blanked on every press/touch start, not only on pointer movement.
+- Startup: the saved interface size and background are applied before the first frame, so the UI no longer draws at standard size and rescales about a second later.
+
+## 1.1.7-beta.101 Alpine — 26 October 2026
+
+- 10-inch Settings: Interface scaling, Display theme and Display background are now one "Appearance" row of three drop-downs (Scaling, Theme, Background), which gives the page breathing space. The health line under the title (Memory, Load, temperature) is hidden because the graph shows it; it still appears if a setting fails to save.
+- Tapping a track in an album no longer blanks the album with the loading dots first. A track plays and goes to Now Playing, it does not open a page, and the blanking removed the tapped button from inside its own tap, which is the most likely cause of the crash on the 10-inch. I could not reproduce the crash here, so this is not confirmed.
+- If the display does crash from a native fault, it now writes a Python traceback to /var/log/pi-home/display-error.log so the cause can be read.
+
+## 1.1.7-beta.100 Alpine — 26 October 2026
+
+- Genre lists: Shuffle Genre, Artists and Albums are actions on the genre itself, so they now use the larger key-line icons from the genre grid (shuffle, head-and-shoulders and album, 62px instead of 42px) in the same purple. The sub-genres below them keep the plain thumbnail, so the rows that act now look different from the rows that open another column.
+
+## 1.1.7-beta.99 Alpine — 26 October 2026
+
+- 10-inch Settings: the Profile, Orientation and Rotation drop-downs now sit in one row of three (21px text), which frees about 200px. That space holds a live System Performance graph of the last 60 seconds: CPU, Memory, Temp and Network, sampled once a second while Settings is open. Tap a chip (CPU, Memory, Temp or Network) to show or hide its line. Network has no fixed ceiling, so its line is scaled to its recent peak; the chip shows the real Mb/s. Temp is plotted against 100°C. The page still fits on one screen and the other displays are unchanged.
+
+## 1.1.7-beta.98 Alpine — 26 October 2026
+
+- Genre screens "Shuffle Genre / Artists / Albums / sub-genres": found why they kept stretching. An older layout path caught every menu screen first, so the fixed-size tiles from beta.87 and beta.88 never ran there. These screens now use the same fixed-size tile grid as the genre grid: four columns, two rows, the same tile size, large icons with one stroke weight, and the grid never grows to fill the screen (three items show three tiles, in the same place and size).
+- Genre two-column browser: the left column scrolls without a visible scrollbar and has a wider gutter, so the right column starts further across.
+- Genre two-column browser: tapping another row in the left column now opens it and updates the right column (it steps back to that list and opens the row for you).
+
+## 1.1.7-beta.97 Alpine — 26 October 2026
+
+- Cog (800x480): beta.96 left the Discover and Now Playing cog's left and top edges on the Bus Times cog's, but it was drawn a pixel smaller because its icon was centred in its box while the Bus Times and Home icon fills the box. The music-page icon now fills its 36px box exactly as the Bus Times and Home icon does, so both are laid out and drawn identically.
+
+## 1.1.7-beta.96 Alpine — 26 October 2026
+
+- Cog (800x480): beta.93 gave the Bus Times and Home cog a 36px box with the glyph centred, but the Discover and Now Playing cog is a 36px box with the glyph pinned to its left edge, which left it 3px further left. Both now centre the glyph, so the cog is at the same place on Bus Times, Home, Now Playing and Discover.
+
+## 1.1.7-beta.95 Alpine — 26 October 2026
+
+- Settings: the update progress text was capped at 32 characters, so "Update · Creating Python environment…" was cut short. The cap is now 64 characters and the text takes all the room next to the Sleep button. The Sleep button is also narrower on every display (84px on 800x480, 112px on Gen 2, 104px elsewhere).
+- Play Album arrow: the arrow's pill kept a fixed minimum width plus padding, so a ~15px arrow sat in 45px (Gen 2), 64px (800x480) and 130px (portrait) of pill. The minimum width is gone and padding is balanced left and right, with a smaller arrow (18px on 800x480, 20px on Gen 2, 30px on portrait).
+- Gen 2 Larger: the album and artist write-up is now 24px (it was 18px).
+- The cog is left as beta.93 set it; the measured 2.5px Discover/Bus Times offset in your latest 800x480 captures predates that release.
+
 ## 1.1.7-beta.94 Alpine — 26 October 2026
 
 - No visual change. The old `pi_bus_native.py` launcher is removed now that the display starts from `roondeck_native.py`. If a device on beta.91 or earlier does not offer this update, install beta.92 or later first.

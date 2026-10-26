@@ -60,6 +60,10 @@ class DisplayModeTests(unittest.TestCase):
             path = Path(directory) / "config.toml"
             write_config(path, Config(browse_idle_return_seconds=150))
             self.assertEqual(load_config(path).browse_idle_return_seconds, 150)
+            write_config(path, Config(settings_layout="simple"))
+            self.assertEqual(load_config(path).settings_layout, "simple")
+            write_config(path, Config(settings_layout="fancy"))
+            with self.assertRaises(ValueError): load_config(path)
             write_config(path, Config(browse_idle_return_seconds=7201))
             with self.assertRaises(ValueError):
                 load_config(path)

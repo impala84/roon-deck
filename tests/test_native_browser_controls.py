@@ -1166,7 +1166,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('artwork_area.add_overlay(details)', code)
         self.assertIn('summary_slot.add_css_class("artist-profile-summary")', code)
         self.assertIn('panel.append(summary_slot)', code)
-        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 5', code)
+        self.assertIn('summary_slot.artist_summary_lines = 4 if seven_landscape else 2 if original else 5', code)
         self.assertIn('profile_text_height = 72 if original else 94', code)
         self.assertIn('picture.artist_hero = True', code)
         self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
@@ -1295,8 +1295,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_touch_popovers_hide_the_cursor_before_opening(self):
         code = native_text()
-        self.assertGreaterEqual(code.count('self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)'), 2)
-        self.assertGreaterEqual(code.count('GLib.idle_add(self.hide_native_cursor, widget)'), 2)
+        self.assertGreaterEqual(code.count('self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)'), 1)
+        self.assertGreaterEqual(code.count('GLib.idle_add(self.hide_native_cursor, widget)'), 1)
+        self.assertIn('def show_action_menu(self, data, anchor):', code)
         self.assertIn('getattr(self, "browser_sort_popover", None)', code)
 
     def test_failed_boot_config_fetch_keeps_last_good_settings_and_retries(self):

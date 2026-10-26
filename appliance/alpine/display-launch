@@ -8,4 +8,9 @@ export PYTHONUNBUFFERED=1
 python3 /opt/pi-home/appliance/alpine/cursor_theme.py
 export XCURSOR_PATH=/run/pi-home/cursors
 export XCURSOR_THEME=pi-home-touch
+export XCURSOR_SIZE=24
+# The Pi's hardware cursor plane can flash the pointer for a frame; draw the (transparent) cursor in software instead.
+export WLR_NO_HARDWARE_CURSORS=1
+# Record the input devices so a stray pointer device (which makes the compositor show a cursor) can be spotted.
+grep -E '^(N: |H: )' /proc/bus/input/devices > /run/pi-home/input-devices.txt 2>/dev/null || true
 exec dbus-run-session cage -d -s -- /opt/pi-home/appliance/alpine/display-session

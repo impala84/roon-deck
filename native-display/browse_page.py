@@ -4,10 +4,11 @@ from __future__ import annotations
 from native_common import ElasticVerticalTrack, FamilyIcon, ROON, browser_request_timeout, get_json, post_json
 from pathlib import Path
 import threading
+import time
 import unicodedata
 import urllib.error
 import urllib.request
-from gi.repository import GLib, Gdk, Gtk, Pango
+from gi.repository import GLib, Gdk, Graphene, Gtk, Pango
 
 
 class BrowsePageMixin:
@@ -63,6 +64,8 @@ class BrowsePageMixin:
         popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover); self.browser_sort_popover = popover
 
     def request_browser(self, action, **payload):
+        # Any browse request comes from a touch (including taps inside menus, which the window never sees).
+        getattr(self, "note_browse_activity", lambda: None)()
         if action == "artist":
             self.browser_scroll.set_visible(True)
             self.browser_artist_scroll.set_visible(False); self.browser_search_columns.set_visible(False)
@@ -80,6 +83,12 @@ class BrowsePageMixin:
             for button in self.browser_section_buttons.values(): button.remove_css_class("active")
         if self.browser_loading:
             if action in {"jump", "section", "search", "surprise", "artist"}: self.browser_pending_request = (action, payload)
+            return
+        if action == "back" and payload.pop("silent", False):
+            # Dismissing an action menu steps Roon back one level but must not redraw the page or lose the scroll position.
+            self.browser_silent_back = True
+            self.browser_loading = True
+            threading.Thread(target=self._request_browser, args=(action, payload), daemon=True).start()
             return
         if action == "surprise" and not (self.browser_state or {}).get("surprise_preview"):
             self.browser_section_scrolls[(self.browser_state or {}).get("section", "albums")] = self.browser_scroll.get_vadjustment().get_value()
@@ -101,6 +110,10 @@ class BrowsePageMixin:
         GLib.idle_add(self.apply_browser_response, result or {"status": "ready", "title": "Browse", "items": [], "message": "Roon Browse did not respond.", "error": True})
 
     def apply_browser_response(self, data):
+        if getattr(self, "browser_silent_back", False):
+            self.browser_silent_back = False; self.browser_loading = False
+            if data and not data.get("error") and not data.get("action_menu"): self.browser_state = data
+            return False
         pending = getattr(self, "browser_pending_request", None)
         if pending:
             self.browser_pending_request = None; self.browser_loading = False
@@ -297,8 +310,6 @@ class BrowsePageMixin:
             self.browser_action_anchor = _button
             if getattr(_button, "opens_page", False) and not self.browser_loading:
                 state = self.browser_state or {}
-                if state.get("section") == "genres" and not state.get("section_root") and (state.get("layout") or "list") == "list" and not state.get("artist_profile") and not state.get("album_profile"):
-                    self.genre_pending = {"title": state.get("title") or "", "items": [item for item in state.get("items", []) if item.get("hint") != "header" and not item.get("action")]}
                 self.show_browser_loading()
             if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search": self.set_roon_view("browse")
             self.request_browser("open", item_key=item_key)
@@ -317,8 +328,8 @@ class BrowsePageMixin:
         value = (title or "").lower()
         if kind == "playlists": return "playlist"
         if value.startswith("shuffle"): return "shuffle"
-        if value == "artists": return "artist"
-        if value == "albums": return "album"
+        if value in {"artists", "genre artists"}: return "artist"
+        if value in {"albums", "genre albums"}: return "album"
         if "jazz" in value: return "jazz"
         if "classical" in value: return "classical"
         if "electronic" in value: return "electronic"
@@ -420,14 +431,16 @@ class BrowsePageMixin:
         width = getattr(self, "viewport_width", 800)
         narrow_portrait = bool(getattr(self, "responsive_portrait", False) and width < 600)
         header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL, spacing=16 if narrow_portrait else 24); header.add_css_class("album-profile")
-        size = min(380, round(width * .32)) if width >= 1000 else min(240, round(width * .3))
+        original_view = not getattr(self, "responsive_portrait", False) and width <= 820 and getattr(self, "viewport_height", 480) <= 500
+        # Larger text on the 800x480 panel leaves little height, so the cover stays a modest square there.
+        size = (min(190, round(width * .24)) if original_view else min(380, round(width * .32))) if width >= 1000 or original_view else min(240, round(width * .3))
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         self.set_browser_placeholder(picture)
         slot = Gtk.ScrolledWindow(); slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         slot.set_propagate_natural_width(False); slot.set_propagate_natural_height(False)
         slot.set_min_content_width(size); slot.set_max_content_width(size)
         slot.set_min_content_height(size); slot.set_max_content_height(size)
-        slot.set_size_request(size, size); slot.set_child(picture); header.append(slot)
+        slot.set_size_request(size, size); slot.set_valign(Gtk.Align.START); slot.set_hexpand(False); slot.set_child(picture); header.append(slot)
         if key := profile.get("image_key"): self.load_preview_artwork(picture, key)
         copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); copy.set_hexpand(True); copy.set_valign(Gtk.Align.START if width <= 820 and getattr(self, "viewport_height", 480) <= 500 else Gtk.Align.CENTER)
         title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(28); copy.append(title)
@@ -442,7 +455,7 @@ class BrowsePageMixin:
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-play", 34 if min(vw, vh) >= 1000 else 20 if vw <= 820 and vh <= 500 else 24))
+            menu.set_child(FamilyIcon("chevron-play", 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -452,12 +465,18 @@ class BrowsePageMixin:
                 play_slot.set_child(split); copy.append(play_slot)
             else: copy.append(split)
         if review := profile.get("review"):
-            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
+            summary = self.label(review[:1800], "queue-meta"); summary.set_wrap(True); summary.set_lines(2 if original_view else 3 if (not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_height", 480) <= 720) else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50); copy.append(summary)
         else:
             summary_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); copy.append(summary_slot)
             self.load_album_notes(profile, summary_slot)
         header.append(copy)
         return header
+
+    def remember_press_point(self, button):
+        """Record where inside this row the finger landed so its action menu can open there."""
+        press = Gtk.GestureClick(); press.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); press.set_button(0)
+        press.connect("pressed", lambda _gesture, _count, x, y, widget=button: setattr(widget, "press_point", (x, y)))
+        button.add_controller(press)
 
     def open_album_play_menu(self, anchor, item_key):
         if item_key:
@@ -476,75 +495,112 @@ class BrowsePageMixin:
                 if slot.get_root() is None: return False
                 while child := slot.get_first_child(): slot.remove(child)
                 summary = self.label(notes.get("writeup") or "No album summary is available.", "queue-meta")
-                summary.set_wrap(True); summary.set_lines(6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
+                summary.set_wrap(True); summary.set_lines(2 if original_view else 3 if (not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_height", 480) <= 720) else 6); summary.set_ellipsize(Pango.EllipsizeMode.END); summary.set_max_width_chars(50)
                 slot.append(summary)
                 return False
             GLib.idle_add(apply)
         threading.Thread(target=load, daemon=True).start()
 
-    def prepare_genre_columns(self, data, layout):
-        """Keep a trail of the genre lists above this one and lay them out as two columns."""
+    @staticmethod
+    def genre_action_item(item):
+        """Shuffle Genre, Genre Artists and Genre Albums act on the genre itself; everything else is a sub-genre."""
+        title = (item.get("title") or "").strip().lower()
+        return bool(item.get("action") or (not item.get("image_key") and (title in {"artists", "albums", "genre artists", "genre albums"} or title.startswith("shuffle"))))
+
+    def prepare_genre_columns(self, data, layout, items):
+        """Wide genre pages: actions for this genre on the left, its sub-genres on the right. Returns the right-hand items."""
+        columns = False
         try:
-            if data.get("section") != "genres" or data.get("section_root"):
-                self.genre_stack = []; self.genre_pending = None
-            else:
-                action = getattr(self, "browser_last_action", None)
-                if action == "back":
-                    if self.genre_stack: self.genre_stack.pop()
-                elif self.genre_pending and action == "open": self.genre_stack.append(self.genre_pending)
-                self.genre_pending = None
             wide = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) >= 1000
             plain_list = (layout == "list" and data.get("section") == "genres" and not data.get("section_root")
                           and not data.get("artist_profile") and not data.get("album_profile") and not data.get("surprise_preview"))
-            columns = bool(plain_list and wide and self.genre_stack)
+            actions = [item for item in items if item.get("hint") != "header" and self.genre_action_item(item)]
+            columns = bool(plain_list and wide and actions)
             while child := self.browser_trail_list.get_first_child(): self.browser_trail_list.remove(child)
             self.browser_trail_scroll.set_visible(columns)
-            if columns:
-                parent = self.genre_stack[-1]
-                heading = self.label(parent.get("title") or "", "genre-heading"); heading.add_css_class("trail"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
-                current = (data.get("title") or "").strip().casefold()
-                for item in parent.get("items", []):
-                    row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); row.add_css_class("genre-trail-row")
-                    if (item.get("title") or "").strip().casefold() == current: row.add_css_class("current")
-                    title = self.label(item.get("title") or "", "genre-trail-title"); title.set_ellipsize(Pango.EllipsizeMode.END); row.append(title)
-                    if item.get("subtitle"):
-                        subtitle = self.label(item.get("subtitle"), "genre-trail-subtitle"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); row.append(subtitle)
-                    self.browser_trail_list.append(row)
-            if plain_list and wide and data.get("title"):
-                heading = self.label(data.get("title"), "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_list.append(heading)
+            if not columns: return items
+            heading = self.label(data.get("title") or "", "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
+            for item in actions:
+                copy = Gtk.Box(spacing=18); copy.set_valign(Gtk.Align.CENTER)
+                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(64, 64); frame.set_valign(Gtk.Align.CENTER)
+                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 56)); copy.append(frame)
+                raw = (item.get("title") or "").strip().lower()
+                short = "Shuffle" if raw.startswith("shuffle") else "Artists" if "artists" in raw else "Albums" if "albums" in raw else item.get("title") or ""
+                title = self.label(short, "genre-action-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); title.set_hexpand(True); copy.append(title)
+                row = Gtk.Button(); row.add_css_class("genre-action-row"); row.set_child(copy); row.set_focusable(False)
+                row.set_sensitive(bool(item.get("item_key"))); row.browse_item_key = item.get("item_key")
+                if item.get("action"): row.add_css_class("browser-action")
+                else: row.opens_page = True
+                row.connect("clicked", self.open_browser_item, item.get("item_key")); self.browser_trail_list.append(row)
+            rest = [item for item in items if item.get("hint") == "header" or not self.genre_action_item(item)]
+            self.browser_list.append(self.label("SUB-GENRES", "browser-section"))
+            if not [item for item in rest if item.get("hint") != "header"]:
+                self.browser_list.append(self.label("No sub-genres", "queue-empty", 0))
+            return rest
         except Exception as error:
             print("RoonDeck genre columns skipped: " + type(error).__name__, flush=True)
             self.browser_trail_scroll.set_visible(False)
+            return items
+
+    def show_action_menu(self, data, anchor):
+        """Track and album action menu, drawn inside the main window.
+
+        A popover is a separate Wayland surface, and the compositor flashes its pointer cursor every time one appears.
+        An overlay in the main window has no surface of its own, so there is nothing to flash. It opens beside the
+        finger, and tapping anywhere else closes it.
+        """
+        overlay = self.root_overlay
+        if getattr(self, "browser_action_menu", None) is not None: self.browser_action_menu.popdown()
+        selected = {"value": False}
+        self.browser_action_selected = selected
+        discovery_actions = bool(data.get("discovery_track_actions"))
+        scrim = Gtk.Button(); scrim.add_css_class("menu-scrim"); scrim.set_focusable(False); scrim.set_hexpand(True); scrim.set_vexpand(True)
+        menu = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
+        menu.add_css_class("inline-track-menu"); menu.set_halign(Gtk.Align.START); menu.set_valign(Gtk.Align.START)
+        state = {"open": True}
+        def popdown(*_):
+            if not state["open"]: return
+            state["open"] = False
+            overlay.remove_overlay(menu); overlay.remove_overlay(scrim)
+            if getattr(self, "browser_action_menu", None) is menu: self.browser_action_menu = None
+            if not selected["value"] and not discovery_actions: self.request_browser("back", silent=True)
+        menu.popdown = popdown
+        def choose(_button, key):
+            selected["value"] = True; popdown()
+            if discovery_actions: self.request_discovery_track_action(key)
+            else: self.request_browser("open", item_key=key)
+        for item in data.get("items", []):
+            if item.get("action"):
+                final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist", "play artist radio"}
+                choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); menu.append(choice)
+        scrim.connect("clicked", popdown)
+        # Where the finger landed, in main-window coordinates.
+        width, height = overlay.get_width() or getattr(self, "viewport_width", 1280), overlay.get_height() or getattr(self, "viewport_height", 720)
+        px, py = width - 260, height // 2
+        local = getattr(anchor, "press_point", None)
+        try:
+            if local:
+                point = anchor.compute_point(overlay, Graphene.Point().init(local[0], local[1]))
+                if isinstance(point, tuple): point = point[1] if point[0] else None
+                if point is not None: px, py = point.x, point.y
+            elif getattr(self, "last_tap_point", None): px, py = self.last_tap_point
+        except (AttributeError, TypeError, GLib.Error) as error: print("RoonDeck menu anchor fallback: " + type(error).__name__, flush=True)
+        measured = menu.measure(Gtk.Orientation.HORIZONTAL, -1), menu.measure(Gtk.Orientation.VERTICAL, -1)
+        menu_width, menu_height = max(measured[0][1], 200), max(measured[1][1], 200)
+        x = px + 14 if px + 14 + menu_width + 12 <= width else px - menu_width - 14
+        y = py - 24
+        menu.set_margin_start(round(max(10, min(x, width - menu_width - 10)))); menu.set_margin_top(round(max(10, min(y, height - menu_height - 10))))
+        for widget in (scrim, menu): widget.set_cursor_from_name("none")
+        overlay.add_overlay(scrim); overlay.add_overlay(menu)
+        self.browser_action_menu = menu
 
     def render_browser(self, data):
         self.browser_list.cancel_spring()
         if data.get("action_menu"):
             self.browser_state = data; self.browser_loading = False; self.browser_rendering = False
+            self.browser_scroll_restore = None
             anchor = getattr(self, "browser_action_anchor", None) or self.browser_body
-            popover = Gtk.Popover(); popover.add_css_class("track-menu"); popover.set_parent(anchor); popover.set_autohide(True)
-            popover.set_has_arrow(False); popover.set_position(Gtk.PositionType.RIGHT)
-            popover.set_valign(Gtk.Align.START)
-            rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1; popover.set_pointing_to(rect)
-            self.browser_action_popover = popover
-            choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
-            selected = {"value": False}
-            self.browser_action_selected = selected
-            discovery_actions = bool(data.get("discovery_track_actions"))
-            def choose(_button, key):
-                selected["value"] = True; popover.popdown()
-                if discovery_actions: self.request_discovery_track_action(key)
-                else: self.request_browser("open", item_key=key)
-            for item in data.get("items", []):
-                if item.get("action"):
-                    final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist", "play artist radio"}
-                    choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); choices.append(choice)
-            def closed(*_):
-                self.browser_action_popover = None
-                popover.unparent()
-                if not selected["value"] and not discovery_actions: self.request_browser("back")
-            popover.connect("closed", closed)
-            popover.connect("map", lambda widget: GLib.idle_add(self.hide_native_cursor, widget))
-            popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)
+            self.show_action_menu(data, anchor)
             return False
         self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
         self.browser_scrubber_active = bool(data.get("alpha_scrub")) and not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}
@@ -607,11 +663,11 @@ class BrowsePageMixin:
         self.browser_list.set_valign(Gtk.Align.START if data.get("layout") == "list" else Gtk.Align.FILL)
         browser_content = self.browser_artist_scroll.get_parent()
         browser_content.set_homogeneous(False)
-        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and getattr(self, "responsive_portrait", False) else Gtk.Orientation.HORIZONTAL)
+        browser_content.set_orientation(Gtk.Orientation.VERTICAL if data.get("artist_profile") and (getattr(self, "responsive_portrait", False) or original_view) else Gtk.Orientation.HORIZONTAL)
         if not items:
             self.browser_list.append(self.label(message or ("Roon Browse is unavailable." if data.get("status") == "unavailable" else "Nothing is available here."), "queue-empty", .5))
         layout = "list" if data.get("artist_profile") else (data.get("layout") or "list")
-        self.prepare_genre_columns(data, layout)
+        items = self.prepare_genre_columns(data, layout, items)
         if items and data.get("surprise_preview"):
             album = items[0]
             monitor = Gdk.Display.get_default().get_monitors().get_item(0)
@@ -645,7 +701,7 @@ class BrowsePageMixin:
             if play_controls:
                 play_controls.set_margin_top(round(getattr(self, "viewport_height", 1280) * .072)); preview.append(play_controls)
             self.browser_list.append(preview)
-        elif items and layout in {"home", "menu"}:
+        elif items and layout in {"home", "menu"} and (getattr(self, "responsive_portrait", False) or data.get("section") != "genres"):
             grid = Gtk.Grid(column_spacing=12, row_spacing=12); grid.add_css_class("browser-home-grid"); grid.set_column_homogeneous(True); grid.set_row_homogeneous(True); columns = 4 if not getattr(self, "responsive_portrait", False) or getattr(self, "viewport_width", 800) >= 1000 else 2
             if getattr(self, "responsive_portrait", False): grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
             for index, item in enumerate(item for item in items if item.get("hint") != "header"): grid.attach(self.browser_menu_card(item, layout == "menu"), index % columns, index // columns, 1, 1)
@@ -702,8 +758,12 @@ class BrowsePageMixin:
                     play_playlist.set_sensitive(bool(item.get("item_key"))); play_playlist.set_halign(Gtk.Align.START); target.append(play_playlist); continue
                 row = Gtk.Box(spacing=14); row.set_hexpand(True)
                 key = item.get("image_key")
-                if item.get("action"):
-                    action_icon = FamilyIcon(self.browser_action_icon(item.get("title")), 42)
+                row_title = (item.get("title") or "").strip().lower()
+                # Genre lists: Shuffle Genre / Artists / Albums act on the genre itself, so they get the larger
+                # key-line tile icons; the sub-genres below them open another list and keep the plain thumbnail.
+                genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums", "genre artists", "genre albums"} or row_title.startswith("shuffle")))
+                if item.get("action") or genre_shortcut:
+                    action_icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut else FamilyIcon(self.browser_action_icon(item.get("title")), 42)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_hexpand(False); action_frame.set_halign(Gtk.Align.START); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
                 elif album_profile:
                     action_icon = FamilyIcon("play", 60 if self.window.has_css_class("large-display") else 40)
@@ -731,10 +791,11 @@ class BrowsePageMixin:
                 subtitle = self.label(item.get("subtitle") or "Roon", "queue-meta"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); copy.append(subtitle); row.append(copy)
                 row.append(self.label(item.get("duration") or "", "browser-arrow", 1))
                 button = Gtk.Button(); button.add_css_class("browser-row"); button.set_child(row); button.set_sensitive(bool(item.get("item_key")))
+                self.remember_press_point(button)
                 button.browse_item_key = item.get("item_key")
                 button.set_vexpand(False); button.set_valign(Gtk.Align.START)
                 if item.get("action"): button.add_css_class("browser-action")
-                else: button.opens_page = True
+                else: button.opens_page = not album_profile
                 button.connect("clicked", self.open_browser_item, item.get("item_key")); target.append(button)
         GLib.timeout_add(100, self.load_visible_browser_artwork)
         GLib.timeout_add(60, self.finish_browser_render)

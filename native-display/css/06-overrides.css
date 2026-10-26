@@ -169,3 +169,81 @@ popover listview row label { font-size: 19px; }
 .touch2-7-landscape .settings-header .settings-utilities .settings-close { min-width: 52px; min-height: 52px; }
 /* Genre trail rows must never collapse to a few pixels. */
 .genre-trail-row { min-width: 260px; }
+
+/* Play Album arrow: one balanced box on every screen (the old min-width plus padding left 25-50px of empty pill around a ~15px arrow). */
+.album-play-menu, .interface-larger .album-play-menu { min-width: 0; padding: 0 18px 0 16px; }
+.large-display .album-play-menu { min-width: 0; padding: 0 30px 0 28px; }
+.original-landscape .album-play-menu { min-width: 0; padding: 0 14px 0 12px; }
+.touch2-7-landscape .album-play-menu, .touch2-7-landscape.interface-larger .album-play-menu { min-width: 0; padding: 0 20px 0 18px; }
+/* Settings: a shorter Sleep button leaves the update progress text room to show in full. */
+.settings-sleep { min-width: 104px; padding: 0 14px; }
+.original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 84px; padding: 0 10px; }
+.touch2-7-landscape .settings-header .settings-utilities .settings-sleep { min-width: 112px; padding: 0 14px; }
+/* Gen 2 Larger: the album and artist write-up was 18px, hard to read at arm's length. */
+.touch2-7-landscape.interface-larger .detail-writeup,
+.touch2-7-landscape.interface-larger .inline-detail .detail-writeup,
+.touch2-7-landscape.interface-larger .album-focus-detail .detail-writeup { font-size: 24px; line-height: 1.25; }
+/* Genre two-column browser: the left list is tappable, scrolls without a visible bar and leaves a wider gutter. */
+.genre-trail { margin-right: 40px; }
+button.genre-trail-row { min-height: 0; border: 0; box-shadow: none; background: transparent; background-image: none; }
+button.genre-trail-row:hover, button.genre-trail-row:active { background: rgba(255,255,255,.06); }
+button.genre-trail-row.current { background: rgba(255,255,255,.1); }
+.theme-roon button.genre-trail-row.current { background: rgba(152,104,249,.22); }
+/* 10-inch Settings: three display drop-downs in one row, and the performance graph below them. */
+.portrait.large-portrait .settings-display-row .settings-select, .portrait.large-portrait .settings-appearance-row .settings-select { font-size: 21px; }
+.perf-card { margin-top: 26px; padding: 18px 20px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.perf-note { font-size: 19px; color: #8a918e; }
+.perf-chip { min-height: 58px; padding: 0 14px; border-radius: 14px; border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.04); box-shadow: none; background-image: none; color: #f5f5f5; }
+.perf-chip-name, .perf-chip-value { font-size: 20px; }
+.perf-chip-value { font-weight: 750; }
+.perf-chip.perf-cpu { border-color: #4DA6FF; background: rgba(77,166,255,.12); }
+.perf-chip.perf-memory { border-color: #9968FA; background: rgba(153,104,250,.12); }
+.perf-chip.perf-temp { border-color: #FFA64D; background: rgba(255,166,77,.12); }
+.perf-chip.perf-network { border-color: #40D99E; background: rgba(64,217,158,.12); }
+.perf-chip.off { border-color: rgba(255,255,255,.2); background: transparent; color: #8a918e; }
+.perf-cpu .perf-check { color: #4DA6FF; }
+.perf-memory .perf-check { color: #9968FA; }
+.perf-temp .perf-check { color: #FFA64D; }
+.perf-network .perf-check { color: #40D99E; }
+
+/* Genre page, left column: three stacked rounded cards like the genre tiles (key-line icon left, title right). */
+.genre-action-icon { background: transparent; min-width: 64px; min-height: 64px; }
+button.genre-action-row { min-height: 96px; padding: 12px 18px; margin-bottom: 8px; border: 0; border-radius: 14px; box-shadow: none; background: #202020; background-image: none; }
+button.genre-action-row:hover, button.genre-action-row:active { background: #292929; }
+.genre-action-title { font-size: 26px; font-weight: 700; color: #f4f0e6; }
+
+/* 800x480 Larger: a compact album/artist header so nothing is cropped. */
+.original-landscape.interface-larger .album-profile .artist-name { font-size: 26px; }
+.original-landscape .artist-profile .artist-name { font-size: 24px; }
+
+/* Touch Display 2 (7-inch) Settings: compact appearance drop-downs and performance graph. */
+.touch2-7-landscape.settings-with-graph .settings-appearance-row .settings-select { font-size: 17px; min-height: 52px; }
+.perf-card.compact { margin-top: 4px; padding: 10px 14px; }
+.perf-card.compact .perf-chip { min-height: 38px; padding: 0 6px; border-radius: 10px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 15px; }
+.perf-card.compact .perf-note { font-size: 14px; }
+.touch2-7-landscape.settings-with-graph .settings-page .settings-action { min-height: 52px; font-size: 20px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 17px; }
+.touch2-7-landscape.settings-with-graph .settings-appearance-row .settings-select { min-width: 0; font-size: 16px; }
+.touch2-7-landscape.settings-with-graph .settings-appearance-row .settings-select button { padding: 0 10px; }
+.perf-card.compact .perf-chip { min-height: 34px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 14px; }
+.perf-card.compact .perf-note, .perf-card.compact .eyebrow { font-size: 13px; }
+/* Touch Display 2 Settings final spacing: title lower, Sleep/close higher, brightness slider close to its heading, quieter note. */
+.touch2-7-landscape.settings-with-graph .settings-page { padding-top: 18px; }
+.touch2-7-landscape.settings-with-graph .brightness-setting { padding-top: 0; padding-bottom: 0; }
+.touch2-7-landscape.settings-with-graph .brightness-control scale { min-height: 34px; padding: 2px 0; }
+.perf-card.compact .perf-note { font-size: 12px; color: #5d6360; }
+.perf-card.compact { padding: 12px 14px 8px; }
+/* Roon theme: the menu's Play button must stay purple while pressed or focused (the base rule turned it mint). */
+.theme-roon .track-menu-action.primary-play, .theme-roon .track-menu-action.primary-play:hover, .theme-roon .track-menu-action.primary-play:active,
+.theme-roon .track-menu-action.primary-play:focus, .theme-roon .track-menu-action.primary-play:focus-visible, .theme-roon .track-menu-action.primary-play:checked { background: #9868F9; color: #111; box-shadow: none; }
+.theme-roon .track-menu-action.primary-play:active { background: #a77cff; }
+/* Touch Display 2 Settings: more air under Sleep and close (the divider drops), roomier chips for the taller graph. */
+.touch2-7-landscape.settings-with-graph .settings-header { padding-bottom: 12px; }
+.perf-card.compact { padding: 14px 16px 12px; }
+.perf-card.compact .perf-chip { min-height: 40px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 16px; }
+/* In-window action menu (replaces the popover so no extra Wayland surface, and no cursor flash, is created). */
+button.menu-scrim { background: transparent; background-image: none; border: 0; border-radius: 0; box-shadow: none; min-width: 0; min-height: 0; padding: 0; }
+.inline-track-menu { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.6); }

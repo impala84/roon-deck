@@ -17,18 +17,30 @@ CURSOR_NAMES = (
 )
 
 
+# Libraries fall back to these theme names when a cursor is missing from the chosen one. Every fallback is transparent too,
+# so no lookup can ever reach a visible arrow.
+FALLBACK_THEMES = ("default", "Adwaita", "DMZ-White", "DMZ-Black", "whiteglass", "redglass", "hicolor")
+
+
 def prepare(base=Path("/run/pi-home/cursors")):
     theme = base / "pi-home-touch"
     cursors = theme / "cursors"
     cursors.mkdir(parents=True, exist_ok=True)
     (theme / "index.theme").write_text("[Icon Theme]\nName=RoonDeck Touch\nInherits=\n")
-    # Xcursor file header, one image TOC, one 1×1 fully transparent ARGB image.
+    # Xcursor file header, one image TOC, one 24x24 fully transparent ARGB image. A full-size image (not 1x1) avoids
+    # odd scaling on the Pi's hardware cursor plane.
+    size = 24
     data = struct.pack("<4I", 0x72756358, 16, 0x10000, 1)
-    data += struct.pack("<3I", 0xfffd0002, 24, 28)
-    data += struct.pack("<9I", 36, 0xfffd0002, 24, 1, 1, 1, 0, 0, 0)
-    data += struct.pack("<I", 0)
+    data += struct.pack("<3I", 0xfffd0002, size, 28)
+    data += struct.pack("<9I", 36, 0xfffd0002, size, 1, size, size, 0, 0, 0)
+    data += bytes(size * size * 4)
     for name in CURSOR_NAMES:
         (cursors / name).write_bytes(data)
+    for fallback in FALLBACK_THEMES:
+        folder = base / fallback / "cursors"
+        folder.mkdir(parents=True, exist_ok=True)
+        (base / fallback / "index.theme").write_text(f"[Icon Theme]\nName={fallback}\nInherits=\n")
+        for name in CURSOR_NAMES: (folder / name).write_bytes(data)
     return theme
 
 

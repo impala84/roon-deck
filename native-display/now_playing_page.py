@@ -132,9 +132,8 @@ class NowPlayingPageMixin:
         self.browser_artist_inline_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.browser_artist_inline_panel.add_css_class("artist-profile"); self.browser_artist_inline_panel.set_visible(False)
         self.browser_artist_scroll = Gtk.ScrolledWindow(); self.browser_artist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_min_content_height(1); self.browser_artist_scroll.set_size_request(-1, 1); self.browser_artist_scroll.set_child(self.browser_artist_panel); self.browser_artist_scroll.set_visible(False); content.append(self.browser_artist_scroll); content.append(browser_scroll)
         # Genre drill-down: the parent list stays on the left while its child list opens on the right.
-        self.genre_stack = []; self.genre_pending = None; self.browser_last_action = None
         self.browser_trail_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        self.browser_trail_scroll = Gtk.ScrolledWindow(); self.browser_trail_scroll.add_css_class("genre-trail"); self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.browser_trail_scroll.set_size_request(300, -1); self.browser_trail_scroll.set_hexpand(False); self.browser_trail_scroll.set_vexpand(True); self.browser_trail_scroll.set_child(self.browser_trail_list); self.browser_trail_scroll.set_visible(False); content.prepend(self.browser_trail_scroll)
+        self.browser_trail_scroll = Gtk.ScrolledWindow(); self.browser_trail_scroll.add_css_class("genre-trail"); self.browser_trail_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL); self.browser_trail_scroll.set_size_request(300, -1); self.browser_trail_scroll.set_hexpand(False); self.browser_trail_scroll.set_vexpand(True); self.browser_trail_scroll.set_child(self.browser_trail_list); self.browser_trail_scroll.set_visible(False); content.prepend(self.browser_trail_scroll)
         # Independent result scrollers must not be nested in the ordinary
         # browser viewport: that viewport measures them at minimum height.
         self.browser_search_columns = Gtk.Box(spacing=18); self.browser_search_columns.set_homogeneous(True); self.browser_search_columns.set_hexpand(True); self.browser_search_columns.set_vexpand(True); self.browser_search_columns.set_visible(False); content.append(self.browser_search_columns)
@@ -226,6 +225,12 @@ class NowPlayingPageMixin:
         return False
 
     def render_touch_controls(self, device, system):
+        # A missed or slow system poll must not make Roon Bridge and Netdata vanish: keep the last state each reported.
+        remembered = getattr(self, "touch_service_states", None)
+        if remembered is None: remembered = self.touch_service_states = {}
+        for key in ("roon_bridge", "netdata"):
+            if (system or {}).get(key) is not None: remembered[key] = system[key]
+        system = {**(system or {}), **{key: value for key, value in remembered.items() if (system or {}).get(key) is None}}
         signature = json.dumps({"services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
         if signature == getattr(self, "touch_controls_signature", None): return
         self.touch_controls_signature = signature
@@ -355,7 +360,10 @@ class NowPlayingPageMixin:
         child = self.music_full_clock if full else self.music_clock_icon
         if self.music_clock_button.get_child() is not child: self.music_clock_button.set_child(child)
         reserve = 140 if full else 44 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 36
-        self.music_settings_button.get_child().set_halign(Gtk.Align.START)
+        # 800x480: the Bus Times and Home cog is a 36px box whose icon fills it. The music pages pinned the glyph to the
+        # left edge of the same box (3px left of that cog); centring it still drew it a pixel smaller. Fill it identically.
+        original = getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
+        self.music_settings_button.get_child().set_halign(Gtk.Align.FILL if original and not full else Gtk.Align.START)
         self.music_settings_button.set_size_request(reserve, -1)
         self.music_clock_button.set_size_request(reserve, -1)
 

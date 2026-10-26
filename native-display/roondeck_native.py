@@ -2,6 +2,7 @@
 """Native GTK4 touchscreen for RoonDeck."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -242,18 +243,29 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.home_color_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.window = create_display_window(application=self); self.window.set_decorated(False); self.window.set_default_size(800, 480); self.window.fullscreen()
         # Apply saved theme before the first frame, not after an API poll.
+        initial_config = {}
         try:
             initial_config = tomllib.loads(Path("/etc/pi-home/config.toml").read_text())
             if initial_config.get("display_theme") == "roon": self.window.add_css_class("theme-roon")
         except (OSError, ValueError): pass
         self.window.set_cursor_from_name("none")
+        try: Gtk.Settings.get_default().set_property("gtk-cursor-theme-name", "pi-home-touch")
+        except (AttributeError, TypeError): pass
+        print("RoonDeck cursor theme: XCURSOR_THEME=%s XCURSOR_PATH=%s" % (os.environ.get("XCURSOR_THEME"), os.environ.get("XCURSOR_PATH")), flush=True)
         activity = Gtk.EventControllerLegacy(); activity.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); activity.connect("event", self.note_activity); self.window.add_controller(activity)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE, transition_duration=0)
         self.stack.set_hhomogeneous(False); self.stack.set_vhomogeneous(False)
         self.boot_started_at = time.monotonic(); self.boot_transition_timer = None; self.pending_boot_mode = None
         self.stack.add_named(self.build_boot_splash(), "boot"); self.stack.add_named(self.build_bus(), "bus"); self.stack.add_named(self.build_roon(), "roon"); self.stack.add_named(self.build_home(), "home"); self.stack.add_named(self.build_settings(), "settings"); self.stack.add_named(self.build_sleep(), "sleep")
         self.root_overlay = Gtk.Overlay(); self.root_overlay.set_child(self.stack)
-        self.window.set_child(self.root_overlay); self.window.present()
+        self.window.set_child(self.root_overlay)
+        # Apply the saved interface size and background before the first frame. Waiting for the first API poll drew the
+        # standard layout and then rescaled it about a second later.
+        try:
+            if initial_config.get("display_background") == "black": self.window.add_css_class("background-black")
+            if initial_config.get("interface_size") in {"smaller", "larger"}: self.apply_interface_size(initial_config["interface_size"])
+        except (NameError, AttributeError, TypeError, ValueError): pass
+        self.window.present()
         GLib.timeout_add_seconds(1, self.log_renderer)
         GLib.timeout_add_seconds(1, self.hide_touch_cursor)
         for _ in range(3): threading.Thread(target=self.thumbnail_worker, daemon=True).start()
@@ -505,8 +517,13 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
 
     def build_boot_splash(self):
         page = Gtk.Box(); page.add_css_class("boot-splash"); page.set_hexpand(True); page.set_vexpand(True)
-        paintable, width = wordmark_paintable(52)
-        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, 52); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); page.append(logo)
+        # The 10-inch panel gets a larger wordmark, sitting a little above the centre of the screen.
+        monitors = Gdk.Display.get_default().get_monitors()
+        monitor = monitors.get_item(0) if monitors.get_n_items() else None
+        shortest = min(monitor.get_geometry().width, monitor.get_geometry().height) if monitor else 480
+        logo_height = 88 if shortest >= 1000 else 52
+        paintable, width = wordmark_paintable(logo_height)
+        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, logo_height); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); logo.set_margin_bottom(200 if shortest >= 1000 else 0); page.append(logo)
         return page
 
     def tick(self):
@@ -596,8 +613,10 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         if isinstance(config, dict) and config:
             grid_changed = self.settings_data.get("portrait_discovery_columns", 2) != config.get("portrait_discovery_columns", 2)
             previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")
+            previous_settings_layout = (self.settings_data or {}).get("settings_layout", "graph")
             self.settings_data = config
             self.apply_interface_size(config.get("interface_size", "standard"))
+            if config.get("settings_layout", "graph") != previous_settings_layout and hasattr(self, "settings_controls"): GLib.idle_add(self.adapt_display)
             if config.get("interface_size", "standard") != previous_interface_size:
                 # Artwork size, line counts and other pixel budgets depend on the interface size, but
                 # adapt_display first runs before the saved config has loaded. Recalculate when the saved
@@ -616,6 +635,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             requested_interface_size = {"smaller": 0, "standard": 1, "larger": 2}.get(config.get("interface_size"), 1)
             if self.touch_interface_size.get_selected() != requested_interface_size:
                 self.interface_size_updating = True; self.touch_interface_size.set_selected(requested_interface_size); self.interface_size_updating = False
+            self.sync_appearance_selects()
             for button in self.roon_nav_buttons: button.set_label("Now Playing")
             self.now_playing_tab.set_label((config.get("roon_now_playing_name") or "Now Playing").upper())
             self.queue_tab.set_label((config.get("roon_queue_name") or "Queue").upper())
@@ -706,8 +726,15 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             was_sleeping = self.inactivity_sleeping or self.stack.get_visible_child_name() == "sleep"
             self.inactivity_sleeping = False
             self.last_interaction = time.monotonic()
-            if target and ":8766/" in target and (was_sleeping or not getattr(self, "playback_was_active", False)) and not self.settings_open:
+            now_playing_check = time.monotonic()
+            # Playback that merely restarts between tracks (a "loading" blink) is not a new start, and nobody who is
+            # touching the screen should be pulled away from what they are doing.
+            gap = now_playing_check - getattr(self, "playback_last_playing", 0.0)
+            fresh_start = was_sleeping or (not getattr(self, "playback_was_active", False) and gap > 20)
+            browsing_now = now_playing_check - self.browse_last_interaction < 30 and not was_sleeping
+            if target and ":8766/" in target and fresh_start and not browsing_now and not self.settings_open:
                 self.set_roon_view("now")
+            self.playback_last_playing = now_playing_check
         self.playback_was_active = playing
         inactivity_due = bool(not playing and inactivity_seconds and time.monotonic() - self.last_interaction >= inactivity_seconds and target != "/sleep.html")
         if inactivity_due and not self.inactivity_sleeping:
@@ -805,5 +832,8 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
 
 
 if __name__ == "__main__":
+    # A native crash (segfault) now leaves a Python traceback in /var/log/pi-home/display-error.log.
+    import faulthandler
+    faulthandler.enable(all_threads=True)
     publish_display_source()
     Display().run(None)

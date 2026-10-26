@@ -88,10 +88,23 @@ class SleepAndTouchMixin:
         # events. A powered-down panel can consume the beginning of the first
         # contact, so accept its release as a wake gesture as well.
         event_type = event.get_event_type()
-        if event_type in {Gdk.EventType.ENTER_NOTIFY, Gdk.EventType.MOTION_NOTIFY}:
+        if event_type in {Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN}:
+            # Remember where the finger landed (window coordinates) so action menus open beside the tapped row.
+            try:
+                position = event.get_position()
+                if position[0] is not False and len(position) >= 3: self.last_tap_point = (position[-2], position[-1])
+            except (AttributeError, TypeError, ValueError): pass
+        if event_type in {Gdk.EventType.ENTER_NOTIFY, Gdk.EventType.MOTION_NOTIFY, Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN}:
             # A pointer entering or moving re-asserts the compositor's cursor; blank it on the surface too.
             try: self.window.get_surface().set_cursor(Gdk.Cursor.new_from_name("none", None))
             except (AttributeError, TypeError, GLib.Error): pass
+        if event_type in {Gdk.EventType.TOUCH_UPDATE, Gdk.EventType.SCROLL}:
+            # Dragging or flicking a list is activity too, not only the first touch of the gesture.
+            if (self.stack.get_visible_child_name() == "roon"
+                    and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
+                         or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))):
+                self.browse_last_interaction = time.monotonic()
+            return False
         contact_started = event_type in {Gdk.EventType.BUTTON_PRESS, Gdk.EventType.TOUCH_BEGIN, Gdk.EventType.KEY_PRESS}
         contact_finished = event_type in {Gdk.EventType.BUTTON_RELEASE, Gdk.EventType.TOUCH_END}
         if not contact_started and not contact_finished:
@@ -107,6 +120,9 @@ class SleepAndTouchMixin:
         elif self.stack.get_visible_child_name() == "sleep" and time.monotonic() - self.sleep_entered_at >= .45:
             self.wake(getattr(event_type, "value_nick", str(event_type)))
         return False
+
+    def note_browse_activity(self):
+        self.browse_last_interaction = time.monotonic()
 
     def prepare_sleep_wake(self):
         # Ignore only the short tail of the gesture that pressed Sleep. Using a
