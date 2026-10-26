@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.113 Alpine — 26 October 2026
+
+- Cursor, next attempt: the compositor (Cage) hides the pointer only when no pointer device exists, and otherwise draws the theme cursor. Our transparent cursor was a 1x1 image, which can misbehave on the Pi's hardware cursor plane (the likely "pop"). It is now a full 24x24 transparent image, and the display starts with WLR_NO_HARDWARE_CURSORS=1 so the cursor is drawn in software. Needs a reboot (or display restart) after updating.
+- At each display start the input devices are written to /run/pi-home/input-devices.txt, so a stray mouse-type device (which would make the cursor visible) can be spotted.
+
 ## 1.1.7-beta.112 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings: the performance card now fills the free space down to the Install Update / Reboot buttons (it was pinned to the top, leaving a gap), so the graph and its axis labels are no longer cramped. Chips are a little taller with 16px text, and the divider under Sleep and close sits 12px lower. The Appearance drop-downs now line up with the Roon Bridge / Netdata row (same heading gap).
