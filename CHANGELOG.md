@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.106 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings, simplified: the performance graph moves to the empty space under Network Controls and Bus Times on the left and fills it (taller, wider than the sliver beside the brightness slider). The right column is just Appearance and Brightness. Chips use short names (CPU, Mem, Temp, Net) so all four fit on one line.
+
 ## 1.1.7-beta.105 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings: the live System Performance graph now fits. Scaling, Theme and Background become one row of three drop-downs on the right, which frees the height for brightness and a compact graph with the four tappable CPU / Memory / Temp / Network chips. The health line is hidden while the graph shows the same figures.

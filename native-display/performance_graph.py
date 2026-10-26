@@ -98,9 +98,10 @@ class PerformanceSampler:
         return [min(100.0, value * 100.0 / ceiling) for value in values]
 
 
-def format_value(key, value):
+def format_value(key, value, compact=False):
     if value is None: return "—"
     if key == "temp": return f"{value:.0f}°C"
+    if key == "network" and compact: return f"{value:.1f}M" if value < 100 else f"{value:.0f}M"
     if key == "network": return f"{value:.1f} Mb/s" if value < 100 else f"{value:.0f} Mb/s"
     return f"{value:.0f}%"
 
@@ -123,7 +124,7 @@ class PerformanceGraph(Gtk.Box):
         title = Gtk.Label(label="SYSTEM PERFORMANCE"); title.add_css_class("eyebrow"); title.set_xalign(0); title.set_hexpand(True); header.append(title)
         note = Gtk.Label(label="Last 60 seconds"); note.add_css_class("perf-note"); header.append(note)
         self.append(header)
-        chips = Gtk.Box(spacing=12); chips.set_homogeneous(True); self.chips = {}; self.chip_values = {}; self.chip_checks = {}
+        chips = Gtk.Box(spacing=12); chips.set_homogeneous(True); self.chips = {}; self.chip_values = {}; self.chip_checks = {}; self.chip_names = {}; self.compact = False
         for key, name, _colour in SERIES:
             chip = Gtk.Button(); chip.add_css_class("perf-chip"); chip.add_css_class(f"perf-{key}"); chip.set_focusable(False)
             row = Gtk.Box(spacing=8)
@@ -131,7 +132,7 @@ class PerformanceGraph(Gtk.Box):
             label = Gtk.Label(label=name); label.add_css_class("perf-chip-name"); label.set_xalign(0); row.append(label)
             value = Gtk.Label(label="—"); value.add_css_class("perf-chip-value"); value.set_xalign(1); value.set_hexpand(True); value.set_ellipsize(Pango.EllipsizeMode.END); row.append(value)
             chip.set_child(row); chip.connect("clicked", lambda _button, series=key: self.toggle(series))
-            self.chips[key] = chip; self.chip_values[key] = value; self.chip_checks[key] = check; chips.append(chip)
+            self.chips[key] = chip; self.chip_names[key] = label; self.chip_values[key] = value; self.chip_checks[key] = check; chips.append(chip)
         self.append(chips)
         self.area = Gtk.DrawingArea(); self.area.set_hexpand(True); self.area.set_vexpand(False); self.area.set_size_request(-1, 470)
         self.area.set_draw_func(self.draw); self.append(self.area)
@@ -139,8 +140,13 @@ class PerformanceGraph(Gtk.Box):
 
     def set_compact(self, compact):
         """Seven-inch landscape: a shorter graph and tighter card so it fits beside the other controls."""
-        self.area.set_size_request(-1, 120 if compact else 470)
-        self.set_spacing(8 if compact else 14)
+        self.compact = compact
+        self.area.set_size_request(-1, 100 if compact else 470); self.area.set_vexpand(compact)
+        self.set_vexpand(compact); self.set_spacing(8 if compact else 14)
+        short = {"cpu": "CPU", "memory": "Mem", "temp": "Temp", "network": "Net"}
+        for key, name, _colour in SERIES:
+            self.chip_names[key].set_text(short[key] if compact else name)
+            self.chip_checks[key].set_visible(not compact)
         (self.add_css_class if compact else self.remove_css_class)("compact")
 
     def toggle(self, key):
@@ -161,7 +167,7 @@ class PerformanceGraph(Gtk.Box):
     def tick(self):
         latest = self.sampler.sample(GLib.get_monotonic_time() / 1_000_000, read_text("/proc/stat"), read_text("/proc/meminfo"),
                                      read_text("/sys/class/thermal/thermal_zone0/temp"), read_text("/proc/net/dev"))
-        for key, _name, _colour in SERIES: self.chip_values[key].set_text(format_value(key, latest.get(key)))
+        for key, _name, _colour in SERIES: self.chip_values[key].set_text(format_value(key, latest.get(key), self.compact))
         self.area.queue_draw()
         return True
 

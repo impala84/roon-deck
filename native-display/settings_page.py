@@ -60,6 +60,11 @@ class SettingsPageMixin:
         # theme and background buttons, which frees the height the graph needs.
         graph_layout = wide_portrait or gen2_seven_landscape
         self.performance_graph.set_visible(graph_layout); self.performance_graph.set_compact(gen2_seven_landscape)
+        # On Touch Display 2 the graph fills the empty space under Network Controls and Bus Times on the left.
+        graph_home = self.settings_daily if gen2_seven_landscape else self.settings_display_column
+        if self.performance_graph.get_parent() is not graph_home:
+            self.performance_graph.get_parent().remove(self.performance_graph); graph_home.append(self.performance_graph)
+        self.settings_daily.set_vexpand(gen2_seven_landscape)
         # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
         self.settings_wide_portrait = graph_layout
         self.settings_appearance_group.set_visible(graph_layout)

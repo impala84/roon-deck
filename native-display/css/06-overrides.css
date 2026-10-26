@@ -219,6 +219,6 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 /* Touch Display 2 (7-inch) Settings: compact appearance drop-downs and performance graph. */
 .touch2-7-landscape.settings-with-graph .settings-appearance-row .settings-select { font-size: 17px; min-height: 52px; }
 .perf-card.compact { margin-top: 4px; padding: 10px 14px; }
-.perf-card.compact .perf-chip { min-height: 40px; padding: 0 8px; border-radius: 10px; }
+.perf-card.compact .perf-chip { min-height: 38px; padding: 0 6px; border-radius: 10px; }
 .perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 15px; }
 .perf-card.compact .perf-note { font-size: 14px; }
