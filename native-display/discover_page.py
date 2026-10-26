@@ -484,9 +484,9 @@ class DiscoverPageMixin:
             if original:
                 panel.set_orientation(Gtk.Orientation.HORIZONTAL); panel.set_spacing(16); panel.set_halign(Gtk.Align.FILL)
                 self.browser_artist_scroll.set_hexpand(True); self.browser_artist_scroll.set_vexpand(False); self.browser_artist_scroll.set_valign(Gtk.Align.START)
-                self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_size_request(-1, 116)
-                self.browser_artist_scroll.set_min_content_height(116); self.browser_artist_scroll.set_max_content_height(116)
-                size = 100
+                self.browser_artist_scroll.set_propagate_natural_height(False); self.browser_artist_scroll.set_size_request(-1, 212)
+                self.browser_artist_scroll.set_min_content_height(212); self.browser_artist_scroll.set_max_content_height(212)
+                size = 200
                 artwork = Gtk.ScrolledWindow(); artwork.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); artwork.set_propagate_natural_width(False); artwork.set_propagate_natural_height(False)
                 artwork.set_min_content_width(size); artwork.set_max_content_width(size); artwork.set_min_content_height(size); artwork.set_max_content_height(size); artwork.set_size_request(size, size); artwork.set_valign(Gtk.Align.START)
                 artwork.add_css_class("artist-hero-frame"); artwork.set_overflow(Gtk.Overflow.HIDDEN)
@@ -518,7 +518,7 @@ class DiscoverPageMixin:
             details.add_css_class("artist-overlay-info"); details.set_halign(Gtk.Align.FILL); details.set_valign(Gtk.Align.END); details.set_hexpand(True)
             details.set_size_request(hero_width, -1); artwork_area.add_overlay(details)
         else: panel.append(details)
-        title = self.label(name, "artist-name", 0 if portrait or original else .5); title.set_wrap(True); title.set_max_width_chars(30 if original else 20); details.append(title)
+        title = self.label(name, "artist-name", 0 if portrait or original else .5); title.set_wrap(True); title.set_max_width_chars(24 if original else 20); details.append(title)
         if seven_landscape: title.set_xalign(0)
         if play_action:
             play = self.labelled_icon_button("play", "Play Artist Radio", lambda *_: self.open_browser_item(None, play_action.get("item_key")), "artist-play primary-play")
@@ -527,8 +527,8 @@ class DiscoverPageMixin:
         if seven_landscape:
             summary_slot.add_css_class("artist-profile-summary"); panel.append(summary_slot)
         else: details.append(summary_slot)
-        summary_slot.artist_summary_lines = 4 if seven_landscape else 2 if original else 5
-        summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 60 if original else 52
+        summary_slot.artist_summary_lines = 4 if seven_landscape else 4 if original else 5
+        summary_slot.artist_summary_chars = max(28, round((hero_width - (32 if original else 64)) / 9)) if seven_landscape else 46 if original else 52
         self.load_artist_notes(name, summary_slot, profile)
 
     def load_artist_notes(self, name, slot, seed=None):

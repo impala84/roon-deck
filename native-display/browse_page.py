@@ -433,7 +433,10 @@ class BrowsePageMixin:
         header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL, spacing=16 if narrow_portrait else 24); header.add_css_class("album-profile")
         original_view = not getattr(self, "responsive_portrait", False) and width <= 820 and getattr(self, "viewport_height", 480) <= 500
         # Larger text on the 800x480 panel leaves little height, so the cover stays a modest square there.
-        size = (min(190, round(width * .24)) if original_view else min(380, round(width * .32))) if width >= 1000 or original_view else min(240, round(width * .3))
+        large_portrait = bool(getattr(self, "responsive_portrait", False) and width >= 1000)
+        # 10-inch portrait: the cover takes nearly half the width and the text sits beside it with more weight.
+        size = round(width * .46) if large_portrait else (min(190, round(width * .24)) if original_view else min(380, round(width * .32))) if width >= 1000 or original_view else min(240, round(width * .3))
+        if large_portrait: header.add_css_class("album-profile-large")
         picture = Gtk.Picture(); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER)
         self.set_browser_placeholder(picture)
         slot = Gtk.ScrolledWindow(); slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -442,8 +445,8 @@ class BrowsePageMixin:
         slot.set_min_content_height(size); slot.set_max_content_height(size)
         slot.set_size_request(size, size); slot.set_valign(Gtk.Align.START); slot.set_hexpand(False); slot.set_child(picture); header.append(slot)
         if key := profile.get("image_key"): self.load_preview_artwork(picture, key)
-        copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); copy.set_hexpand(True); copy.set_valign(Gtk.Align.START if width <= 820 and getattr(self, "viewport_height", 480) <= 500 else Gtk.Align.CENTER)
-        title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(28); copy.append(title)
+        copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20 if large_portrait else 16); copy.set_hexpand(True); copy.set_valign(Gtk.Align.START if width <= 820 and getattr(self, "viewport_height", 480) <= 500 else Gtk.Align.CENTER)
+        title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(22 if large_portrait else 28); copy.append(title)
         if artist := profile.get("artist"):
             link = self.button(artist, lambda *_: self.request_browser("artist", name=artist), "album-artist")
             link.get_child().set_wrap(True); link.get_child().set_wrap_mode(Pango.WrapMode.WORD_CHAR); link.get_child().set_max_width_chars(23)
@@ -455,7 +458,7 @@ class BrowsePageMixin:
             # The chevron fills under half of its icon box, so a 34px icon drew a ~16px arrow. Use a larger
             # icon (the button's own min-width and padding give a wide touch area).
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
-            menu.set_child(FamilyIcon("chevron-play", 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16))
+            menu.set_child(FamilyIcon("chevron-play", 34 if large_portrait else 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)

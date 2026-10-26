@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.6 Alpine — 27 October 2026
+
+- 10-inch portrait album page: the cover is nearly half the screen width, with a larger title, artist, Play Album button and summary beside it.
+- 800×480 artist page: the artist picture is about twice as large with a larger summary beside it.
+- 800×480 corners are tighter (artwork, browse tiles, Settings controls) so the small panel looks less bubbly.
+
 ## 1.1.8-beta.5 Alpine — 27 October 2026
 
 - Touchscreen Controls is now one page with SURFACE DIAL, VOLUME and BUTTONS headings, built like the main Settings page (same card, row sizes, headings and header). Larger helper text, progress shown under the title, and Save returns to Settings.

@@ -256,3 +256,15 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .large-display.background .album-profile .artist-play, .large-display.background .artist-profile .artist-play { min-height: 46px; padding: 5px 24px 5px 18px; font-size: 22px; }
 .large-display.background .album-profile .album-play-menu { min-height: 46px; padding: 0 20px 0 18px; }
 .large-display.background .album-profile .queue-meta, .large-display.background .artist-profile .artist-bio { font-size: 26px; line-height: 1.4; }
+
+/* 10-inch portrait album page: cover is nearly half the width, so the title, button and summary scale up with it. */
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .artist-name { font-size: 46px; line-height: 1.08; }
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .album-artist { font-size: 33px; }
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .artist-play { min-height: 82px; padding: 8px 40px 8px 28px; font-size: 31px; }
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .album-play-menu { min-height: 82px; padding: 0 30px 0 28px; }
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .queue-meta { font-size: 27px; line-height: 1.38; }
+/* 800x480 is a low-pixel panel: tighter corners so artwork and controls stop looking bubbly. */
+.original-landscape .artwork, .original-landscape .artwork-button, .original-landscape .artwork-button viewport, .original-landscape .artwork picture,
+.original-landscape .browser-cover-art, .original-landscape .queue-art, .original-landscape .artist-hero-frame, .original-landscape .artist-hero-frame viewport, .original-landscape .artist-hero-image { border-radius: 4px; }
+.original-landscape .browser-cover-card, .original-landscape .browser-action-icon, .original-landscape .settings-select, .original-landscape .setting-line { border-radius: 6px; }
+.original-landscape .settings-page .settings-action { border-radius: 6px; }
