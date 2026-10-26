@@ -20,7 +20,12 @@ if "PI_HOME_SETTINGS_VIEWPORT" not in os.environ:
         size = f'{viewport["width"]}x{viewport["height"]}'
         subprocess.run(["xvfb-run", "-a", "-s", "-screen 0 " + size + "x24", sys.executable, __file__], env={**os.environ, "PI_HOME_SETTINGS_VIEWPORT":size},check=True)
     raise SystemExit(0)
-def settle():
+def settle(timeout=1.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+        time.sleep(0.01)
     for _ in range(40):
         while GLib.MainContext.default().pending(): GLib.MainContext.default().iteration(False)
         time.sleep(.01)
