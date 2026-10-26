@@ -50,7 +50,9 @@ class SettingsPageMixin:
         for control in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading):
             control.set_visible(not seven_inch)
         # 10-inch portrait: one row of three drop-downs, then the performance graph in the remaining height.
-        wide_portrait = portrait and width >= 1000
+        # settings_layout (admin page / config.toml): "graph" shows the performance graph, "simple" keeps the earlier layout.
+        graph_allowed = (self.settings_data or {}).get("settings_layout", "graph") != "simple"
+        wide_portrait = portrait and width >= 1000 and graph_allowed
         for control in (self.touch_profile, self.touch_orientation, self.touch_mounting):
             target = self.settings_display_row if wide_portrait else self.settings_display_column
             if control.get_parent() is not target:
@@ -58,6 +60,7 @@ class SettingsPageMixin:
         self.settings_display_row.set_visible(wide_portrait)
         # Touch Display 2 (7-inch) landscape gets the same graph in a compact form: Appearance drop-downs replace the stacked
         # theme and background buttons, which frees the height the graph needs.
+        gen2_seven_landscape = gen2_seven_landscape and graph_allowed
         graph_layout = wide_portrait or gen2_seven_landscape
         self.performance_graph.set_visible(graph_layout); self.performance_graph.set_compact(gen2_seven_landscape)
         # On Touch Display 2: two columns of controls on top, the graph full width underneath.

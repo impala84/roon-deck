@@ -517,8 +517,13 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
 
     def build_boot_splash(self):
         page = Gtk.Box(); page.add_css_class("boot-splash"); page.set_hexpand(True); page.set_vexpand(True)
-        paintable, width = wordmark_paintable(52)
-        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, 52); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); page.append(logo)
+        # The 10-inch panel gets a larger wordmark, sitting a little above the centre of the screen.
+        monitors = Gdk.Display.get_default().get_monitors()
+        monitor = monitors.get_item(0) if monitors.get_n_items() else None
+        shortest = min(monitor.get_geometry().width, monitor.get_geometry().height) if monitor else 480
+        logo_height = 120 if shortest >= 1000 else 52
+        paintable, width = wordmark_paintable(logo_height)
+        logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, logo_height); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); logo.set_margin_bottom(240 if shortest >= 1000 else 0); page.append(logo)
         return page
 
     def tick(self):
@@ -608,8 +613,10 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         if isinstance(config, dict) and config:
             grid_changed = self.settings_data.get("portrait_discovery_columns", 2) != config.get("portrait_discovery_columns", 2)
             previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")
+            previous_settings_layout = (self.settings_data or {}).get("settings_layout", "graph")
             self.settings_data = config
             self.apply_interface_size(config.get("interface_size", "standard"))
+            if config.get("settings_layout", "graph") != previous_settings_layout and hasattr(self, "settings_controls"): GLib.idle_add(self.adapt_display)
             if config.get("interface_size", "standard") != previous_interface_size:
                 # Artwork size, line counts and other pixel budgets depend on the interface size, but
                 # adapt_display first runs before the saved config has loaded. Recalculate when the saved

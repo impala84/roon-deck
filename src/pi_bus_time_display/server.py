@@ -87,6 +87,7 @@ class State:
             "display_theme": self.config.display_theme,
             "display_background": self.config.display_background,
             "interface_size": self.config.interface_size,
+            "settings_layout": self.config.settings_layout,
             "bus_enabled": self.config.bus_enabled,
             "stale": bool(self.last_success and (now - self.last_success).total_seconds() > self.config.stale_after_seconds),
         })
@@ -359,6 +360,7 @@ def write_config(path: Path, config: Config) -> None:
         f"display_theme = {json.dumps(config.display_theme)}",
         f"display_background = {json.dumps(config.display_background)}",
         f"interface_size = {json.dumps(config.interface_size)}",
+        f"settings_layout = {json.dumps(config.settings_layout)}",
         f"portrait_discovery_columns = {config.portrait_discovery_columns}",
         f"landscape_music_clock = {json.dumps(config.landscape_music_clock)}",
         f"bus_enabled = {str(config.bus_enabled).lower()}",
@@ -1004,6 +1006,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "display_theme": config.display_theme,
                     "display_background": config.display_background,
                     "interface_size": config.interface_size,
+                    "settings_layout": config.settings_layout,
                     "portrait_discovery_columns": config.portrait_discovery_columns,
                     "landscape_music_clock": config.landscape_music_clock,
                     "bus_enabled": config.bus_enabled,
@@ -1452,6 +1455,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     display_theme=str(data.get("display_theme", current.display_theme)),
                     display_background=str(data.get("display_background", current.display_background)),
                     interface_size=str(data.get("interface_size", current.interface_size)),
+                    settings_layout=str(data.get("settings_layout", current.settings_layout)),
                     portrait_discovery_columns=int(data.get("portrait_discovery_columns", current.portrait_discovery_columns)),
                     landscape_music_clock=str(data.get("landscape_music_clock", current.landscape_music_clock)),
                     bus_enabled=bool(data.get("bus_enabled", current.bus_enabled)),
@@ -1495,6 +1499,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Choose Fresh Mint or Roon for the display style")
                 if candidate.display_background not in {"current", "black"}:
                     raise ValueError("Choose Purple Gradient or Pure Black")
+                if candidate.settings_layout not in {"graph", "simple"}:
+                    raise ValueError("Choose Graph or Simple for the Settings layout")
                 if candidate.interface_size not in {"smaller", "standard", "larger"}:
                     raise ValueError("Choose Smaller, Standard or Larger for interface size")
                 if candidate.portrait_discovery_columns not in {2, 3}:

@@ -187,7 +187,7 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('self.stack.add_named(self.build_boot_splash(), "boot")', display)
         self.assertIn('roondeck-wordmark.svg', display)
         self.assertIn('.boot-wordmark, .settings-wordmark { min-width: 0; min-height: 0; }', display)
-        self.assertIn('wordmark_paintable(52)', display)
+        self.assertIn('wordmark_paintable(logo_height)', display)
 
     def test_portrait_reflows_shared_gtk_components_from_the_viewport(self):
         display = native_text()

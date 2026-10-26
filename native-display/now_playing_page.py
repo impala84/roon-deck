@@ -225,6 +225,12 @@ class NowPlayingPageMixin:
         return False
 
     def render_touch_controls(self, device, system):
+        # A missed or slow system poll must not make Roon Bridge and Netdata vanish: keep the last state each reported.
+        remembered = getattr(self, "touch_service_states", None)
+        if remembered is None: remembered = self.touch_service_states = {}
+        for key in ("roon_bridge", "netdata"):
+            if (system or {}).get(key) is not None: remembered[key] = system[key]
+        system = {**(system or {}), **{key: value for key, value in remembered.items() if (system or {}).get(key) is None}}
         signature = json.dumps({"services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
         if signature == getattr(self, "touch_controls_signature", None): return
         self.touch_controls_signature = signature

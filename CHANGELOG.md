@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7-beta.115 Alpine — 26 October 2026
+
+- New backend option "Touchscreen Settings page" (admin page > Appearance, or `settings_layout = "graph" | "simple"` in config.toml). Graph shows the live performance graph on the 7-inch Touch Display 2 and the 10-inch display; Simple keeps the earlier layout with no graph. The display switches as soon as the setting is saved.
+- Roon Bridge and Netdata no longer disappear from Network Controls when a system poll is missed or slow; the last known state is kept.
+- 10-inch boot screen: the RoonDeck wordmark is more than twice as large (120px, was 52px) and sits higher up the screen.
+
 ## 1.1.7-beta.114 Alpine — 26 October 2026
 
 - Cursor flashing when the track/album action menu opens: the menu was a popover, which is its own Wayland surface, and the compositor shows the pointer cursor whenever a new surface appears. The menu is now drawn inside the main window (an overlay layer), so no new surface exists to flash. It still opens beside your finger, and tapping anywhere else closes it without redrawing the page. The sort menu and Settings drop-downs are still popovers.

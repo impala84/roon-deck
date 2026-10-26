@@ -31,6 +31,8 @@ sleep_show_clock = false
 auto_switch_to_roon = true
 roon_idle_return_seconds = 300
 browse_idle_return_seconds = 60
+# Touchscreen Settings page on the larger Touch Display 2 panels: "graph" (live performance graph) or "simple" (earlier layout).
+settings_layout = "graph"
 outside_hours_wake_seconds = 600
 daytime_inactivity_seconds = 900
 home_assistant_enabled = false
