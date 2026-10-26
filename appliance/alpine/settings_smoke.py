@@ -23,8 +23,7 @@ if "PI_HOME_SETTINGS_VIEWPORT" not in os.environ:
 def settle(timeout=1.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        while Gtk.events_pending():
-            Gtk.main_iteration_do(False)
+        while GLib.MainContext.default().pending(): GLib.MainContext.default().iteration(False)
         time.sleep(0.01)
     for _ in range(40):
         while GLib.MainContext.default().pending(): GLib.MainContext.default().iteration(False)
