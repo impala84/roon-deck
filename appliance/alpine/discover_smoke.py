@@ -105,7 +105,7 @@ assert requests == ["surprise"]
 assert not display.browser_sidebar.get_visible()
 loading = display.browser_list.get_first_child()
 assert isinstance(loading, Gtk.Box)
-assert loading.get_last_child().get_text() == "Loading…"
+# The loading notice is three pulsing dots with no caption.
 dot = loading.get_first_child().get_first_child()
 for _ in range(3):
     assert dot.has_css_class("loading-dots")

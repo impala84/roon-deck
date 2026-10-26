@@ -29,8 +29,12 @@ review = os.environ.get("PI_HOME_WIZARD_REVIEW")
 for stage in range(7):
     app.stage = stage; app.render()
     if app.fields: app.select_entry(app.fields[0])
-    for _ in range(30):
+    # Keys are laid out a few frames after the keyboard appears; wait for them rather than a fixed count.
+    for _ in range(300):
         while context.pending(): context.iteration(False)
+        key = app.keyboard.get_first_child().get_first_child() if app.keyboard.get_visible() and app.keyboard.get_first_child() else None
+        if app.keyboard.get_visible() is False or (key is not None and key.get_height() > 0 and app.footer.get_height() > 0): break
+        GLib.usleep(10000)
     footer = app.footer.compute_bounds(app.window)[1]
     assert footer.get_y() + footer.get_height() <= monitor.height + 1, (stage, footer.get_y(), footer.get_height(), monitor.height)
     if app.keyboard.get_visible():
