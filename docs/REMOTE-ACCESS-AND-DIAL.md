@@ -13,7 +13,7 @@ installation and its existing Roon Bridge configuration intact while testing.
 ## Install and find Settings
 
 1. Install the published 1.1.8 beta through Settings → Software → Beta.
-2. In web Settings, Surface Dial is under **Controls**. WireGuard VPN is below Wi-Fi under **System → Device & networking**. These are integrated sections in the normal web GUI. Old accessory-page bookmarks redirect to Controls.
+2. In web Settings, Surface Dial is under **Controls**. WireGuard VPN is under **Network → VPN**. The web GUI uses a sidebar for its main sections and Network tabs for Current connection, Ethernet, Wi-Fi and VPN. Old accessory-page bookmarks redirect to Controls.
 3. Enable the feature in its section, then save its support switch. Only enabled features appear on the touchscreen Settings page; turning support off stops that feature and retains saved profiles/pairing.
 4. Choose **Install Bluetooth support** or **Install VPN support** in that feature's section and wait for the progress message to finish. Installation runs in the background and downloads only that feature's packages. Bluetooth service/adapter status is shown separately; a running service without an adapter needs a Pi radio/firmware check before pairing. This installs Alpine's BlueZ,
    Broadcom firmware and WireGuard diagnostic tool, and the disabled Dial
@@ -133,3 +133,11 @@ full/split IPv4/IPv6 profiles with the appliance's real NetworkManager in offlin
 mode. These checks do not replace the physical tests above.
 
 Beta.3 pairing keeps one interactive BlueZ client and its NoInputNoOutput agent alive until Pair, Trust and Connect finish. BlueZ deliberately skips automatic agent registration for command-line non-interactive mode ([upstream source](https://github.com/bluez/bluez/blob/master/client/main.c)). The helper returns immediately with pairing progress; web and native settings poll while pairing is active and report rejection/timeout. It verifies the stored Paired property before reporting success. Protocol-process regression tests cover sequencing and rejected authentication; these do not replace physical Dial testing.
+
+## Physical connection selection
+
+In **Network**, choose **Use Ethernet** or **Use saved Wi-Fi connection**. A new Wi-Fi network can also be entered in the Wi-Fi tab. Existing connections are left alone until you explicitly make a selection. A switch is a 90-second trial: reconnect using the device name or new IP address and choose **Keep this connection**, or choose **Restore previous connection**. The other physical connection is completely disconnected once the target is ready. Ethernet selection turns off the Wi-Fi radio; Wi-Fi selection unmanages Ethernet and lowers its links. The selection persists across restarts through NetworkManager's radio state and a dedicated device configuration. Saved connection profiles and credentials remain available. VPN configuration is not rewritten.
+
+A root-owned journal records the previous managed/radio states and active connection UUIDs, without passwords. A detached watchdog must acknowledge readiness before switching begins. Expiry, a failed switch or an interrupted helper restores the prior configuration. A helper restart also recovers an unfinished journal. Confirming verifies the selected interface is connected and the other connection is off. Software changes and reboot actions are blocked while a trial is outstanding.
+
+Local verification includes an isolated Alpine test of NetworkManager's real configuration parser, persistent radio state across service restart, detached watchdog expiry, and the authenticated HTTP/root-socket boundary. Physical Ethernet/Wi-Fi switching, reachability after DHCP address changes and power-cycle behaviour must still be checked on the Pi.

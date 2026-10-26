@@ -35,7 +35,11 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     provider = Gtk.CssProvider(); provider.load_from_data(native.CSS)
     Gtk.StyleContext.add_provider_for_display(window.get_display(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     display = native.Display(); display.window = window
-    display.build_roon(); window.set_child(display.build_settings())
+    display.build_roon()
+    display.stack = Gtk.Stack()
+    display.stack.add_named(display.build_settings(), "settings")
+    display.stack.set_visible_child_name("settings")
+    window.set_child(display.stack)
     portrait=height>width
     if portrait:
         window.add_css_class("portrait")
@@ -127,7 +131,11 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     assert display.settings_sections.get_visible_child_name() == "main"
     display.settings_sections.set_visible_child_name("accessories")
     # Leaving Settings and coming back must always start on the main page, never on Controls.
-    display.open_settings(); settle()
+    # Exercise real navigation while suppressing unrelated API polling.
+    with patch.object(display, "start_poll") as start_poll:
+        display.open_settings(); settle()
+        start_poll.assert_called_once()
+    assert display.stack.get_visible_child_name() == "settings"
     assert display.settings_sections.get_visible_child_name() == "main"
     display.sync_accessory_visibility({"dial": False})
     assert not display.settings_accessories_button.get_visible()

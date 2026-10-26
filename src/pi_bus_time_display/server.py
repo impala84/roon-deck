@@ -48,11 +48,11 @@ def display_version():
     return __version__ + suffix
 
 
-def accessory_request(data):
+def accessory_request(data, *, helper_action="accessories"):
     """Only called after HTTP authentication. Keep keys out of generic actions."""
     if os.getenv("PI_HOME_APPLIANCE_PLATFORM") != "alpine-prototype":
-        raise ValueError("Remote Access and Bluetooth Accessories require the Alpine appliance.")
-    payload = json.dumps({**data, "action": "accessories"}).encode() + b"\n"
+        raise ValueError("Network controls require the Alpine appliance." if helper_action == "network_control" else "Remote Access and Bluetooth Accessories require the Alpine appliance.")
+    payload = json.dumps({**data, "action": helper_action}).encode() + b"\n"
     if len(payload) > 32768: raise ValueError("Accessory request is too large.")
     try:
         with socket.socket(socket.AF_UNIX) as client:
@@ -979,10 +979,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().end_headers()
 
         def do_GET(self):
-            if self.path == "/api/admin/accessories":
+            if self.path in {"/api/admin/accessories", "/api/admin/network"}:
                 if not self.authorised(): return
                 try:
-                    self.send_json(200, json.dumps(accessory_request({"operation": "status"})).encode())
+                    self.send_json(200, json.dumps(accessory_request({"operation": "status"}, helper_action="network_control" if self.path == "/api/admin/network" else "accessories")).encode())
                 except (ValueError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return
@@ -1163,14 +1163,14 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().do_GET()
 
         def do_POST(self):
-            if self.path == "/api/admin/accessories":
+            if self.path in {"/api/admin/accessories", "/api/admin/network"}:
                 if not self.authorised(): return
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 30000: raise ValueError("Accessory request is too large.")
                     data = json.loads(self.rfile.read(length))
                     if not isinstance(data, dict): raise ValueError("Invalid accessory request.")
-                    self.send_json(200, json.dumps(accessory_request(data)).encode())
+                    self.send_json(200, json.dumps(accessory_request(data, helper_action="network_control" if self.path == "/api/admin/network" else "accessories")).encode())
                 except (ValueError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return

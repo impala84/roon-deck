@@ -68,7 +68,11 @@ class AccessoriesPageMixin:
         self.accessory_device = dropdown(body, ["Choose a Surface Dial"])
         line = row(body)
         action(line, "REFRESH", "status"); action(line, "SCAN", "bluetooth_scan")
-        line = row(body); line.set_spacing(12)
+        # Wrap connection actions on the original display in portrait, keeping
+        # the same readable labels and touch targets instead of widening GTK.
+        line = Gtk.FlowBox(); line.set_selection_mode(Gtk.SelectionMode.NONE)
+        line.set_homogeneous(True); line.set_min_children_per_line(2); line.set_max_children_per_line(4)
+        line.set_column_spacing(12); line.set_row_spacing(10); body.append(line)
         action(line, "PAIR", "bluetooth_pair"); action(line, "CONNECT", "bluetooth_connect")
         action(line, "DISCONNECT", "bluetooth_disconnect")
         # Forget needs a second tap instead of a modal window.
@@ -83,7 +87,7 @@ class AccessoriesPageMixin:
         self.accessory_target = dropdown(body, ["Follow selected Roon zone"])
         self.accessory_sensitivity = dropdown(body, ["Sensitivity · Fine", "Sensitivity · Normal", "Sensitivity · Fast"])
         self.accessory_acceleration = toggle(body, "Accelerate fast rotation")
-        limit_row = Gtk.Box(spacing=16); limit_row.set_homogeneous(True)
+        limit_row = Gtk.Box(spacing=16)
         limit_line = Gtk.Box(spacing=8); limit_line.add_css_class("setting-line"); limit_line.set_hexpand(True)
         self.accessory_limit_enabled = Gtk.CheckButton(label="Limit volume"); limit_line.append(self.accessory_limit_enabled); limit_row.append(limit_line)
         self.accessory_limit = Gtk.SpinButton.new_with_range(-150, 100, .5); self.accessory_limit.add_css_class("settings-select")

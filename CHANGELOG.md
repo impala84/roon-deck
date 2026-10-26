@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8-beta.9 Alpine — 27 October 2026
+
+- Build the web Settings GUI around the approved full-width banner and sidebar, with plain links and a purple selected section. Network and Software are main sections; narrow screens use a collapsible Settings menu. Existing settings and old Software links are preserved.
+- Add Network tabs for Current connection, Ethernet, Wi-Fi and VPN. Choosing Ethernet switches Wi-Fi off; choosing Wi-Fi disconnects Ethernet and keeps it off across restarts. Saved profiles remain available.
+- Protect physical connection changes with a 90-second confirmation trial, a root-owned recovery journal and an independent watchdog. Failed or unconfirmed changes restore the previous connection, and an interrupted helper recovers its unfinished trial on restart.
+- Keep the touchscreen Controls page within the original portrait display by allowing connection actions to wrap and avoiding an oversized volume-limit row.
+- Verify switching/confirmation/recovery logic and the real Alpine configuration parser, radio persistence, watchdog expiry and HTTP/root-socket path in isolated tests. Physical Pi switching, DHCP reachability and power-cycle acceptance remain hardware checks.
+
 ## 1.1.8-beta.8 Alpine — 27 October 2026
 
 - Surface Dial rotation is now measured in degrees instead of raw counts. One Roon volume step needs about 30° (Fine), 20° (Normal) or 12° (Fast) of turning, so a full turn is roughly 12, 18 or 30 steps. Small movements add up into whole steps instead of each tick being rounded up, a slight nudge expires, and a burst sends at most three steps at a time. Previously one tick could move the volume up to 2 dB or 4 units.

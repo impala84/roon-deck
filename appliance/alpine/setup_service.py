@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from pi_bus_time_display.remote_access import AccessoryManager
+from pi_bus_time_display.network_control import NetworkControl
 
 SOCKET = "/run/pi-home-setup.sock"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
@@ -449,6 +450,7 @@ class Setup:
     def __init__(self, root=Path("/"), run=command, roon=None, login_credentials=set_login_credentials):
         self.root = Path(root); self.run = run; self.roon = roon or self.roon_state
         self.accessories = None
+        self.network_control = None
         self.login_credentials = login_credentials
         self.tools_lock = threading.Lock()
         self.netdata_install_lock = threading.Lock()
@@ -667,6 +669,16 @@ class Setup:
 
     def handle(self, data):
         state = self.saved(); action = data.get("action")
+        if action == "network_control":
+            operation = data.get("operation", "status")
+            if not state.get("complete"): raise ValueError("Finish setup before changing network settings.")
+            if operation != "status" and (self.software_lock.locked() or update_locked(self.root)):
+                raise ValueError("Wait for the current software operation to finish.")
+            if self.network_control is None: self.network_control = NetworkControl(self.root)
+            return self.network_control.handle(data)
+        pending_network = self.root / "var/lib/roondeck-network/pending.json"
+        if pending_network.exists() and action in {"update", "reboot", "set_wifi", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install"}:
+            raise ValueError("Confirm or restore the network connection before changing software or connections.")
         if action == "accessories":
             if (self.software_lock.locked() or update_locked(self.root)) and data.get("operation", "status") not in {"status", "vpn_disconnect"}:
                 raise ValueError("Wait for the current software operation to finish.")
@@ -921,6 +933,8 @@ class Setup:
         if state.get("complete") and action not in {"set_hostname", "set_wifi"}: raise ValueError("Setup is already complete.")
         if action in {"set_hostname", "set_wifi"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing network settings.")
+            if action == "set_wifi" and (self.root / "var/lib/roondeck-network/selection.json").exists():
+                raise ValueError("Use Network → Wi-Fi to change the connection with automatic recovery.")
             action = {"set_hostname": "name", "set_wifi": "wifi"}[action]
         if action == "name":
             name = str(data.get("hostname", "")).lower()
@@ -1030,6 +1044,8 @@ def serve():
     install_clock_support()
     ensure_daily_update_check()
     app = Setup()
+    app.network_control = NetworkControl()
+    app.network_control.recover()
     if Path("/opt/netdata/bin/netdata").is_file():
         ensure_netdata_service(Path("/"))
         app.run(["rc-update", "add", "netdata", "default"])
