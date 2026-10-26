@@ -67,6 +67,7 @@ class SettingsPageMixin:
         self.settings_controls.set_vexpand(not gen2_seven_landscape)
         # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
         self.settings_wide_portrait = graph_layout
+        self.settings_short_appearance = gen2_seven_landscape
         self.settings_appearance_group.set_visible(graph_layout)
         self.settings_appearance.set_visible(not graph_layout)
         self.settings_scaling_heading.set_visible(not graph_layout); self.touch_interface_size.set_visible(not graph_layout)
@@ -298,6 +299,14 @@ class SettingsPageMixin:
                   (self.theme_select, 1 if data.get("display_theme") == "roon" else 0),
                   (self.background_select, 1 if data.get("display_background", "current") == "black" else 0))
         self.appearance_select_updating = True
+        # Touch Display 2 (7-inch) is only 1280px wide, so its three drop-downs use short labels; the section heading says what they are.
+        short = bool(getattr(self, "settings_short_appearance", False))
+        if short != getattr(self, "appearance_labels_short", False):
+            self.appearance_labels_short = short
+            choices = ((self.scaling_select, ["Smaller", "Standard", "Larger"], ["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"]),
+                       (self.theme_select, ["Mint", "Roon"], ["Theme · Mint", "Theme · Roon"]),
+                       (self.background_select, ["Gradient", "Black"], ["Background · Gradient", "Background · Black"]))
+            for select, brief, full in choices: select.set_model(Gtk.StringList.new(brief if short else full))
         for select, index in wanted:
             if select.get_selected() != index: select.set_selected(index)
         self.appearance_select_updating = False

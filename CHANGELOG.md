@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.108 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings overflowed the screen: the three Appearance drop-downs asked for about 1170px, which stretched the whole page to roughly 1850px and pushed the right half off screen. They now use short labels (Larger / Roon / Gradient under the Appearance heading) so the page fits 1280px. The graph chips are smaller (no tick marks, 14px text) so the graph and the Install Update / Reboot buttons fit without scrolling.
+
 ## 1.1.7-beta.107 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings re-laid out: Network Controls and Bus Times on the left, Appearance (three drop-downs) and Brightness on the right, the System Performance graph full width underneath with full chip names, and shallower Install Update / Reboot buttons.

@@ -141,7 +141,8 @@ class PerformanceGraph(Gtk.Box):
     def set_compact(self, compact):
         """Seven-inch landscape: a shorter graph and tighter card so it fits beside the other controls."""
         self.compact = compact
-        self.area.set_size_request(-1, 90 if compact else 470); self.area.set_vexpand(compact)
+        self.area.set_size_request(-1, 70 if compact else 470); self.area.set_vexpand(compact)
+        for check in self.chip_checks.values(): check.set_visible(not compact)
         self.set_vexpand(compact); self.set_spacing(8 if compact else 14)
 
     def toggle(self, key):
