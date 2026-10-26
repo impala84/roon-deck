@@ -239,3 +239,8 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 .theme-roon .track-menu-action.primary-play, .theme-roon .track-menu-action.primary-play:hover, .theme-roon .track-menu-action.primary-play:active,
 .theme-roon .track-menu-action.primary-play:focus, .theme-roon .track-menu-action.primary-play:focus-visible, .theme-roon .track-menu-action.primary-play:checked { background: #9868F9; color: #111; box-shadow: none; }
 .theme-roon .track-menu-action.primary-play:active { background: #a77cff; }
+/* Touch Display 2 Settings: more air under Sleep and close (the divider drops), roomier chips for the taller graph. */
+.touch2-7-landscape .settings-header { padding-bottom: 12px; }
+.perf-card.compact { padding: 14px 16px 12px; }
+.perf-card.compact .perf-chip { min-height: 40px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 16px; }

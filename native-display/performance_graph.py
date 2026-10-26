@@ -144,7 +144,7 @@ class PerformanceGraph(Gtk.Box):
         (self.add_css_class if compact else self.remove_css_class)("compact")
         self.area.set_size_request(-1, 100 if compact else 470); self.area.set_vexpand(compact)
         for check in self.chip_checks.values(): check.set_visible(not compact)
-        self.set_vexpand(compact); self.set_spacing(8 if compact else 14)
+        self.set_vexpand(compact); self.set_valign(Gtk.Align.FILL if compact else Gtk.Align.START); self.set_spacing(10 if compact else 14)
 
     def toggle(self, key):
         self.enabled[key] = not self.enabled[key]

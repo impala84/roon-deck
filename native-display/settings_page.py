@@ -69,6 +69,8 @@ class SettingsPageMixin:
         self.settings_wide_portrait = graph_layout
         self.settings_short_appearance = gen2_seven_landscape
         self.settings_brightness_row.set_spacing(0 if gen2_seven_landscape else 8)
+        # Same heading-to-control gap as Network Controls (16px) so the first row of each column lines up.
+        self.settings_appearance_group.set_spacing(16 if gen2_seven_landscape else 12)
         self.settings_title_row.set_margin_top(14 if gen2_seven_landscape else 0)
         self.settings_appearance_group.set_visible(graph_layout)
         self.settings_appearance.set_visible(not graph_layout)
