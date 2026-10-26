@@ -1,4 +1,6 @@
 """Render deterministic native Discover screenshots in Alpine GTK/Xvfb."""
+from native_harness import patch_native
+import layout_constants
 import html
 import base64
 import importlib.util
@@ -70,7 +72,9 @@ Gtk.StyleContext.add_provider_for_display(window.get_display(), provider, Gtk.ST
 display = native.Display()
 display.settings_data["display_theme"] = "roon"
 page = display.build_roon()
-window.set_child(page)
+# The real app wraps its pages in an overlay; the in-window action menu is drawn on it.
+display.root_overlay = Gtk.Overlay(); display.root_overlay.set_child(page)
+window.set_child(display.root_overlay)
 window.present()
 settle()
 display.window = window
@@ -268,19 +272,16 @@ vertical.set_value(max(vertical.get_lower(), min(
 settle()
 display.browser_action_anchor = mix_track
 display.render_browser({"status":"ready", "layout":"list", "action_menu":True, "discovery_track_actions":True, "items":[{"title":"Play Now", "action":True, "item_key":"play"},{"title":"Queue", "action":True, "item_key":"queue"}]})
-mix_popup = display.browser_action_popover
+mix_popup = display.browser_action_menu
 assert mix_popup is not None
-# Screenshot capture moves focus under Xvfb. Keep this review-only popover open
-# so the focus transition cannot trigger its normal application autohide path.
-mix_popup.set_autohide(False)
 capture("mix-track-actions")
 valid, mix_popup_bounds = mix_popup.compute_bounds(page)
 valid_anchor, mix_anchor_bounds = mix_track.compute_bounds(page)
 assert valid and valid_anchor
-assert mix_popup_bounds.get_x() + mix_popup_bounds.get_width() <= screen_width
+assert mix_popup_bounds.get_x() + mix_popup_bounds.get_width() <= screen_width, (mix_popup_bounds.get_x(), mix_popup_bounds.get_width(), screen_width, display.root_overlay.get_width(), window.get_width(), mix_popup.get_margin_start(), mix_popup.get_margin_top(), getattr(display, "last_tap_point", None))
 assert display.roon_views.get_visible_child_name() == "discover"
 display.browser_action_selected["value"] = True
-mix_popup.unparent(); display.browser_action_popover = None
+mix_popup.popdown()
 display.discovery_mix = ""
 display.discovery_active = True
 display.discovery_section = "browse"
@@ -446,7 +447,6 @@ if screen_height > screen_width:
     # search superseded by navigation, rather than calling render directly.
     import threading
     gate = threading.Event()
-    original_post_json = native.post_json
     def fixture_post_json(_url, payload, **_kwargs):
         if payload["action"] == "search":
             assert gate.wait(5), "fixture search was not released"
@@ -454,7 +454,7 @@ if screen_height > screen_width:
                     "search_routes": {"fixture": {}}, "items": search_items}
         return {"status": "ready", "section": "albums", "layout": "covers",
                 "items": [{"title": "Album after search", "item_key": "after-search"}]}
-    native.post_json = fixture_post_json
+    restore_post_json = patch_native(native, "post_json", fixture_post_json)
     try:
         settle()
         display.set_roon_view("search")
@@ -470,7 +470,7 @@ if screen_height > screen_width:
         assert window.get_width() == screen_width
     finally:
         gate.set()
-        native.post_json = original_post_json
+        restore_post_json()
 
 display.set_roon_view("browse")
 display.render_browser({"status": "ready", "section": "albums", "layout": "covers", "surprise_preview": True, "items": [{"title": "Based on a True Story", "subtitle": "Fat Freddy's Drop", "item_key": "surprise", "image_key": "surprise-art"}]})
@@ -633,7 +633,7 @@ assert not display.library_add.has_css_class("library-busy")
 capture_results = []
 if os.environ.get("PI_HOME_REQUIRE_GL"):
     assert "GL" in type(window.get_renderer()).__name__, type(window.get_renderer()).__name__
-native.post_json = lambda url, data, **kwargs: capture_results.append(data)
+patch_native(native, "post_json", lambda url, data, **kwargs: capture_results.append(data))
 display.capture_display("native-capture-check")
 assert capture_results and "image" in capture_results[-1], capture_results
 capture_file = OUTPUT / "live-display-capture.png"
@@ -687,25 +687,21 @@ capture("track-actions")
 display.capture_display("track-menu-capture-check")
 assert "image" in capture_results[-1], capture_results[-1]
 (OUTPUT / "track-actions-live-capture.png").write_bytes(base64.b64decode(capture_results[-1]["image"]))
-popup = display.browser_action_popover
+popup = display.browser_action_menu
+assert popup is not None
 valid, popup_bounds = popup.compute_bounds(page)
-valid_menu, menu_bounds = popup.get_child().compute_bounds(page)
+valid_menu, menu_bounds = valid, popup_bounds
 anchor_bounds = display.browser_action_anchor.compute_bounds(page)[1]
 assert valid and valid_menu and popup_bounds.get_x() >= 0 and popup_bounds.get_y() >= 0
-# GTK includes the popover's transparent dismissal gutter in its outer
-# allocation. The bordered menu child is the visible surface that must remain
-# inside the physical viewport.
-assert menu_bounds.get_x() >= 0 and menu_bounds.get_x() + menu_bounds.get_width() <= screen_width, (menu_bounds.get_x(), menu_bounds.get_width(), screen_width)
+# The menu is drawn inside the main window and opens beside the finger. Its whole
+# card must stay inside the physical viewport with the 10px edge margin.
+assert menu_bounds.get_x() >= 10 - 1 and menu_bounds.get_x() + menu_bounds.get_width() <= screen_width - 10 + 1, (menu_bounds.get_x(), menu_bounds.get_width(), screen_width)
+assert menu_bounds.get_y() >= 10 - 1 and menu_bounds.get_y() + menu_bounds.get_height() <= screen_height - 10 + 1, (menu_bounds.get_y(), menu_bounds.get_height(), screen_height)
 if screen_height <= 600:
-    # The row expands across the browser column, so GTK may flip the RIGHT
-    # popover over the row's unused tail. Its visible card must stay in the
-    # right half with the same compact edge inset seen on the touchscreen.
-    menu_right_inset = screen_width - menu_bounds.get_x() - menu_bounds.get_width()
-    assert menu_bounds.get_x() >= screen_width / 2, menu_bounds.get_x()
-    assert 0 <= menu_right_inset <= 48, menu_right_inset
     assert menu_bounds.get_height() < 340, menu_bounds.get_height()
 # Dismiss without issuing a fixture request to the real controller.
-if isinstance(popup, Gtk.Popover): popup.unparent()
+display.browser_action_selected["value"] = True
+popup.popdown()
 display.set_roon_view("now")
 
 bus = display.build_bus(); window.set_child(bus)
@@ -756,7 +752,7 @@ display.render_home({"status": "ok", "entities": [{"entity_id": f"{domain}.fixtu
 capture("home")
 assert not display.home_status.get_visible()
 assert abs(display.home_grid.get_first_child().compute_bounds(home)[1].get_y() - bus_content_top) <= 1
-assert display.home_grid.get_first_child().get_style_context().get_border().left == bus_stroke == native.PANEL_STROKE
+assert display.home_grid.get_first_child().get_style_context().get_border().left == bus_stroke == layout_constants.PANEL_STROKE
 home_clock_bounds = display.home_clock.compute_bounds(home)[1]
 assert abs(home_clock_bounds.get_x() + home_clock_bounds.get_width() - bus_clock_right) <= 1
 assert abs(home_clock_bounds.get_y() - bus_clock_top) <= 1
@@ -781,7 +777,10 @@ display.device_status.set_text("v1.1.7-beta.15 Alpine")
 display.touch_diagnostics.set_text("Memory 6.1%  ·  Load 0.65  ·  62.8°C  ·  Controller ready  ·  Bridge offline")
 capture("settings")
 assert window.get_width() == screen_width and window.get_height() == screen_height, (window.get_width(), window.get_height())
-assert display.settings_actions.get_parent().get_last_child().has_css_class("reboot-action")
+# Reboot sits in the Install Update row on the seven-inch landscape panels, and in its own stack elsewhere;
+# either way it must be the last action in the row it is in.
+assert display.settings_reboot.has_css_class("reboot-action")
+assert display.settings_reboot.get_parent().get_last_child() is display.settings_reboot
 assert display.touch_bus_enabled.get_visible()
 assert display.touch_bus_heading.get_visible() == (screen_height > screen_width or screen_width > 1280)
 assert display.touch_bus_enabled.get_label() == "Bus Times"

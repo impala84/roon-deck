@@ -487,6 +487,7 @@ class BrowsePageMixin:
         album, artist = profile.get("name"), profile.get("artist")
         if not album or not artist: return
         status = self.label("Loading album summary…", "queue-meta"); status.set_wrap(True); slot.append(status)
+        original_view = not getattr(self, "responsive_portrait", False) and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
         def load():
             query = urllib.parse.urlencode({"album": album, "artist": artist})
             notes = get_json(ROON + "/api/album-notes?" + query, timeout=30) or {}
