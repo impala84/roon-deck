@@ -57,7 +57,7 @@ class PerformanceGraphTests(unittest.TestCase):
     def test_settings_page_wires_the_row_and_graph_for_10_inch_portrait_only(self):
         code = native_text()
         self.assertIn("wide_portrait = portrait and width >= 1000", code)
-        self.assertIn("self.settings_display_row.set_visible(wide_portrait); self.performance_graph.set_visible(wide_portrait)", code)
+        self.assertIn("self.settings_display_row.set_visible(wide_portrait)\n        # Touch Display 2", code)
         self.assertIn(".portrait.large-portrait .settings-display-row .settings-select, .portrait.large-portrait .settings-appearance-row .settings-select { font-size: 21px; }", code)
 
 

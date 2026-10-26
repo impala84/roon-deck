@@ -55,16 +55,20 @@ class SettingsPageMixin:
             target = self.settings_display_row if wide_portrait else self.settings_display_column
             if control.get_parent() is not target:
                 control.get_parent().remove(control); target.append(control)
-        self.settings_display_row.set_visible(wide_portrait); self.performance_graph.set_visible(wide_portrait)
+        self.settings_display_row.set_visible(wide_portrait)
+        # Touch Display 2 (7-inch) landscape gets the same graph in a compact form: Appearance drop-downs replace the stacked
+        # theme and background buttons, which frees the height the graph needs.
+        graph_layout = wide_portrait or gen2_seven_landscape
+        self.performance_graph.set_visible(graph_layout); self.performance_graph.set_compact(gen2_seven_landscape)
         # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
-        self.settings_wide_portrait = wide_portrait
-        self.settings_appearance_group.set_visible(wide_portrait)
-        self.settings_appearance.set_visible(not wide_portrait)
-        self.settings_scaling_heading.set_visible(not wide_portrait); self.touch_interface_size.set_visible(not wide_portrait)
+        self.settings_wide_portrait = graph_layout
+        self.settings_appearance_group.set_visible(graph_layout)
+        self.settings_appearance.set_visible(not graph_layout)
+        self.settings_scaling_heading.set_visible(not graph_layout); self.touch_interface_size.set_visible(not graph_layout)
         self.sync_diagnostics_visibility(); self.sync_appearance_selects()
-        self.settings_display_column.set_vexpand(wide_portrait)
-        self.settings_controls.set_valign(Gtk.Align.FILL if wide_portrait else Gtk.Align.START)
-        (self.window.add_css_class if wide_portrait else self.window.remove_css_class)("settings-with-graph")
+        self.settings_display_column.set_vexpand(graph_layout)
+        self.settings_controls.set_valign(Gtk.Align.FILL if graph_layout else Gtk.Align.START)
+        (self.window.add_css_class if graph_layout else self.window.remove_css_class)("settings-with-graph")
 
     def resize_settings_wordmark(self, width, height):
         """Match the wordmark to the adjacent Settings title at every profile."""

@@ -137,6 +137,12 @@ class PerformanceGraph(Gtk.Box):
         self.area.set_draw_func(self.draw); self.append(self.area)
         self.connect("map", self.start); self.connect("unmap", self.stop)
 
+    def set_compact(self, compact):
+        """Seven-inch landscape: a shorter graph and tighter card so it fits beside the other controls."""
+        self.area.set_size_request(-1, 120 if compact else 470)
+        self.set_spacing(8 if compact else 14)
+        (self.add_css_class if compact else self.remove_css_class)("compact")
+
     def toggle(self, key):
         self.enabled[key] = not self.enabled[key]
         (self.chips[key].remove_css_class if self.enabled[key] else self.chips[key].add_css_class)("off")

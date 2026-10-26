@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.105 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings: the live System Performance graph now fits. Scaling, Theme and Background become one row of three drop-downs on the right, which frees the height for brightness and a compact graph with the four tappable CPU / Memory / Temp / Network chips. The health line is hidden while the graph shows the same figures.
+
 ## 1.1.7-beta.104 Alpine — 26 October 2026
 
 - Action menus (Play Now / Add Next / Queue / Start Radio) now open next to your finger. The earlier fix silently failed because GTK returns the converted position as a pair; that is handled now.

@@ -69,7 +69,7 @@ class TenInchSettingsTests(unittest.TestCase):
     def test_appearance_is_one_row_of_three_dropdowns_on_the_10_inch(self):
         for text in ('["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"]', '["Theme · Mint", "Theme · Roon"]',
                      '["Background · Gradient", "Background · Black"]', 'appearance_group.append(self.label("APPEARANCE", "eyebrow"))',
-                     "self.settings_appearance.set_visible(not wide_portrait)"):
+                     "self.settings_appearance.set_visible(not graph_layout)"):
             self.assertIn(text, self.code)
 
     def test_health_line_is_hidden_on_the_10_inch_unless_it_carries_a_message(self):
