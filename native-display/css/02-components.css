@@ -273,3 +273,10 @@
 .portrait.compact-portrait .settings-header .settings-utilities button { min-height: 44px; }
 .settings-page .settings-action.reboot-action, .confirm-reboot { background: #8a5b24; color: #fff1d2; }
 .settings-page .settings-action.reboot-action:hover, .confirm-reboot:hover { background: #a76f2b; }
+/* Controls page: larger helper text and headings than the base Settings diagnostics, same card/row sizing. */
+.settings-page .settings-diagnostic.controls-note { font-size: 15px; color: #8a908c; }
+.touch-landscape .settings-page .settings-diagnostic.controls-note { font-size: 19px; }
+.portrait .settings-page .settings-diagnostic.controls-note, .portrait.compact-portrait .settings-page .settings-diagnostic.controls-note { font-size: 20px; }
+.settings-page.controls-page .eyebrow { font-size: 15px; }
+.touch-landscape .settings-page.controls-page .eyebrow, .portrait .settings-page.controls-page .eyebrow { font-size: 18px; }
+.settings-page.controls-page .settings-diagnostic { color: #a8aeab; }

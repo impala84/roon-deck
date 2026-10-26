@@ -7,7 +7,7 @@ import threading
 import urllib.request
 import urllib.error
 
-from native_common import BUS, FamilyIcon, Gtk, GLib, get_json
+from native_common import BUS, FamilyIcon, Gtk, GLib, get_json, elastic_vertical_scroll
 
 DIAL_ACTIONS = ("none", "playpause", "next", "previous", "mute")
 DIAL_LABELS = ["No action", "Play / pause", "Next track", "Previous track", "Mute / unmute"]
@@ -16,12 +16,15 @@ SENSITIVITY = ("fine", "normal", "fast")
 
 class AccessoriesPageMixin:
     def build_accessories(self):
+        # Same skeleton as the main Settings page: header, divider, scrolling body, then one pinned action.
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page.add_css_class("page"); page.add_css_class("settings-page"); page.add_css_class("controls-page")
         top = Gtk.Box(spacing=20); top.add_css_class("settings-header")
-        title = self.label("Controls", "settings-title"); title.set_hexpand(True); title.set_halign(Gtk.Align.START); title.set_valign(Gtk.Align.CENTER)
-        top.append(title)
-        # Same circular control as the Settings close button.
+        heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); heading.set_hexpand(True); heading.set_valign(Gtk.Align.CENTER)
+        title = self.label("Controls", "settings-title"); title.set_halign(Gtk.Align.START); heading.append(title)
+        # Progress and results appear here, in the same place and size as the Settings page diagnostics.
+        self.accessory_message = self.label("", "settings-diagnostic"); self.accessory_message.set_wrap(True); self.accessory_message.set_xalign(0)
+        heading.append(self.accessory_message); top.append(heading)
         back = Gtk.Button(); back.add_css_class("settings-close"); back.set_size_request(58, 58)
         back.set_hexpand(False); back.set_vexpand(False); back.set_halign(Gtk.Align.CENTER); back.set_valign(Gtk.Align.CENTER)
         back.set_tooltip_text("Back to Settings"); back.set_child(FamilyIcon("back", 32, stroke_width=3))
@@ -30,99 +33,79 @@ class AccessoriesPageMixin:
         top.append(utilities); page.append(top)
         divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); divider.add_css_class("settings-divider"); page.append(divider)
 
-        self.accessory_message = self.label("", "settings-diagnostic"); self.accessory_message.set_wrap(True); self.accessory_message.set_xalign(0)
-        page.append(self.accessory_message)
-
         self.accessory_buttons = []
-        self.accessory_tabs = {}
-        tabs = Gtk.Box(spacing=10); tabs.set_homogeneous(True)
-        for name, text in (("device", "SURFACE DIAL"), ("volume", "VOLUME"), ("buttons", "BUTTONS")):
-            choice = self.button(text, lambda _button, selected=name: self.show_accessory_tab(selected), "theme-choice")
-            choice.add_css_class("settings-theme-choice"); self.accessory_tabs[name] = choice; tabs.append(choice)
-        page.append(tabs)
-
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
         self.accessory_scroll = scroll
-        self.accessory_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE)
-        self.accessory_stack.set_hhomogeneous(True); self.accessory_stack.set_vhomogeneous(False)
-        scroll.set_child(self.accessory_stack); page.append(scroll)
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); body.add_css_class("settings-controls"); body.add_css_class("settings-column")
+        scroll.set_child(body); card.append(scroll); page.append(card)
 
         def action(parent, text, operation, css="settings-action"):
             widget = self.button(text, lambda *_: self.accessory_operation(operation), css)
             widget.set_hexpand(True); self.accessory_buttons.append(widget); parent.append(widget)
             return widget
 
-        def pane(name):
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); box.add_css_class("settings-card")
-            self.accessory_stack.add_named(box, name); return box
-
         def row(parent):
-            line = Gtk.Box(spacing=12); line.set_homogeneous(True); parent.append(line); return line
+            line = Gtk.Box(spacing=16); line.set_homogeneous(True); parent.append(line); return line
 
         def toggle(parent, text):
             line = Gtk.Box(spacing=8); line.add_css_class("setting-line")
             check = Gtk.CheckButton(label=text); line.append(check); parent.append(line)
             return check
 
-        def dropdown(parent, heading, strings):
-            if heading: parent.append(self.label(heading, "eyebrow"))
+        def dropdown(parent, strings):
             choice = Gtk.DropDown.new_from_strings(strings); choice.add_css_class("settings-select"); parent.append(choice)
             return choice
 
+        def note(parent, text):
+            label = self.label(text, "settings-diagnostic"); label.add_css_class("controls-note"); label.set_wrap(True); label.set_xalign(0); parent.append(label)
+            return label
+
         # SURFACE DIAL: find, pair and switch it on.
-        device = pane("device")
-        self.accessory_dial_status = self.label("Not running", "settings-diagnostic"); self.accessory_dial_status.set_wrap(True); self.accessory_dial_status.set_xalign(0)
-        device.append(self.accessory_dial_status)
-        line = row(device)
-        action(line, "REFRESH", "status"); action(line, "SCAN", "bluetooth_scan")
+        body.append(self.label("SURFACE DIAL", "eyebrow"))
+        self.accessory_dial_status = note(body, "Not running")
         self.accessory_devices = []
-        self.accessory_device = dropdown(device, "", ["Choose a Surface Dial"])
-        line = row(device); line.set_spacing(10)
+        self.accessory_device = dropdown(body, ["Choose a Surface Dial"])
+        line = row(body)
+        action(line, "REFRESH", "status"); action(line, "SCAN", "bluetooth_scan")
+        line = row(body); line.set_spacing(12)
         action(line, "PAIR", "bluetooth_pair"); action(line, "CONNECT", "bluetooth_connect")
         action(line, "DISCONNECT", "bluetooth_disconnect")
         # Forget needs a second tap instead of a modal window.
         self.accessory_forget_pending = False
         self.accessory_forget = action(line, "FORGET", "bluetooth_forget")
-        self.accessory_enabled = toggle(device, "Enable Roon controls")
-        note = self.label("Put the Dial in pairing mode, scan, pair, then enable Roon controls and save. Turning the Dial changes the volume of the selected Roon zone from any screen.", "settings-diagnostic")
-        note.set_wrap(True); note.set_xalign(0); device.append(note)
+        self.accessory_enabled = toggle(body, "Enable Roon controls")
+        note(body, "Put the Dial in pairing mode, scan, pair, then enable Roon controls and save. Turning the Dial changes the volume of the selected Roon zone from any screen.")
 
         # VOLUME: which zone, how fast, how loud.
-        volume = pane("volume")
+        body.append(self.label("VOLUME", "eyebrow"))
         self.accessory_outputs = []
-        self.accessory_target = dropdown(volume, "ZONE", ["Follow selected Roon zone"])
-        self.accessory_sensitivity = dropdown(volume, "SENSITIVITY", ["Fine", "Normal", "Fast"])
-        self.accessory_acceleration = toggle(volume, "Accelerate fast rotation")
-        limit_row = Gtk.Box(spacing=12)
+        self.accessory_target = dropdown(body, ["Follow selected Roon zone"])
+        self.accessory_sensitivity = dropdown(body, ["Sensitivity · Fine", "Sensitivity · Normal", "Sensitivity · Fast"])
+        self.accessory_acceleration = toggle(body, "Accelerate fast rotation")
+        limit_row = Gtk.Box(spacing=16); limit_row.set_homogeneous(True)
         limit_line = Gtk.Box(spacing=8); limit_line.add_css_class("setting-line"); limit_line.set_hexpand(True)
         self.accessory_limit_enabled = Gtk.CheckButton(label="Limit volume"); limit_line.append(self.accessory_limit_enabled); limit_row.append(limit_line)
         self.accessory_limit = Gtk.SpinButton.new_with_range(-150, 100, .5); self.accessory_limit.add_css_class("settings-select")
-        self.accessory_limit.set_sensitive(False); self.accessory_limit.set_hexpand(True); limit_row.append(self.accessory_limit); volume.append(limit_row)
+        self.accessory_limit.set_sensitive(False); self.accessory_limit.set_hexpand(True); limit_row.append(self.accessory_limit); body.append(limit_row)
         self.accessory_limit_enabled.connect("toggled", lambda check: self.accessory_limit.set_sensitive(check.get_active()))
-        note = self.label("The limit uses the units Roon shows for the output (dB or 0–100). Fixed-volume outputs cannot be changed.", "settings-diagnostic")
-        note.set_wrap(True); note.set_xalign(0); volume.append(note)
+        note(body, "The limit uses the units Roon shows for the output (dB or 0–100). Fixed-volume outputs cannot be changed.")
 
         # BUTTONS: what pressing the Dial does in Roon.
-        buttons = pane("buttons")
+        body.append(self.label("BUTTONS", "eyebrow"))
         self.accessory_mappings = {}
-        for name, heading in (("single", "SINGLE PRESS"), ("double", "DOUBLE PRESS"), ("long", "LONG PRESS")):
-            self.accessory_mappings[name] = dropdown(buttons, heading, DIAL_LABELS)
-        note = self.label("A single press waits a moment to tell whether a second press follows.", "settings-diagnostic")
-        note.set_wrap(True); note.set_xalign(0); buttons.append(note)
+        for name, heading in (("single", "Single press"), ("double", "Double press"), ("long", "Long press")):
+            self.accessory_mappings[name] = dropdown(body, [f"{heading} · {label}" for label in DIAL_LABELS])
+        note(body, "A single press waits a moment to tell whether a second press follows.")
+        elastic_vertical_scroll(scroll)
 
         save = self.button("SAVE", lambda *_: self.accessory_operation("dial_save"), "settings-action")
         self.accessory_buttons.append(save); self.accessory_save = save; page.append(save)
 
         self.accessory_snapshot = {}
         self.accessory_poll = None
-        self.show_accessory_tab("device")
+        self.accessory_save_pending = False
         return page
-
-    def show_accessory_tab(self, name):
-        self.accessory_stack.set_visible_child_name(name)
-        for key, choice in self.accessory_tabs.items():
-            (choice.add_css_class if key == name else choice.remove_css_class)("active")
-        adjustment = self.accessory_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
 
     def sync_accessory_visibility(self, features):
         dial = features.get("dial") is True
@@ -131,7 +114,7 @@ class AccessoriesPageMixin:
 
     def open_accessories(self, *_):
         self.settings_sections.set_visible_child_name("accessories")
-        self.show_accessory_tab("device")
+        adjustment = self.accessory_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
         self.accessory_message.set_text("")
         self.accessory_operation("status", fill=True)
 
@@ -159,6 +142,7 @@ class AccessoriesPageMixin:
             for name, choice in self.accessory_mappings.items():
                 config[name] = DIAL_ACTIONS[choice.get_selected()]
             data["config"] = config
+        self.accessory_save_pending = operation == "dial_save"
         self.accessory_busy = True
         for widget in self.accessory_buttons: widget.set_sensitive(False)
         self.accessory_message.set_text("Working…")
@@ -183,8 +167,15 @@ class AccessoriesPageMixin:
     def finish_accessory_operation(self, snapshot, outputs, result, error, fill):
         self.accessory_busy = False
         for widget in self.accessory_buttons: widget.set_sensitive(True)
-        message = error or ("Saved." if result.get("ok") and not result.get("scanning") and not result.get("pairing") else "")
-        self.accessory_message.set_text(message)
+        saved = getattr(self, "accessory_save_pending", False); self.accessory_save_pending = False
+        if saved and not error and result.get("ok"):
+            # Saving is the end of the task: go back to Settings and say so there.
+            if snapshot: self.sync_accessory_visibility(snapshot.get("features", {}))
+            self.accessory_message.set_text("")
+            self.settings_sections.set_visible_child_name("main")
+            self.touch_diagnostics.set_text("Dial controls saved.")
+            return False
+        self.accessory_message.set_text(error)
         if not snapshot: return False
         installation = snapshot.get("installation", {})
         pairing = snapshot.get("pairing", {})

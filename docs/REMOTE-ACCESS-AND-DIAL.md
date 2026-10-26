@@ -53,9 +53,11 @@ security or grant world-writable input access as a workaround.
    Verify pairing/settings persist, BlueZ reconnects, and movement never
    replays after a disconnection. Forget should disable the saved Dial controls.
 
-The reader uses standard Linux input events, matches Microsoft vendor/product
-`045e:091b` and the selected Bluetooth address, and ignores events older than
-500 ms. Actual device identity, rotation/button events, access permissions and
+The reader uses standard Linux input events, matches the selected Bluetooth address
+(or a device named Surface Dial when the kernel leaves the address blank), and ignores
+events older than 500 ms. The Pi needs the `uhid`, `hid_generic` and `evdev` kernel
+modules; the app loads and persists them. If the Dial is connected but no input
+device appears, Settings → Controls names the stage that failed. Actual device identity, rotation/button events, access permissions and
 firmware must be confirmed on the physical Pi. `/var/lib/pi-home/dial-status.json`
 reports bounded control errors without music metadata.
 

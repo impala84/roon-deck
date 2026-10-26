@@ -270,11 +270,17 @@ class AccessoryManager:
 
         Without the uhid module it still connects (battery shows) but never sends input.
         """
-        self.safe(["modprobe", "uhid"])
+        loaded = []
+        for module in ("uhid", "hid_generic", "evdev"):
+            # uhid creates the HID device, hid_generic gives it an input driver, evdev exposes /dev/input/event*.
+            # Drivers built into the kernel have no module to load; those are simply skipped.
+            try: self.run(["modprobe", module]); loaded.append(module)
+            except (ValueError, OSError, subprocess.TimeoutExpired): pass
         try:
             text = self.modules_path.read_text() if self.modules_path.exists() else ""
-            if not re.search(r"^uhid\s*$", text, re.M):
-                atomic_text(self.modules_path, text + ("" if not text or text.endswith("\n") else "\n") + "uhid\n", 0o644)
+            missing = [module for module in loaded if not re.search(rf"^{module}\s*$", text, re.M)]
+            if missing:
+                atomic_text(self.modules_path, text + ("" if not text or text.endswith("\n") else "\n") + "\n".join(missing) + "\n", 0o644)
         except OSError:
             pass
 
@@ -289,7 +295,10 @@ class AccessoryManager:
                 continue
             if (address and uniq == address.upper()) or "surface dial" in name.lower():
                 inputs.append({"node": node.name, "name": name[:60], "address": uniq})
-        return {"uhid": (self.root / "dev/uhid").exists(), "inputs": inputs[:6]}
+        hid = self.root / "sys/bus/hid"
+        hid_devices = sorted(path.name for path in (hid / "devices").glob("*") if "045E:091B" in path.name.upper()) if (hid / "devices").is_dir() else []
+        return {"uhid": (self.root / "dev/uhid").exists(), "hid_driver": (hid / "drivers/hid-generic").exists(),
+                "hid_devices": hid_devices[:4], "inputs": inputs[:6]}
 
     def expire_trial(self):
         """A trial that outlived its watchdog (for example a reboot) must not block Connect."""
@@ -430,7 +439,15 @@ class AccessoryManager:
         diagnostics = self.dial_diagnostics(dial["address"])
         hint = ""
         if dial["enabled"] and any(device["connected"] for device in devices) and not diagnostics["inputs"]:
-            hint = "Bluetooth is connected, but the Pi created no input device for the Dial." + ("" if diagnostics["uhid"] else " Bluetooth HID support was missing and is loaded now: choose Disconnect, then Connect.")
+            if not diagnostics["uhid"]:
+                reason = "Bluetooth HID support (uhid) was missing and is loaded now: choose Disconnect, then Connect."
+            elif not diagnostics["hid_driver"]:
+                reason = "The generic HID driver was missing and is loaded now: choose Disconnect, then Connect."
+            elif diagnostics["hid_devices"]:
+                reason = "The Pi sees the Dial as a HID device but no input driver claimed it."
+            else:
+                reason = "Bluetooth did not create a HID device. Choose Disconnect, then Connect. If this stays, Forget the Dial and Pair it again."
+            hint = "Bluetooth is connected, but the Pi created no input device for the Dial. " + reason
         return {"ok": True, "features": {name: features.get(name) is True for name in ("vpn", "dial")},
                 "installed": all(support[name] for name in ("vpn", "dial") if features.get(name) is True),
                 "support": support, "installation": self.installation(), "pairing": dict(self.pairing),

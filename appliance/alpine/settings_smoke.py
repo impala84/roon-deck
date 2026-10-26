@@ -109,25 +109,23 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         {"outputs": [{"id": "dac", "name": "Local Roon Bridge USB DAC"}]}, {}, "", True)
     display.settings_sections.set_visible_child_name("accessories"); settle()
     assert window.get_width() == width and window.get_height() == height, ("accessories",width,height,window.get_width(),window.get_height())
-    for tab in ("device", "volume", "buttons"):
-        display.show_accessory_tab(tab); settle()
-        for widget in (display.accessory_back, *display.accessory_tabs.values(), display.accessory_save):
-            bounds = widget.compute_bounds(window)[1]
-            assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", tab, width, height, bounds.get_x(), bounds.get_width())
-        if tab == "device":
-            for widget in (display.accessory_device, display.accessory_forget):
-                bounds = widget.compute_bounds(window)[1]
-                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory device", width, height, bounds.get_x(), bounds.get_width())
-        elif tab == "volume":
-            for widget in (display.accessory_target, display.accessory_sensitivity, display.accessory_limit):
-                bounds = widget.compute_bounds(window)[1]
-                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory volume", width, height, bounds.get_x(), bounds.get_width())
-        else:
-            for widget in display.accessory_mappings.values():
-                bounds = widget.compute_bounds(window)[1]
-                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory buttons", width, height, bounds.get_x(), bounds.get_width())
-        if output:
-            subprocess.run(["import","-silent","-window","root",str(Path(output)/f"controls-{tab}-{width}x{height}.png")],check=True)
+    # One page: everything, including the pinned Save button, must stay inside the viewport.
+    widgets = (display.accessory_back, display.accessory_save, display.accessory_device, display.accessory_forget, display.accessory_target, display.accessory_sensitivity, display.accessory_limit, *display.accessory_mappings.values())
+    for widget in widgets:
+        bounds = widget.compute_bounds(window)[1]
+        assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", width, height, bounds.get_x(), bounds.get_width())
+    save_bounds = display.accessory_save.compute_bounds(window)[1]
+    assert save_bounds.get_y() + save_bounds.get_height() <= height, ("accessory save", width, height)
+    if output:
+        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"controls-{width}x{height}.png")],check=True)
+    adjustment = display.accessory_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_upper()); settle()
+    if output:
+        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"controls-bottom-{width}x{height}.png")],check=True)
+    # Saving closes the page and reports on the Settings page.
+    display.accessory_save_pending = True
+    display.finish_accessory_operation({"features": {"dial": True}, "dial": {"enabled": True, "address": "", "target": "selected", "output_id": "", "sensitivity": "normal", "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"}, "devices": []}, {}, {"ok": True}, "", False); settle()
+    assert display.settings_sections.get_visible_child_name() == "main"
+    display.settings_sections.set_visible_child_name("accessories")
     # Leaving Settings and coming back must always start on the main page, never on Controls.
     display.open_settings(); settle()
     assert display.settings_sections.get_visible_child_name() == "main"

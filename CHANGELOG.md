@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.5 Alpine — 27 October 2026
+
+- Touchscreen Controls is now one page with SURFACE DIAL, VOLUME and BUTTONS headings, built like the main Settings page (same card, row sizes, headings and header). Larger helper text, progress shown under the title, and Save returns to Settings.
+- Surface Dial input: also load and persist `hid_generic` and `evdev` (not just `uhid`), and report exactly which stage is missing: no `uhid`, no generic HID driver, no HID device created by Bluetooth, or no input driver claimed. After updating, Disconnect then Connect the Dial.
+
 ## 1.1.8-beta.4 Alpine — 27 October 2026
 
 - Replace the touchscreen "Remote & Bluetooth" page with a Bluetooth-only **Controls** page: Surface Dial, Volume and Buttons tabs, larger text, Settings-page sizing and a circular back button. Refresh/Scan and Pair/Connect/Disconnect/Forget share rows. VPN is configured in web Settings only.
