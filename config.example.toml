@@ -15,6 +15,8 @@ sleep_end = "06:00"
 timezone = "Asia/Singapore"
 roon_display_url = ""
 roon_zone_name = ""
+# Roon Core address, only needed when Roon cannot be found by broadcast (for example over a VPN).
+roon_core_host = ""
 roon_display_name = "Roon"
 roon_now_playing_name = "Now Playing"
 roon_queue_name = "Queue"

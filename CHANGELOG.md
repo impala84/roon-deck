@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.10 Alpine — 27 October 2026
+
+- Roon over VPN: Roon is normally found by broadcast, which cannot cross a VPN, so no zones appeared. Web Settings → Roon now has an optional **Roon Core address**; when set, the controller connects to that Core directly (port 9330) and retries every 15 seconds. The extension authorisation from your home network is reused. Leave it blank on a home network.
+- The Zone name field now offers the zones the Pi can currently see.
+- Full Tunnel now always routes all traffic (`0.0.0.0/0`, plus `::/0` when the VPN address is IPv6), even if the imported profile's AllowedIPs listed only home subnets.
+
 ## 1.1.8-beta.9 Alpine — 27 October 2026
 
 - Build the web Settings GUI around the approved full-width banner and sidebar, with plain links and a purple selected section. Network and Software are main sections; narrow screens use a collapsible Settings menu. Existing settings and old Software links are preserved.

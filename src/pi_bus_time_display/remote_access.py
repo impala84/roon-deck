@@ -177,7 +177,8 @@ def parse_profile(text, mode="full", subnets=""):
         if not routes or len(routes) > 32: raise ValueError()
         if mode == "split" and any(ipaddress.ip_network(x).prefixlen == 0 for x in routes): raise ValueError()
         if mode == "full" and not any(ipaddress.ip_network(x).prefixlen == 0 for x in routes):
-            raise ProfileHint("Full Tunnel requires an AllowedIPs default route in the imported profile. Choose Split Tunnel and list the home subnets instead.")
+            # Full Tunnel means every packet goes through the VPN, whatever the profile's AllowedIPs listed.
+            routes = ["0.0.0.0/0"] + (["::/0"] if any(item.version == 6 for item in addresses) else [])
         endpoint = peer["endpoint"].strip()
         endpoint_host, port = endpoint.rsplit(":", 1)
         if not host(endpoint_host.strip("[]")) or not 1 <= int(port) <= 65535: raise ValueError()

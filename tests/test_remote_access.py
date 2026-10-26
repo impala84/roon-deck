@@ -290,9 +290,10 @@ class ManagerTests(unittest.TestCase):
         try: self.assertTrue(self.manager.handle({'operation': 'vpn_disconnect'})['ok'])
         finally: self.manager.pair_lock.release()
 
-    def test_full_tunnel_without_default_route_says_what_to_change(self):
-        with self.assertRaisesRegex(ValueError, 'Split Tunnel'):
-            parse_profile(PROFILE.replace('AllowedIPs = 0.0.0.0/0', 'AllowedIPs = 192.168.1.0/24'), 'full')
+    def test_full_tunnel_always_routes_everything_through_the_vpn(self):
+        profile = parse_profile(PROFILE.replace('AllowedIPs = 0.0.0.0/0', 'AllowedIPs = 192.168.1.0/24'), 'full')
+        self.assertEqual(profile['routes'], ['0.0.0.0/0'])
+        self.assertEqual(parse_profile(PROFILE, 'full')['routes'], ['0.0.0.0/0'])
 
     def test_new_installations_have_no_enabled_features(self):
         self.manager.features_path.unlink()

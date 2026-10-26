@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 
 HOME_ASSISTANT_DOMAINS = {"fan", "light", "scene", "switch", "input_boolean"}
@@ -28,6 +29,8 @@ class Config:
     timezone: str = "Asia/Singapore"
     roon_display_url: str = ""
     roon_zone_name: str = ""
+    # Address of the Roon Core when it cannot be found by broadcast (for example across a VPN).
+    roon_core_host: str = ""
     roon_display_name: str = "Roon"
     display_theme: str = "fresh-mint"
     display_background: str = "current"
@@ -115,6 +118,8 @@ def load_config(path: Path) -> Config:
         raise ValueError("interface_size must be smaller, standard or larger")
     if config.settings_layout not in {"graph", "simple"}:
         raise ValueError("settings_layout must be graph or simple")
+    if config.roon_core_host and not re.fullmatch(r"[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?", config.roon_core_host):
+        raise ValueError("Roon Core address must be a hostname or IP address")
     for name in ("touch_roon_bridge", "touch_airplay", "touch_netdata"):
         if type(getattr(config, name)) is not bool:
             raise ValueError(f"{name} must be true or false")

@@ -14,7 +14,7 @@ const sectionFields={
   appearance:['display_theme','display_background','interface_size','settings_layout','touch_roon_bridge','touch_airplay','touch_netdata','portrait_discovery_columns','landscape_music_clock'],
   automation:['scheduled_wake_enabled','weekend_wake_enabled','weekend_wake_time','sleep_start','sleep_end','outside_hours_wake_minutes','sleep_show_clock','morning_start','morning_end','auto_switch_to_roon','roon_idle_return_minutes','browse_idle_return_minutes','sleep_when_roon_idle','daytime_inactivity_minutes'],
   bus:['bus_enabled','bus_stop_code','bus_stop_name','services','walking_minutes','poll_seconds','lta_account_key'],
-  roon:['roon_display_name','roon_now_playing_name','roon_queue_name','roon_zone_name','roon_show_controls','roon_show_clock','roon_show_queue','roon_show_browser','bluos_enabled','bluos_player_address','bluos_visible_inputs','bluos_input_names'],
+  roon:['roon_display_name','roon_now_playing_name','roon_queue_name','roon_zone_name','roon_core_host','roon_show_controls','roon_show_clock','roon_show_queue','roon_show_browser','bluos_enabled','bluos_player_address','bluos_visible_inputs','bluos_input_names'],
   home:['home_assistant_enabled','home_assistant_title','home_assistant_url','home_assistant_token','home_assistant_entities','home_assistant_color_mode','home_assistant_single_color','home_assistant_light_color','home_assistant_fan_color','home_assistant_switch_color','home_assistant_scene_color'],
   logging:['openobserve_enabled','openobserve_url','openobserve_org','openobserve_stream','openobserve_username','openobserve_password'],
   software:['release_channel'],
@@ -140,3 +140,6 @@ document.querySelectorAll('[data-network-open]').forEach(button=>button.addEvent
 
 async function loadInitialSettings(attempt=0){try{await load()}catch(error){if(attempt<8){setTimeout(()=>loadInitialSettings(attempt+1),Math.min(5000,500*(attempt+1)));return}notify(error.message,true)}}
 window.addEventListener('popstate',restoreAdminRoute);window.addEventListener('hashchange',restoreAdminRoute);setupHomeColours();restoreAdminRoute();syncNavigationName();loadDisplayMounting();loadInitialSettings();setTimeout(()=>resizeMultiline(form.elements.home_assistant_entities),500);
+
+// Offer the zones the Pi can currently see (blank when Roon is not connected yet).
+fetch('/roon/api/state',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{const list=document.getElementById('roon-zone-list');if(!list||!data||!Array.isArray(data.zones))return;list.replaceChildren(...data.zones.map(zone=>{const option=document.createElement('option');option.value=zone.name;return option}))}).catch(()=>{});

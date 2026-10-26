@@ -19,6 +19,7 @@ const {DiscoveryManager} = require('./discovery-state');
 const {openDiscovery} = require('./discovery-bridge');
 const {brokerWireId} = require('../tools/discovery-wire.cjs');
 const discovery = new DiscoveryManager();
+const {validCoreHost} = require('./core-host');
 const {LibraryManager}=require('./library-state');
 const library=new LibraryManager({changed:()=>broadcast()});
 const discoveryCores = new Map();
@@ -66,6 +67,7 @@ function configuredRuntime() {
     const arrayValue = name => JSON.parse(text.match(new RegExp(`^${name}\\s*=\\s*(\\[[^\\n]*\\])`, 'm'))?.[1] || '[]');
     runtimeConfig = {
       zoneName: process.env.ROON_ZONE_NAME || stringValue('roon_zone_name'),
+      coreHost: validCoreHost(stringValue('roon_core_host')),
       displayName: stringValue('roon_display_name') || 'Roon',
       displayTheme: stringValue('display_theme') === 'roon' ? 'roon' : 'fresh-mint',
       busEnabled: text.match(/^bus_enabled\s*=\s*(true|false)/m)?.[1] !== 'false',
@@ -332,6 +334,16 @@ const status = new RoonApiStatus(roon);
 roon.init_services({required_services: [RoonApiTransport, RoonApiImage, RoonApiBrowse], provided_services: [status]});
 status.set_status('Waiting for Roon authorisation', false);
 roon.start_discovery();
+// Roon is found by broadcast, which does not cross a VPN. A configured Core address is connected to directly.
+let directConnecting = false;
+setInterval(() => {
+  const host = configuredRuntime().coreHost;
+  if (!host || core || directConnecting) return;
+  directConnecting = true;
+  const done = () => { directConnecting = false; };
+  try { roon.ws_connect({host, port: 9330, onclose: done, onerror: done}); }
+  catch { done(); }
+}, 15000);
 roon._sood.on('message', message => {
   if (message.props.service_id !== '00720724-5143-4a9b-abac-0e50cba674bb') return;
   try {
