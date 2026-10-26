@@ -64,6 +64,11 @@ class DisplayModeTests(unittest.TestCase):
             self.assertEqual(load_config(path).settings_layout, "simple")
             write_config(path, Config(settings_layout="fancy"))
             with self.assertRaises(ValueError): load_config(path)
+            write_config(path, Config(touch_airplay=True, touch_netdata=False))
+            loaded = load_config(path)
+            self.assertEqual((loaded.touch_roon_bridge, loaded.touch_airplay, loaded.touch_netdata), (True, True, False))
+            path.write_text(path.read_text().replace("touch_airplay = true", 'touch_airplay = "yes"'))
+            with self.assertRaises(ValueError): load_config(path)
             write_config(path, Config(browse_idle_return_seconds=7201))
             with self.assertRaises(ValueError):
                 load_config(path)
@@ -147,6 +152,25 @@ class DisplayModeTests(unittest.TestCase):
                 with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.write_control_request") as action:
                     handler.do_POST()
                     action.assert_called_once_with(path, {"action":"netdata_enable" if enabled else "netdata_disable"})
+                    self.assertEqual(handler.send_json.call_args.args[0], 200)
+
+    def test_touchscreen_airplay_switch_reaches_alpine_helper(self):
+        import io
+        from unittest.mock import Mock
+        from pi_bus_time_display.server import make_handler
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            Handler = make_handler(State(Config(), path), path / "config.toml", path / "env", path / "mode")
+            for enabled in (True, False):
+                handler = Handler.__new__(Handler)
+                handler.path = "/api/device/airplay"
+                handler.client_address = ("127.0.0.1", 1)
+                payload = b'{"enabled":true}' if enabled else b'{"enabled":false}'
+                handler.headers = {"Content-Length": str(len(payload))}
+                handler.rfile = io.BytesIO(payload); handler.send_json = Mock()
+                with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.write_control_request") as action:
+                    handler.do_POST()
+                    action.assert_called_once_with(path, {"action":"airplay_start" if enabled else "airplay_stop"})
                     self.assertEqual(handler.send_json.call_args.args[0], 200)
 
     def test_display_orientation_is_derived_from_each_panels_native_shape(self):

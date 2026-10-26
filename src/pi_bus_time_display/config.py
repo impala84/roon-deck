@@ -33,6 +33,10 @@ class Config:
     display_background: str = "current"
     interface_size: str = "standard"
     settings_layout: str = "graph"
+    # Quick switches shown on the touchscreen Settings page for services that are installed.
+    touch_roon_bridge: bool = True
+    touch_airplay: bool = False
+    touch_netdata: bool = True
     portrait_discovery_columns: int = 2
     landscape_music_clock: str = "icon"
     roon_now_playing_name: str = "Now Playing"
@@ -111,6 +115,9 @@ def load_config(path: Path) -> Config:
         raise ValueError("interface_size must be smaller, standard or larger")
     if config.settings_layout not in {"graph", "simple"}:
         raise ValueError("settings_layout must be graph or simple")
+    for name in ("touch_roon_bridge", "touch_airplay", "touch_netdata"):
+        if type(getattr(config, name)) is not bool:
+            raise ValueError(f"{name} must be true or false")
     if not (5 <= config.poll_seconds <= 300):
         raise ValueError("poll_seconds must be between 5 and 300")
     if config.end_action not in {"display", "shutdown", "reboot"}:

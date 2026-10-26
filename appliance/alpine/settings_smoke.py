@@ -102,25 +102,36 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert bridge_check.get_active() and bridge_check.get_sensitive()
         assert "Could not change Roon Bridge" in display.touch_diagnostics.get_text()
         restore_post_json()
-    # Exercise the actual new native page at the same authoritative viewport.
-    display.finish_accessory_operation({"features": {"vpn": True, "dial": True}, "vpn": {"status": "Connected", "address": "10.10.10.2/32", "pending_token": "trial", "confirm_seconds": 75},
+    # Exercise the actual Controls page at the same authoritative viewport.
+    display.finish_accessory_operation({"features": {"dial": True},
         "dial": {"enabled": False, "address": "AA:BB:CC:DD:EE:FF", "target": "selected", "output_id": "", "sensitivity": "normal", "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"},
         "devices": [{"address": "AA:BB:CC:DD:EE:FF", "paired": True, "connected": True, "battery": 80}]},
         {"outputs": [{"id": "dac", "name": "Local Roon Bridge USB DAC"}]}, {}, "", True)
     display.settings_sections.set_visible_child_name("accessories"); settle()
-    assert display.accessory_confirm.get_visible()
     assert window.get_width() == width and window.get_height() == height, ("accessories",width,height,window.get_width(),window.get_height())
-    for widget in (*display.accessory_buttons, display.accessory_device, display.accessory_target, display.accessory_sensitivity, display.accessory_limit, *display.accessory_mappings.values()):
-        bounds = widget.compute_bounds(window)[1]
-        assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", width,height,bounds.get_x(),bounds.get_width())
-    if output:
-        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"accessories-{width}x{height}.png")],check=True)
-    adjustment = display.accessory_scroll.get_vadjustment()
-    adjustment.set_value(adjustment.get_upper()); settle()
-    if output:
-        subprocess.run(["import","-silent","-window","root",str(Path(output)/f"accessories-controls-{width}x{height}.png")],check=True)
-    display.sync_accessory_visibility({"vpn": False, "dial": False})
+    for tab in ("device", "volume", "buttons"):
+        display.show_accessory_tab(tab); settle()
+        for widget in (display.accessory_back, *display.accessory_tabs.values(), display.accessory_save):
+            bounds = widget.compute_bounds(window)[1]
+            assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", tab, width, height, bounds.get_x(), bounds.get_width())
+        if tab == "device":
+            for widget in (display.accessory_device, display.accessory_forget):
+                bounds = widget.compute_bounds(window)[1]
+                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory device", width, height, bounds.get_x(), bounds.get_width())
+        elif tab == "volume":
+            for widget in (display.accessory_target, display.accessory_sensitivity, display.accessory_limit):
+                bounds = widget.compute_bounds(window)[1]
+                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory volume", width, height, bounds.get_x(), bounds.get_width())
+        else:
+            for widget in display.accessory_mappings.values():
+                bounds = widget.compute_bounds(window)[1]
+                assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory buttons", width, height, bounds.get_x(), bounds.get_width())
+        if output:
+            subprocess.run(["import","-silent","-window","root",str(Path(output)/f"controls-{tab}-{width}x{height}.png")],check=True)
+    # Leaving Settings and coming back must always start on the main page, never on Controls.
+    display.open_settings(); settle()
+    assert display.settings_sections.get_visible_child_name() == "main"
+    display.sync_accessory_visibility({"dial": False})
     assert not display.settings_accessories_button.get_visible()
-    assert not display.accessory_vpn_section.get_visible() and not display.accessory_dial_section.get_visible()
     window.destroy(); settle()
 print("Real GTK Settings: equal-height rows, equal-width actions and viewport bounds checked.")

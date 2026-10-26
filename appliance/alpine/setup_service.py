@@ -668,7 +668,7 @@ class Setup:
     def handle(self, data):
         state = self.saved(); action = data.get("action")
         if action == "accessories":
-            if self.software_lock.locked() or update_locked(self.root):
+            if (self.software_lock.locked() or update_locked(self.root)) and data.get("operation", "status") not in {"status", "vpn_disconnect"}:
                 raise ValueError("Wait for the current software operation to finish.")
             if self.accessories is None: self.accessories = AccessoryManager(self.root)
             return self.accessories.handle(data)

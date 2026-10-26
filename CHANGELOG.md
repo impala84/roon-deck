@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.8-beta.4 Alpine — 27 October 2026
+
+- Replace the touchscreen "Remote & Bluetooth" page with a Bluetooth-only **Controls** page: Surface Dial, Volume and Buttons tabs, larger text, Settings-page sizing and a circular back button. Refresh/Scan and Pair/Connect/Disconnect/Forget share rows. VPN is configured in web Settings only.
+- Settings always reopens on its main page after leaving to Now Playing and back.
+- Surface Dial "connected but does nothing": load the `uhid` kernel module (and keep it across reboots), match the Dial's input by its Bluetooth address instead of vendor/product IDs, and explain in web and touch Settings when Bluetooth is connected but no input device exists. After updating, choose Disconnect then Connect once. Scanning now runs in the background.
+- Add web Settings → Display switches for Roon Bridge, AirPlay and Netdata. Each switch that is on appears as a quick on/off toggle on the touchscreen when the service is installed.
+- Tidy the web Controls tab: single rule under the heading, Refresh and Scan on one row, grouped Connection/Volume/Buttons sections, scan progress and Dial diagnostics.
+- A stale 90-second VPN trial is cleaned up, VPN can be disconnected while pairing, and Full Tunnel errors suggest Split Tunnel.
+- Not yet hardware-tested: Dial rotation volume steps (check with `evtest`) and the new touch layout (see the Alpine verification screenshots).
+
 ## 1.1.8-beta.3 Alpine — 26 October 2026
 
 - Keep the Bluetooth pairing agent alive through pairing, trust and connection. Pair in the background with visible progress, report rejection/timeouts, and verify BlueZ confirms pairing before reporting success.

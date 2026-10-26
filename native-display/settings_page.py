@@ -37,6 +37,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         # button padding from stretching it into an oval.
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
         self.settings_close.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
+        if hasattr(self, "accessory_back"): self.accessory_back.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
         if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 16)
         if hasattr(self, "settings_utilities"): self.settings_utilities.set_spacing(32 if portrait and width >= 1000 else 12)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
@@ -160,7 +161,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
         # Controls sit in a body box so a full-width performance graph can sit below the two columns on Touch Display 2.
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.settings_body = body; body.set_vexpand(True); body.append(controls)
-        self.settings_accessories_button = self.button("REMOTE & BLUETOOTH", self.open_accessories, "settings-action"); self.settings_accessories_button.set_visible(False)
+        self.settings_accessories_button = self.button("CONTROLS", self.open_accessories, "settings-action"); self.settings_accessories_button.set_visible(False)
         scroll.set_child(body); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
@@ -238,9 +239,13 @@ class SettingsPageMixin(AccessoriesPageMixin):
             return False
         threading.Thread(target=save, daemon=True).start()
 
-    def open_settings(self, *_): self.settings_open = True; self.last_system_fetch = 0; self.stack.set_visible_child_name("settings"); self.start_poll()
+    def open_settings(self, *_):
+        self.settings_open = True; self.last_system_fetch = 0
+        # Always start on the main page, even if the screen last left Settings from Controls.
+        self.settings_sections.set_visible_child_name("main")
+        self.stack.set_visible_child_name("settings"); self.start_poll()
 
-    def close_settings(self, *_): self.settings_open = False; self.stack.set_visible_child_name(self.last_mode)
+    def close_settings(self, *_): self.settings_open = False; self.settings_sections.set_visible_child_name("main"); self.stack.set_visible_child_name(self.last_mode)
 
     def set_library_busy(self, busy):
         (self.library_add.add_css_class if busy else self.library_add.remove_css_class)("library-busy")
@@ -285,6 +290,20 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if not result:
                 button.handler_block_by_func(self.toggle_netdata); button.set_active(not requested); button.handler_unblock_by_func(self.toggle_netdata)
                 self.touch_diagnostics.set_text("Could not change Netdata. Check backend Tools for service status.")
+            self.touch_controls_signature = None; self.last_system_fetch = 0; button.set_sensitive(True)
+            return False
+        GLib.idle_add(finish)
+
+    def toggle_airplay(self, button):
+        requested = button.get_active(); button.set_sensitive(False)
+        threading.Thread(target=self._toggle_airplay, args=(button, requested), daemon=True).start()
+
+    def _toggle_airplay(self, button, requested):
+        result = post_json(BUS + "/api/device/airplay", {"enabled": requested}, timeout=30)
+        def finish():
+            if not result:
+                button.handler_block_by_func(self.toggle_airplay); button.set_active(not requested); button.handler_unblock_by_func(self.toggle_airplay)
+                self.touch_diagnostics.set_text("Could not change AirPlay. Check backend Tools for service status.")
             self.touch_controls_signature = None; self.last_system_fetch = 0; button.set_sensitive(True)
             return False
         GLib.idle_add(finish)

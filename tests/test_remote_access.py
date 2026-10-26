@@ -213,6 +213,74 @@ class ManagerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "web Settings"): self.manager.handle({"operation": "vpn_connect"})
         with self.assertRaisesRegex(ValueError, "web Settings"): self.manager.handle({"operation": "bluetooth_scan"})
 
+    def dial_support(self):
+        for name in ('usr/bin/bluetoothctl', 'etc/init.d/bluetooth', 'etc/init.d/roondeck-dial'):
+            path = self.manager.root / name; path.parent.mkdir(parents=True, exist_ok=True); path.touch()
+
+    def test_scan_runs_in_background_and_never_blocks_the_helper(self):
+        self.dial_support()
+        entered, release = threading.Event(), threading.Event()
+        original = self.manager.run
+        def runner(args):
+            if args[:2] == ['bluetoothctl', '--timeout']: entered.set(); release.wait(2)
+            return original(args)
+        self.manager.run = runner
+        try:
+            started = time.monotonic()
+            result = self.manager.handle({'operation': 'bluetooth_scan'})
+            self.assertTrue(result['scanning']); self.assertLess(time.monotonic() - started, .5)
+            self.assertTrue(entered.wait(1))
+            self.assertTrue(self.manager.status()['scanning'])
+            with self.assertRaisesRegex(ValueError, 'scan to finish'):
+                self.manager.handle({'operation': 'bluetooth_pair', 'address': 'AA:BB:CC:DD:EE:FF'})
+        finally: release.set()
+        for _ in range(100):
+            if not self.manager.scan_lock.locked(): break
+            time.sleep(.01)
+        self.assertFalse(self.manager.status()['scanning'])
+
+    def test_dial_support_loads_uhid_and_persists_it(self):
+        self.dial_support()
+        self.manager.handle({'operation': 'bluetooth_scan'})
+        self.assertIn(['modprobe', 'uhid'], self.calls)
+        self.assertEqual((self.manager.root / 'etc/modules').read_text().split(), ['uhid'])
+        self.manager.ensure_hid()
+        self.assertEqual((self.manager.root / 'etc/modules').read_text().split(), ['uhid'])
+
+    def test_connected_dial_without_an_input_device_explains_why(self):
+        self.dial_support()
+        address = 'AA:BB:CC:DD:EE:FF'
+        atomic_json(self.manager.dial_path, dict(DEFAULT_DIAL, enabled=True, address=address), 0o644)
+        original = self.manager.run
+        def runner(args):
+            if args[:2] == ['bluetoothctl', 'devices']: return 'Device ' + address + ' Surface Dial'
+            if args[:2] == ['bluetoothctl', 'info']: return 'Name: Surface Dial\nPaired: yes\nConnected: yes'
+            if args[:3] == ['rc-service', 'bluetooth', 'status']: return 'started'
+            return original(args)
+        self.manager.run = runner
+        status = self.manager.status()
+        self.assertFalse(status['dial_diagnostics']['uhid'])
+        self.assertIn('no input device', status['dial_hint']); self.assertIn('Disconnect, then Connect', status['dial_hint'])
+        node = self.manager.root / 'sys/class/input/event7/device'; node.mkdir(parents=True)
+        (node / 'name').write_text('Surface Dial System Multi Axis\n'); (node / 'uniq').write_text(address.lower() + '\n')
+        self.assertEqual(self.manager.status()['dial_hint'], '')
+
+    def test_stale_trial_is_cleared_and_does_not_block_connect(self):
+        self.configure()
+        atomic_json(self.manager.pending_path, {'token': 'a' * 32, 'deadline': time.time() - 600})
+        self.assertEqual(self.manager.status()['vpn']['pending_token'], '')
+        atomic_json(self.manager.pending_path, {'token': 'b' * 32, 'deadline': time.time() - 600})
+        self.assertTrue(self.manager.handle({'operation': 'vpn_connect'})['pending_token'])
+
+    def test_vpn_can_be_disconnected_while_pairing(self):
+        self.configure(); self.manager.pair_lock.acquire()
+        try: self.assertTrue(self.manager.handle({'operation': 'vpn_disconnect'})['ok'])
+        finally: self.manager.pair_lock.release()
+
+    def test_full_tunnel_without_default_route_says_what_to_change(self):
+        with self.assertRaisesRegex(ValueError, 'Split Tunnel'):
+            parse_profile(PROFILE.replace('AllowedIPs = 0.0.0.0/0', 'AllowedIPs = 192.168.1.0/24'), 'full')
+
     def test_new_installations_have_no_enabled_features(self):
         self.manager.features_path.unlink()
         self.assertEqual(self.manager.status()["features"], {"vpn": False, "dial": False})
@@ -315,12 +383,19 @@ class GestureTests(unittest.TestCase):
         g.event(EV_SYN, 0, 0, 1); g.event(EV_REL, REL_DIAL, 1, 1)
         self.assertEqual(g.tick(1)["steps"], 1)
 
-    def test_input_matches_vendor_product_and_paired_address(self):
+    def test_input_matches_paired_address_not_vendor(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); device = root / "event3/device"; (device / "id").mkdir(parents=True)
-            (device / "id/vendor").write_text("045e\n"); (device / "id/product").write_text("091b\n"); (device / "uniq").write_text("AA:BB:CC:DD:EE:FF\n")
-            self.assertEqual(input_paths("AA:BB:CC:DD:EE:FF", root), [Path("/dev/input/event3")])
-            self.assertEqual(input_paths("11:22:33:44:55:66", root), [])
+            root = Path(directory)
+            def node(name, uniq, device_name="Surface Dial System Multi Axis"):
+                device = root / name / "device"; device.mkdir(parents=True)
+                (device / "uniq").write_text(uniq + "\n"); (device / "name").write_text(device_name + "\n")
+            node("event3", "aa:bb:cc:dd:ee:ff")
+            node("event4", "", "Surface Dial System Multi Axis")
+            node("event5", "11:22:33:44:55:66", "Another Knob")
+            # Bluetooth reports different vendor/product IDs from USB; only the address (or, when blank, the name) matters.
+            self.assertEqual(input_paths("AA:BB:CC:DD:EE:FF", root), [Path("/dev/input/event3"), Path("/dev/input/event4")])
+            self.assertEqual(input_paths("11:22:33:44:55:66", root), [Path("/dev/input/event4"), Path("/dev/input/event5")])
+            self.assertEqual(input_paths("00:00:00:00:00:01", root), [Path("/dev/input/event4")])
 
 
 class AccessoryHttpTests(unittest.TestCase):

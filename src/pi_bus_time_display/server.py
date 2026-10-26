@@ -385,6 +385,9 @@ def write_config(path: Path, config: Config) -> None:
         f"display_background = {json.dumps(config.display_background)}",
         f"interface_size = {json.dumps(config.interface_size)}",
         f"settings_layout = {json.dumps(config.settings_layout)}",
+        f"touch_roon_bridge = {str(config.touch_roon_bridge).lower()}",
+        f"touch_airplay = {str(config.touch_airplay).lower()}",
+        f"touch_netdata = {str(config.touch_netdata).lower()}",
         f"portrait_discovery_columns = {config.portrait_discovery_columns}",
         f"landscape_music_clock = {json.dumps(config.landscape_music_clock)}",
         f"bus_enabled = {str(config.bus_enabled).lower()}",
@@ -857,8 +860,10 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "wifi_ssid": active_wifi,
         "network": network,
         "roon_bridge": roon_service,
-        "network_controls": {"roon_bridge": roon_service in {"active", "running"} or Path("/etc/runlevels/default/roonbridge").exists(),
-                             "netdata": netdata["service"] in {"active", "running"} or Path("/etc/runlevels/default/netdata").exists()},
+        # Chosen in web Settings → Display. The touchscreen shows a switch for each one that is on and installed.
+        "network_controls": {"roon_bridge": config.touch_roon_bridge if config else True,
+                             "airplay": config.touch_airplay if config else False,
+                             "netdata": config.touch_netdata if config else True},
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
         "airplay": airplay_service,
         "airplay_name": (state_dir / "airplay-name").read_text().strip() if (state_dir / "airplay-name").is_file() else "RoonDeck",
@@ -1040,6 +1045,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "display_background": config.display_background,
                     "interface_size": config.interface_size,
                     "settings_layout": config.settings_layout,
+                    "touch_roon_bridge": config.touch_roon_bridge,
+                    "touch_airplay": config.touch_airplay,
+                    "touch_netdata": config.touch_netdata,
                     "portrait_discovery_columns": config.portrait_discovery_columns,
                     "landscape_music_clock": config.landscape_music_clock,
                     "bus_enabled": config.bus_enabled,
@@ -1282,7 +1290,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     events.emit("display.wake.requested", view=state.awake_view)
                 self.send_json(200, json.dumps({"ok": True, "awake_seconds": state.config.outside_hours_wake_seconds}).encode())
                 return
-            if self.path in {"/api/device/service-visibility", "/api/device/roon-bridge", "/api/device/netdata", "/api/device/home-toggle", "/api/device/home-state", "/api/device/home-value"}:
+            if self.path in {"/api/device/service-visibility", "/api/device/roon-bridge", "/api/device/airplay", "/api/device/netdata", "/api/device/home-toggle", "/api/device/home-state", "/api/device/home-value"}:
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
                     self.send_json(403, b'{"error":"Touchscreen only"}')
                     return
@@ -1302,6 +1310,15 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         return
                     try:
                         write_control_request(mode_path.parent, {"action": "roon_start" if data["enabled"] else "roon_stop"})
+                    except (OSError, ValueError) as error:
+                        self.send_json(502, json.dumps({"error": str(error)}).encode())
+                        return
+                elif self.path == "/api/device/airplay":
+                    if type(data.get("enabled")) is not bool:
+                        self.send_json(400, b'{"error":"Choose whether AirPlay should run"}')
+                        return
+                    try:
+                        write_control_request(mode_path.parent, {"action": "airplay_start" if data["enabled"] else "airplay_stop"})
                     except (OSError, ValueError) as error:
                         self.send_json(502, json.dumps({"error": str(error)}).encode())
                         return
@@ -1500,6 +1517,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     display_background=str(data.get("display_background", current.display_background)),
                     interface_size=str(data.get("interface_size", current.interface_size)),
                     settings_layout=str(data.get("settings_layout", current.settings_layout)),
+                    touch_roon_bridge=bool(data.get("touch_roon_bridge", current.touch_roon_bridge)),
+                    touch_airplay=bool(data.get("touch_airplay", current.touch_airplay)),
+                    touch_netdata=bool(data.get("touch_netdata", current.touch_netdata)),
                     portrait_discovery_columns=int(data.get("portrait_discovery_columns", current.portrait_discovery_columns)),
                     landscape_music_clock=str(data.get("landscape_music_clock", current.landscape_music_clock)),
                     bus_enabled=bool(data.get("bus_enabled", current.bus_enabled)),

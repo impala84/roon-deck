@@ -40,13 +40,15 @@ async function refresh(fill = false) {
   byId('bluetooth-service').textContent = `Bluetooth service: ${data.bluetooth_service || 'Unknown'}${data.bluetooth_service === 'Running' ? data.bluetooth_adapter ? ' · Adapter available' : ' · No adapter detected; check the Pi Bluetooth radio and firmware.' : ''}`;
   const pairing = data.pairing || {status: 'idle', message: ''};
   if (pairing.status !== 'idle') message(pairing.message, 'dial');
-  if ((installation.status === 'installing' || pairing.status === 'pairing') && !installationTimer) {
+  const hint = byId('dial-hint'); hint.textContent = data.dial_hint || ''; hint.hidden = !data.dial_hint;
+  if (data.scanning && data.scan_message) message(data.scan_message, 'dial');
+  if ((installation.status === 'installing' || pairing.status === 'pairing' || data.scanning) && !installationTimer) {
     installationTimer = setTimeout(async () => {
       installationTimer = null;
       try { await refresh(); }
       catch (error) { message(error.message); }
     }, 2000);
-  } else if (installation.status !== 'installing' && pairing.status !== 'pairing' && installationTimer) {
+  } else if (installation.status !== 'installing' && pairing.status !== 'pairing' && !data.scanning && installationTimer) {
     clearTimeout(installationTimer); installationTimer = null;
   }
   if (previousInstallation === 'installing' && installation.status !== 'installing') (installation.features || []).forEach(feature => message(installation.message, feature));
@@ -63,7 +65,7 @@ async function refresh(fill = false) {
   byId('device').value = chosen;
   deviceStatus();
   byId('dial-status').textContent = `Roon controls: ${data.dial_status || 'Not running'}`;
-  document.querySelectorAll('[data-operation^="bluetooth_"]').forEach(button => { button.disabled = pairing.status === 'pairing'; });
+  document.querySelectorAll('[data-operation^="bluetooth_"]').forEach(button => { button.disabled = pairing.status === 'pairing' || Boolean(data.scanning); });
   if (!fill) return;
   byId('vpn-feature').checked = data.features.vpn;
   byId('dial-feature').checked = data.features.dial;

@@ -151,6 +151,10 @@ def key(value):
     raise ValueError("The WireGuard profile contains an invalid key.")
 
 
+class ProfileHint(ValueError):
+    """A specific, key-free message that is safe to show exactly as written."""
+
+
 def parse_profile(text, mode="full", subnets=""):
     if not isinstance(text, str) or len(text.encode()) > 16384 or "\x00" in text:
         raise ValueError("Choose a WireGuard configuration smaller than 16 KB.")
@@ -173,7 +177,7 @@ def parse_profile(text, mode="full", subnets=""):
         if not routes or len(routes) > 32: raise ValueError()
         if mode == "split" and any(ipaddress.ip_network(x).prefixlen == 0 for x in routes): raise ValueError()
         if mode == "full" and not any(ipaddress.ip_network(x).prefixlen == 0 for x in routes):
-            raise ValueError("Full Tunnel requires an AllowedIPs default route in the imported profile.")
+            raise ProfileHint("Full Tunnel requires an AllowedIPs default route in the imported profile. Choose Split Tunnel and list the home subnets instead.")
         endpoint = peer["endpoint"].strip()
         endpoint_host, port = endpoint.rsplit(":", 1)
         if not host(endpoint_host.strip("[]")) or not 1 <= int(port) <= 65535: raise ValueError()
@@ -186,6 +190,8 @@ def parse_profile(text, mode="full", subnets=""):
                   "preshared_key": key(peer["presharedkey"].strip()) if peer.get("presharedkey") else "",
                   "addresses": [str(x) for x in addresses], "dns": dns, "routes": routes,
                   "endpoint": endpoint, "mtu": mtu, "listen": listen, "keepalive": keepalive}
+    except ProfileHint:
+        raise
     except (KeyError, ValueError, TypeError) as exc:
         # Never echo profile text or an exception containing a key.
         raise ValueError("Check the profile keys, addresses, endpoint, routing mode and destination subnets.") from exc
@@ -244,6 +250,9 @@ class AccessoryManager:
         self.install_path = self.private / "installation.json"
         self.install_lock = threading.Lock()
         self.pair_lock = threading.Lock()
+        self.scan_lock = threading.Lock()
+        self.scan_note = ""
+        self.modules_path = self.root / "etc/modules"
         self.pairing = {"status": "idle", "message": ""}
         self.lock = threading.RLock()
         self.arm = arm or self.arm_rollback
@@ -255,6 +264,54 @@ class AccessoryManager:
     def support(self):
         return {"dial": (self.root / "usr/bin/bluetoothctl").is_file() and (self.root / "etc/init.d/bluetooth").is_file() and (self.root / "etc/init.d/roondeck-dial").is_file(),
                 "vpn": (self.root / "usr/bin/wg").is_file()}
+
+    def ensure_hid(self):
+        """The Dial reaches Linux as a Bluetooth HID device through /dev/uhid.
+
+        Without the uhid module it still connects (battery shows) but never sends input.
+        """
+        self.safe(["modprobe", "uhid"])
+        try:
+            text = self.modules_path.read_text() if self.modules_path.exists() else ""
+            if not re.search(r"^uhid\s*$", text, re.M):
+                atomic_text(self.modules_path, text + ("" if not text or text.endswith("\n") else "\n") + "uhid\n", 0o644)
+        except OSError:
+            pass
+
+    def dial_diagnostics(self, address=""):
+        inputs = []
+        for node in sorted((self.root / "sys/class/input").glob("event*")):
+            device = node / "device"
+            try:
+                name = (device / "name").read_text().strip()
+                uniq = (device / "uniq").read_text().strip().upper()
+            except OSError:
+                continue
+            if (address and uniq == address.upper()) or "surface dial" in name.lower():
+                inputs.append({"node": node.name, "name": name[:60], "address": uniq})
+        return {"uhid": (self.root / "dev/uhid").exists(), "inputs": inputs[:6]}
+
+    def expire_trial(self):
+        """A trial that outlived its watchdog (for example a reboot) must not block Connect."""
+        pending = load_json(self.pending_path, {})
+        if pending and time.time() > pending.get("deadline", 0) + 15:
+            try:
+                self.disconnect()
+            except (ValueError, OSError, subprocess.TimeoutExpired):
+                return
+            self.pending_path.unlink(missing_ok=True)
+
+    def scan_dial(self):
+        try:
+            self.run(["rc-service", "bluetooth", "start"])
+            self.run(["bluetoothctl", "power", "on"])
+            self.run(["bluetoothctl", "--timeout", "8", "scan", "on"])
+        except ValueError as error:
+            self.scan_note = str(error)[:200]
+        except Exception:
+            self.scan_note = "Bluetooth scan could not finish. Refresh status and retry."
+        finally:
+            self.scan_lock.release()
 
     def installation(self):
         record = load_json(self.install_path, {})
@@ -277,6 +334,7 @@ class AccessoryManager:
             if features["vpn"]: packages += ["wireguard-tools-wg"]
             self.run(["apk", "add", "--no-cache", *packages])
             if features["dial"]:
+                self.ensure_hid()
                 source = Path(__file__).resolve().parents[2] / "appliance/alpine/init.d/roondeck-dial"
                 if not source.is_file(): source = self.root / "opt/pi-home/appliance/alpine/init.d/roondeck-dial"
                 atomic_text(self.root / "etc/init.d/roondeck-dial", source.read_text(), 0o755)
@@ -353,6 +411,8 @@ class AccessoryManager:
         return devices
 
     def status(self):
+        try: self.expire_trial()
+        except (ValueError, OSError): pass
         meta = load_json(self.meta_path, {})
         features = load_json(self.features_path, {})
         pending = load_json(self.pending_path, {})
@@ -366,6 +426,11 @@ class AccessoryManager:
         except ValueError: dial = dict(DEFAULT_DIAL)
         support = self.support()
         bluetooth_running = features.get("dial") is True and support["dial"] and bool(self.safe(["rc-service", "bluetooth", "status"]))
+        devices = self.devices() if bluetooth_running else []
+        diagnostics = self.dial_diagnostics(dial["address"])
+        hint = ""
+        if dial["enabled"] and any(device["connected"] for device in devices) and not diagnostics["inputs"]:
+            hint = "Bluetooth is connected, but the Pi created no input device for the Dial." + ("" if diagnostics["uhid"] else " Bluetooth HID support was missing and is loaded now: choose Disconnect, then Connect.")
         return {"ok": True, "features": {name: features.get(name) is True for name in ("vpn", "dial")},
                 "installed": all(support[name] for name in ("vpn", "dial") if features.get(name) is True),
                 "support": support, "installation": self.installation(), "pairing": dict(self.pairing),
@@ -379,7 +444,8 @@ class AccessoryManager:
                         "handshake_age": max(0, round(time.time() - newest)) if newest else None,
                         "received": sum(int(x[1]) for x in counters), "sent": sum(int(x[2]) for x in counters),
                         "pending_token": pending.get("token", ""), "confirm_seconds": max(0, round(pending.get("deadline", 0) - time.time()))},
-                "dial": dial, "devices": self.devices() if bluetooth_running else [],
+                "dial": dial, "devices": devices, "dial_diagnostics": diagnostics, "dial_hint": hint,
+                "scanning": self.scan_lock.locked(), "scan_message": self.scan_note,
                 "dial_status": str(load_json(self.root / "var/lib/pi-home/dial-status.json", {}).get("message", "Not running"))[:200],
                 "haptics_supported": False}
 
@@ -398,8 +464,11 @@ class AccessoryManager:
             action = data.get("operation", "status")
             if action not in ACTIONS: raise ValueError("Unknown accessory operation.")
             if action == "status": return self.status()
-            if self.pair_lock.locked() and action != "status":
+            # Disconnecting the VPN is a safety action and never waits for Bluetooth.
+            if self.pair_lock.locked() and action not in {"status", "vpn_disconnect"}:
                 raise ValueError("Wait for Surface Dial pairing to finish.")
+            if self.scan_lock.locked() and action.startswith("bluetooth_") and action != "bluetooth_scan":
+                raise ValueError("Wait for the Bluetooth scan to finish.")
             if action == "features_save":
                 values = data.get("features", {})
                 if not isinstance(values, dict): raise ValueError("Choose supported optional features.")
@@ -419,6 +488,7 @@ class AccessoryManager:
                 atomic_json(self.features_path, features)
                 atomic_json(self.visible_features_path, features, 0o644)
                 if features["dial"] and self.support()["dial"]:
+                    self.ensure_hid()
                     self.safe(["rc-service", "bluetooth", "start"])
                 return {"ok": True}
             if action == "install":
@@ -457,6 +527,7 @@ class AccessoryManager:
                 atomic_json(self.meta_path, meta)
                 return {"ok": True}
             if action == "vpn_connect":
+                self.expire_trial()
                 if not self.profile_path.exists(): raise ValueError("Import a WireGuard profile first.")
                 if self.pending_path.exists(): raise ValueError("Confirm or disconnect the current trial first.")
                 self.run(["nmcli", "connection", "modify", PROFILE, "connection.autoconnect", "no"])
@@ -496,14 +567,22 @@ class AccessoryManager:
                 except (OSError, ValueError): result["roon_connected"] = False
                 return {"ok": True, "diagnostics": result, "note": "Tunnel connectivity does not prove Roon Bridge discovery or audio playback."}
             if action == "bluetooth_scan":
-                self.run(["rc-service", "bluetooth", "start"])
-                self.run(["bluetoothctl", "power", "on"])
-                self.run(["bluetoothctl", "--timeout", "8", "scan", "on"])
-                return {"ok": True, "devices": self.devices()}
+                # Scanning takes ~10 s. Run it in the background so the one-at-a-time
+                # root helper stays available for Wi-Fi, updates and the VPN.
+                if not self.scan_lock.acquire(blocking=False): return {"ok": True, "scanning": True}
+                self.scan_note = ""
+                try:
+                    self.ensure_hid()
+                    threading.Thread(target=self.scan_dial, daemon=True).start()
+                except Exception:
+                    self.scan_lock.release()
+                    raise
+                return {"ok": True, "scanning": True}
             if action.startswith("bluetooth_"):
                 address = str(data.get("address", "")).upper()
                 if not ADDRESS.fullmatch(address) or address not in {x["address"] for x in self.devices()}: raise ValueError("Choose a discovered Surface Dial.")
                 if action == "bluetooth_pair":
+                    self.ensure_hid()
                     self.pair_lock.acquire()
                     self.pairing = {"status": "pairing", "message": "Pairing Surface Dial… Keep its pairing light flashing."}
                     try:
@@ -514,6 +593,7 @@ class AccessoryManager:
                     return {"ok": True, "pairing": True}
                 else:
                     verb = {"bluetooth_connect": "connect", "bluetooth_disconnect": "disconnect", "bluetooth_forget": "remove"}[action]
+                    if action == "bluetooth_connect": self.ensure_hid()
                     self.run(["bluetoothctl", verb, address])
                 if action in {"bluetooth_disconnect", "bluetooth_forget"}:
                     config = load_json(self.dial_path, DEFAULT_DIAL)
@@ -530,6 +610,7 @@ class AccessoryManager:
                     raise ValueError("Pair the selected Dial before enabling controls.")
                 atomic_json(self.dial_path, config, 0o644)
                 if config["enabled"]:
+                    self.ensure_hid()
                     self.run(["rc-update", "add", "bluetooth", "default"])
                     self.run(["rc-update", "add", "roondeck-dial", "default"])
                     self.run(["rc-service", "roondeck-dial", "restart"])

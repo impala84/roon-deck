@@ -74,17 +74,21 @@ class Gestures:
 
 
 def input_paths(address, sysroot=Path("/sys/class/input")):
-    # Match the explicitly paired device, not just a similarly named knob.
+    """Input nodes for the explicitly paired Dial.
+
+    Bluetooth HID devices carry the adapter-visible address as "uniq", which is exact. Some kernels leave it
+    blank, so a device named Surface Dial with no address is accepted too. Vendor/product IDs differ between
+    USB and Bluetooth, so they are not required.
+    """
     result = []
     for node in sysroot.glob("event*"):
-        try:
-            device = node / "device"
-            if (device / "id/vendor").read_text().strip().lower() != "045e": continue
-            if (device / "id/product").read_text().strip().lower() != "091b": continue
-            if (device / "uniq").read_text().strip().upper() != address.upper(): continue
+        device = node / "device"
+        try: uniq = (device / "uniq").read_text().strip().upper()
+        except OSError: uniq = ""
+        try: name = (device / "name").read_text().strip().lower()
+        except OSError: name = ""
+        if uniq == address.upper() or (not uniq and "surface dial" in name):
             result.append(Path("/dev/input") / node.name)
-        except OSError:
-            continue
     return sorted(result)
 
 
@@ -130,7 +134,8 @@ def main():
                 continue
             paths = input_paths(config["address"])
             if not paths:
-                status("Waiting for paired Surface Dial input.")
+                status("Waiting for paired Surface Dial input." if Path("/dev/uhid").exists() else
+                       "Bluetooth HID support (uhid) is missing. In web Settings choose Disconnect, then Connect.")
                 time.sleep(2)
                 continue
             # A Surface Dial may expose more than one collection. Open all
@@ -145,7 +150,8 @@ def main():
                 while True:
                     now = time.monotonic()
                     if now >= next_config:
-                        if load_json(settings, DEFAULT_DIAL) != config: break
+                        # Compare normalised values so extra or missing keys cannot make this restart every second.
+                        if dial_config(load_json(settings, DEFAULT_DIAL)) != config: break
                         next_config = now + 1
                         if any(not path.exists() for path in paths): break
                     ready, _, _ = select.select(files, [], [], .04)
