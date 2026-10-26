@@ -239,6 +239,12 @@ class ManagerTests(unittest.TestCase):
             time.sleep(.01)
         self.assertFalse(self.manager.status()['scanning'])
 
+    def test_heal_dial_reconnects_once_hid_support_exists(self):
+        self.dial_support()
+        with patch('time.sleep'):
+            self.assertTrue(self.manager.heal_dial('AA:BB:CC:DD:EE:FF'))
+        self.assertLess(self.calls.index(['bluetoothctl', 'disconnect', 'AA:BB:CC:DD:EE:FF']), self.calls.index(['bluetoothctl', 'connect', 'AA:BB:CC:DD:EE:FF']))
+
     def test_dial_support_loads_uhid_and_persists_it(self):
         self.dial_support()
         self.manager.handle({'operation': 'bluetooth_scan'})
@@ -249,7 +255,7 @@ class ManagerTests(unittest.TestCase):
         self.assertEqual((self.manager.root / 'etc/modules').read_text().split(), ['uhid', 'hid_generic', 'evdev'])
 
     def test_connected_dial_without_an_input_device_explains_why(self):
-        self.dial_support()
+        self.dial_support(); self.manager.auto_heal = False
         address = 'AA:BB:CC:DD:EE:FF'
         atomic_json(self.manager.dial_path, dict(DEFAULT_DIAL, enabled=True, address=address), 0o644)
         original = self.manager.run

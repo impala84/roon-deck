@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.7 Alpine — 27 October 2026
+
+- Surface Dial: when Bluetooth is connected but the Pi has no input device (the Dial connected before HID support was loaded, so `bluetoothd` logged "input-hog profile accept failed"), reconnect the Dial automatically once HID support is present, at most once every two minutes. Confirmed on hardware that a manual disconnect and connect creates the Dial's input devices.
+
 ## 1.1.8-beta.6 Alpine — 27 October 2026
 
 - 10-inch portrait album page: the cover is nearly half the screen width, with a larger title, artist, Play Album button and summary beside it.

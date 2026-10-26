@@ -252,6 +252,8 @@ class AccessoryManager:
         self.pair_lock = threading.Lock()
         self.scan_lock = threading.Lock()
         self.scan_note = ""
+        self.auto_heal = True
+        self.last_heal = 0.0
         self.modules_path = self.root / "etc/modules"
         self.pairing = {"status": "idle", "message": ""}
         self.lock = threading.RLock()
@@ -283,6 +285,17 @@ class AccessoryManager:
                 atomic_text(self.modules_path, text + ("" if not text or text.endswith("\n") else "\n") + "\n".join(missing) + "\n", 0o644)
         except OSError:
             pass
+
+    def heal_dial(self, address):
+        """Reconnect a Dial that connected before HID support existed; BlueZ only creates its input device on connect."""
+        if not self.pair_lock.acquire(blocking=False): return False
+        try:
+            self.ensure_hid()
+            self.safe(["bluetoothctl", "disconnect", address]); time.sleep(2)
+            self.safe(["bluetoothctl", "connect", address])
+            return True
+        finally:
+            self.pair_lock.release()
 
     def dial_diagnostics(self, address=""):
         inputs = []
@@ -448,6 +461,13 @@ class AccessoryManager:
             else:
                 reason = "Bluetooth did not create a HID device. Choose Disconnect, then Connect. If this stays, Forget the Dial and Pair it again."
             hint = "Bluetooth is connected, but the Pi created no input device for the Dial. " + reason
+            # With the HID drivers present, one automatic reconnect lets BlueZ create the input device.
+            if self.auto_heal and diagnostics["uhid"] and diagnostics["hid_driver"] and not diagnostics["hid_devices"] and not self.scan_lock.locked() \
+                    and not self.pair_lock.locked() and time.monotonic() - self.last_heal > 120:
+                self.last_heal = time.monotonic()
+                connected = next(device["address"] for device in devices if device["connected"])
+                threading.Thread(target=self.heal_dial, args=(connected,), daemon=True).start()
+                hint += " Reconnecting the Dial automatically; check again in a few seconds."
         return {"ok": True, "features": {name: features.get(name) is True for name in ("vpn", "dial")},
                 "installed": all(support[name] for name in ("vpn", "dial") if features.get(name) is True),
                 "support": support, "installation": self.installation(), "pairing": dict(self.pairing),
