@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.7 Alpine — 26 October 2026
+
+RoonDeck 1.1.7 Alpine is a full clean-install ARM64 image for Raspberry Pi, rolling up beta.102 to beta.117.
+
+- Cursor: the pointer no longer appears on touch. The action menu is drawn inside the window instead of as a separate popup, which was what made the cursor flash.
+- Browse: the action menu opens beside your finger, and dismissing it no longer jumps the page to the top. Genre pages have a two-column layout with Shuffle, Artists and Albums buttons. Album and artist pages are tidied for the 800×480 display. Album write-ups show three lines.
+- Settings: the system performance graph fits on the 7-inch Gen 2 and 10-inch displays, with a compact layout and thinner lines. A new backend option chooses the graph or the simpler Settings layout. Network Controls no longer disappears between refreshes.
+- Now Playing no longer jumps to the track while you are browsing, and the return-to-Now-Playing timer counts from your last touch.
+- Startup: the interface size and theme are applied before the first frame, so there is no rescale flash. The boot logo is sized for the 10-inch display.
+- Bus Times: following buses are larger on the 10-inch display.
+- Fixes the album write-up error from beta.103.
+
 ## 1.1.7-beta.117 Alpine — 26 October 2026
 
 - Album page: the album write-up could never appear. Beta.103 added a line that used a variable from a different method, so when the write-up finished loading the display raised an error and the page stayed on "Loading album summary…". It now uses the same 800x480 test as the rest of the page.
