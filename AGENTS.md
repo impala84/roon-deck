@@ -10,29 +10,28 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
 ### Where releases come from
 
 - Current development is the Beta channel. Commit and push beta work to
-  `hotfix/beta27-physical-baseline`, not `main`. `main` is behind and is not
-  what the Pi installs while on Beta.
-- The Pi's Beta channel installs the newest published GitHub **prerelease**
-  whose tag ends in `-alpine`, at that tag's exact commit. It does not require
-  the Alpine verification workflow to pass (see `appliance/alpine/updater.py`).
+  `hotfix/beta27-physical-baseline`. `main` was merged with the beta line on
+  26 October 2026 and carries the same code plus the project website; the Pi
+  installs tagged releases, not a branch. Bring `main` up to date with a normal
+  merge (never a force-push) when the user asks.
+- The Pi's Beta channel installs the newest published GitHub **prerelease** that
+  is tagged `v1.1.7-beta.N` (releases up to beta.91 end in `-alpine`; the updater
+  accepts both), at that tag's exact commit. It does not require the Alpine
+  verification workflow to pass (see `appliance/alpine/updater.py`).
 - Stable is different: it requires a passing Alpine verification run and is
   released only when the user asks for a stable release.
 
 ### Steps for a beta release
 
 1. Implement and verify the change locally (see the checks below).
-2. Bump the version to the next `1.1.7-beta.N` in `pyproject.toml`,
-   `src/pi_bus_time_display/__init__.py`, `README.md`,
-   `roon-controller/package.json` and `roon-controller/package-lock.json`
-   (two places), and add a `## 1.1.7-beta.N Alpine — <date>` entry at the top
-   of `CHANGELOG.md`. Update affected web asset cache versions.
-3. Commit, `git pull --rebase` onto the latest
-   `origin/hotfix/beta27-physical-baseline` (other tools may have pushed), rerun
-   the tests, then push.
-4. Publish the prerelease (this creates the tag too):
-   `gh release create v1.1.7-beta.N-alpine --repo impala84/roon-deck --target hotfix/beta27-physical-baseline --prerelease --title "1.1.7-beta.N Alpine" --notes "<changelog entry>"`
-5. Confirm it is listed with `gh release list --repo impala84/roon-deck --limit 3`
-   before telling the user it is available through the updater.
+2. Add a `## 1.1.7-beta.N Alpine — <date>` entry at the top of `CHANGELOG.md`
+   (N is the next number; check `gh release list --repo impala84/roon-deck`).
+3. Run `tools/release-beta` from the `hotfix/beta27-physical-baseline` branch.
+   It bumps the version in every file, runs `tools/check fast`, commits,
+   rebases onto the latest `origin/hotfix/beta27-physical-baseline`, pushes
+   (never forced), publishes the prerelease with the changelog entry as its
+   notes, and confirms it is listed. `tools/release-beta --dry-run` shows what
+   it would do. Update affected web asset cache versions yourself first.
 
 ### Limits
 
