@@ -17,7 +17,7 @@ installation and its existing Roon Bridge configuration intact while testing.
    Bluetooth Accessories**. The touchscreen also has **Remote Access &
    Bluetooth** in its Settings scroll area.
 3. Use the backend **Enable optional features** switches to enable WireGuard and/or Surface Dial support, then save. Their touchscreen controls appear only while enabled. Turning support off disconnects the VPN or stops Dial controls while retaining profiles/pairing. Roon Bridge and Netdata controls likewise appear on the touchscreen only while enabled in the backend.
-4. Choose **Install optional support** once. This installs Alpine's BlueZ,
+4. Choose **Install optional support** once and wait for the progress message to finish. Beta.2 keeps the page responsive during downloads, installs packages only for the enabled features and starts the Bluetooth service after installation. The Bluetooth service/adapter status is shown separately; a running service without an adapter needs a Pi radio/firmware check before pairing. This installs Alpine's BlueZ,
    Broadcom firmware and WireGuard diagnostic tool, and the disabled Dial
    service. It does not pair anything, enable a VPN, reinstall Roon Bridge,
    change audio settings or change the Mac's network.

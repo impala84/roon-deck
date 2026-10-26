@@ -100,6 +100,7 @@ candidate() {
   docker run --rm -v "$source_archive:/tmp/pi-home-update-source.tar.gz:ro" \
     "$appliance_image" python3 appliance/alpine/updater_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/update_button_smoke.py
+  docker run --rm "$appliance_image" python3 appliance/alpine/accessory_helper_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/cursor_smoke.py
   docker run --rm "$appliance_image" sh -ec \
     'apk add --no-cache xvfb-run >/dev/null && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'

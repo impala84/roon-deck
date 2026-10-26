@@ -9,6 +9,7 @@
 <label class="check"><input type="checkbox" id="dial-feature"> Enable Surface Dial support</label>
 <small>Only enabled features appear on the touchscreen Settings page. Turning support off also disconnects the VPN or stops Dial controls. Profiles and pairing are kept.</small><button type="submit">Save enabled features</button></form></section>
 <p><button type="button" id="refresh">Refresh status</button> <button type="button" id="install">Install optional support</button></p>
+<p id="support-status" role="status" aria-live="polite"></p>
 <small>Support packages are installed only when requested. Both features stay off until you enable them. Your existing Roon Bridge is preserved.</small>
 <section id="vpn-section" aria-labelledby="remote-title" hidden><h2 id="remote-title">Network & Remote Access</h2>
 <p id="vpn-status">Disconnected</p><dl id="vpn-details"></dl>
@@ -26,6 +27,7 @@
 <pre id="diagnostics" aria-live="polite"></pre></section>
 <section id="dial-section" aria-labelledby="bluetooth-title" hidden><h2 id="bluetooth-title">Bluetooth Accessories</h2>
 <p>Put your Surface Dial in pairing mode, then scan.</p><button type="button" data-operation="bluetooth_scan">Scan for Surface Dial</button>
+<p id="bluetooth-service" role="status"></p>
 <label>Surface Dial<select id="device"><option value="">Choose a discovered Dial</option></select></label><p id="device-status"></p>
 <p id="dial-status" role="status"></p>
 <div class="accessory-actions"><button type="button" data-operation="bluetooth_pair">Pair</button><button type="button" data-operation="bluetooth_connect">Connect</button><button type="button" data-operation="bluetooth_disconnect" class="secondary">Disconnect</button><button type="button" data-operation="bluetooth_forget" class="secondary">Forget</button></div>
@@ -38,4 +40,4 @@
 <small>Use the output's Roon volume units (for example dB or 0–100). This limit applies to Dial adjustments. Fixed-volume outputs cannot be adjusted.</small>
 <label>Single press<select id="single"></select></label><label>Double press<select id="double"></select></label><label>Long press<select id="long"></select></label>
 <small>Single presses wait briefly to distinguish a double press. Haptics are not enabled in this beta. Pairing never changes volume.</small><button type="submit">Save Dial configuration</button></form></section>
-<script src="/accessories.js?v=1" defer></script></main></body></html>
+<script src="/accessories.js?v=2" defer></script></main></body></html>

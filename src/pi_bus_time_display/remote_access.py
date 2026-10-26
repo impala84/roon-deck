@@ -33,8 +33,15 @@ ACTIONS = {"status", "install", "features_save", "vpn_import", "vpn_connect", "v
 
 
 def run_command(args):
+    # bluetoothctl waits indefinitely for org.bluez when D-Bus is running but
+    # bluetoothd is stopped. Read-only status must never block the RPC helper.
+    timeout = 180 if args[0] == "apk" else 30 if args[:1] == ["nmcli"] and "up" in args else 15
+    if args[0] == "bluetoothctl":
+        timeout = 40 if "pair" in args else 12 if "scan" in args else 3
+    if args[0] == "wg" or args[:2] == ["nmcli", "-g"] or args[:3] == ["rc-service", "bluetooth", "status"]:
+        timeout = 3
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=50)
+        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError("The system operation is unavailable or timed out.") from exc
     if result.returncode:
@@ -188,12 +195,54 @@ class AccessoryManager:
         self.pending_path = self.private / "pending.json"
         self.profile_path = self.root / f"etc/NetworkManager/system-connections/{PROFILE}.nmconnection"
         self.dial_path = self.root / "var/lib/pi-home/accessories.json"
+        self.install_path = self.private / "installation.json"
+        self.install_lock = threading.Lock()
         self.lock = threading.RLock()
         self.arm = arm or self.arm_rollback
 
     def safe(self, args):
         try: return self.run(args)
         except (ValueError, OSError, subprocess.TimeoutExpired): return ""
+
+    def support(self):
+        return {"dial": (self.root / "usr/bin/bluetoothctl").is_file() and (self.root / "etc/init.d/bluetooth").is_file() and (self.root / "etc/init.d/roondeck-dial").is_file(),
+                "vpn": (self.root / "usr/bin/wg").is_file()}
+
+    def installation(self):
+        record = load_json(self.install_path, {})
+        state = record.get("status", "idle")
+        message = record.get("message", "")
+        if state == "installing" and not self.install_lock.locked():
+            try:
+                pid = int(record.get("owner_pid", 0))
+                if pid <= 0: raise ValueError()
+                if pid == os.getpid(): raise ValueError()
+                os.kill(pid, 0)
+            except (OSError, ValueError, TypeError):
+                state, message = "error", "Support installation was interrupted. Install optional support again."
+        return {"status": state, "message": str(message)[:200]}
+
+    def install_support(self, features):
+        try:
+            packages = []
+            if features["dial"]: packages += ["bluez", "bluez-openrc", "linux-firmware-brcm"]
+            if features["vpn"]: packages += ["wireguard-tools-wg"]
+            self.run(["apk", "add", "--no-cache", *packages])
+            if features["dial"]:
+                source = Path(__file__).resolve().parents[2] / "appliance/alpine/init.d/roondeck-dial"
+                if not source.is_file(): source = self.root / "opt/pi-home/appliance/alpine/init.d/roondeck-dial"
+                atomic_text(self.root / "etc/init.d/roondeck-dial", source.read_text(), 0o755)
+                if load_json(self.features_path, {}).get("dial") is True:
+                    self.run(["rc-service", "bluetooth", "start"])
+            installed = self.support()
+            if any(enabled and not installed[name] for name, enabled in features.items()):
+                raise ValueError("Support packages could not be verified.")
+            atomic_json(self.install_path, {"status": "ready", "message": "Optional support installed. Check Bluetooth service and adapter status, then scan for the Dial."})
+        except Exception:
+            # Never expose installer output, profiles, or command arguments.
+            atomic_json(self.install_path, {"status": "error", "message": "Could not install or start optional support. Check the network, free space and Bluetooth service, then retry."})
+        finally:
+            self.install_lock.release()
 
     def arm_rollback(self, token):
         subprocess.Popen([sys.executable, "/opt/pi-home/appliance/alpine/remote_rollback.py", token],
@@ -253,9 +302,13 @@ class AccessoryManager:
         counters = [x.split() for x in transfer.splitlines() if len(x.split()) == 3 and all(y.isdigit() for y in x.split()[1:])]
         try: dial = dial_config(load_json(self.dial_path, DEFAULT_DIAL))
         except ValueError: dial = dict(DEFAULT_DIAL)
+        support = self.support()
+        bluetooth_running = features.get("dial") is True and support["dial"] and bool(self.safe(["rc-service", "bluetooth", "status"]))
         return {"ok": True, "features": {name: features.get(name) is True for name in ("vpn", "dial")},
-                "installed": (self.root / "usr/bin/bluetoothctl").exists() and (self.root / "usr/bin/wg").exists(),
-                "bluetooth_adapter": bool(self.safe(["bluetoothctl", "list"])) if features.get("dial") else False,
+                "installed": all(support[name] for name in ("vpn", "dial") if features.get(name) is True),
+                "support": support, "installation": self.installation(),
+                "bluetooth_service": "Running" if bluetooth_running else "Stopped" if support["dial"] else "Not installed",
+                "bluetooth_adapter": bool(self.safe(["bluetoothctl", "list"])) if bluetooth_running else False,
                 "vpn": {"configured": self.profile_path.exists(), "active": active,
                         "status": "Connected" if active and newest and time.time() - newest < 180 else "Connecting" if active else "Disconnected",
                         "address": self.safe(["nmcli", "-g", "IP4.ADDRESS,IP6.ADDRESS", "device", "show", INTERFACE]) if active else "",
@@ -264,7 +317,7 @@ class AccessoryManager:
                         "handshake_age": max(0, round(time.time() - newest)) if newest else None,
                         "received": sum(int(x[1]) for x in counters), "sent": sum(int(x[2]) for x in counters),
                         "pending_token": pending.get("token", ""), "confirm_seconds": max(0, round(pending.get("deadline", 0) - time.time()))},
-                "dial": dial, "devices": self.devices() if features.get("dial") else [],
+                "dial": dial, "devices": self.devices() if bluetooth_running else [],
                 "dial_status": str(load_json(self.root / "var/lib/pi-home/dial-status.json", {}).get("message", "Not running"))[:200],
                 "haptics_supported": False}
 
@@ -301,20 +354,29 @@ class AccessoryManager:
                 # touchscreen visibility; operations enforce the root copy.
                 atomic_json(self.features_path, features)
                 atomic_json(self.visible_features_path, features, 0o644)
+                if features["dial"] and self.support()["dial"]:
+                    self.safe(["rc-service", "bluetooth", "start"])
                 return {"ok": True}
             if action == "install":
-                self.run(["apk", "add", "--no-cache", "bluez", "bluez-openrc", "linux-firmware-brcm", "wireguard-tools-wg"])
-                source = Path(__file__).resolve().parents[2] / "appliance/alpine/init.d/roondeck-dial"
-                # Installed Python modules live in the venv; service templates
-                # always come from the active application, including upgrades.
-                if not source.is_file(): source = self.root / "opt/pi-home/appliance/alpine/init.d/roondeck-dial"
-                atomic_text(self.root / "etc/init.d/roondeck-dial", source.read_text(), 0o755)
-                # No pairing, Dial service, VPN, or Roon Bridge changes here.
-                return {"ok": True}
+                features = load_json(self.features_path, {})
+                features = {name: features.get(name) is True for name in ("vpn", "dial")}
+                if not any(features.values()): raise ValueError("Enable WireGuard or Surface Dial support first.")
+                if not self.install_lock.acquire(blocking=False): return {"ok": True, "queued": False}
+                try:
+                    atomic_json(self.install_path, {"status": "installing", "owner_pid": os.getpid(), "message": "Installing support for the enabled features…"})
+                    threading.Thread(target=self.install_support, args=(features,), daemon=True).start()
+                except Exception:
+                    self.install_lock.release()
+                    raise
+                return {"ok": True, "queued": True}
             features = load_json(self.features_path, {})
             feature = "vpn" if action.startswith("vpn_") or action == "diagnostics" else "dial"
             if features.get(feature) is not True:
                 raise ValueError("Enable this feature in web Settings first.")
+            if self.install_lock.locked() and action != "vpn_disconnect":
+                raise ValueError("Optional support is still installing. Wait for installation to finish.")
+            if feature == "dial" and not self.support()["dial"]:
+                raise ValueError("Install Bluetooth support first using Install optional support.")
             if action == "vpn_import":
                 if self.pending_path.exists() or self.status()["vpn"]["active"]: raise ValueError("Disconnect Remote Access before replacing its profile.")
                 mode = data.get("mode", "full")

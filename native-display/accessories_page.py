@@ -145,6 +145,8 @@ class AccessoriesPageMixin:
             message = " · ".join(f"{labels.get(name, name)}: {'not configured' if value is None else 'yes' if value else 'no'}" for name, value in result["diagnostics"].items())
         self.accessory_message.set_text(message)
         if not snapshot: return False
+        if snapshot.get("installation", {}).get("status") in {"installing", "error"}:
+            self.accessory_message.set_text(snapshot["installation"]["message"])
         self.accessory_snapshot = snapshot
         self.sync_accessory_visibility(snapshot.get("features", {}))
         self.accessory_dial_status.set_text(snapshot.get("dial_status", "Not running"))

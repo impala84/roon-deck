@@ -5,11 +5,12 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
 
-from pi_bus_time_display.remote_access import AccessoryManager, DEFAULT_DIAL, atomic_json, dial_config, keyfile, parse_profile
+from pi_bus_time_display.remote_access import AccessoryManager, DEFAULT_DIAL, atomic_json, dial_config, keyfile, parse_profile, run_command
 from pi_bus_time_display.surface_dial import Gestures, EV_KEY, EV_REL, EV_SYN, REL_DIAL, BTN_0, SYN_DROPPED, input_paths
 from pi_bus_time_display.server import State, make_handler
 from pi_bus_time_display.config import Config
@@ -148,6 +149,59 @@ class ManagerTests(unittest.TestCase):
         self.manager.features_path.unlink()
         self.assertEqual(self.manager.status()["features"], {"vpn": False, "dial": False})
         with self.assertRaisesRegex(ValueError, "web Settings"): self.manager.handle({"operation": "dial_save", "config": {}})
+
+    def create_dial_support(self):
+        for relative in ("usr/bin/bluetoothctl", "etc/init.d/bluetooth", "etc/init.d/roondeck-dial"):
+            path = self.manager.root / relative; path.parent.mkdir(parents=True, exist_ok=True); path.touch()
+
+    def test_stopped_bluetooth_never_invokes_the_blocking_client(self):
+        self.create_dial_support()
+        self.calls.clear()
+        result = self.manager.status()
+        self.assertEqual(result["bluetooth_service"], "Stopped")
+        self.assertEqual(result["devices"], [])
+        self.assertFalse(any(call[0] == "bluetoothctl" for call in self.calls))
+
+    def test_installation_returns_promptly_and_status_remains_available(self):
+        entered, finish = threading.Event(), threading.Event()
+        self.manager.handle({"operation": "features_save", "features": {"dial": True, "vpn": False}})
+        def install(args):
+            if args[0] == "apk":
+                self.assertNotIn("wireguard-tools-wg", args)
+                entered.set(); finish.wait(3); self.create_dial_support()
+            return self.run_system(args)
+        self.manager.run = install
+        result = self.manager.handle({"operation": "install"})
+        self.assertTrue(result["queued"])
+        self.assertTrue(entered.wait(1))
+        try:
+            self.assertEqual(self.manager.handle({"operation": "status"})["installation"]["status"], "installing")
+            self.assertFalse(self.manager.handle({"operation": "install"})["queued"])
+        finally:
+            finish.set()
+        for _ in range(100):
+            if not self.manager.install_lock.locked(): break
+            time.sleep(.01)
+        self.assertEqual(self.manager.status()["installation"]["status"], "ready")
+        self.assertIn(["rc-service", "bluetooth", "start"], self.calls)
+        self.assertTrue(self.manager.status()["installed"])
+
+    def test_installation_errors_are_visible_and_do_not_expose_output(self):
+        def fail(args): raise ValueError("private installer output")
+        self.manager.run = fail
+        self.manager.handle({"operation": "install"})
+        for _ in range(100):
+            if not self.manager.install_lock.locked(): break
+            time.sleep(.01)
+        result = self.manager.status()["installation"]
+        self.assertEqual(result["status"], "error")
+        self.assertNotIn("private installer", result["message"])
+
+    def test_bluetooth_status_client_has_a_short_deadline(self):
+        with patch("pi_bus_time_display.remote_access.subprocess.run") as run:
+            run.return_value.returncode = 0; run.return_value.stdout = ""
+            run_command(["bluetoothctl", "list"])
+        self.assertLessEqual(run.call_args.kwargs["timeout"], 3)
 
 
 class GestureTests(unittest.TestCase):

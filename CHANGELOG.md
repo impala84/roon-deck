@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.8-beta.2 Alpine — 26 October 2026
+
+- Fixes the Remote & Bluetooth helper timeout after installing support. With D-Bus running but Bluetooth stopped, bluetoothctl could wait indefinitely; repeated status checks exhausted the web request deadline. Status now checks service readiness first and bounds read-only commands to three seconds.
+- Starts Bluetooth after installing its support packages. Installation runs in the background with visible progress and errors, and installs only the packages needed by the enabled features. The page reports Bluetooth service and adapter status separately.
+- Keeps the root helper alive when a browser closes or times out before its response arrives. Adds a real HTTP/private-socket regression check with Bluetooth installed but stopped and an abandoned client.
+- Preserves all VPN profiles, pairing, existing Roon Bridge configuration and custom tile colours. Physical Dial pairing/input still requires testing on the Pi.
+
 ## 1.1.8-beta.1 Alpine — 26 October 2026
 
 - Adds optional Surface Dial controls using the existing Roon connection: selected-zone or specific-output targeting, sensitivity, bounded acceleration, a Dial volume ceiling and configurable single/double/long press actions. Fixed-volume and unavailable outputs report an error instead of changing the Pi mixer. Pairing never changes volume.

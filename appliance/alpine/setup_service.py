@@ -672,6 +672,8 @@ class Setup:
                 raise ValueError("Wait for the current software operation to finish.")
             if self.accessories is None: self.accessories = AccessoryManager(self.root)
             return self.accessories.handle(data)
+        if self.accessories is not None and self.accessories.install_lock.locked() and action in {"update", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install", "reboot"}:
+            raise ValueError("Wait for optional support installation to finish.")
         if action == "status":
             if state.get("software_status", "").startswith("Installing") and not self.software_lock.locked():
                 state.update(software=False, software_status="Installation was interrupted. Retry to continue."); self.save(state)
@@ -1054,7 +1056,12 @@ def serve():
                     result = {"ok": False, "error": str(error)}
                 except (TypeError, OSError, subprocess.TimeoutExpired):
                     result = {"ok": False, "error": "Could not apply this step. Check your settings and connection, then try again."}
-                connection.sendall((json.dumps(result) + "\n").encode())
+                try:
+                    connection.sendall((json.dumps(result) + "\n").encode())
+                except OSError:
+                    # A page timing out/closing must not terminate the root
+                    # helper and make every subsequent system action fail.
+                    pass
 
 
 if __name__ == "__main__": serve()

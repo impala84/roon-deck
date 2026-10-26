@@ -2,6 +2,7 @@
 const byId = id => document.getElementById(id);
 let snapshot = null;
 let busy = false;
+let installationTimer = null;
 const actions = {none: 'No action', playpause: 'Play / pause', next: 'Next track', previous: 'Previous track', mute: 'Mute / unmute'};
 for (const name of ['single', 'double', 'long']) {
   for (const [value, label] of Object.entries(actions)) byId(name).add(new Option(label, value));
@@ -19,11 +20,26 @@ function deviceStatus() {
 }
 async function refresh(fill = false) {
   const data = await request();
+  const previousInstallation = snapshot?.installation?.status;
   snapshot = data;
   const vpn = data.vpn;
   byId('vpn-section').hidden = !data.features.vpn;
   byId('dial-section').hidden = !data.features.dial;
-  byId('install').hidden = data.installed;
+  const installation = data.installation || {status: 'idle', message: ''};
+  byId('install').hidden = data.installed && !['installing', 'error'].includes(installation.status);
+  byId('install').disabled = installation.status === 'installing';
+  byId('support-status').textContent = installation.message;
+  byId('bluetooth-service').textContent = `Bluetooth service: ${data.bluetooth_service || 'Unknown'}${data.bluetooth_service === 'Running' ? data.bluetooth_adapter ? ' · Adapter available' : ' · No adapter detected; check the Pi Bluetooth radio and firmware.' : ''}`;
+  if (installation.status === 'installing' && !installationTimer) {
+    installationTimer = setTimeout(async () => {
+      installationTimer = null;
+      try { await refresh(); }
+      catch (error) { byId('accessory-message').textContent = error.message; }
+    }, 2000);
+  } else if (installation.status !== 'installing' && installationTimer) {
+    clearTimeout(installationTimer); installationTimer = null;
+  }
+  if (previousInstallation === 'installing' && installation.status !== 'installing') byId('accessory-message').textContent = installation.message;
   byId('vpn-status').textContent = vpn.status + (vpn.pending_token ? ` · Confirm within ${vpn.confirm_seconds} seconds` : '');
   byId('vpn-confirm').hidden = !vpn.pending_token;
   const details = byId('vpn-details'); details.replaceChildren();
@@ -72,9 +88,12 @@ async function perform(work, fill = false) {
       byId('diagnostics').textContent = Object.entries(result.diagnostics).map(([key, value]) => `${labels[key] || key}: ${value === null ? 'Not configured' : value ? 'Yes' : 'No'}`).join('\n') + '\n' + result.note;
     }
     await refresh(fill);
-    byId('accessory-message').textContent = 'Settings updated. Use Refresh status to check connection progress.';
+    byId('accessory-message').textContent = result?.queued === true ? 'Installing optional support. Progress is shown below.' : 'Settings updated. Use Refresh status to check connection progress.';
   } catch (error) { byId('accessory-message').textContent = error.message; }
-  finally { busy = false; document.querySelectorAll('button').forEach(button => { button.disabled = false; }); }
+  finally {
+    busy = false; document.querySelectorAll('button').forEach(button => { button.disabled = false; });
+    byId('install').disabled = snapshot?.installation?.status === 'installing';
+  }
 }
 byId('refresh').addEventListener('click', () => perform(async () => null));
 byId('feature-config').addEventListener('submit', event => {

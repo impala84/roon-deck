@@ -62,8 +62,10 @@ def accessory_request(data):
             reply = client.makefile("rb").readline(32769)
         if len(reply) > 32768: raise ValueError("Accessory response is too large.")
         result = json.loads(reply)
+    except TimeoutError as exc:
+        raise ValueError("The appliance helper took too long to respond. Refresh status to check installation progress.") from exc
     except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError("The appliance helper is unavailable. Retry when software updates have finished.") from exc
+        raise ValueError("The appliance helper is not responding. Check System diagnostics, then retry.") from exc
     if not result.get("ok"): raise ValueError(result.get("error", "Accessory operation failed."))
     return result
 
