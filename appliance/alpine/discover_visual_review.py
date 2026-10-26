@@ -570,16 +570,15 @@ if screen_width == 1280 and screen_height == 720:
     assert display.compact_detail
     assert display.album_focus_detail
     assert not display.detail_artist_card.get_visible()
-    assert display.detail_album_card.get_orientation() == Gtk.Orientation.HORIZONTAL
-    assert display.detail_album_artwork.get_width() == 620, display.detail_album_artwork.get_width()
+    # The Gen 2 7-inch shows album details inline: the artwork stays on the page and the copy stacks beside it.
+    assert display.inline_detail
+    assert display.detail_album_card.get_orientation() == Gtk.Orientation.VERTICAL
+    assert not display.detail_album_artwork_frame.get_visible()
+    assert display.detail_album_artwork.get_size_request()[0] == 620, display.detail_album_artwork.get_size_request()
     assert not display.detail_subtitle.get_visible()
     assert display.detail_album_section_label.get_text() == "ALBUM · 2006"
     assert not display.detail_source.get_visible()
     assert not display.detail_facts.get_visible()
-    art_bounds = display.detail_album_artwork_frame.compute_bounds(display.detail_takeover)[1]
-    copy_bounds = display.detail_album_content.compute_bounds(display.detail_takeover)[1]
-    assert art_bounds.get_x() == 20, art_bounds.get_x()
-    assert copy_bounds.get_x() > art_bounds.get_x() + art_bounds.get_width(), (copy_bounds.get_x(), art_bounds.get_x(), art_bounds.get_width())
     writeup_bounds = display.detail_writeup.compute_bounds(display.detail_takeover)[1]
     action_bounds = display.detail_album_action.compute_bounds(display.detail_takeover)[1]
     assert action_bounds.get_y() >= writeup_bounds.get_y() + writeup_bounds.get_height(), (writeup_bounds, action_bounds)
