@@ -2,7 +2,8 @@
 
 ## 1.1.7-beta.117 Alpine — 26 October 2026
 
-- Release process only: this build is identical to beta.116 and was published automatically by the new "Publish beta release" GitHub Action instead of `tools/release-beta`.
+- Album page: the album write-up could never appear. Beta.103 added a line that used a variable from a different method, so when the write-up finished loading the display raised an error and the page stayed on "Loading album summary…". It now uses the same 800x480 test as the rest of the page.
+- Development: a new test reads every function in the display code and fails on any name that is used but never defined, which would have caught the above. The Discover and Settings review scripts are updated for the in-window action menu, the page-grid constants and the split display modules, so they run again.
 
 ## 1.1.7-beta.116 Alpine — 26 October 2026
 

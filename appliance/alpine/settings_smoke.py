@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from native_harness import patch_native
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
@@ -90,10 +91,12 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     bridge_check=display.touch_daily.get_first_child().get_first_child().get_first_child()
     assert bridge_check.get_active()
     from unittest.mock import patch
-    with patch.object(native,"post_json",return_value=None), patch.object(native.threading,"Thread"):
+    restore_post_json = patch_native(native, "post_json", lambda *args, **kwargs: None)
+    with patch.object(native.threading,"Thread"):
         bridge_check.set_active(False)
         display._toggle_bridge(bridge_check,False); settle()
         assert bridge_check.get_active() and bridge_check.get_sensitive()
         assert "Could not change Roon Bridge" in display.touch_diagnostics.get_text()
+        restore_post_json()
     window.destroy(); settle()
 print("Real GTK Settings: equal-height rows, equal-width actions and viewport bounds checked.")
