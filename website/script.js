@@ -1,3 +1,5 @@
+window.applyRoonDeckContent?.();
+
 const menuButton = document.querySelector('.menu-toggle');
 const siteNav = document.querySelector('.site-nav');
 
@@ -49,3 +51,96 @@ const navObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-25% 0px -60% 0px', threshold: [0, 0.2, 0.6] });
 
 sections.forEach((section) => navObserver.observe(section));
+
+const featureTabs = [...document.querySelectorAll('.feature-tab')];
+const featurePanels = [...document.querySelectorAll('.feature-panel')];
+
+function selectFeature(tab, focus = false) {
+  featureTabs.forEach((candidate) => {
+    const selected = candidate === tab;
+    candidate.setAttribute('aria-selected', String(selected));
+    candidate.tabIndex = selected ? 0 : -1;
+  });
+  featurePanels.forEach((panel) => {
+    panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+  });
+  if (focus) tab.focus();
+}
+
+featureTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectFeature(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const backwards = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? featureTabs.length - 1 : (index + (backwards ? -1 : 1) + featureTabs.length) % featureTabs.length;
+    selectFeature(featureTabs[nextIndex], true);
+  });
+});
+
+const endpointTabs = [...document.querySelectorAll('.endpoint-tab')];
+const endpointPanels = [...document.querySelectorAll('.endpoint-panel')];
+const bluosLogo = document.querySelector('img[src="/assets/brand/bluos-white.svg"]');
+if (bluosLogo) bluosLogo.src = '/assets/brand/bluos-white.svg?v=2';
+
+function selectEndpoint(tab, focus = false) {
+  endpointTabs.forEach((candidate) => {
+    const selected = candidate === tab;
+    candidate.setAttribute('aria-selected', String(selected));
+    candidate.tabIndex = selected ? 0 : -1;
+  });
+  endpointPanels.forEach((panel) => {
+    panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+  });
+  if (focus) tab.focus();
+}
+
+endpointTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectEndpoint(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const backwards = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? endpointTabs.length - 1 : (index + (backwards ? -1 : 1) + endpointTabs.length) % endpointTabs.length;
+    selectEndpoint(endpointTabs[nextIndex], true);
+  });
+});
+
+const specBlocks = [...document.querySelectorAll('.specs-grid .spec-block')];
+let syncingSpecBlocks = false;
+specBlocks.forEach((details) => {
+  details.addEventListener('toggle', () => {
+    if (syncingSpecBlocks) return;
+    syncingSpecBlocks = true;
+    specBlocks.forEach((candidate) => { candidate.open = details.open; });
+    syncingSpecBlocks = false;
+  });
+});
+
+const feedbackForm = document.getElementById('feedback-form');
+const feedbackStatus = document.getElementById('feedback-status');
+const feedbackStartedAt = document.getElementById('feedback-started-at');
+if (feedbackStartedAt) feedbackStartedAt.value = String(Date.now());
+
+feedbackForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = feedbackForm.querySelector('button[type="submit"]');
+  feedbackStatus.className = 'feedback-status';
+  feedbackStatus.textContent = 'Sending…';
+  button.disabled = true;
+  try {
+    const payload = Object.fromEntries(new FormData(feedbackForm));
+    const response = await fetch('/api/feedback', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'The message could not be sent.');
+    feedbackForm.reset();
+    feedbackStartedAt.value = String(Date.now());
+    feedbackStatus.classList.add('success');
+    feedbackStatus.textContent = 'Thanks—your message has been received.';
+  } catch (error) {
+    feedbackStatus.classList.add('error');
+    feedbackStatus.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

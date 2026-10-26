@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#111016">
+  <title>RoonDeck CMS</title>
+  <link rel="icon" href="/assets/brand/favicon-website.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/styles.css?v=9">
+  <script src="/content-fields.js?v=6" defer></script><script src="/admin/script.js?v=11" defer></script>
+</head>
+<body>
+  <main>
+    <section id="auth-view" class="auth-shell">
+      <img src="/assets/brand/roondeck-wordmark.svg" alt="RoonDeck" class="admin-logo">
+      <div id="setup-panel" class="auth-card" hidden><p class="eyebrow">First-time setup</p><h1>Create your administrator password</h1><p>This one-time link will expire after 24 hours.</p><form id="setup-form"><label>New password<input name="password" type="password" minlength="12" autocomplete="new-password" required></label><label>Confirm password<input name="confirmation" type="password" minlength="12" autocomplete="new-password" required></label><button type="submit">Create account</button><p class="form-status" role="status"></p></form></div>
+      <div id="login-panel" class="auth-card"><p class="eyebrow">Private administration</p><h1>Sign in</h1><form id="login-form"><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button><p class="form-status" role="status"></p></form></div>
+    </section>
+
+    <section id="cms-view" hidden>
+      <header class="admin-header"><a href="/" target="_blank" rel="noopener"><img src="/assets/brand/roondeck-wordmark.svg" alt="RoonDeck"></a><div><span id="account-email"></span><button id="logout-button" class="quiet-button" type="button">Sign out</button></div></header>
+      <nav class="admin-nav" aria-label="CMS"><button class="nav-button active" data-view="editor" type="button">Edit page</button><button class="nav-button" data-view="feedback" type="button">Feedback</button><button class="nav-button" data-view="account" type="button">Login details</button></nav>
+      <section id="editor-view" class="cms-panel"><div class="panel-heading"><div><p class="eyebrow">Website content</p><h1>Edit page</h1><p>Edit the text, then save all changes. The live site keeps its original copy as a fallback.</p></div><button id="save-content" type="button">Save all changes</button></div><div class="editor-layout"><form id="content-form" class="content-form"></form><aside class="preview-panel desktop-preview"><div class="preview-toolbar"><strong>Live preview</strong><div class="preview-modes" role="group" aria-label="Preview size"><button class="active" type="button" data-preview-mode="desktop">Desktop / tablet</button><button type="button" data-preview-mode="mobile">Mobile</button></div><a href="/" target="_blank" rel="noopener">Open site ↗</a></div><div class="preview-viewport"><iframe id="site-preview" title="RoonDeck website preview" src="/"></iframe></div></aside></div><p id="content-status" class="form-status" role="status"></p></section>
+      <section id="feedback-view" class="cms-panel" hidden><div class="panel-heading"><div><p class="eyebrow">Messages</p><h1>Feedback</h1><p>Review suggestions, bug reports and feature requests.</p></div><button id="refresh-feedback" type="button">Refresh</button></div><div id="feedback-list" class="feedback-list"></div><p id="feedback-status" class="form-status" role="status"></p></section>
+      <section id="account-view" class="cms-panel narrow" hidden><div class="panel-heading"><div><p class="eyebrow">Security</p><h1>Login details</h1><p>Changing the email or password signs out every active session.</p></div></div><form id="account-form" class="account-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>New password <span>leave blank to keep it</span><input name="newPassword" type="password" minlength="12" autocomplete="new-password"></label><button type="submit">Save login details</button><p class="form-status" role="status"></p></form></section>
+    </section>
+  </main>
+</body>
+</html>
