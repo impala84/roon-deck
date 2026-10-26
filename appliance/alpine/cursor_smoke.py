@@ -11,6 +11,6 @@ library.XcursorFilenameLoadImage.restype = ctypes.POINTER(Image)
 library.XcursorImageDestroy.argtypes = [ctypes.POINTER(Image)]
 image = library.XcursorFilenameLoadImage(str(prepare() / "cursors/left_ptr").encode(), 24)
 assert image, "Cursor theme could not be decoded"
-assert (image.contents.width, image.contents.height, image.contents.pixels[0]) == (1, 1, 0)
+assert (image.contents.width, image.contents.height, image.contents.pixels[0]) == (24, 24, 0)
 library.XcursorImageDestroy(image)
 print("Transparent cursor decoded by libXcursor; physical pointer visibility still needs Pi acceptance.")
