@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BRANCH = "hotfix/beta27-physical-baseline"
+BRANCH = "main"
 REPO = "impala84/roon-deck"
 # Releases from beta.92 are tagged v1.1.7-beta.N. Devices running beta.88 or
 # earlier only see "-alpine" tags; beta.89 and later accept both.

@@ -10,10 +10,11 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
 ### Where releases come from
 
 - Current development is the Beta channel. Commit and push beta work to
-  `hotfix/beta27-physical-baseline`. `main` was merged with the beta line on
-  26 October 2026 and carries the same code plus the project website; the Pi
-  installs tagged releases, not a branch. Bring `main` up to date with a normal
-  merge (never a force-push) when the user asks.
+  `main` (from 26 October 2026; before that it lived on
+  `hotfix/beta27-physical-baseline`, which is now frozen at beta.116). `main`
+  also carries the project website, and pushes to it deploy the site on Vercel.
+  The Pi installs tagged releases, not a branch, so pushing alone changes
+  nothing on a Pi until a release is published.
 - The Pi's Beta channel installs the newest published GitHub **prerelease** that
   is tagged `v1.1.7-beta.N` (releases up to beta.91 end in `-alpine`; the updater
   accepts both), at that tag's exact commit. It does not require the Alpine
@@ -26,9 +27,9 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
 1. Implement and verify the change locally (see the checks below).
 2. Add a `## 1.1.7-beta.N Alpine — <date>` entry at the top of `CHANGELOG.md`
    (N is the next number; check `gh release list --repo impala84/roon-deck`).
-3. Run `tools/release-beta` from the `hotfix/beta27-physical-baseline` branch.
+3. Run `tools/release-beta` from the `main` branch.
    It bumps the version in every file, runs `tools/check fast`, commits,
-   rebases onto the latest `origin/hotfix/beta27-physical-baseline`, pushes
+   rebases onto the latest `origin/main`, pushes
    (never forced), publishes the prerelease with the changelog entry as its
    notes, and confirms it is listed. `tools/release-beta --dry-run` shows what
    it would do. Update affected web asset cache versions yourself first.
