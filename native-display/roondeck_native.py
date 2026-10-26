@@ -719,8 +719,15 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             was_sleeping = self.inactivity_sleeping or self.stack.get_visible_child_name() == "sleep"
             self.inactivity_sleeping = False
             self.last_interaction = time.monotonic()
-            if target and ":8766/" in target and (was_sleeping or not getattr(self, "playback_was_active", False)) and not self.settings_open:
+            now_playing_check = time.monotonic()
+            # Playback that merely restarts between tracks (a "loading" blink) is not a new start, and nobody who is
+            # touching the screen should be pulled away from what they are doing.
+            gap = now_playing_check - getattr(self, "playback_last_playing", 0.0)
+            fresh_start = was_sleeping or (not getattr(self, "playback_was_active", False) and gap > 20)
+            browsing_now = now_playing_check - self.browse_last_interaction < 30 and not was_sleeping
+            if target and ":8766/" in target and fresh_start and not browsing_now and not self.settings_open:
                 self.set_roon_view("now")
+            self.playback_last_playing = now_playing_check
         self.playback_was_active = playing
         inactivity_due = bool(not playing and inactivity_seconds and time.monotonic() - self.last_interaction >= inactivity_seconds and target != "/sleep.html")
         if inactivity_due and not self.inactivity_sleeping:

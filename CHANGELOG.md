@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.111 Alpine — 26 October 2026
+
+- Returning to Now Playing while you are browsing: two causes fixed. (1) When music restarts between tracks the display treated it as a new start and jumped to Now Playing; it now only does that after real silence (20 s) and never within 30 s of a touch while you are browsing. (2) The idle timer only counted the first touch of a gesture and ignored taps inside action menus; dragging or flicking a list and every browse request now reset it.
+
 ## 1.1.7-beta.110 Alpine — 26 October 2026
 
 - Menu "Play Now" no longer flashes mint when tapped in the Roon theme. The base mint pressed/focused style outranked the purple one; the Roon theme now overrides every state.

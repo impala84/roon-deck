@@ -4,6 +4,7 @@ from __future__ import annotations
 from native_common import ElasticVerticalTrack, FamilyIcon, ROON, browser_request_timeout, get_json, post_json
 from pathlib import Path
 import threading
+import time
 import unicodedata
 import urllib.error
 import urllib.request
@@ -63,6 +64,8 @@ class BrowsePageMixin:
         popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover); self.browser_sort_popover = popover
 
     def request_browser(self, action, **payload):
+        # Any browse request comes from a touch (including taps inside menus, which the window never sees).
+        self.browse_last_interaction = time.monotonic()
         if action == "artist":
             self.browser_scroll.set_visible(True)
             self.browser_artist_scroll.set_visible(False); self.browser_search_columns.set_visible(False)
