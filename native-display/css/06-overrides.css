@@ -247,3 +247,12 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 /* In-window action menu (replaces the popover so no extra Wayland surface, and no cursor flash, is created). */
 button.menu-scrim { background: transparent; background-image: none; border: 0; border-radius: 0; box-shadow: none; min-width: 0; min-height: 0; padding: 0; }
 .inline-track-menu { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.6); }
+.compact-portrait .mix-controls button { padding: 10px 14px 10px 12px; font-size: 14px; }
+/* Touch Display 2: the album and artist headers share one lozenge and one body style.
+   .background raises specificity above the older per-mode and interface-larger rules. */
+.high-resolution.background .album-profile .artist-play, .high-resolution.background .artist-profile .artist-play { min-height: 40px; padding: 3px 20px 3px 14px; font-size: 20px; margin-top: 0; }
+.high-resolution.background .album-profile .album-play-menu { min-width: 0; min-height: 40px; padding: 0 16px 0 14px; }
+.high-resolution.background .album-profile .queue-meta, .high-resolution.background .artist-profile .artist-bio { font-size: 22px; line-height: 1.4; }
+.large-display.background .album-profile .artist-play, .large-display.background .artist-profile .artist-play { min-height: 46px; padding: 5px 24px 5px 18px; font-size: 22px; }
+.large-display.background .album-profile .album-play-menu { min-height: 46px; padding: 0 20px 0 18px; }
+.large-display.background .album-profile .queue-meta, .large-display.background .artist-profile .artist-bio { font-size: 26px; line-height: 1.4; }

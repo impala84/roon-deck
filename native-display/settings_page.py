@@ -101,7 +101,7 @@ class SettingsPageMixin:
         # The supplied wordmark is drawn to its baseline at the bottom of the
         # SVG. Lift that edge by the adjacent title font's descent so its
         # visible baseline matches GTK labels rather than their bounding box.
-        baseline_lift = 10 if max(width, height) >= 1600 or (width >= 1200 and width > height) else 9 if height > width and width < 600 else 10 if height > width and width >= 1000 else 7 if height > width else 6 if width < 1000 else 8
+        baseline_lift = 12 if max(width, height) >= 1600 and width > height else 10 if width >= 1200 and width > height else 9 if height > width and width < 600 else 16 if height > width and width >= 1000 else 7 if height > width else 6 if width < 1000 else 8
         self.settings_wordmark_frame.set_margin_bottom(baseline_lift)
         if hasattr(self, "touch_diagnostics"):
             diagnostics_gap = 5 if max(width, height) >= 1600 else 2

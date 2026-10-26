@@ -10,6 +10,9 @@ RoonDeck 1.1.7 Alpine is a full clean-install ARM64 image for Raspberry Pi, roll
 - Now Playing no longer jumps to the track while you are browsing, and the return-to-Now-Playing timer counts from your last touch.
 - Startup: the interface size and theme are applied before the first frame, so there is no rescale flash. The boot logo is sized for the 10-inch display.
 - Bus Times: following buses are larger on the 10-inch display.
+- First-boot wizard: text, buttons, checkboxes and the on-screen keyboard now scale with the display. On both Touch Display 2 sizes (7-inch and 10-inch, either orientation) the wizard used to be drawn at original-display size and looked tiny. Long options wrap instead of running off narrow portrait screens, and the keyboard leaves room for the form.
+- Album and artist pages on Touch Display 2: the purple play lozenge is smaller, and both pages use the same lozenge and the same slightly larger body copy with even line spacing. The arrow beside Play Album opens its menu beside the button, level with its top edge, instead of halfway down the page.
+- Original Touch Display, portrait: the Discover mix page no longer runs off the edge of the screen. 10-inch Settings: the logo baseline lines up with the title again.
 - Fixes the album write-up error from beta.103.
 
 ## 1.1.7-beta.117 Alpine — 26 October 2026

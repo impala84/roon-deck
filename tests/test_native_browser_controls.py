@@ -739,7 +739,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('Gtk.CheckButton(label="Bus Times")', code)
         self.assertIn('self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL)', code)
         self.assertIn('self.settings_utilities.set_halign(Gtk.Align.END if narrow_portrait else Gtk.Align.START)', code)
-        self.assertIn('else 9 if height > width and width < 600 else 10 if height > width and width >= 1000 else 7 if height > width', code)
+        self.assertIn('else 9 if height > width and width < 600 else 16 if height > width and width >= 1000 else 7 if height > width', code)
 
     def test_secondary_navigation_is_section_specific_and_actions_preserve_context(self):
         navigation = native_method("discovery_secondary_navigation")

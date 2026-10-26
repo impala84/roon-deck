@@ -33,27 +33,61 @@ class Wizard(Gtk.Application):
         self.stage = 0; self.progress = {}; self.entry = None; self.fields = []; self.shift = False; self.symbols = False; self.busy = False; self.initial = True
         self.connect("activate", self.activate)
 
+    @staticmethod
+    def screen_size():
+        try:
+            monitor = Gdk.Display.get_default().get_monitors().get_item(0).get_geometry()
+            return monitor.width, monitor.height
+        except (AttributeError, TypeError):
+            return 800, 480
+
+    @classmethod
+    def display_scale(cls):
+        """Text and touch targets grow with the panel; the 800x480 original stays 1.0."""
+        return max(1.0, min(min(cls.screen_size()) / 480, 2.2))
+
+    @staticmethod
+    def stylesheet(scale, height=480):
+        def px(value): return round(value * scale)
+        # Five keyboard rows must leave room for the form above them.
+        key_height = round(min(34 * scale, max(34, height * 0.06)))
+        return (
+            "window { background:#1c1b24; color:#f5f5f5; } "
+            f"button {{ min-height:{px(40)}px; padding:{px(4)}px {px(10)}px; background:#302d42; color:#fff; border-radius:{px(8)}px; font-size:{px(17)}px; }} "
+            "button:active {background:#9868F9;color:#111;} "
+            f"entry {{ min-height:{px(40)}px; font-size:{px(20)}px; background:#282631;color:#fff; }} "
+            f".title {{font-size:{px(25)}px;font-weight:700;color:#9868F9;}} .brand {{min-width:0;min-height:0;}} .primary {{background:#9868F9;color:#111;}} "
+            f".key {{min-height:{key_height}px;padding:{px(2)}px;}} label {{font-size:{px(17)}px;}} checkbutton {{font-size:{px(17)}px;}} "
+            f"check {{min-width:{px(22)}px;min-height:{px(22)}px;}} dropdown {{font-size:{px(17)}px;}} dropdown button {{min-height:{px(40)}px;}} "
+            ".mint .title {color:#6ed9ae;} .mint .primary, .mint button:active {background:#6ed9ae;}"
+        )
+
     def label(self, text):
         label = Gtk.Label(label=text); label.set_wrap(True); label.set_xalign(0); return label
+
+    def check(self, text):
+        """CheckButton whose label wraps; long options otherwise widen the page past the screen."""
+        button = Gtk.CheckButton(); button.set_child(self.label(text)); return button
 
     def button(self, title, callback):
         button = Gtk.Button(label=title); button.connect("clicked", lambda *_: callback()); return button
 
     def activate(self, *_):
-        self.window = Gtk.ApplicationWindow(application=self); self.window.set_title("Set up RoonDeck"); self.window.fullscreen()
+        self.window = Gtk.ApplicationWindow(application=self); self.window.set_title("Set up RoonDeck"); self.window.set_default_size(*self.screen_size()); self.window.fullscreen()
         self.window.set_cursor_from_name("none")
-        css = Gtk.CssProvider(); css.load_from_data(b"window { background:#1c1b24; color:#f5f5f5; } button { min-height:40px; padding:4px 10px; background:#302d42; color:#fff; border-radius:8px; } button:active {background:#9868F9;color:#111;} entry { min-height:40px; font-size:20px; background:#282631;color:#fff; } .title {font-size:25px;font-weight:700;color:#9868F9;} .brand {min-width:0;min-height:0;} .primary {background:#9868F9;color:#111;} .key {min-height:34px;padding:2px;} label {font-size:17px;} .mint .title {color:#6ed9ae;} .mint .primary, .mint button:active {background:#6ed9ae;}")
+        self.scale = self.display_scale()
+        css = Gtk.CssProvider(); css.load_from_data(self.stylesheet(self.scale, self.screen_size()[1]).encode())
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        for edge in ("start", "end", "top", "bottom"): getattr(self.outer, "set_margin_" + edge)(14)
-        header = Gtk.Box(spacing=14)
-        brand = wordmark_picture(); brand.add_css_class("brand"); brand.set_halign(Gtk.Align.START); brand.set_valign(Gtk.Align.CENTER); header.append(brand)
+        self.outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(8 * self.scale))
+        for edge in ("start", "end", "top", "bottom"): getattr(self.outer, "set_margin_" + edge)(round(14 * self.scale))
+        header = Gtk.Box(spacing=round(14 * self.scale))
+        brand = wordmark_picture(round(26 * self.scale)); brand.add_css_class("brand"); brand.set_halign(Gtk.Align.START); brand.set_valign(Gtk.Align.CENTER); header.append(brand)
         self.title = self.label("Welcome to RoonDeck"); self.title.add_css_class("title"); header.append(self.title); self.outer.append(header)
         scroll = Gtk.ScrolledWindow(); scroll.set_vexpand(True); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); scroll.set_child(self.content); self.outer.append(scroll)
+        self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(10 * self.scale)); scroll.set_child(self.content); self.outer.append(scroll)
         self.status = self.label(""); self.outer.append(self.status)
-        self.keyboard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); self.outer.append(self.keyboard)
-        self.footer = Gtk.Box(spacing=10); self.outer.append(self.footer)
+        self.keyboard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(3 * self.scale)); self.outer.append(self.keyboard)
+        self.footer = Gtk.Box(spacing=round(10 * self.scale)); self.outer.append(self.footer)
         self.window.set_child(self.outer); self.window.present()
         self.refresh()
 
@@ -95,7 +129,7 @@ class Wizard(Gtk.Application):
 
     def secret_field(self, placeholder):
         entry = self.field(placeholder, secret=True)
-        show = Gtk.CheckButton(label="Show password")
+        show = self.check("Show password")
         show.connect("toggled", lambda toggle: entry.set_visibility(toggle.get_active()))
         self.content.append(show)
         return entry
@@ -107,12 +141,12 @@ class Wizard(Gtk.Application):
         self.clear(self.keyboard)
         rows = ("1234567890", "!@#$%^&*()", "-_=+[]{}:/", "\\|;,.?<>~`") if self.symbols else ("1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm-._@")
         for chars in rows:
-            row = Gtk.Box(spacing=3); row.set_homogeneous(True)
+            row = Gtk.Box(spacing=round(3 * self.scale)); row.set_homogeneous(True)
             for char in chars:
                 value = char.upper() if self.shift else char
                 key = self.button(value, lambda c=value: self.type_key(c)); key.add_css_class("key"); key.set_focusable(False); row.append(key)
             self.keyboard.append(row)
-        row = Gtk.Box(spacing=3); row.set_homogeneous(True)
+        row = Gtk.Box(spacing=round(3 * self.scale)); row.set_homogeneous(True)
         for title, callback in (("Shift", self.toggle_shift), ("ABC" if self.symbols else "Symbols", self.toggle_symbols), ("Space", lambda: self.type_key(" ")), ("⌫", self.backspace), ("Next", self.focus_next_entry), ("Hide", lambda: self.keyboard.set_visible(False))):
             key = self.button(title, callback); key.set_focusable(False); row.append(key)
         self.keyboard.append(row)
@@ -195,10 +229,10 @@ class Wizard(Gtk.Application):
         elif self.stage == 5:
             self.content.append(self.label("RoonDeck already includes storage expansion, time sync, downloads and diagnostics. Choose any additional services for this Pi."))
             choices = self.progress.get("software_choices", {})
-            bridge = Gtk.CheckButton(label="Install Roon Bridge · use this Pi as a RAAT audio endpoint"); bridge.set_active(choices.get("roon_bridge", False)); self.content.append(bridge)
-            airplay = Gtk.CheckButton(label="Install AirPlay · stream audio from Apple devices"); airplay.set_active(choices.get("airplay", False)); self.content.append(airplay)
-            netdata = Gtk.CheckButton(label="Install Netdata · official stable Agent with automatic updates"); netdata.set_active(choices.get("netdata", False)); self.content.append(netdata)
-            lightweight = Gtk.CheckButton(label="Lightweight Netdata · 3-second samples, no ML anomaly detection"); lightweight.set_active(choices.get("netdata_lightweight", True)); self.content.append(lightweight)
+            bridge = self.check("Install Roon Bridge · use this Pi as a RAAT audio endpoint"); bridge.set_active(choices.get("roon_bridge", False)); self.content.append(bridge)
+            airplay = self.check("Install AirPlay · stream audio from Apple devices"); airplay.set_active(choices.get("airplay", False)); self.content.append(airplay)
+            netdata = self.check("Install Netdata · official stable Agent with automatic updates"); netdata.set_active(choices.get("netdata", False)); self.content.append(netdata)
+            lightweight = self.check("Lightweight Netdata · 3-second samples, no ML anomaly detection"); lightweight.set_active(choices.get("netdata_lightweight", True)); self.content.append(lightweight)
             self.content.append(self.label("Downloads the latest official stable Agent, not Alpine’s older package. Lightweight mode disables ML and six optional collectors, keeps apps/go.d, alerts, dashboard and Cloud connectivity; memory savings vary."))
             self.content.append(self.label("Netdata Cloud can be connected later in web Settings. Downloads require internet access and may take several minutes."))
             self.content.append(self.label(self.progress.get("software_status", "")))
@@ -216,7 +250,7 @@ class Wizard(Gtk.Application):
             password = self.secret_field("Choose password")
             confirmation = self.secret_field("Enter password again")
             self.content.append(self.label("Use 8–128 characters. RoonDeck may warn about a simple password, but the choice is yours; keep it private because it controls the appliance."))
-            ssh = Gtk.CheckButton(label="Enable SSH (recommended for recovery)"); ssh.set_active(True); self.content.append(ssh)
+            ssh = self.check("Enable SSH (recommended for recovery)"); ssh.set_active(True); self.content.append(ssh)
             self.footer.append(self.button("Finish and restart", lambda: self.finish(username.get_text(), password.get_text(), True, confirmation.get_text(), ssh.get_active())))
             self.content.append(self.button("Finish without restart", lambda: self.finish(username.get_text(), password.get_text(), False, confirmation.get_text(), ssh.get_active())))
         child = self.footer.get_first_child()
