@@ -36,13 +36,13 @@ jobs:
           end = matches[1].start() if len(matches) > 1 else len(text)
           version, notes = first.group(1), text[first.start():end].strip()
           tag = "v" + version
+          exists = subprocess.run(["gh", "release", "view", tag], capture_output=True).returncode == 0
+          if exists:
+              print(f"{tag} is already published."); sys.exit(0)
           # The version files must already carry this version (they are bumped in the same commit).
           for path, pattern in (("pyproject.toml", 'version = "%s"'), ("src/pi_bus_time_display/__init__.py", '__version__ = "%s"')):
               if pattern % version not in open(path, encoding="utf-8").read():
                   sys.exit(f"{path} is not at {version}; not releasing.")
-          exists = subprocess.run(["gh", "release", "view", tag], capture_output=True).returncode == 0
-          if exists:
-              print(f"{tag} is already published."); sys.exit(0)
           open("notes.md", "w", encoding="utf-8").write(notes)
           subprocess.run(["gh", "release", "create", tag, "--target", os.environ["GITHUB_SHA"], "--prerelease",
                           "--title", f"{version} Alpine", "--notes-file", "notes.md"], check=True)

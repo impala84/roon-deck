@@ -6,12 +6,19 @@ on:
         description: Build a downloadable image for a stable release or explicit image test
         type: boolean
         default: false
+      publish_stable:
+        description: Build the image and publish it as a stable GitHub release (newest "## X.Y.Z Alpine" entry in CHANGELOG.md)
+        type: boolean
+        default: false
 jobs:
   verify:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Stable release is ready (changelog entry and version files agree)
+        if: inputs.publish_stable
+        run: tools/stable-release-info check
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -29,7 +36,7 @@ jobs:
           path: dist/native-review/
           retention-days: 14
   image:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_image
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_image || inputs.publish_stable)
     needs: verify
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
@@ -71,3 +78,35 @@ jobs:
           name: pi-home-alpine-beta
           path: dist/alpine/
           retention-days: 14
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_stable
+    needs: image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pi-home-alpine-beta
+          path: dist/alpine/
+      - name: Publish the stable release with the image attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(tools/stable-release-info notes notes.md)
+          tag="v${version}-alpine"
+          if gh release view "$tag" >/dev/null 2>&1; then echo "$tag is already published."; exit 0; fi
+          [[ $(cat dist/alpine/source-commit.txt) == "$GITHUB_SHA" ]] || { echo 'Image was not built from this commit.'; exit 1; }
+          cd dist/alpine
+          image="RoonDeck-${version}-Alpine-arm64.img.gz"
+          mv pi-home-alpine-beta.img.gz "$image"
+          sha256sum "$image" > "$image.sha256"
+          rm -f pi-home-alpine-beta.img.gz.sha256
+          cd ../..
+          printf '\nThe attached image was built and validated from commit `%s`.\n\nFlashing the image erases the selected SD card. Verify the SHA-256 checksum before flashing.\n' "$GITHUB_SHA" >> notes.md
+          gh release create "$tag" --target "$GITHUB_SHA" --title "RoonDeck ${version} Alpine" --notes-file notes.md \
+            "dist/alpine/$image" "dist/alpine/$image.sha256" dist/alpine/packages-resolved.txt dist/alpine/source-commit.txt
+          echo "Published $tag."
