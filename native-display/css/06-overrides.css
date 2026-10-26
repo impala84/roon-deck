@@ -244,3 +244,6 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 .perf-card.compact { padding: 14px 16px 12px; }
 .perf-card.compact .perf-chip { min-height: 40px; }
 .perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 16px; }
+/* In-window action menu (replaces the popover so no extra Wayland surface, and no cursor flash, is created). */
+button.menu-scrim { background: transparent; background-image: none; border: 0; border-radius: 0; box-shadow: none; min-width: 0; min-height: 0; padding: 0; }
+.inline-track-menu { background: #171717; color: #eceaef; border: 1px solid #45434e; border-radius: 12px; padding: 12px; box-shadow: 0 12px 48px rgba(0,0,0,.6); }

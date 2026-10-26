@@ -1295,8 +1295,9 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_touch_popovers_hide_the_cursor_before_opening(self):
         code = native_text()
-        self.assertGreaterEqual(code.count('self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)'), 2)
-        self.assertGreaterEqual(code.count('GLib.idle_add(self.hide_native_cursor, widget)'), 2)
+        self.assertGreaterEqual(code.count('self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)'), 1)
+        self.assertGreaterEqual(code.count('GLib.idle_add(self.hide_native_cursor, widget)'), 1)
+        self.assertIn('def show_action_menu(self, data, anchor):', code)
         self.assertIn('getattr(self, "browser_sort_popover", None)', code)
 
     def test_failed_boot_config_fetch_keeps_last_good_settings_and_retries(self):

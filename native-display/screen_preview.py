@@ -154,7 +154,7 @@ class ScreenPreviewMixin:
         view = str(request.get("view", ""))
         action = request.get("browse_action")
         if action in {"open", "back", "current", "section"}:
-            if popup := getattr(self, "browser_action_popover", None):
+            if popup := (getattr(self, "browser_action_menu", None) or getattr(self, "browser_action_popover", None)):
                 self.browser_action_selected["value"] = True
                 popup.popdown()
             self.set_mode("roon"); self.set_roon_view("browse")

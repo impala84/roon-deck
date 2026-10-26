@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.114 Alpine — 26 October 2026
+
+- Cursor flashing when the track/album action menu opens: the menu was a popover, which is its own Wayland surface, and the compositor shows the pointer cursor whenever a new surface appears. The menu is now drawn inside the main window (an overlay layer), so no new surface exists to flash. It still opens beside your finger, and tapping anywhere else closes it without redrawing the page. The sort menu and Settings drop-downs are still popovers.
+
 ## 1.1.7-beta.113 Alpine — 26 October 2026
 
 - Cursor, next attempt: the compositor (Cage) hides the pointer only when no pointer device exists, and otherwise draws the theme cursor. Our transparent cursor was a 1x1 image, which can misbehave on the Pi's hardware cursor plane (the likely "pop"). It is now a full 24x24 transparent image, and the display starts with WLR_NO_HARDWARE_CURSORS=1 so the cursor is drawn in software. Needs a reboot (or display restart) after updating.

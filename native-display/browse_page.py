@@ -542,52 +542,65 @@ class BrowsePageMixin:
             self.browser_trail_scroll.set_visible(False)
             return items
 
+    def show_action_menu(self, data, anchor):
+        """Track and album action menu, drawn inside the main window.
+
+        A popover is a separate Wayland surface, and the compositor flashes its pointer cursor every time one appears.
+        An overlay in the main window has no surface of its own, so there is nothing to flash. It opens beside the
+        finger, and tapping anywhere else closes it.
+        """
+        overlay = self.root_overlay
+        if getattr(self, "browser_action_menu", None) is not None: self.browser_action_menu.popdown()
+        selected = {"value": False}
+        self.browser_action_selected = selected
+        discovery_actions = bool(data.get("discovery_track_actions"))
+        scrim = Gtk.Button(); scrim.add_css_class("menu-scrim"); scrim.set_focusable(False); scrim.set_hexpand(True); scrim.set_vexpand(True)
+        menu = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
+        menu.add_css_class("inline-track-menu"); menu.set_halign(Gtk.Align.START); menu.set_valign(Gtk.Align.START)
+        state = {"open": True}
+        def popdown(*_):
+            if not state["open"]: return
+            state["open"] = False
+            overlay.remove_overlay(menu); overlay.remove_overlay(scrim)
+            if getattr(self, "browser_action_menu", None) is menu: self.browser_action_menu = None
+            if not selected["value"] and not discovery_actions: self.request_browser("back", silent=True)
+        menu.popdown = popdown
+        def choose(_button, key):
+            selected["value"] = True; popdown()
+            if discovery_actions: self.request_discovery_track_action(key)
+            else: self.request_browser("open", item_key=key)
+        for item in data.get("items", []):
+            if item.get("action"):
+                final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist", "play artist radio"}
+                choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); menu.append(choice)
+        scrim.connect("clicked", popdown)
+        # Where the finger landed, in main-window coordinates.
+        width, height = overlay.get_width() or getattr(self, "viewport_width", 1280), overlay.get_height() or getattr(self, "viewport_height", 720)
+        px, py = width - 260, height // 2
+        local = getattr(anchor, "press_point", None)
+        try:
+            if local:
+                point = anchor.compute_point(overlay, Graphene.Point().init(local[0], local[1]))
+                if isinstance(point, tuple): point = point[1] if point[0] else None
+                if point is not None: px, py = point.x, point.y
+            elif getattr(self, "last_tap_point", None): px, py = self.last_tap_point
+        except (AttributeError, TypeError, GLib.Error) as error: print("RoonDeck menu anchor fallback: " + type(error).__name__, flush=True)
+        measured = menu.measure(Gtk.Orientation.HORIZONTAL, -1), menu.measure(Gtk.Orientation.VERTICAL, -1)
+        menu_width, menu_height = max(measured[0][1], 200), max(measured[1][1], 200)
+        x = px + 14 if px + 14 + menu_width + 12 <= width else px - menu_width - 14
+        y = py - 24
+        menu.set_margin_start(round(max(10, min(x, width - menu_width - 10)))); menu.set_margin_top(round(max(10, min(y, height - menu_height - 10))))
+        for widget in (scrim, menu): widget.set_cursor_from_name("none")
+        overlay.add_overlay(scrim); overlay.add_overlay(menu)
+        self.browser_action_menu = menu
+
     def render_browser(self, data):
         self.browser_list.cancel_spring()
         if data.get("action_menu"):
             self.browser_state = data; self.browser_loading = False; self.browser_rendering = False
             self.browser_scroll_restore = None
             anchor = getattr(self, "browser_action_anchor", None) or self.browser_body
-            popover = Gtk.Popover(); popover.add_css_class("track-menu"); popover.set_parent(anchor); popover.set_autohide(True)
-            popover.set_has_arrow(False); popover.set_position(Gtk.PositionType.RIGHT)
-            popover.set_valign(Gtk.Align.START)
-            rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1
-            tap = getattr(self, "last_tap_point", None)
-            local = getattr(anchor, "press_point", None)
-            if local:
-                rect.x = round(max(1, min(max(1, anchor.get_width() - 1), local[0]))) + 12
-                rect.y = round(max(0, min(max(0, anchor.get_height() - 1), local[1])))
-            elif tap and getattr(self, "window", None) is not None:
-                # Open beside the finger rather than at the far edge of a full-width row.
-                try:
-                    point = self.window.compute_point(anchor, Graphene.Point().init(tap[0], tap[1]))
-                    # PyGObject returns (ok, point) for this out-parameter call.
-                    if isinstance(point, tuple): point = point[1] if point[0] else None
-                    if point is not None:
-                        rect.x = round(max(1, min(anchor.get_width() - 1, point.x))) + 12
-                        rect.y = round(max(0, min(anchor.get_height() - 1, point.y)))
-                except (AttributeError, TypeError, GLib.Error) as error: print("RoonDeck menu anchor fallback: " + type(error).__name__, flush=True)
-            popover.set_pointing_to(rect)
-            self.browser_action_popover = popover
-            choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
-            selected = {"value": False}
-            self.browser_action_selected = selected
-            discovery_actions = bool(data.get("discovery_track_actions"))
-            def choose(_button, key):
-                selected["value"] = True; popover.popdown()
-                if discovery_actions: self.request_discovery_track_action(key)
-                else: self.request_browser("open", item_key=key)
-            for item in data.get("items", []):
-                if item.get("action"):
-                    final_play = item.get("title", "").strip().casefold() in {"play now", "play album", "play artist", "play artist radio"}
-                    choice = self.labelled_icon_button(self.browser_action_icon(item["title"]), item["title"], lambda button, key=item.get("item_key"): choose(button, key), "track-menu-action primary-play" if final_play else "track-menu-action"); choice.set_focusable(False); choices.append(choice)
-            def closed(*_):
-                self.browser_action_popover = None
-                popover.unparent()
-                if not selected["value"] and not discovery_actions: self.request_browser("back", silent=True)
-            popover.connect("closed", closed)
-            popover.connect("map", lambda widget: GLib.idle_add(self.hide_native_cursor, widget))
-            popover.set_child(choices); self.hide_widget_cursor(popover); popover.popup(); self.hide_native_cursor(popover)
+            self.show_action_menu(data, anchor)
             return False
         self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
         self.browser_scrubber_active = bool(data.get("alpha_scrub")) and not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}
