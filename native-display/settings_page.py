@@ -60,19 +60,19 @@ class SettingsPageMixin:
         # theme and background buttons, which frees the height the graph needs.
         graph_layout = wide_portrait or gen2_seven_landscape
         self.performance_graph.set_visible(graph_layout); self.performance_graph.set_compact(gen2_seven_landscape)
-        # On Touch Display 2 the graph fills the empty space under Network Controls and Bus Times on the left.
-        graph_home = self.settings_daily if gen2_seven_landscape else self.settings_display_column
+        # On Touch Display 2: two columns of controls on top, the graph full width underneath.
+        graph_home = self.settings_body if gen2_seven_landscape else self.settings_display_column
         if self.performance_graph.get_parent() is not graph_home:
             self.performance_graph.get_parent().remove(self.performance_graph); graph_home.append(self.performance_graph)
-        self.settings_daily.set_vexpand(gen2_seven_landscape)
+        self.settings_controls.set_vexpand(not gen2_seven_landscape)
         # 10-inch: scaling, theme and background are one Appearance row of drop-downs instead of three stacked groups.
         self.settings_wide_portrait = graph_layout
         self.settings_appearance_group.set_visible(graph_layout)
         self.settings_appearance.set_visible(not graph_layout)
         self.settings_scaling_heading.set_visible(not graph_layout); self.touch_interface_size.set_visible(not graph_layout)
         self.sync_diagnostics_visibility(); self.sync_appearance_selects()
-        self.settings_display_column.set_vexpand(graph_layout)
-        self.settings_controls.set_valign(Gtk.Align.FILL if graph_layout else Gtk.Align.START)
+        self.settings_display_column.set_vexpand(wide_portrait)
+        self.settings_controls.set_valign(Gtk.Align.FILL if wide_portrait else Gtk.Align.START)
         (self.window.add_css_class if graph_layout else self.window.remove_css_class)("settings-with-graph")
 
     def resize_settings_wordmark(self, width, height):
@@ -140,7 +140,10 @@ class SettingsPageMixin:
         self.display_settings_heading = self.label("DISPLAY SETTINGS", "eyebrow"); display_column.append(self.display_settings_heading)
         self.touch_profile = Gtk.DropDown.new_from_strings(["Profile · Original 800×480", "Profile · Touch 2 5-inch", "Profile · Touch 2 7-inch", "Profile · Touch 2 10-inch"]); self.touch_profile.add_css_class("settings-select"); self.touch_profile.add_css_class("touch-profile-select"); display_column.append(self.touch_profile)
         self.touch_orientation = Gtk.DropDown.new_from_strings(["Orientation · Landscape", "Orientation · Portrait"]); self.touch_orientation.add_css_class("settings-select"); display_column.append(self.touch_orientation); controls.append(display_column)
-        scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_child(controls); card.append(scroll)
+        scroll = Gtk.ScrolledWindow(); self.settings_scroll = scroll; scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
+        # Controls sit in a body box so a full-width performance graph can sit below the two columns on Touch Display 2.
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.settings_body = body; body.set_vexpand(True); body.append(controls)
+        scroll.set_child(body); card.append(scroll)
         self.touch_mounting = Gtk.DropDown.new_from_strings(["Rotation · Standard", "Rotation · 180°"]); self.touch_mounting.add_css_class("settings-select"); display_column.append(self.touch_mounting)
         elastic_vertical_scroll(scroll)
         brightness_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); brightness_row.add_css_class("brightness-setting"); brightness_row.set_margin_top(8); brightness_row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow")); brightness_control = Gtk.Box(spacing=12); brightness_control.add_css_class("brightness-control"); self.touch_brightness = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); self.touch_brightness.set_draw_value(False); self.touch_brightness.set_hexpand(True); self.touch_brightness_value = self.label("100%", "brightness-value", 1); self.touch_brightness.connect("value-changed", self.change_brightness); brightness_control.append(self.touch_brightness); brightness_control.append(self.touch_brightness_value); brightness_row.append(brightness_control); display_column.append(brightness_row)

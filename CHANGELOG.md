@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7-beta.107 Alpine — 26 October 2026
+
+- Touch Display 2 (7-inch) Settings re-laid out: Network Controls and Bus Times on the left, Appearance (three drop-downs) and Brightness on the right, the System Performance graph full width underneath with full chip names, and shallower Install Update / Reboot buttons.
+- Action menus: each row now remembers exactly where it was pressed, in its own coordinates, and the menu opens there. The earlier window-coordinate approach did not take effect on the panel. If it still falls back, the display log prints "RoonDeck menu anchor fallback".
+
 ## 1.1.7-beta.106 Alpine — 26 October 2026
 
 - Touch Display 2 (7-inch) Settings, simplified: the performance graph moves to the empty space under Network Controls and Bus Times on the left and fills it (taller, wider than the sliver beside the brightness slider). The right column is just Appearance and Brightness. Chips use short names (CPU, Mem, Temp, Net) so all four fit on one line.

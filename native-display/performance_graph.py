@@ -141,13 +141,8 @@ class PerformanceGraph(Gtk.Box):
     def set_compact(self, compact):
         """Seven-inch landscape: a shorter graph and tighter card so it fits beside the other controls."""
         self.compact = compact
-        self.area.set_size_request(-1, 100 if compact else 470); self.area.set_vexpand(compact)
+        self.area.set_size_request(-1, 90 if compact else 470); self.area.set_vexpand(compact)
         self.set_vexpand(compact); self.set_spacing(8 if compact else 14)
-        short = {"cpu": "CPU", "memory": "Mem", "temp": "Temp", "network": "Net"}
-        for key, name, _colour in SERIES:
-            self.chip_names[key].set_text(short[key] if compact else name)
-            self.chip_checks[key].set_visible(not compact)
-        (self.add_css_class if compact else self.remove_css_class)("compact")
 
     def toggle(self, key):
         self.enabled[key] = not self.enabled[key]

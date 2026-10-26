@@ -469,6 +469,12 @@ class BrowsePageMixin:
         header.append(copy)
         return header
 
+    def remember_press_point(self, button):
+        """Record where inside this row the finger landed so its action menu can open there."""
+        press = Gtk.GestureClick(); press.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); press.set_button(0)
+        press.connect("pressed", lambda _gesture, _count, x, y, widget=button: setattr(widget, "press_point", (x, y)))
+        button.add_controller(press)
+
     def open_album_play_menu(self, anchor, item_key):
         if item_key:
             self.browser_action_anchor = anchor
@@ -544,7 +550,11 @@ class BrowsePageMixin:
             popover.set_valign(Gtk.Align.START)
             rect = Gdk.Rectangle(); rect.x = max(1, anchor.get_width()) + 8; rect.y = 0; rect.width = 1; rect.height = 1
             tap = getattr(self, "last_tap_point", None)
-            if tap and getattr(self, "window", None) is not None:
+            local = getattr(anchor, "press_point", None)
+            if local:
+                rect.x = round(max(1, min(max(1, anchor.get_width() - 1), local[0]))) + 12
+                rect.y = round(max(0, min(max(0, anchor.get_height() - 1), local[1])))
+            elif tap and getattr(self, "window", None) is not None:
                 # Open beside the finger rather than at the far edge of a full-width row.
                 try:
                     point = self.window.compute_point(anchor, Graphene.Point().init(tap[0], tap[1]))
@@ -553,7 +563,7 @@ class BrowsePageMixin:
                     if point is not None:
                         rect.x = round(max(1, min(anchor.get_width() - 1, point.x))) + 12
                         rect.y = round(max(0, min(anchor.get_height() - 1, point.y)))
-                except (AttributeError, TypeError, GLib.Error): pass
+                except (AttributeError, TypeError, GLib.Error) as error: print("RoonDeck menu anchor fallback: " + type(error).__name__, flush=True)
             popover.set_pointing_to(rect)
             self.browser_action_popover = popover
             choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6 if getattr(self, "compact_detail", False) else 10)
@@ -765,6 +775,7 @@ class BrowsePageMixin:
                 subtitle = self.label(item.get("subtitle") or "Roon", "queue-meta"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); copy.append(subtitle); row.append(copy)
                 row.append(self.label(item.get("duration") or "", "browser-arrow", 1))
                 button = Gtk.Button(); button.add_css_class("browser-row"); button.set_child(row); button.set_sensitive(bool(item.get("item_key")))
+                self.remember_press_point(button)
                 button.browse_item_key = item.get("item_key")
                 button.set_vexpand(False); button.set_valign(Gtk.Align.START)
                 if item.get("action"): button.add_css_class("browser-action")

@@ -222,3 +222,5 @@ button.genre-action-row:hover, button.genre-action-row:active { background: #292
 .perf-card.compact .perf-chip { min-height: 38px; padding: 0 6px; border-radius: 10px; }
 .perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 15px; }
 .perf-card.compact .perf-note { font-size: 14px; }
+.touch2-7-landscape.settings-with-graph .settings-page .settings-action { min-height: 52px; font-size: 20px; }
+.perf-card.compact .perf-chip-name, .perf-card.compact .perf-chip-value { font-size: 17px; }
