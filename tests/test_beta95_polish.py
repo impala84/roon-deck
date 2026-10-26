@@ -20,7 +20,7 @@ class Beta95PolishTests(unittest.TestCase):
                      ".large-display .album-play-menu { min-width: 0; padding: 0 30px 0 28px; }",
                      ".original-landscape .album-play-menu { min-width: 0; padding: 0 14px 0 12px; }"):
             self.assertIn(rule, self.code)
-        self.assertIn('FamilyIcon("chevron-play", 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16)', self.code)
+        self.assertIn('FamilyIcon("chevron-play", 34 if large_portrait else 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16)', self.code)
 
     def test_original_music_cog_is_centred_like_the_bus_and_home_cog(self):
         self.assertIn("Gtk.Align.FILL if original and not full else Gtk.Align.START", self.code)
