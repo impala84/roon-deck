@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7-beta.117 Alpine — 26 October 2026
+
+- Release process only: this build is identical to beta.116 and was published automatically by the new "Publish beta release" GitHub Action instead of `tools/release-beta`.
+
 ## 1.1.7-beta.116 Alpine — 26 October 2026
 
 - 10-inch Bus Times: the two buses after the next one are about 50% larger (up to 132px, was 86px), with a larger "THEN" caption.
