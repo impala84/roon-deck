@@ -584,6 +584,10 @@ class BrowsePageMixin:
                 point = anchor.compute_point(overlay, Graphene.Point().init(local[0], local[1]))
                 if isinstance(point, tuple): point = point[1] if point[0] else None
                 if point is not None: px, py = point.x, point.y
+            elif anchor is not self.browser_body and anchor.compute_bounds(overlay)[0]:
+                # A button with no touch point of its own (the Play Album arrow): open to its right, top edges level.
+                bounds = anchor.compute_bounds(overlay)[1]
+                px, py = bounds.get_x() + bounds.get_width() - 4, bounds.get_y() + 24
             elif getattr(self, "last_tap_point", None): px, py = self.last_tap_point
         except (AttributeError, TypeError, GLib.Error) as error: print("RoonDeck menu anchor fallback: " + type(error).__name__, flush=True)
         measured = menu.measure(Gtk.Orientation.HORIZONTAL, -1), menu.measure(Gtk.Orientation.VERTICAL, -1)

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.7 Alpine — 26 October 2026
+
+Stable release. It rolls up everything from 1.1.7 beta.1 to beta.117; the beta entries below have the detail.
+
+- First-boot wizard: text, buttons, checkboxes and the on-screen keyboard now scale with the display. On both Touch Display 2 sizes (7-inch and 10-inch, either orientation) the wizard was drawn at original-display size and looked tiny. Long options now wrap instead of running off the right edge of narrow portrait screens, and the keyboard leaves room for the form.
+- Album and artist pages on Touch Display 2: the purple play lozenge is smaller, and the album and artist pages use the same lozenge and the same body copy size, with slightly larger text and even line spacing.
+- Album page: the arrow next to Play Album now opens its menu beside the button, level with its top edge. It used to open halfway down the page.
+- Album page: the album write-up could never appear (fixed in beta.117).
+- Original Touch Display, portrait: the Discover mix page no longer runs 68px off the edge of the screen.
+- 10-inch Settings: the RoonDeck logo baseline lines up with the Settings title again.
+- Verification: the Alpine verification run (which Stable requires) passes at all six supported display sizes, and the wizard is now measured at each of them.
+- Display program is `roondeck_native.py` (renamed from `pi_bus_native.py`) and is split into one module per page; behaviour is unchanged.
+
 ## 1.1.7-beta.117 Alpine — 26 October 2026
 
 - Album page: the album write-up could never appear. Beta.103 added a line that used a variable from a different method, so when the write-up finished loading the display raised an error and the page stayed on "Loading album summary…". It now uses the same 800x480 test as the rest of the page.

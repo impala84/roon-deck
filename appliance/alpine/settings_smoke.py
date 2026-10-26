@@ -38,7 +38,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         if width<600: window.add_css_class("compact-portrait")
     elif width>=1200: window.add_css_class("touch-landscape")
     display.configure_settings_layout(width,height)
-    expected_logo_height = ((34 if width>=900 else 28) if portrait else
+    expected_logo_height = ((48 if width>=1000 else 34 if width>=900 else 28) if portrait else
         44 if max(width,height)>=1600 else 43 if width>=1200 else 26 if width<1000 else 32)
     logo_width, logo_height = display.settings_wordmark.get_size_request()
     assert logo_height == expected_logo_height, (width,height,logo_height)

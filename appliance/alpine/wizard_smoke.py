@@ -1,4 +1,8 @@
 """Construct all real GTK pages under Xvfb; no privileged/network actions."""
+import os
+import shutil
+import subprocess
+from pathlib import Path
 from gi.repository import GLib, Gtk, Gdk
 from wizard import Wizard
 
@@ -16,6 +20,27 @@ for stage in range(7):
         while context.pending(): context.iteration(False)
     assert app.content.get_first_child() is not None
     assert app.footer.get_first_child() is not None
+
+# Text and touch targets must grow with the panel and every page, including the
+# on-screen keyboard, must still fit the screen.
+monitor = Gdk.Display.get_default().get_monitors().get_item(0).get_geometry()
+assert app.scale == max(1.0, min(min(monitor.width, monitor.height) / 480, 2.2)), app.scale
+review = os.environ.get("PI_HOME_WIZARD_REVIEW")
+for stage in range(7):
+    app.stage = stage; app.render()
+    if app.fields: app.select_entry(app.fields[0])
+    for _ in range(30):
+        while context.pending(): context.iteration(False)
+    footer = app.footer.compute_bounds(app.window)[1]
+    assert footer.get_y() + footer.get_height() <= monitor.height + 1, (stage, footer.get_y(), footer.get_height(), monitor.height)
+    if app.keyboard.get_visible():
+        board = app.keyboard.compute_bounds(app.window)[1]
+        assert board.get_x() >= 0 and board.get_x() + board.get_width() <= monitor.width + 1, (stage, board.get_x(), board.get_width())
+        key = app.keyboard.get_first_child().get_first_child()
+        assert key.get_height() >= 34 and key.get_height() >= round(min(34 * app.scale, monitor.height * 0.06)) - 2, (stage, key.get_height())
+    if review and shutil.which("import"):
+        out = Path(review) / f"{monitor.width}x{monitor.height}"; out.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["import", "-silent", "-window", "root", str(out / f"stage-{stage + 1}.png")], check=True)
 app.stage = 0; app.progress = {}; app.render()
 assert "Choose your display" in app.title.get_text()
 assert app.footer.get_last_child().get_label() == "Apply and restart"

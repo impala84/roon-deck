@@ -91,6 +91,7 @@ def main() -> None:
             xvfb(size, "appliance/alpine/layout_alignment_smoke.py", environment)
             xvfb(size, "appliance/alpine/layout_fit_smoke.py", environment)
         if args.screen in ("settings", "all"):
+            xvfb(size, "appliance/alpine/wizard_smoke.py", {**environment, "PI_HOME_WIZARD_REVIEW": str(destination / "wizard")})
             xvfb(
                 size,
                 "appliance/alpine/settings_smoke.py",
