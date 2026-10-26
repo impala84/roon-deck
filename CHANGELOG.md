@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.3 Alpine — 26 October 2026
+
+- Keep the Bluetooth pairing agent alive through pairing, trust and connection. Pair in the background with visible progress, report rejection/timeouts, and verify BlueZ confirms pairing before reporting success.
+- Integrate Surface Dial under Controls in web Settings. Place WireGuard VPN below Wi-Fi in System → Device & networking, with independent support switches, package installation and status messages. Existing accessory bookmarks open Controls.
+- Add pairing session and background progress regression tests. Physical Surface Dial pairing and remote audio still require hardware acceptance.
+
 ## 1.1.8-beta.2 Alpine — 26 October 2026
 
 - Fixes the Remote & Bluetooth helper timeout after installing support. With D-Bus running but Bluetooth stopped, bluetoothctl could wait indefinitely; repeated status checks exhausted the web request deadline. Status now checks service readiness first and bounds read-only commands to three seconds.

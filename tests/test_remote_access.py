@@ -3,6 +3,8 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import threading
@@ -10,7 +12,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from pi_bus_time_display.remote_access import AccessoryManager, DEFAULT_DIAL, atomic_json, dial_config, keyfile, parse_profile, run_command
+from pi_bus_time_display.remote_access import AccessoryManager, DEFAULT_DIAL, atomic_json, dial_config, keyfile, parse_profile, run_command, pair_bluetooth
 from pi_bus_time_display.surface_dial import Gestures, EV_KEY, EV_REL, EV_SYN, REL_DIAL, BTN_0, SYN_DROPPED, input_paths
 from pi_bus_time_display.server import State, make_handler
 from pi_bus_time_display.config import Config
@@ -28,6 +30,39 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = vpn.example.com:51820
 PersistentKeepalive = 25
 """
+
+
+class BluetoothPairingTests(unittest.TestCase):
+    def session(self, failure=False):
+        # A real child process requires the agent to remain alive and each
+        # preceding reply to be consumed before the next command is sent.
+        script = """
+import sys
+print('Agent registered', flush=True)
+for command, reply in [('default-agent', 'Default agent request successful'), ('power on', 'Changing power on succeeded'), ('scan on', 'Discovery started'), ('pair AA:BB:CC:DD:EE:FF', 'PAIR_REPLY'), ('trust AA:BB:CC:DD:EE:FF', 'Changing trust succeeded'), ('connect AA:BB:CC:DD:EE:FF', 'Connection successful')]:
+    if sys.stdin.readline().strip() != command:
+        print('Failed: command order', flush=True); sys.exit(1)
+    print(reply, flush=True)
+sys.stdin.read()
+""".replace('PAIR_REPLY', 'Failed to pair: org.bluez.Error.AuthenticationRejected' if failure else 'Pairing successful')
+        original = subprocess.Popen
+        def start(args, **kwargs):
+            self.assertEqual(args, ['bluetoothctl', '--agent', 'NoInputNoOutput'])
+            return original([sys.executable, '-u', '-c', script], **kwargs)
+        return patch('pi_bus_time_display.remote_access.subprocess.Popen', side_effect=start)
+
+    def test_agent_session_survives_pair_trust_and_connect(self):
+        with self.session(): pair_bluetooth('AA:BB:CC:DD:EE:FF')
+
+    def test_rejected_pairing_is_reported_and_session_closed(self):
+        with self.session(True):
+            with self.assertRaisesRegex(ValueError, 'Pairing did not complete'):
+                pair_bluetooth('AA:BB:CC:DD:EE:FF')
+
+    def test_address_is_validated_before_opening_session(self):
+        with patch('pi_bus_time_display.remote_access.subprocess.Popen') as start:
+            with self.assertRaises(ValueError): pair_bluetooth('AA:BB; quit')
+            start.assert_not_called()
 
 
 class ProfileTests(unittest.TestCase):
@@ -81,6 +116,39 @@ class ManagerTests(unittest.TestCase):
 
     def configure(self):
         self.manager.handle({"operation": "vpn_import", "profile": PROFILE, "auto_connect": True})
+
+    def test_pairing_worker_does_not_block_status_and_verifies_pair(self):
+        entered, release = threading.Event(), threading.Event()
+        address = 'AA:BB:CC:DD:EE:FF'
+        def pairing(_): entered.set(); release.wait(2)
+        self.manager.pair = pairing
+        original = self.manager.run
+        def runner(args):
+            if args[:2] == ['bluetoothctl', 'devices']: return 'Device ' + address + ' Surface Dial'
+            if args[:2] == ['bluetoothctl', 'info']: return 'Name: Surface Dial\nPaired: yes\nConnected: yes'
+            if args[:3] == ['rc-service', 'bluetooth', 'status']: return 'started'
+            return original(args)
+        self.manager.run = runner
+        for name in ('usr/bin/bluetoothctl', 'etc/init.d/bluetooth', 'etc/init.d/roondeck-dial'):
+            path = self.manager.root / name; path.parent.mkdir(parents=True, exist_ok=True); path.touch()
+        try:
+            result = self.manager.handle({'operation': 'bluetooth_pair', 'address': address})
+            self.assertTrue(result['pairing']); self.assertTrue(entered.wait(1))
+            self.assertEqual(self.manager.status()['pairing']['status'], 'pairing')
+            with self.assertRaisesRegex(ValueError, 'Wait for Surface Dial'):
+                self.manager.handle({'operation': 'bluetooth_forget', 'address': address})
+        finally: release.set()
+        for _ in range(100):
+            if not self.manager.pair_lock.locked(): break
+            time.sleep(.01)
+        self.assertEqual(self.manager.status()['pairing']['status'], 'ready')
+
+    def test_pairing_worker_does_not_accept_unconfirmed_pair(self):
+        self.manager.pair = lambda address: None
+        self.manager.pair_lock.acquire()
+        self.manager.pair_dial('AA:BB:CC:DD:EE:FF')
+        self.assertEqual(self.manager.status()['pairing']['status'], 'error')
+        self.assertNotIn(['rc-update', 'add', 'bluetooth', 'default'], self.calls)
 
     def test_import_never_connects_or_exposes_keys(self):
         self.configure()
@@ -185,6 +253,22 @@ class ManagerTests(unittest.TestCase):
         self.assertEqual(self.manager.status()["installation"]["status"], "ready")
         self.assertIn(["rc-service", "bluetooth", "start"], self.calls)
         self.assertTrue(self.manager.status()["installed"])
+
+    def test_install_one_feature_even_when_both_are_enabled(self):
+        def install(args):
+            if args[0] == 'apk':
+                path = self.manager.root / 'usr/bin/wg'; path.parent.mkdir(parents=True, exist_ok=True); path.touch()
+            return self.run_system(args)
+        self.manager.run = install
+        self.manager.handle({'operation': 'install', 'feature': 'vpn'})
+        for _ in range(100):
+            if not self.manager.install_lock.locked(): break
+            time.sleep(.01)
+        packages = [args for args in self.calls if args[0] == 'apk']
+        self.assertEqual(packages, [['apk', 'add', '--no-cache', 'wireguard-tools-wg']])
+        self.assertEqual(self.manager.status()['installation']['features'], ['vpn'])
+        self.assertEqual(self.manager.status()['installation']['status'], 'ready')
+        self.assertFalse(any(args[:2] == ['rc-service', 'bluetooth'] for args in self.calls))
 
     def test_installation_errors_are_visible_and_do_not_expose_output(self):
         def fail(args): raise ValueError("private installer output")

@@ -13,11 +13,9 @@ installation and its existing Roon Bridge configuration intact while testing.
 ## Install and find Settings
 
 1. Install the published 1.1.8 beta through Settings → Software → Beta.
-2. In web Settings → System → Device & network, open **Network & Remote Access ·
-   Bluetooth Accessories**. The touchscreen also has **Remote Access &
-   Bluetooth** in its Settings scroll area.
-3. Use the backend **Enable optional features** switches to enable WireGuard and/or Surface Dial support, then save. Their touchscreen controls appear only while enabled. Turning support off disconnects the VPN or stops Dial controls while retaining profiles/pairing. Roon Bridge and Netdata controls likewise appear on the touchscreen only while enabled in the backend.
-4. Choose **Install optional support** once and wait for the progress message to finish. Beta.2 keeps the page responsive during downloads, installs packages only for the enabled features and starts the Bluetooth service after installation. The Bluetooth service/adapter status is shown separately; a running service without an adapter needs a Pi radio/firmware check before pairing. This installs Alpine's BlueZ,
+2. In web Settings, Surface Dial is under **Controls**. WireGuard VPN is below Wi-Fi under **System → Device & networking**. These are integrated sections in the normal web GUI. Old accessory-page bookmarks redirect to Controls.
+3. Enable the feature in its section, then save its support switch. Only enabled features appear on the touchscreen Settings page; turning support off stops that feature and retains saved profiles/pairing.
+4. Choose **Install Bluetooth support** or **Install VPN support** in that feature's section and wait for the progress message to finish. Installation runs in the background and downloads only that feature's packages. Bluetooth service/adapter status is shown separately; a running service without an adapter needs a Pi radio/firmware check before pairing. This installs Alpine's BlueZ,
    Broadcom firmware and WireGuard diagnostic tool, and the disabled Dial
    service. It does not pair anything, enable a VPN, reinstall Roon Bridge,
    change audio settings or change the Mac's network.
@@ -115,7 +113,7 @@ Recovery from the touchscreen: **Disconnect Remote Access**. Local SSH fallback:
 | Non-secret Dial settings | `/var/lib/pi-home/accessories.json` |
 | Optional input service | `roondeck-dial`, running as the existing unprivileged appliance user with input-group access |
 | Safe Roon commands | `roon-controller/accessory-control.js`, using the existing transport connection |
-| Native/web settings | `native-display/accessories_page.py`, `static/accessories.html/js/css` |
+| Native/web settings | `native-display/accessories_page.py`, `static/admin.html/css/js`, `static/accessories.js` |
 
 No VPN keys belong in `config.toml`, the application tree, logs or HTTP status.
 Normal source updates preserve system profiles and saved settings. The updater
@@ -131,3 +129,5 @@ Settings screen matrix renders both the existing Settings and the new accessory
 page using `tools/viewports.json`. `tools/check candidate` also parses generated
 full/split IPv4/IPv6 profiles with the appliance's real NetworkManager in offline
 mode. These checks do not replace the physical tests above.
+
+Beta.3 pairing keeps one interactive BlueZ client and its NoInputNoOutput agent alive until Pair, Trust and Connect finish. BlueZ deliberately skips automatic agent registration for command-line non-interactive mode ([upstream source](https://github.com/bluez/bluez/blob/master/client/main.c)). The helper returns immediately with pairing progress; web and native settings poll while pairing is active and report rejection/timeout. It verifies the stored Paired property before reporting success. Protocol-process regression tests cover sequencing and rejected authentication; these do not replace physical Dial testing.

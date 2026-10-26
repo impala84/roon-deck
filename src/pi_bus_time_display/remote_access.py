@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import selectors
 import subprocess
 import sys
 import tempfile
@@ -37,7 +38,7 @@ def run_command(args):
     # bluetoothd is stopped. Read-only status must never block the RPC helper.
     timeout = 180 if args[0] == "apk" else 30 if args[:1] == ["nmcli"] and "up" in args else 15
     if args[0] == "bluetoothctl":
-        timeout = 40 if "pair" in args else 12 if "scan" in args else 3
+        timeout = 40 if "pair" in args else 15 if "connect" in args else 12 if "scan" in args else 5 if any(value in args for value in ("power", "trust", "remove", "disconnect")) else 3
     if args[0] == "wg" or args[:2] == ["nmcli", "-g"] or args[:3] == ["rc-service", "bluetooth", "status"]:
         timeout = 3
     try:
@@ -52,6 +53,51 @@ def run_command(args):
     if args[0] == "bluetoothctl" and re.search(r"failed|not available", result.stdout, re.I):
         raise ValueError("Bluetooth operation failed. Put the Dial in pairing mode and retry.")
     return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", result.stdout).strip()
+
+
+def pair_bluetooth(address):
+    """Keep the BlueZ agent alive until pairing and connection complete.
+
+    bluetoothctl deliberately skips auto agent registration when a command is
+    supplied on argv. Use its interactive session and wait for each async reply.
+    Never feed all commands at once or close stdin while Pair is pending.
+    """
+    if not ADDRESS.fullmatch(address): raise ValueError("Choose a discovered Surface Dial.")
+    process = subprocess.Popen(["bluetoothctl", "--agent", "NoInputNoOutput"],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, bufsize=0)
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
+    def step(command, marker, seconds, error):
+        if command:
+            process.stdin.write((command + "\n").encode()); process.stdin.flush()
+        output = ""
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if not selector.select(max(0, deadline - time.monotonic())): break
+            chunk = os.read(process.stdout.fileno(), 4096)
+            if not chunk: break
+            output = (output + chunk.decode(errors="replace"))[-16000:]
+            clean = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", output)
+            if re.search(r"Failed|AuthenticationCanceled|AuthenticationRejected|not available|No default controller", clean, re.I):
+                raise ValueError(error)
+            if marker in clean: return
+        raise ValueError(error)
+    try:
+        step(None, "Agent registered", 5, "Bluetooth pairing agent could not start. Refresh status and retry.")
+        step("default-agent", "Default agent request successful", 3, "Bluetooth pairing agent is unavailable. Retry pairing.")
+        step("power on", "succeeded", 3, "The Bluetooth adapter could not be powered on.")
+        step("scan on", "Discovery started", 4, "Bluetooth discovery could not start. Refresh status and retry.")
+        step("pair " + address, "Pairing successful", 30, "Pairing did not complete. Hold the button under the Dial until its light flashes, then retry Pair.")
+        step("trust " + address, "succeeded", 3, "The Dial paired, but could not be trusted. Retry Pair.")
+        step("connect " + address, "Connection successful", 15, "The Dial paired, but did not connect. Wake the Dial and choose Connect.")
+    finally:
+        selector.close()
+        process.terminate()
+        try: process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill(); process.wait(timeout=2)
+        process.stdin.close(); process.stdout.close()
 
 
 def atomic_json(path, data, mode=0o600):
@@ -185,8 +231,8 @@ def dial_config(data):
 
 
 class AccessoryManager:
-    def __init__(self, root=Path("/"), run=run_command, arm=None):
-        self.root, self.run = Path(root), run
+    def __init__(self, root=Path("/"), run=run_command, arm=None, pair=pair_bluetooth):
+        self.root, self.run, self.pair = Path(root), run, pair
         self.private = self.root / "var/lib/roondeck-remote"
         self.private.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.meta_path = self.private / "settings.json"
@@ -197,6 +243,8 @@ class AccessoryManager:
         self.dial_path = self.root / "var/lib/pi-home/accessories.json"
         self.install_path = self.private / "installation.json"
         self.install_lock = threading.Lock()
+        self.pair_lock = threading.Lock()
+        self.pairing = {"status": "idle", "message": ""}
         self.lock = threading.RLock()
         self.arm = arm or self.arm_rollback
 
@@ -220,7 +268,7 @@ class AccessoryManager:
                 os.kill(pid, 0)
             except (OSError, ValueError, TypeError):
                 state, message = "error", "Support installation was interrupted. Install optional support again."
-        return {"status": state, "message": str(message)[:200]}
+        return {"status": state, "message": str(message)[:200], "features": [name for name in record.get("features", ["vpn", "dial"]) if name in {"vpn", "dial"}]}
 
     def install_support(self, features):
         try:
@@ -237,12 +285,26 @@ class AccessoryManager:
             installed = self.support()
             if any(enabled and not installed[name] for name, enabled in features.items()):
                 raise ValueError("Support packages could not be verified.")
-            atomic_json(self.install_path, {"status": "ready", "message": "Optional support installed. Check Bluetooth service and adapter status, then scan for the Dial."})
+            atomic_json(self.install_path, {"status": "ready", "features": [name for name, enabled in features.items() if enabled], "message": ("Bluetooth support installed. Check service and adapter status, then scan for the Dial." if features["dial"] else "WireGuard support installed. Import your VPN profile to continue.")})
         except Exception:
             # Never expose installer output, profiles, or command arguments.
-            atomic_json(self.install_path, {"status": "error", "message": "Could not install or start optional support. Check the network, free space and Bluetooth service, then retry."})
+            atomic_json(self.install_path, {"status": "error", "features": [name for name, enabled in features.items() if enabled], "message": "Could not install or start optional support. Check the network, free space and Bluetooth service, then retry."})
         finally:
             self.install_lock.release()
+
+    def pair_dial(self, address):
+        try:
+            self.pair(address)
+            if "Paired: yes" not in self.safe(["bluetoothctl", "info", address]):
+                raise ValueError("The Dial did not confirm pairing. Put it in pairing mode and retry.")
+            self.run(["rc-update", "add", "bluetooth", "default"])
+            self.pairing = {"status": "ready", "message": "Surface Dial paired and connected. Enable Roon controls and save the Dial configuration."}
+        except ValueError as error:
+            self.pairing = {"status": "error", "message": str(error)[:200]}
+        except Exception:
+            self.pairing = {"status": "error", "message": "Bluetooth pairing could not finish. Refresh status and retry."}
+        finally:
+            self.pair_lock.release()
 
     def arm_rollback(self, token):
         subprocess.Popen([sys.executable, "/opt/pi-home/appliance/alpine/remote_rollback.py", token],
@@ -306,7 +368,7 @@ class AccessoryManager:
         bluetooth_running = features.get("dial") is True and support["dial"] and bool(self.safe(["rc-service", "bluetooth", "status"]))
         return {"ok": True, "features": {name: features.get(name) is True for name in ("vpn", "dial")},
                 "installed": all(support[name] for name in ("vpn", "dial") if features.get(name) is True),
-                "support": support, "installation": self.installation(),
+                "support": support, "installation": self.installation(), "pairing": dict(self.pairing),
                 "bluetooth_service": "Running" if bluetooth_running else "Stopped" if support["dial"] else "Not installed",
                 "bluetooth_adapter": bool(self.safe(["bluetoothctl", "list"])) if bluetooth_running else False,
                 "vpn": {"configured": self.profile_path.exists(), "active": active,
@@ -336,6 +398,8 @@ class AccessoryManager:
             action = data.get("operation", "status")
             if action not in ACTIONS: raise ValueError("Unknown accessory operation.")
             if action == "status": return self.status()
+            if self.pair_lock.locked() and action != "status":
+                raise ValueError("Wait for Surface Dial pairing to finish.")
             if action == "features_save":
                 values = data.get("features", {})
                 if not isinstance(values, dict): raise ValueError("Choose supported optional features.")
@@ -360,10 +424,14 @@ class AccessoryManager:
             if action == "install":
                 features = load_json(self.features_path, {})
                 features = {name: features.get(name) is True for name in ("vpn", "dial")}
+                requested = data.get("feature")
+                if requested is not None:
+                    if requested not in features: raise ValueError("Choose VPN or Dial support.")
+                    features = {name: enabled and name == requested for name, enabled in features.items()}
                 if not any(features.values()): raise ValueError("Enable WireGuard or Surface Dial support first.")
                 if not self.install_lock.acquire(blocking=False): return {"ok": True, "queued": False}
                 try:
-                    atomic_json(self.install_path, {"status": "installing", "owner_pid": os.getpid(), "message": "Installing support for the enabled features…"})
+                    atomic_json(self.install_path, {"status": "installing", "features": [name for name, enabled in features.items() if enabled], "owner_pid": os.getpid(), "message": "Installing support for the enabled features…"})
                     threading.Thread(target=self.install_support, args=(features,), daemon=True).start()
                 except Exception:
                     self.install_lock.release()
@@ -436,10 +504,14 @@ class AccessoryManager:
                 address = str(data.get("address", "")).upper()
                 if not ADDRESS.fullmatch(address) or address not in {x["address"] for x in self.devices()}: raise ValueError("Choose a discovered Surface Dial.")
                 if action == "bluetooth_pair":
-                    self.run(["bluetoothctl", "--agent", "NoInputNoOutput", "--timeout", "30", "pair", address])
-                    self.run(["bluetoothctl", "trust", address])
-                    self.run(["bluetoothctl", "connect", address])
-                    self.run(["rc-update", "add", "bluetooth", "default"])
+                    self.pair_lock.acquire()
+                    self.pairing = {"status": "pairing", "message": "Pairing Surface Dial… Keep its pairing light flashing."}
+                    try:
+                        threading.Thread(target=self.pair_dial, args=(address,), daemon=True).start()
+                    except Exception:
+                        self.pair_lock.release()
+                        raise
+                    return {"ok": True, "pairing": True}
                 else:
                     verb = {"bluetooth_connect": "connect", "bluetooth_disconnect": "disconnect", "bluetooth_forget": "remove"}[action]
                     self.run(["bluetoothctl", verb, address])

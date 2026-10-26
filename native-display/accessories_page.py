@@ -147,6 +147,16 @@ class AccessoriesPageMixin:
         if not snapshot: return False
         if snapshot.get("installation", {}).get("status") in {"installing", "error"}:
             self.accessory_message.set_text(snapshot["installation"]["message"])
+        pairing = snapshot.get("pairing", {})
+        if pairing.get("status") in {"pairing", "ready", "error"}:
+            self.accessory_message.set_text(pairing.get("message", ""))
+        if pairing.get("status") == "pairing" and not getattr(self, "accessory_pair_poll", None):
+            def poll():
+                self.accessory_pair_poll = None
+                if self.settings_sections.get_visible_child_name() == "accessories":
+                    self.accessory_operation("status")
+                return False
+            self.accessory_pair_poll = GLib.timeout_add(2000, poll)
         self.accessory_snapshot = snapshot
         self.sync_accessory_visibility(snapshot.get("features", {}))
         self.accessory_dial_status.set_text(snapshot.get("dial_status", "Not running"))
