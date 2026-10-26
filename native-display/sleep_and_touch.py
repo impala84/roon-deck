@@ -121,6 +121,9 @@ class SleepAndTouchMixin:
             self.wake(getattr(event_type, "value_nick", str(event_type)))
         return False
 
+    def note_browse_activity(self):
+        self.browse_last_interaction = time.monotonic()
+
     def prepare_sleep_wake(self):
         # Ignore only the short tail of the gesture that pressed Sleep. Using a
         # timestamp avoids depending on a delayed GLib arming callback, which

@@ -65,7 +65,7 @@ class BrowsePageMixin:
 
     def request_browser(self, action, **payload):
         # Any browse request comes from a touch (including taps inside menus, which the window never sees).
-        self.browse_last_interaction = time.monotonic()
+        getattr(self, "note_browse_activity", lambda: None)()
         if action == "artist":
             self.browser_scroll.set_visible(True)
             self.browser_artist_scroll.set_visible(False); self.browser_search_columns.set_visible(False)
