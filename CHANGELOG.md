@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.43 Alpine — 28 October 2026
+
+- Join Wi-Fi: the page was wider than the screen (the name and password boxes asked for 20 characters each), pushing the keyboard off the right edge. The boxes now share the width, the network list takes a fixed 380px and long names are shortened.
+
 ## 1.1.8-beta.42 Alpine — 28 October 2026
 
 - Fix: "Join Wi-Fi network…" flashed the keyboard page for a moment and closed. Every Settings refresh sent the screen back to the main page when no Surface Dial is configured; it now only does that from the Controls page.

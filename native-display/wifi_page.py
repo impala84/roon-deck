@@ -8,6 +8,7 @@ import threading
 import urllib.error
 import urllib.request
 
+from gi.repository import Pango
 from native_common import BUS, Gtk, GLib, get_json, elastic_vertical_scroll
 
 KEY_LAYERS = (
@@ -119,9 +120,9 @@ class WifiPageMixin:
         divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); divider.add_css_class("settings-divider"); page.append(divider)
 
         # Landscape: networks on the left, name, password and keyboard on the right, so nothing scrolls. Portrait stacks them.
-        columns = Gtk.Box(spacing=24); columns.set_homogeneous(True); columns.set_vexpand(True); self.wifi_columns = columns; page.append(columns)
-        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); left.set_vexpand(True); columns.append(left)
-        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); columns.append(right)
+        columns = Gtk.Box(spacing=24); columns.set_homogeneous(False); columns.set_vexpand(True); self.wifi_columns = columns; page.append(columns)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); left.set_vexpand(True); self.wifi_left = left; columns.append(left)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); right.set_hexpand(True); right.set_vexpand(True); columns.append(right)
         scan_row = Gtk.Box(spacing=12); scan_row.append(self.label("NEARBY NETWORKS", "eyebrow")); scan_row.get_first_child().set_hexpand(True)
         self.wifi_scan_button = self.button("Scan", self.wifi_scan, "settings-action wifi-scan"); scan_row.append(self.wifi_scan_button); left.append(scan_row)
         self.wifi_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -130,6 +131,8 @@ class WifiPageMixin:
 
         self.wifi_ssid = Gtk.Entry(); self.wifi_ssid.set_placeholder_text("Network name"); self.wifi_ssid.add_css_class("wifi-entry")
         self.wifi_password = Gtk.Entry(); self.wifi_password.set_placeholder_text("Password"); self.wifi_password.set_visibility(False); self.wifi_password.add_css_class("wifi-entry")
+        # Entries ask for about twenty characters by default, which made the page wider than the screen.
+        for entry in (self.wifi_ssid, self.wifi_password): entry.set_width_chars(1); entry.set_max_width_chars(1); entry.set_hexpand(True)
         self.wifi_active_entry = self.wifi_ssid
         for entry in (self.wifi_ssid, self.wifi_password):
             focus = Gtk.EventControllerFocus(); focus.connect("enter", lambda _c, widget=entry: setattr(self, "wifi_active_entry", widget)); entry.add_controller(focus)
@@ -193,7 +196,7 @@ class WifiPageMixin:
             for item in self.wifi_networks:
                 text = f"{item['ssid']}  ·  {item.get('signal', 0)}%" + ("  ·  secured" if item.get("secured") else "") + ("  ·  connected" if item.get("in_use") else "")
                 row = self.button(text, lambda _b, value=item: self.wifi_pick(value), "settings-action wifi-network")
-                if isinstance(row.get_child(), Gtk.Label): row.get_child().set_xalign(0)
+                if isinstance(row.get_child(), Gtk.Label): row.get_child().set_xalign(0); row.get_child().set_ellipsize(Pango.EllipsizeMode.END)
                 self.wifi_list.append(row)
             return False
         self.network_request({"operation": "scan"}, done, timeout=30)
