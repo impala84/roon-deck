@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.40 Alpine — 28 October 2026
+
+- Now Playing: the volume row has a narrower Mute, less space beside − and +, and the volume number sits further from the screen edge.
+
 ## 1.1.8-beta.39 Alpine — 28 October 2026
 
 - Discover mixes: "Queue this mix" is now always exactly the size of "Play this mix" on every display, orientation and scaling, and keeps its outlined style.

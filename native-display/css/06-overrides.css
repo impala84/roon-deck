@@ -404,3 +404,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
    of its own (its border used to make it taller than Play) and simply fills the space Play sets; Play loses its top offset. */
 .mix-controls.mix-controls.mix-controls.mix-controls.mix-controls .queue-pill { min-height: 0; padding-top: 0; padding-bottom: 0; }
 .mix-controls.mix-controls.mix-controls.mix-controls.mix-controls .artist-play { margin-top: 0; }
+
+/* Now Playing volume row: a narrower Mute, tighter −/+ and the number kept off the screen edge */
+.now-volume-row .now-mute.now-mute.now-mute { min-width: 0; padding-left: 18px; padding-right: 18px; margin-right: 10px; }
+.now-volume-row .volume-step.volume-step { margin-left: 0; margin-right: 0; }
