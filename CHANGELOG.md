@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.31 Alpine — 27 October 2026
+
+- 10-inch Settings tabs: Controls tab now shows the Surface Dial settings (it was empty); the duplicate Controls button is gone from Overview; bus times and network status are full width; display brightness is a larger, easier-to-grab card on Overview and Display; Update software and Reboot RoonDeck have even 30px margins on the bottom and sides; Dial buttons use sentence case.
+
 ## 1.1.8-beta.30 Alpine — 27 October 2026
 
 - 10-inch portrait Settings: now four tabs across the top — Overview, Display, Controls, Performance. Controls (Surface Dial) is a tab instead of a separate button; Apply display lives under the Display tab; Update software and Reboot RoonDeck sit permanently at the bottom. Button labels are sentence case.

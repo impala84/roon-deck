@@ -275,7 +275,7 @@ class NowPlayingPageMixin:
             for _ in range(per_row - len(row_cells) if three_up else 0):
                 filler = Gtk.Box(); filler.set_hexpand(True); pair.append(filler)
             self.touch_daily.append(pair)
-        if dial and not (three_up and not getattr(self, "settings_sidebar_active", False)):
+        if dial and not tabs and not (three_up and not getattr(self, "settings_sidebar_active", False)):
             home = self.settings_controls_slot if getattr(self, "settings_sidebar_active", False) else self.touch_daily
             if button.get_parent() is not home:
                 if button.get_parent() is not None: button.get_parent().remove(button)

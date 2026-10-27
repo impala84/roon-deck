@@ -362,3 +362,12 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .theme-roon.settings-tabs-layout .settings-tab.active, .theme-roon.settings-tabs-layout .settings-tab.active.active { background: #9868F9; color: #fff; }
 .settings-tabs-layout .settings-footer button { min-height: 76px; border-radius: 12px; font-size: 24px; font-weight: 700; }
 .settings-tabs-layout .settings-pane { padding-top: 14px; }
+.settings-tabs-layout .settings-tabs-page.settings-page.page { padding-left: 30px; padding-right: 30px; padding-bottom: 30px; }
+.settings-tabs-layout .settings-footer { margin-top: 18px; }
+.settings-tabs-layout .settings-footer button { min-height: 84px; }
+.settings-tabs-layout .brightness-card { padding: 20px 22px 14px; border-radius: 10px; background: #1f1e25; }
+.settings-tabs-layout .brightness-card scale { min-height: 64px; padding: 14px 0; }
+.settings-tabs-layout .brightness-card scale trough { min-height: 12px; border-radius: 6px; }
+.settings-tabs-layout .brightness-card scale highlight { min-height: 12px; border-radius: 6px; }
+.settings-tabs-layout .brightness-card scale slider { min-width: 42px; min-height: 42px; border-radius: 21px; margin: -15px 0; }
+.settings-tabs-layout .brightness-card .brightness-value { font-size: 24px; min-width: 76px; }

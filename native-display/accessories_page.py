@@ -67,17 +67,17 @@ class AccessoriesPageMixin:
         self.accessory_devices = []
         self.accessory_device = dropdown(body, ["Choose a Surface Dial"])
         line = row(body)
-        action(line, "REFRESH", "status"); action(line, "SCAN", "bluetooth_scan")
+        action(line, "Refresh", "status"); action(line, "Scan", "bluetooth_scan")
         # Wrap connection actions on the original display in portrait, keeping
         # the same readable labels and touch targets instead of widening GTK.
         line = Gtk.FlowBox(); line.set_selection_mode(Gtk.SelectionMode.NONE)
         line.set_homogeneous(True); line.set_min_children_per_line(2); line.set_max_children_per_line(4)
         line.set_column_spacing(12); line.set_row_spacing(10); body.append(line)
-        action(line, "PAIR", "bluetooth_pair"); action(line, "CONNECT", "bluetooth_connect")
-        action(line, "DISCONNECT", "bluetooth_disconnect")
+        action(line, "Pair", "bluetooth_pair"); action(line, "Connect", "bluetooth_connect")
+        action(line, "Disconnect", "bluetooth_disconnect")
         # Forget needs a second tap instead of a modal window.
         self.accessory_forget_pending = False
-        self.accessory_forget = action(line, "FORGET", "bluetooth_forget")
+        self.accessory_forget = action(line, "Forget", "bluetooth_forget")
         self.accessory_enabled = toggle(body, "Enable Roon controls")
         note(body, "Put the Dial in pairing mode, scan, pair, then enable Roon controls and save. Turning the Dial changes the volume of the selected Roon zone from any screen.")
 
@@ -103,7 +103,7 @@ class AccessoriesPageMixin:
         note(body, "A single press waits a moment to tell whether a second press follows.")
         elastic_vertical_scroll(scroll)
 
-        save = self.button("SAVE", lambda *_: self.accessory_operation("dial_save"), "settings-action")
+        save = self.button("Save", lambda *_: self.accessory_operation("dial_save"), "settings-action")
         self.accessory_buttons.append(save); self.accessory_save = save; page.append(save)
 
         self.accessory_snapshot = {}
@@ -141,7 +141,7 @@ class AccessoriesPageMixin:
             self.accessory_forget_pending = address
             self.accessory_forget.set_label("TAP AGAIN")
             return
-        self.accessory_forget_pending = False; self.accessory_forget.set_label("FORGET")
+        self.accessory_forget_pending = False; self.accessory_forget.set_label("Forget")
         if operation == "dial_save":
             index = self.accessory_target.get_selected()
             config = {"enabled": self.accessory_enabled.get_active(), "address": address,

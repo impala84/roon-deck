@@ -232,6 +232,28 @@ class SettingsPageMixin(AccessoriesPageMixin):
         graph.set_compact(False); graph.area.set_size_request(-1, 320); graph.area.set_vexpand(True)
         graph.set_vexpand(True); graph.set_valign(Gtk.Align.FILL); graph.set_visible(True); graph.short_values = False
         self.settings_title_row.set_margin_top(0)
+        # Full-width rows: bus times and the network status stack, one cell per line.
+        self.settings_network_block.set_visible(True); self.settings_bus_spacer.set_visible(False)
+        self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL); self.touch_bus_pair.set_homogeneous(False); self.touch_bus_pair.set_spacing(16)
+        self.settings_net_status_row.set_orientation(Gtk.Orientation.VERTICAL); self.settings_net_status_row.set_homogeneous(False)
+
+    def make_mirrored_brightness(self):
+        """A second brightness slider for the Display tab, kept in step with the one on Overview."""
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); row.add_css_class("brightness-setting"); row.add_css_class("brightness-card")
+        row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow"))
+        control = Gtk.Box(spacing=12); control.add_css_class("brightness-control")
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); scale.set_draw_value(False); scale.set_hexpand(True)
+        value = self.label("100%", "brightness-value", 1)
+        control.append(scale); control.append(value); row.append(control)
+        scale.set_value(self.touch_brightness.get_value()); value.set_text(f"{round(scale.get_value())}%")
+        def mirror_to_main(source):
+            if round(source.get_value()) != round(self.touch_brightness.get_value()): self.touch_brightness.set_value(source.get_value())
+            value.set_text(f"{round(source.get_value())}%")
+        def mirror_from_main(source):
+            if round(source.get_value()) != round(scale.get_value()): scale.set_value(source.get_value())
+            value.set_text(f"{round(source.get_value())}%")
+        scale.connect("value-changed", mirror_to_main); self.touch_brightness.connect("value-changed", mirror_from_main)
+        return row
 
     def build_settings_tabs(self):
         """Re-home the Settings controls into tabs: Overview, Display, Controls and Performance, with Update and Reboot always below."""
@@ -257,6 +279,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_bus_spacer.set_visible(False)
         for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_network_block, self.settings_brightness_row): take(widget, overview)
         self.network_controls_heading.set_text("SERVICES")
+        self.settings_brightness_row.add_css_class("brightness-card")
         # Display: appearance and the installation settings, with Apply display under them.
         display = pane("display")
         for widget in (self.settings_appearance, self.settings_scaling_heading, self.touch_interface_size): widget.set_visible(False)
@@ -267,10 +290,13 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if control.get_parent() is not self.settings_display_row:
                 control.get_parent().remove(control); self.settings_display_row.append(control)
         self.apply_display_button.set_visible(True); self.apply_display_button.set_hexpand(False); self.apply_display_button.set_halign(Gtk.Align.START)
-        for widget in (self.settings_appearance_group, self.display_settings_heading, self.settings_display_row, self.apply_display_button): take(widget, display)
+        for widget in (self.settings_appearance_group, self.display_settings_heading, self.settings_display_row, self.make_mirrored_brightness(), self.apply_display_button): take(widget, display)
         # Controls: the Surface Dial page, as a tab instead of a separate page.
         controls = pane("controls")
         take(self.accessory_message, controls); take(self.accessory_card, controls)
+        # The pane itself scrolls, so the card takes its full height instead of scrolling inside a collapsed box.
+        self.accessory_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.accessory_scroll.set_propagate_natural_height(True); self.accessory_scroll.set_vexpand(False)
+        self.accessory_card.set_vexpand(False); take(self.accessory_save, controls)
         performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
         take(self.performance_graph, performance)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_hexpand(True); scroll.set_vexpand(True); scroll.set_child(self.settings_panes)
@@ -422,7 +448,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         # Network status for the 10-inch page (the 7-inch sidebar re-homes these cells into its Network section).
         network_block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); network_block.set_visible(False); self.settings_network_block = network_block
         network_block.append(self.label("NETWORK", "eyebrow")); status_row = Gtk.Box(spacing=16); status_row.set_homogeneous(True); network_block.append(status_row)
-        self.settings_net_roon_row, self.settings_net_roon = self.info_cell(); self.settings_net_connection_row, self.settings_net_connection = self.info_cell(); self.settings_net_vpn_row, self.settings_net_vpn = self.info_cell()
+        self.settings_net_status_row = status_row; self.settings_net_roon_row, self.settings_net_roon = self.info_cell(); self.settings_net_connection_row, self.settings_net_connection = self.info_cell(); self.settings_net_vpn_row, self.settings_net_vpn = self.info_cell()
         self.settings_net_vpn_row.set_visible(False); self.settings_net_vpn_heading = None
         for cell in (self.settings_net_roon_row, self.settings_net_connection_row, self.settings_net_vpn_row): status_row.append(cell)
         daily.append(network_block)
