@@ -20,6 +20,8 @@ async function refresh() {
   if (loading) return;
   loading = true;
   try {
+    const hadSnapshot=Boolean(snapshot);
+    const previousMessage=snapshot?.message;
     const data = await request(); snapshot = data;
     const pending = Boolean(data.trial.token);
     const hostname = data.hostname || byId('hostname').value;
@@ -42,7 +44,7 @@ async function refresh() {
     byId('network-signal').parentElement.hidden = !connected.some(item => item.signal);
     byId('network-speed').parentElement.hidden = !connected.some(item => item.speed);
     byId('network-speed').textContent = connected.map(item => item.speed).filter(Boolean).join(' · ') || '—';
-    byId('connection-message').textContent = data.message || 'Choose Ethernet or Wi-Fi. The other connection will be completely off.';
+    if(data.message && data.message!==previousMessage && (hadSnapshot || ['switching','trial','error'].includes(data.status))) reportAdminActivity(data.message,{source:'Network',error:data.status==='error'});
     byId('connection-trial').hidden = !pending;
     byId('network-trial-link').hidden = !pending;
     byId('connection-countdown').textContent = `${data.status === 'switching' ? 'Switching connection' : 'Connection trial'} · ${data.trial.seconds} seconds remaining`;
@@ -54,20 +56,20 @@ async function refresh() {
     if (timer) clearTimeout(timer);
     timer = pending ? setTimeout(refresh, 2000) : null;
   } catch (error) {
-    byId('connection-message').textContent = snapshot?.trial?.token ? 'Waiting for the connection. Reopen this page using the device name or new address. An unconfirmed switch will restore the previous connection.' : error.message;
+    reportAdminActivity(snapshot?.trial?.token ? 'Waiting for the connection. Reopen using the device name or new address; an unconfirmed switch restores the previous connection.' : error.message,{source:'Network',error:!snapshot?.trial?.token});
     if (snapshot?.trial?.token) timer = setTimeout(refresh, 3000);
   } finally { loading = false; }
 }
 async function perform(data) {
   if (busy) return;
   busy = true; selectors.forEach(button => { button.disabled = true; });
-  byId('connection-message').textContent = data.operation === 'select' ? 'Starting a 90-second connection trial…' : 'Applying network setting…';
+  reportAdminActivity(data.operation === 'select' ? 'Starting a 90-second connection trial…' : 'Applying network setting…',{source:'Network'});
   try {
     const result = await request(data);
     if (result.token) snapshot = {...snapshot,trial:{token:result.token}};
     if (data.operation === 'select') { showNetworkTab('current'); byId('network-trial-link').hidden = false; }
     await refresh();
-  } catch (error) { byId('connection-message').textContent = error.message; }
+  } catch (error) { reportAdminActivity(error.message,{source:'Network',error:true}); }
   finally { busy = false; if(snapshot) selectors.forEach(button => {const kind=button.dataset.connectionSelect||'wifi';button.disabled=Boolean(snapshot.trial.token)||!snapshot.devices.some(item=>item.kind===kind);}); }
 }
 document.querySelectorAll('[data-connection-select]').forEach(button => button.addEventListener('click',()=>perform({operation:'select',target:button.dataset.connectionSelect})));

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8-beta.13 Alpine — 27 October 2026
+
+- Keep the web Settings header and left navigation in place while the settings workspace scrolls. Use a dark-grey hover band, full-width purple selection and a minimum readable workspace width.
+- Put Save changes and a summary of pending fields at the bottom of the sidebar, with action notifications directly above. View display is a button in the header.
+- Flatten the settings panels, remove duplicate Network/VPN separators and stale inline notices, and add space around VPN/Dial support buttons. Shorten the feature help text.
+- Show VPN connection status under Current connection, alongside Ethernet and Wi-Fi, with a link to VPN settings.
+- Preserve the beta.12 Roon Core address controls and earlier VPN fixes.
+
 ## 1.1.8-beta.12 Alpine — 27 October 2026
 
 - The VPN section's "Home Roon Server for diagnostics" field is now **Roon Core address · needed to use Roon over the VPN**, with an explanation and its own **Save Roon Core address** button. It saves immediately, without re-importing the WireGuard profile, and is the same setting as Settings → Roon → Roon Core address. Importing a profile with the field filled also saves it.

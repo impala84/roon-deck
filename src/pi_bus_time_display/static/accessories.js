@@ -14,7 +14,7 @@ async function saveCore() {
   if (!response.ok) throw new Error(result.error || 'Could not save the Roon Core address.');
   coreHost = value;
 }
-function message(text, feature = currentFeature) { document.querySelectorAll('[data-accessory-message]').forEach(node => { if (!feature || node.closest('[data-accessory-feature]').dataset.accessoryFeature === feature) node.textContent = text; }); }
+function message(text,feature=currentFeature,error=false){if(!text||text.startsWith('Settings loaded.'))return;reportAdminActivity(text,{source:feature==='vpn'?'VPN':feature==='dial'?'Controls':'Accessories',error});}
 document.querySelectorAll('[data-accessory-feature]').forEach(panel => panel.addEventListener('click', () => { currentFeature = panel.dataset.accessoryFeature; }, true));
 const actions = {none: 'No action', playpause: 'Play / pause', next: 'Next track', previous: 'Previous track', mute: 'Mute / unmute'};
 for (const name of ['single', 'double', 'long']) {
@@ -34,8 +34,11 @@ function deviceStatus() {
 async function refresh(fill = false) {
   const data = await request();
   const previousInstallation = snapshot?.installation?.status;
+  const previousPairing = snapshot?.pairing;
+  const previousScan = snapshot?.scan_message;
   snapshot = data;
   const vpn = data.vpn;
+  byId('current-vpn-status').textContent = !data.features.vpn ? 'Off' : !data.support.vpn ? 'Support not installed' : vpn.status + (vpn.active ? ' · ' + (vpn.mode === 'split' ? 'Split Tunnel' : 'Full Tunnel') : '');
   byId('vpn-section').hidden = !data.features.vpn;
   byId('dial-section').hidden = !data.features.dial;
   const installation = data.installation || {status: 'idle', message: ''};
@@ -47,19 +50,19 @@ async function refresh(fill = false) {
   document.querySelectorAll('[data-support-status]').forEach(node => { node.textContent = (installation.features || []).includes(node.closest('[data-accessory-feature]').dataset.accessoryFeature) ? installation.message : ''; });
   byId('bluetooth-service').textContent = `Bluetooth service: ${data.bluetooth_service || 'Unknown'}${data.bluetooth_service === 'Running' ? data.bluetooth_adapter ? ' · Adapter available' : ' · No adapter detected; check the Pi Bluetooth radio and firmware.' : ''}`;
   const pairing = data.pairing || {status: 'idle', message: ''};
-  if (pairing.status !== 'idle') message(pairing.message, 'dial');
+  if (pairing.status !== 'idle' && (previousPairing || ['pairing','error'].includes(pairing.status)) && (pairing.status !== previousPairing?.status || pairing.message !== previousPairing?.message)) message(pairing.message, 'dial', pairing.status === 'error');
   const hint = byId('dial-hint'); hint.textContent = data.dial_hint || ''; hint.hidden = !data.dial_hint;
-  if (data.scanning && data.scan_message) message(data.scan_message, 'dial');
+  if (data.scanning && data.scan_message && data.scan_message !== previousScan) message(data.scan_message, 'dial');
   if ((installation.status === 'installing' || pairing.status === 'pairing' || data.scanning) && !installationTimer) {
     installationTimer = setTimeout(async () => {
       installationTimer = null;
       try { await refresh(); }
-      catch (error) { message(error.message); }
+      catch (error) { message(error.message,currentFeature,true); }
     }, 2000);
   } else if (installation.status !== 'installing' && pairing.status !== 'pairing' && !data.scanning && installationTimer) {
     clearTimeout(installationTimer); installationTimer = null;
   }
-  if (previousInstallation === 'installing' && installation.status !== 'installing') (installation.features || []).forEach(feature => message(installation.message, feature));
+  if (installation.status !== previousInstallation && installation.message && installation.status !== 'idle' && (previousInstallation || ['installing','error'].includes(installation.status))) message(installation.message, installation.features?.[0], installation.status === 'error');
   byId('vpn-status').textContent = vpn.status + (vpn.pending_token ? ` · Confirm within ${vpn.confirm_seconds} seconds` : '');
   byId('vpn-confirm').hidden = !vpn.pending_token;
   const details = byId('vpn-details'); details.replaceChildren();
@@ -97,7 +100,7 @@ async function refresh(fill = false) {
     byId('output').value = config.output_id;
   }
 }
-async function perform(work, fill = false) {
+async function perform(work, fill = false, successMessage = 'Settings updated.') {
   if (busy) return;
   busy = true;
   buttons().forEach(button => { button.disabled = true; });
@@ -109,15 +112,15 @@ async function perform(work, fill = false) {
       byId('vpn-diagnostics').textContent = Object.entries(result.diagnostics).map(([key, value]) => `${labels[key] || key}: ${value === null ? 'Not configured' : value ? 'Yes' : 'No'}`).join('\n') + '\n' + result.note;
     }
     await refresh(fill);
-    if (!result?.pairing) message(result?.queued === true ? 'Installing optional support. Progress is shown below.' : 'Settings updated. Use Refresh status to check connection progress.');
-  } catch (error) { message(error.message); }
+    if (!result?.pairing) message(result?.scanning ? 'Scanning for Surface Dial…' : result?.queued === true ? 'Installing optional support…' : successMessage);
+  } catch (error) { message(error.message,currentFeature,true); }
   finally {
     busy = false; buttons().forEach(button => { button.disabled = false; });
     document.querySelectorAll('[data-accessory-install]').forEach(button => { button.disabled = snapshot?.installation?.status === 'installing'; });
     document.querySelectorAll('[data-operation^="bluetooth_"]').forEach(button => { button.disabled = snapshot?.pairing?.status === 'pairing'; });
   }
 }
-document.querySelectorAll('[data-accessory-refresh]').forEach(button => button.addEventListener('click', () => perform(async () => null)));
+document.querySelectorAll('[data-accessory-refresh]').forEach(button => button.addEventListener('click', () => perform(async () => null, false, 'Status refreshed.')));
 document.querySelectorAll('[data-save-feature]').forEach(button => button.addEventListener('click', () => {
   const feature = button.dataset.saveFeature;
   perform(() => request({operation: 'features_save', features: {...snapshot.features, [feature]: byId(feature + '-feature').checked}}), true);
@@ -151,7 +154,12 @@ byId('dial-config').addEventListener('submit', event => {
     single: byId('single').value, double: byId('double').value, long: byId('long').value}}));
 });
 fetch('/api/admin/config', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(data => { coreHost = data?.roon_core_host || ''; if (!byId('home-server').value) byId('home-server').value = coreHost; }).catch(() => {});
+let networkVpnRefreshing=false;
+function refreshNetworkVpn(){if(busy||networkVpnRefreshing)return;networkVpnRefreshing=true;refresh().catch(error=>{byId('current-vpn-status').textContent='Status unavailable';message(error.message,'vpn',true);}).finally(()=>{networkVpnRefreshing=false;});}
+window.addEventListener('admin-network-open',refreshNetworkVpn);
+byId('connection-refresh').addEventListener('click',refreshNetworkVpn);
+setInterval(()=>{if(!document.hidden&&!byId('panel-network').hidden)refreshNetworkVpn();},10000);
 refresh(true).then(() => { message('Settings loaded. Configure each optional feature independently.'); })
-  .catch(error => { message(error.message); });
+  .catch(error => { byId('current-vpn-status').textContent='Status unavailable';message(error.message,currentFeature,true); });
 
 })();
