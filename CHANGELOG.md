@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.12 Alpine — 27 October 2026
+
+- The VPN section's "Home Roon Server for diagnostics" field is now **Roon Core address · needed to use Roon over the VPN**, with an explanation and its own **Save Roon Core address** button. It saves immediately, without re-importing the WireGuard profile, and is the same setting as Settings → Roon → Roon Core address. Importing a profile with the field filled also saves it.
+
 ## 1.1.8-beta.11 Alpine — 27 October 2026
 
 - Roon Core over VPN: the Roon API library threw while cleaning up a closed connection ("Cannot read properties of undefined (reading 'cb')"), which skipped its close callback, so reconnection never restarted. The controller now ignores that library fault instead of crashing, retries the direct connection every 30 seconds, and logs why a direct connection closed or failed to `roon-error.log`.

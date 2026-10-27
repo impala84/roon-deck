@@ -112,7 +112,7 @@
 <small>Routing follows the profile's AllowedIPs. IPv6 needs an IPv6 tunnel address and ::/0.</small>
 <label>Split Tunnel destination subnets<input form="vpn-profile" id="subnets" placeholder="192.168.1.0/24, 10.0.0.0/24"></label>
 <label>Home gateway for diagnostics<input form="vpn-profile" id="home-gateway" autocomplete="off" placeholder="192.168.1.1"></label>
-<label>Home Roon Server for diagnostics<input form="vpn-profile" id="home-server" autocomplete="off" placeholder="192.168.1.10"></label>
+<label>Roon Core address · needed to use Roon over the VPN<input form="vpn-profile" id="home-server" autocomplete="off" placeholder="192.168.1.10"></label><small>Roon cannot be found automatically through a VPN. Enter your home Roon Core's address, then save it; the Pi connects to it directly. It is also used for the connection check.</small><button type="button" class="secondary" id="save-core">Save Roon Core address</button>
 <label class="check"><input form="vpn-profile" type="checkbox" id="auto-connect"> Connect on boot after confirming the connection</label>
 <button form="vpn-profile" type="submit">Import profile</button><small>Private keys are stored in a protected system profile and are never returned to this page. Disconnect before replacing the profile.</small></div>
 <div class="accessory-actions"><button type="button" data-operation="vpn_connect">Connect · 90-second trial</button><button type="button" id="vpn-confirm" hidden>Keep this connection</button><button type="button" data-operation="vpn_disconnect" class="secondary">Disconnect</button><button type="button" data-operation="diagnostics" class="secondary">Run diagnostics</button></div>
@@ -138,4 +138,4 @@
   </form>
 </main>
 <form id="vpn-profile"></form><form id="dial-config"></form>
-<div id="toast" role="status" aria-live="polite"></div><script src="/admin.js?v=1040"></script><script src="/accessories.js?v=4" defer></script><script src="/network.js?v=1" defer></script></body></html>
+<div id="toast" role="status" aria-live="polite"></div><script src="/admin.js?v=1040"></script><script src="/accessories.js?v=5" defer></script><script src="/network.js?v=1" defer></script></body></html>

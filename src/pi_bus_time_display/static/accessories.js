@@ -6,6 +6,14 @@ let busy = false;
 let installationTimer = null;
 const buttons = () => document.querySelectorAll('.accessory-settings button');
 let currentFeature = null;
+let coreHost = '';
+async function saveCore() {
+  const value = byId('home-server').value.trim();
+  const response = await fetch('/api/admin/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({section: 'roon', roon_core_host: value})});
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not save the Roon Core address.');
+  coreHost = value;
+}
 function message(text, feature = currentFeature) { document.querySelectorAll('[data-accessory-message]').forEach(node => { if (!feature || node.closest('[data-accessory-feature]').dataset.accessoryFeature === feature) node.textContent = text; }); }
 document.querySelectorAll('[data-accessory-feature]').forEach(panel => panel.addEventListener('click', () => { currentFeature = panel.dataset.accessoryFeature; }, true));
 const actions = {none: 'No action', playpause: 'Play / pause', next: 'Next track', previous: 'Previous track', mute: 'Mute / unmute'};
@@ -71,7 +79,7 @@ async function refresh(fill = false) {
   byId('dial-feature').checked = data.features.dial;
   byId('routing').value = vpn.mode;
   byId('subnets').value = vpn.subnets;
-  byId('home-server').value = vpn.home_server;
+  byId('home-server').value = vpn.home_server || coreHost;
   byId('home-gateway').value = vpn.home_gateway;
   byId('auto-connect').checked = vpn.auto_connect;
   const config = data.dial;
@@ -116,6 +124,7 @@ document.querySelectorAll('[data-save-feature]').forEach(button => button.addEve
 }));
 document.querySelectorAll('[data-accessory-install]').forEach(button => button.addEventListener('click', () => perform(() => request({operation: 'install', feature: button.dataset.accessoryInstall}))));
 byId('device').addEventListener('change', deviceStatus);
+byId('save-core').addEventListener('click', () => perform(async () => { await saveCore(); message('Roon Core address saved. The Pi connects within about 30 seconds.', 'vpn'); return {pairing: true}; }));
 byId('vpn-confirm').addEventListener('click', () => perform(() => request({operation: 'vpn_confirm', token: snapshot?.vpn.pending_token})));
 document.querySelectorAll('.accessory-settings [data-operation]').forEach(button => button.addEventListener('click', () => {
   if (button.dataset.operation === 'bluetooth_forget' && !confirm('Forget this Surface Dial and turn off its Roon controls?')) return;
@@ -128,6 +137,7 @@ byId('vpn-profile').addEventListener('submit', event => {
     if (!file || file.size > 16384) throw new Error('Choose a WireGuard .conf file smaller than 16 KB.');
     const profile = await file.text();
     try {
+      if (byId('home-server').value.trim()) await saveCore();
       return await request({operation: 'vpn_import', profile, mode: byId('routing').value, subnets: byId('subnets').value,
         auto_connect: byId('auto-connect').checked, home_server: byId('home-server').value, home_gateway: byId('home-gateway').value});
     } finally { byId('profile').value = ''; }
@@ -140,6 +150,7 @@ byId('dial-config').addEventListener('submit', event => {
     acceleration: byId('acceleration').checked, maximum_volume: byId('maximum').value === '' ? null : Number(byId('maximum').value),
     single: byId('single').value, double: byId('double').value, long: byId('long').value}}));
 });
+fetch('/api/admin/config', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(data => { coreHost = data?.roon_core_host || ''; if (!byId('home-server').value) byId('home-server').value = coreHost; }).catch(() => {});
 refresh(true).then(() => { message('Settings loaded. Configure each optional feature independently.'); })
   .catch(error => { message(error.message); });
 
