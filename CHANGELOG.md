@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.53 Alpine — 28 October 2026
+
+- Keep Roon Discovery buttons compact beneath the server address, with service information alongside on desktop and below on mobile.
+- Add spacing above Save AirPlay name.
+- Clear the local check runner’s temporary-file cleanup handler after use.
+
 ## 1.1.8-beta.52 Alpine — 28 October 2026
 
 - Reboot and Update did nothing while a connection switch or VPN trial was waiting to be kept; they now undo the pending trial first and say so on screen if the request fails.

@@ -95,7 +95,7 @@ appliance() {
   docker run --rm "$appliance_image" .venv/bin/python appliance/alpine/accessory_smoke.py
   local source_archive
   source_archive=$(mktemp "$repo/.roondeck-source.XXXXXX")
-  trap 'rm -f "$source_archive"' RETURN
+  trap 'rm -f "$source_archive"; trap - RETURN' RETURN
   git -C "$repo" archive --prefix=pi-home/ HEAD | gzip > "$source_archive"
   docker run --rm -v "$source_archive:/tmp/pi-home-update-source.tar.gz:ro" \
     "$appliance_image" python3 appliance/alpine/updater_smoke.py
