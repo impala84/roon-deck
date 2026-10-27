@@ -114,7 +114,7 @@ class AccessoriesPageMixin:
     def sync_accessory_visibility(self, features):
         dial = features.get("dial") is True
         self.settings_accessories_button.set_visible(dial)
-        if not dial: self.settings_sections.set_visible_child_name("main")
+        if not dial: self.settings_sections.set_visible_child_name(self.settings_home())
 
     def open_accessories(self, *_):
         self.settings_sections.set_visible_child_name("accessories")
@@ -123,7 +123,7 @@ class AccessoriesPageMixin:
         self.accessory_operation("status", fill=True)
 
     def close_accessories(self, *_):
-        self.settings_sections.set_visible_child_name("main")
+        self.settings_sections.set_visible_child_name(self.settings_home())
 
     def accessory_operation(self, operation, fill=False):
         if getattr(self, "accessory_busy", False): return
@@ -176,7 +176,7 @@ class AccessoriesPageMixin:
             # Saving is the end of the task: go back to Settings and say so there.
             if snapshot: self.sync_accessory_visibility(snapshot.get("features", {}))
             self.accessory_message.set_text("")
-            self.settings_sections.set_visible_child_name("main")
+            self.settings_sections.set_visible_child_name(self.settings_home())
             self.touch_diagnostics.set_text("Dial controls saved.")
             return False
         self.accessory_message.set_text(error)

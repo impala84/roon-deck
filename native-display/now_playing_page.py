@@ -255,7 +255,11 @@ class NowPlayingPageMixin:
             for line in toggles[index:index + 2]: pair.append(line)
             self.touch_daily.append(pair)
         if features.get("dial") is True and hasattr(self, "settings_accessories_button"):
-            self.touch_daily.append(self.settings_accessories_button)
+            button = self.settings_accessories_button
+            home = self.settings_controls_slot if getattr(self, "settings_sidebar_active", False) else self.touch_daily
+            if button.get_parent() is not home:
+                if button.get_parent() is not None: button.get_parent().remove(button)
+                home.append(button)
         self.touch_daily.set_visible(self.touch_daily.get_first_child() is not None)
         if hasattr(self, "network_controls_heading"): self.network_controls_heading.set_visible(self.touch_daily.get_first_child() is not None)
         for value, choice in self.touch_background_buttons.items():

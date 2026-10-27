@@ -38,6 +38,14 @@ class SettingsPageMixin(AccessoriesPageMixin):
         gen2_seven_landscape = not portrait and 1200 <= width < 1500 and 650 <= height < 850
         self.settings_close.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
         if hasattr(self, "accessory_back"): self.accessory_back.set_size_request(*((40, 40) if original else (52, 52) if gen2_seven_landscape else (58, 58)))
+        # Touch Display 2 (7-inch) landscape: Settings is a sidebar of sections with the chosen section filling the right-hand side.
+        graph_allowed = (self.settings_data or {}).get("settings_layout", "graph") != "simple"
+        if gen2_seven_landscape:
+            self.window.add_css_class("seven-inch-settings"); self.window.add_css_class("settings-sidebar-layout"); self.window.remove_css_class("settings-with-graph")
+            self.arrange_settings_sidebar(graph_allowed)
+            self.sync_diagnostics_visibility(); self.sync_appearance_selects()
+            return
+        self.window.remove_css_class("settings-sidebar-layout")
         if hasattr(self, "settings_actions"): self.settings_actions.set_spacing(24 if portrait and width >= 1000 else 16)
         if hasattr(self, "settings_utilities"): self.settings_utilities.set_spacing(32 if portrait and width >= 1000 else 12)
         (self.window.add_css_class if seven_inch else self.window.remove_css_class)("seven-inch-settings")
@@ -108,6 +116,74 @@ class SettingsPageMixin(AccessoriesPageMixin):
         if hasattr(self, "touch_diagnostics"):
             diagnostics_gap = 5 if max(width, height) >= 1600 else 2
             self.touch_diagnostics.set_margin_top(diagnostics_gap)
+
+    SETTINGS_PANES = (("overview", "Overview"), ("display", "Display"), ("network", "Network"), ("performance", "Performance"))
+
+    def settings_home(self):
+        """The Settings page the close/save buttons return to."""
+        return "sidebar" if getattr(self, "settings_sidebar_active", False) else "main"
+
+    def arrange_settings_sidebar(self, graph_allowed):
+        if not getattr(self, "settings_sidebar_active", False): self.build_settings_sidebar()
+        self.settings_nav["performance"].set_visible(graph_allowed)
+        if not graph_allowed and self.settings_panes.get_visible_child_name() == "performance": self.show_settings_pane("overview")
+        # Full labels fit the wide content area; the section heading is APPEARANCE.
+        self.settings_short_appearance = False; self.settings_wide_portrait = False
+        graph = self.performance_graph
+        graph.set_compact(False); graph.area.set_size_request(-1, 330); graph.set_vexpand(False); graph.set_visible(True)
+        self.settings_title_row.set_margin_top(14)
+
+    def build_settings_sidebar(self):
+        """Re-home the existing Settings controls into a sidebar page. One-way: the layout is chosen by the display profile."""
+        def take(widget, target):
+            parent = widget.get_parent()
+            if parent is not None: parent.remove(widget)
+            target.append(widget)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); page.add_css_class("page"); page.add_css_class("settings-page"); page.add_css_class("settings-sidebar-page")
+        take(self.settings_header, page); take(self.settings_divider, page)
+        shell = Gtk.Box(spacing=28); shell.set_vexpand(True); shell.add_css_class("settings-shell"); page.append(shell)
+        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); rail.add_css_class("settings-sidebar"); rail.set_size_request(270, -1); rail.set_hexpand(False); shell.append(rail)
+        self.settings_nav = {}
+        for name, title in self.SETTINGS_PANES:
+            nav = self.button(title, lambda _button, pane=name: self.show_settings_pane(pane), "settings-nav")
+            nav.set_hexpand(True)
+            if isinstance(nav.get_child(), Gtk.Label): nav.get_child().set_xalign(0)
+            self.settings_nav[name] = nav; rail.append(nav)
+        gap = Gtk.Box(); gap.set_vexpand(True); rail.append(gap)
+        take(self.update_button, rail); take(self.settings_reboot, rail)
+        self.settings_actions.set_visible(False)
+        self.settings_action_stack.set_visible(False)
+        self.settings_panes = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE); self.settings_panes.set_hhomogeneous(False); self.settings_panes.set_vhomogeneous(False)
+        def pane(name):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); box.add_css_class("settings-pane"); box.set_valign(Gtk.Align.START)
+            self.settings_panes.add_named(box, name); return box
+        overview = pane("overview")
+        self.touch_bus_heading.set_visible(True); self.settings_brightness_row.set_margin_top(0)
+        for widget in (self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
+        self.settings_controls_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); take(self.settings_accessories_button, self.settings_controls_slot); overview.append(self.settings_controls_slot)
+        display = pane("display")
+        self.settings_appearance.set_visible(False); self.settings_scaling_heading.set_visible(False); self.touch_interface_size.set_visible(False)
+        self.settings_appearance_group.set_visible(True)
+        take(self.settings_appearance_group, display)
+        for widget in (self.display_settings_heading, self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):
+            widget.set_visible(True); take(widget, display)
+        self.apply_display_button.set_hexpand(False); self.apply_display_button.set_halign(Gtk.Align.START)
+        network = pane("network")
+        self.network_controls_heading.set_visible(True)
+        take(self.network_controls_heading, network); take(self.touch_daily, network)
+        take(self.performance_graph, pane("performance"))
+        scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_hexpand(True); scroll.set_vexpand(True); scroll.set_child(self.settings_panes)
+        elastic_vertical_scroll(scroll); self.settings_pane_scroll = scroll; shell.append(scroll)
+        self.settings_sections.add_named(page, "sidebar")
+        self.settings_sidebar_active = True
+        if self.settings_sections.get_visible_child_name() == "main": self.settings_sections.set_visible_child_name("sidebar")
+        self.show_settings_pane("overview")
+
+    def show_settings_pane(self, name):
+        self.settings_panes.set_visible_child_name(name)
+        for key, nav in self.settings_nav.items():
+            (nav.add_css_class if key == name else nav.remove_css_class)("active")
+        adjustment = self.settings_pane_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
 
     def build_settings(self):
         self.settings_sections = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE)
@@ -242,10 +318,11 @@ class SettingsPageMixin(AccessoriesPageMixin):
     def open_settings(self, *_):
         self.settings_open = True; self.last_system_fetch = 0
         # Always start on the main page, even if the screen last left Settings from Controls.
-        self.settings_sections.set_visible_child_name("main")
+        self.settings_sections.set_visible_child_name(self.settings_home())
+        if getattr(self, "settings_sidebar_active", False): self.show_settings_pane("overview")
         self.stack.set_visible_child_name("settings"); self.start_poll()
 
-    def close_settings(self, *_): self.settings_open = False; self.settings_sections.set_visible_child_name("main"); self.stack.set_visible_child_name(self.last_mode)
+    def close_settings(self, *_): self.settings_open = False; self.settings_sections.set_visible_child_name(self.settings_home()); self.stack.set_visible_child_name(self.last_mode)
 
     def set_library_busy(self, busy):
         (self.library_add.add_css_class if busy else self.library_add.remove_css_class)("library-busy")

@@ -64,20 +64,42 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     wordmark_baseline = display.settings_wordmark_frame.get_allocation().y + display.settings_wordmark_frame.get_height()
     assert abs(wordmark_baseline-title_baseline) <= 1, (width,height,wordmark_baseline,title_baseline)
     rows = [display.touch_profile, display.touch_orientation, display.touch_mounting]
+    sidebar = not portrait and 1200 <= width < 1500 and 650 <= height < 850
     seven_inch = (height < width and width <= 820 and height <= 500) or (height < width and 1000 <= width < 1500 and height <= 850)
-    if seven_inch:
+    if sidebar:
+        assert display.settings_sections.get_visible_child_name() == "sidebar"
+        # Every section opens, fits the right-hand pane, and the footer actions sit under a gap in the sidebar.
+        for pane in ("overview", "display", "network", "performance"):
+            display.show_settings_pane(pane); settle()
+            bounds = display.settings_panes.compute_bounds(window)[1]
+            assert bounds.get_x() >= 270 and bounds.get_x() + bounds.get_width() <= width, (pane, bounds.get_x(), bounds.get_width())
+            assert display.settings_nav[pane].has_css_class("active")
+        display.show_settings_pane("display"); settle()
+        assert all(row.get_visible() and row.get_height() > 0 for row in rows)
+        assert display.apply_display_button.get_visible()
+        display.show_settings_pane("performance"); settle()
+        graph = display.performance_graph.compute_bounds(window)[1]
+        assert graph.get_y() + graph.get_height() <= height, (graph.get_y(), graph.get_height(), height)
+        for button in (display.update_button, display.settings_reboot):
+            bounds = button.compute_bounds(window)[1]
+            assert bounds.get_x() + bounds.get_width() <= 300 and bounds.get_y() + bounds.get_height() <= height, (button, bounds.get_x(), bounds.get_y())
+        nav_bottom = display.settings_nav["performance"].compute_bounds(window)[1]
+        assert display.update_button.compute_bounds(window)[1].get_y() > nav_bottom.get_y() + nav_bottom.get_height() + 8
+        display.show_settings_pane("overview"); settle()
+    elif seven_inch:
         assert all(not row.get_visible() for row in rows)
         assert not display.apply_display_button.get_visible()
     else:
         heights = [row.get_height() for row in rows]
         assert min(heights) > 0 and max(heights)-min(heights) <= 1, (width,height,heights)
-    actions=[]; child=display.settings_actions.get_first_child()
-    while child:
-        if child.get_visible(): actions.append(child.get_width())
-        child=child.get_next_sibling()
-    assert max(actions)-min(actions) <= 1, actions
-    assert display.settings_actions.get_first_child() == display.update_button
-    assert display.update_button.get_next_sibling() == display.apply_display_button
+    if not sidebar:
+        actions=[]; child=display.settings_actions.get_first_child()
+        while child:
+            if child.get_visible(): actions.append(child.get_width())
+            child=child.get_next_sibling()
+        assert max(actions)-min(actions) <= 1, actions
+        assert display.settings_actions.get_first_child() == display.update_button
+        assert display.update_button.get_next_sibling() == display.apply_display_button
     theme_widths=[button.get_width() for button in display.touch_theme_buttons.values()]
     assert max(theme_widths)-min(theme_widths)<=1, theme_widths
     if width==1280 and height==720:
@@ -128,7 +150,8 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     # Saving closes the page and reports on the Settings page.
     display.accessory_save_pending = True
     display.finish_accessory_operation({"features": {"dial": True}, "dial": {"enabled": True, "address": "", "target": "selected", "output_id": "", "sensitivity": "normal", "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"}, "devices": []}, {}, {"ok": True}, "", False); settle()
-    assert display.settings_sections.get_visible_child_name() == "main"
+    assert display.settings_sections.get_visible_child_name() == display.settings_home()
+    if sidebar: assert display.settings_accessories_button.get_parent() is display.settings_controls_slot
     display.settings_sections.set_visible_child_name("accessories")
     # Leaving Settings and coming back must always start on the main page, never on Controls.
     # Exercise real navigation while suppressing unrelated API polling.
@@ -136,7 +159,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         display.open_settings(); settle()
         start_poll.assert_called_once()
     assert display.stack.get_visible_child_name() == "settings"
-    assert display.settings_sections.get_visible_child_name() == "main"
+    assert display.settings_sections.get_visible_child_name() == display.settings_home()
     display.sync_accessory_visibility({"dial": False})
     assert not display.settings_accessories_button.get_visible()
     window.destroy(); settle()
