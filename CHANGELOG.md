@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.38 Alpine — 28 October 2026
+
+- Join Wi-Fi: slimmer header and tighter padding on 7-inch landscape so the whole keyboard fits with no scrolling.
+
 ## 1.1.8-beta.37 Alpine — 28 October 2026
 
 - 7-inch landscape Join Wi-Fi: networks on the left, name, password and keyboard on the right, so it fits without scrolling.

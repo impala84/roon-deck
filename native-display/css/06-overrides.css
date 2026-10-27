@@ -394,3 +394,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .wifi-page .wifi-entry { min-height: 52px; font-size: 22px; }
 .wifi-key.browser-key { min-height: 50px; min-width: 0; padding: 2px; font-size: 24px; }
 .portrait .wifi-key.browser-key { min-height: 64px; font-size: 28px; }
+/* Join Wi-Fi takes over the whole screen: a slim header and tight padding so the keyboard fits without scrolling */
+.wifi-page.settings-page.page { padding-top: 10px; padding-bottom: 10px; }
+.wifi-page .settings-header { min-height: 56px; }
+.wifi-page .wifi-key.browser-key { min-height: 46px; }
+.portrait .wifi-page .wifi-key.browser-key { min-height: 64px; }

@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current development release is **1.1.8-beta.37**, based on stable **1.1.7**. It adds optional Surface Dial controls, a WireGuard connectivity prototype and updated Home tile colours. Installable beta releases use the existing Beta updater channel. The latest complete stable image remains available from the [1.1.7 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.7-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
+The current development release is **1.1.8-beta.38**, based on stable **1.1.7**. It adds optional Surface Dial controls, a WireGuard connectivity prototype and updated Home tile colours. Installable beta releases use the existing Beta updater channel. The latest complete stable image remains available from the [1.1.7 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.7-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
