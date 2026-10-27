@@ -7,6 +7,7 @@ import threading
 import time
 
 SAMPLES = 60
+NETWORK_SMOOTHING = 5  # seconds averaged for the network line
 NETWORK_CEILINGS = (5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0)  # Mb/s
 SERIES = (
     ("network", "Network", (.25, .85, .62)),
@@ -70,6 +71,7 @@ class PerformanceSampler:
         self.latest = {key: None for key, _name, _colour in SERIES}
         self.previous_cpu = None; self.previous_network = None; self.previous_time = None
         self.network_rates = deque(maxlen=SAMPLES)
+        self.network_recent = deque(maxlen=NETWORK_SMOOTHING)
 
     def sample(self, now, stat_text, meminfo_text, temperature_text, network_text):
         cpu_now = parse_cpu_times(stat_text)
@@ -82,7 +84,9 @@ class PerformanceSampler:
         if counted is not None and self.previous_network is not None and self.previous_time is not None and now > self.previous_time:
             # Per interface, so an interface appearing or a counter resetting cannot add its whole lifetime total as one spike.
             moved = sum(max(0, value - self.previous_network[name]) for name, value in counted.items() if name in self.previous_network)
-            rate = moved * 8 / 1_000_000 / (now - self.previous_time)
+            # Streams arrive in bursts a few seconds apart; a short trailing average shows the steady rate, not each burst.
+            self.network_recent.append(moved * 8 / 1_000_000 / (now - self.previous_time))
+            rate = sum(self.network_recent) / len(self.network_recent)
         self.previous_network = counted; self.previous_time = now
         self.latest = {"cpu": cpu, "memory": memory, "temp": temperature, "network": rate}
         if cpu is not None: self.history["cpu"].append(cpu)
