@@ -41,6 +41,21 @@ class PerformanceHistoryTests(unittest.TestCase):
         now[0] = 100
         self.assertEqual(history.snapshot()['history']['memory'], [50])
 
+    def test_a_missing_metric_does_not_keep_a_stale_line_at_now(self):
+        now = [0]
+        def reader(path):
+            if path == '/proc/meminfo': return 'MemTotal: 100 kB\nMemAvailable: 50 kB\n'
+            if path.endswith('/temp') and now[0] == 0: return '48000'
+            return ''
+        history = PerformanceHistory(reader, lambda: now[0])
+        self.assertEqual(history.snapshot()['history']['temp'], [48])
+        now[0] = 1
+        data = history.snapshot()
+        self.assertIsNone(data['latest']['temp'])
+        self.assertEqual(data['history']['temp'], [])
+        self.assertTrue(data['available'])
+        self.assertEqual(data['history']['memory'], [50, 50])
+
     def test_missing_linux_measurements_are_unavailable_not_zero(self):
         history = PerformanceHistory(lambda _: '', lambda: 1)
         data = history.snapshot()

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.8-beta.17 Alpine — 27 October 2026
+
+- Rework web Settings into a compact grid with flat section groups, consistent spacing, simple outline navigation icons and a subtle background gradient. Remove unnecessary nested boxes, the stray empty notification popup and repeated completed-update messages.
+- Use the requested menu order: Overview, Services, Automation, Display, Controls, Network, Software and System. Add Screen Preview directly below System, integrated into the same layout. Show About RoonDeck without a disclosure box.
+- Restore a full-width phone layout with a top menu and a fixed Save changes / activity footer. Preserve the fixed desktop header and sidebar.
+- Add Memory & processes and live Performance diagnostics views. The authenticated performance API retains up to 60 seconds in memory, uses the touchscreen's shared CPU/memory/temperature/network calculations and avoids inventing values when measurements are unavailable.
+- Make Network more visual with Ethernet, Wi-Fi and VPN status cards, route and link details. Fix Wi-Fi button spacing and preserve exclusive Ethernet/Wi-Fi switching.
+- Add Find zones and a Roon zone dropdown to simplify setup. Keep a saved zone selectable if it is temporarily unavailable.
+
 ## 1.1.8-beta.16 Alpine — 27 October 2026
 
 - Separate the fixed web Settings header and sidebar from the workspace with faint grey lines. Start Overview flush beneath the header.

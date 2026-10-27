@@ -119,8 +119,12 @@ class PerformanceHistory:
                 return
             if self.last_sample is not None and now - self.last_sample > 2.5:
                 self.sampler = PerformanceSampler()
-            self.sampler.sample(now, self.reader("/proc/stat"), self.reader("/proc/meminfo"),
-                                self.reader("/sys/class/thermal/thermal_zone0/temp"), self.reader("/proc/net/dev"))
+            latest = self.sampler.sample(now, self.reader("/proc/stat"), self.reader("/proc/meminfo"),
+                                         self.reader("/sys/class/thermal/thermal_zone0/temp"), self.reader("/proc/net/dev"))
+            # Never pin an old line to "Now" after its measurement disappears.
+            for key, value in latest.items():
+                if value is None:
+                    self.sampler.history[key].clear()
             self.last_sample = now
 
     def snapshot(self):
