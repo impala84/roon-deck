@@ -45,9 +45,9 @@ class WifiPageMixin:
         self.connection_buttons["wifi"].set_tooltip_text("Use Wi-Fi as the primary connection")
         wifi_heading = self.label("WI-FI", "eyebrow"); block.append(wifi_heading)
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
-        self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(False); self.connection_message.set_ellipsize(3); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
+        self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(False); self.connection_message.set_ellipsize(3); self.connection_message.set_width_chars(1); self.connection_message.set_max_width_chars(1); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
         trial = Gtk.Box(spacing=12); trial.set_homogeneous(True); trial.set_visible(False); self.connection_trial = trial
-        self.connection_keep_button = self.button("Keep this connection", self.connection_keep, "settings-action"); trial.append(self.connection_keep_button)
+        self.connection_keep_button = self.button("Keep", self.connection_keep, "settings-action"); trial.append(self.connection_keep_button)
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
         # Keep/Go back takes the place of the Join button while it shows, so the column never grows past the screen.
         trial.connect("notify::visible", lambda row, _p: (wifi_heading.set_visible(not row.get_visible()), join.set_visible(not row.get_visible())))
@@ -93,8 +93,8 @@ class WifiPageMixin:
         self.connection_keep_button.set_visible(pending or vpn_pending)
         message = data.get("message") or ""
         if vpn_pending and not has_trial: return False  # the VPN trial message stays until it is kept or undone
-        if has_trial and not pending: message = "The switch has not finished. Tap Go back to return to the previous connection."
-        if pending: message = f"Keep this connection within {trial.get('seconds', 0)} seconds, or the previous one returns."
+        if has_trial and not pending: message = "Switch unfinished. Tap Go back."
+        if pending: message = f"Keep within {trial.get('seconds', 0)}s or it goes back."
         elif data.get("status") not in ("switching", "trial"): return False
         self.connection_message.set_text(message); self.connection_message.set_visible(bool(message))
         return False
@@ -296,7 +296,7 @@ class WifiPageMixin:
                 self.connection_say(error); self.vpn_switch_updating = True; self.settings_vpn_switch.set_active(not self.settings_vpn_switch.get_active()); self.vpn_switch_updating = False
             elif token:
                 self.vpn_trial_token = token; self.connection_trial.set_visible(True)
-                self.connection_say("VPN on. Keep it within 90 seconds?")
+                self.connection_say("VPN on. Keep within 90s?")
             else: self.connection_say(message)
             self.settings_vpn_at = 0; self.refresh_network_pane()
             return False

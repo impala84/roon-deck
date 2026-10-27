@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.54 Alpine — 28 October 2026
+
+- Network: the Keep / Go back row no longer stretches the whole Settings screen wide. The status line can no longer set the page width, and "Keep this connection" is now just "Keep".
+
 ## 1.1.8-beta.53 Alpine — 28 October 2026
 
 - Keep Roon Discovery buttons compact beneath the server address, with service information alongside on desktop and below on mobile.
