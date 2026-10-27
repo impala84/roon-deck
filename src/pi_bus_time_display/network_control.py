@@ -27,8 +27,21 @@ def run_command(args):
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ValueError('Network operation timed out. The previous connection will be restored.') from error
     if result.returncode:
-        raise ValueError('Could not change the connection. Check the cable or saved Wi-Fi settings.')
+        error = ValueError('Could not change the connection. Check the cable or saved Wi-Fi settings.')
+        error.detail = (result.stderr or result.stdout or '').strip()
+        raise error
     return result.stdout.strip()
+
+
+def join_reason(error):
+    """Plain-words reason a Wi-Fi join failed, from nmcli's own message, so the screen can say why it went back."""
+    text = str(getattr(error, 'detail', '') or error)
+    low = text.lower()
+    if 'no network with ssid' in low or 'not found' in low: return 'The network was not found. Check the hotspot is on and visible, and try again.'
+    if 'secrets were required' in low or 'password' in low or 'psk' in low or '802-1x' in low or 'auth' in low: return 'The password was not accepted.'
+    if 'timeout' in low or 'timed out' in low: return 'The network did not answer in time.'
+    if 'ip configuration' in low or 'dhcp' in low: return 'Connected, but the network gave no address.'
+    return text.splitlines()[0][:120] if text else 'The connection could not be made.'
 
 
 class NetworkControl:
@@ -183,9 +196,15 @@ class NetworkControl:
                     self.run(['nmcli', 'radio', 'wifi', 'on'])
                     self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
                 if target == 'wifi' and ssid:
+                    # The radio may have just been switched on, so give it a fresh scan before asking for the network.
+                    self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(3)
                     args = ['nmcli', '--wait', '20', 'device', 'wifi', 'connect', ssid, 'ifname', interface]
                     if password: args += ['password', password]
-                    self.run(args)
+                    try: self.run(args)
+                    except ValueError as error:
+                        if 'no network with ssid' not in str(getattr(error, 'detail', '')).lower(): raise
+                        self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(4)
+                        self.run(args)
                 else:
                     self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
                 state = self.run(['nmcli', '-g', 'GENERAL.STATE', 'device', 'show', interface])
@@ -202,10 +221,14 @@ class NetworkControl:
                         self.run(['nmcli', 'device', 'set', name, 'managed', 'no'])
                         self.run(['ip', 'link', 'set', 'dev', name, 'down'])
                 atomic_json(self.result, {'status': 'trial', 'message': 'Confirm this connection within 90 seconds. The other connection is off.'})
-            except Exception:
-                self._restore(record)
+            except Exception as error:
+                reason = join_reason(error) if target == 'wifi' and ssid else ''
+                if reason:
+                    # A failed join leaves a half-made saved profile (often with the wrong password); remove it.
+                    self.safe(['nmcli', 'connection', 'delete', 'id', ssid])
+                self._restore(record, reason)
 
-    def _restore(self, record):
+    def _restore(self, record, reason=''):
         errors = []
         def restore(args):
             try: self.run(args)
@@ -232,7 +255,7 @@ class NetworkControl:
             return
         atomic_json(self.policy, record['previous_policy'])
         self.pending.unlink(missing_ok=True)
-        atomic_json(self.result, {'status': 'restored', 'message': 'The previous network settings have been restored.'})
+        atomic_json(self.result, {'status': 'restored', 'message': ('Could not join: ' + reason + ' The previous connection is back.') if reason else 'The previous network settings have been restored.'})
 
     def rollback(self, token):
         with self.lock, (self.private / 'transaction.lock').open('a') as lock:

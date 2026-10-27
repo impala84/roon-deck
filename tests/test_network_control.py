@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pi_bus_time_display.network_control import NetworkControl
+from pi_bus_time_display.network_control import NetworkControl, join_reason
 from pi_bus_time_display.remote_access import atomic_json
 from pi_bus_time_display.server import Config, State, make_handler
 
@@ -117,6 +117,13 @@ class NetworkControlTests(unittest.TestCase):
         self.assertTrue(self.links['eth0']['managed']); self.assertEqual(self.links['eth0']['state'],'connected')
         self.assertNotIn(['ip','link','set','dev','eth0','down'],self.calls)
         self.assertNotIn('private system output',json.dumps(self.manager.status()))
+
+    def test_join_failure_reasons_are_in_plain_words(self):
+        def failed(detail):
+            error = ValueError('generic'); error.detail = detail; return join_reason(error)
+        self.assertIn('not found', failed('Error: No network with SSID \'Phone\' found.'))
+        self.assertIn('password', failed('Error: Connection activation failed: Secrets were required, but not provided.'))
+        self.assertIn('in time', failed('Error: Timeout expired (20 seconds)'))
 
     def test_invalid_or_missing_adapters_never_change_network(self):
         for target in ('vpn',';reboot',None,{},'wifi'):

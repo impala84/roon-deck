@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.56 Alpine — 28 October 2026
+
+- Join Wi-Fi: when a join fails the screen now says why ("network not found", "password not accepted", "no answer in time") instead of silently going back. The Pi now rescans before joining (the radio was often just switched on, so a phone hotspot was not yet in the list), retries once if the network is not found, and removes the half-made saved profile left by a failed join.
+
 ## 1.1.8-beta.55 Alpine — 28 October 2026
 
 - Network: the Keep / Go back buttons now sit level with the Join Wi-Fi button; their message takes the heading line above them instead of pushing them down.
