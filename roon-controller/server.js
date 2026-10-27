@@ -19,13 +19,13 @@ const {DiscoveryManager} = require('./discovery-state');
 const {openDiscovery} = require('./discovery-bridge');
 const {brokerWireId} = require('../tools/discovery-wire.cjs');
 const discovery = new DiscoveryManager();
-const {validCoreHost} = require('./core-host');
+const {validCoreHost, directDiscoveryTarget} = require('./core-host');
 const {LibraryManager}=require('./library-state');
 const library=new LibraryManager({changed:()=>broadcast()});
 const discoveryCores = new Map();
 function discoveryTarget() {
   const host = core?.moo?.transport?.host;
-  const found = discoveryCores.get(host);
+  const found = discoveryCores.get(host) || (core && host && host === configuredRuntime().coreHost ? directDiscoveryTarget(host, core.core_id) : null);
   discovery.setTarget(core && found ? {...found,coreId:core.core_id} : null);
   library.setTarget(core && found ? {...found,coreId:core.core_id} : null);
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.14 Alpine — 27 October 2026
+
+- Daily mixes, Surprise Me, library actions and the other features that use Roon's private connection now work with a directly configured Roon Core address. They need the Core's broadcast to learn its address and id, which cannot cross a VPN, so the controller now builds that from the connected Core. This connection uses TCP port 9332 (artwork uses 9330), so allow 9332 from the VPN network to the Core.
+
 ## 1.1.8-beta.13 Alpine — 27 October 2026
 
 - Keep the web Settings header and left navigation in place while the settings workspace scrolls. Use a dark-grey hover band, full-width purple selection and a minimum readable workspace width.
