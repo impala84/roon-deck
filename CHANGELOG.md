@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.41 Alpine — 28 October 2026
+
+- Discover: the loading dots no longer shift when a section first opens. The section's margins are now applied immediately instead of when the first response arrives.
+
 ## 1.1.8-beta.40 Alpine — 28 October 2026
 
 - Now Playing: the volume row has a narrower Mute, less space beside − and +, and the volume number sits further from the screen edge.

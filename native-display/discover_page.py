@@ -109,6 +109,7 @@ class DiscoverPageMixin:
             self.sync_discovery_sidebar()
             while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
             self.discovery_pictures = {}; self.discovery_cards = []
+            self.apply_discovery_layout()
             self.discovery_list.append(self.loading_notice())
             self.discovery_scroll.get_vadjustment().set_value(0)
             self.request_discovery()
@@ -138,6 +139,18 @@ class DiscoverPageMixin:
         track.set_margin_end(CAROUSEL_END_SPACE)
         return False
 
+    def apply_discovery_layout(self):
+        """Margins and scroll policy for the current Discover section. Applied when a section opens, not only when its data
+        arrives, so the loading dots do not jump when the first response rebuilds the list with different margins."""
+        portrait_grid = getattr(self, "responsive_portrait", False)
+        original_daily = not portrait_grid and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500 and getattr(self, "discovery_section", "") == "daily"
+        (self.roon_page.add_css_class if original_daily else self.roon_page.remove_css_class)("daily-edge")
+        self.discovery_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if original_daily else Gtk.PolicyType.AUTOMATIC)
+        self.discovery_body.set_margin_end(0 if portrait_grid or getattr(self, "discovery_section", "") == "daily" else 28 if getattr(self, "viewport_width", 800) >= 1200 else 0)
+        gen2_landscape = self.window.has_css_class("touch2-7-landscape")
+        offset_discovery = gen2_landscape and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"}
+        self.discovery_list.set_margin_top(22 if portrait_grid and self.discovery_section == "releases" else 24 if offset_discovery else 5 if not portrait_grid and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"} else 0)
+
     def render_discover(self, request, data):
         if request != self.discovery_request or not self.discovery_active or self.roon_views.get_visible_child_name() != "discover": return False
         data = data or {"status": "unavailable", "message": "Discover is unavailable. Normal Roon controls are unaffected."}
@@ -152,13 +165,8 @@ class DiscoverPageMixin:
         self.discovery_cards = []
         self.discovery_card_scrollers = {}
         self.sync_discovery_sidebar()
-        original_daily = not portrait_grid and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500 and getattr(self, "discovery_section", "") == "daily"
-        (self.roon_page.add_css_class if original_daily else self.roon_page.remove_css_class)("daily-edge")
-        self.discovery_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL if original_daily else Gtk.PolicyType.AUTOMATIC)
-        self.discovery_body.set_margin_end(0 if portrait_grid or getattr(self, "discovery_section", "") == "daily" else 28 if getattr(self, "viewport_width", 800) >= 1200 else 0)
+        self.apply_discovery_layout()
         gen2_landscape = self.window.has_css_class("touch2-7-landscape")
-        offset_discovery = gen2_landscape and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"}
-        self.discovery_list.set_margin_top(22 if portrait_grid and self.discovery_section == "releases" else 24 if offset_discovery else 5 if not portrait_grid and getattr(self, "discovery_section", "") in {"recent", "daily", "releases"} else 0)
         if data.get("status") != "ready":
             self.discovery_list.append(self.loading_notice() if data.get("status") == "loading" else self.label(data.get("message", "Discover is unavailable."), "browser-message")); return False
         if self.discovery_mix:
