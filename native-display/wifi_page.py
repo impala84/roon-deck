@@ -47,7 +47,7 @@ class WifiPageMixin:
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
         self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(True); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
         trial = Gtk.Box(spacing=12); trial.set_homogeneous(True); trial.set_visible(False); self.connection_trial = trial
-        trial.append(self.button("Keep this connection", self.connection_keep, "settings-action"))
+        self.connection_keep_button = self.button("Keep this connection", self.connection_keep, "settings-action"); trial.append(self.connection_keep_button)
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
         self.connection_status = {}; self.connection_timer = None; self.connection_busy = False; self.vpn_trial_token = ""
         self.connection_block = block
@@ -82,12 +82,16 @@ class WifiPageMixin:
         for target, button in self.connection_buttons.items():
             (button.add_css_class if target == active else button.remove_css_class)("active")
             kinds = [item for item in data.get("devices", []) if item.get("kind") == target]
-            button.set_sensitive(bool(kinds) and not trial.get("token"))
-        pending = bool(trial.get("token")) and data.get("status") == "trial"
+            button.set_sensitive(bool(kinds))
+        # Any unfinished trial can always be undone, so a half-finished switch can never leave the screen stuck.
+        has_trial = bool(trial.get("token"))
+        pending = has_trial and data.get("status") == "trial"
         vpn_pending = bool(self.vpn_trial_token)
-        self.connection_trial.set_visible(pending or vpn_pending)
+        self.connection_trial.set_visible(has_trial or vpn_pending)
+        self.connection_keep_button.set_visible(pending or vpn_pending)
         message = data.get("message") or ""
-        if vpn_pending and not pending: return False  # the VPN trial message stays until it is kept or undone
+        if vpn_pending and not has_trial: return False  # the VPN trial message stays until it is kept or undone
+        if has_trial and not pending: message = "The switch has not finished. Tap Go back to return to the previous connection."
         if pending: message = f"Keep this connection within {trial.get('seconds', 0)} seconds, or the previous one returns."
         elif data.get("status") not in ("switching", "trial"): return False
         self.connection_message.set_text(message); self.connection_message.set_visible(bool(message))
@@ -102,6 +106,14 @@ class WifiPageMixin:
         if target == "wifi" and not ssid and not self.connection_status.get("saved_wifi") and not any(item.get("kind") == "wifi" and item.get("connected") for item in self.connection_status.get("devices", [])):
             self.open_wifi_page(); return
         self.connection_expect_result = True
+        if (self.connection_status.get("trial") or {}).get("token"):
+            # An earlier switch was never kept or undone; undo it first, then make this one.
+            self.connection_busy = True; self.connection_say("Going back to the previous connection first…")
+            def restored(result, error):
+                self.connection_busy = False
+                if error: self.connection_say(error); self.connection_refresh(); return False
+                self.connection_status["trial"] = {}; self.connection_choose(target, ssid, password); return False
+            self.network_request({"operation": "restore"}, restored); return
         self.connection_busy = True; self.connection_say("Switching… this takes up to 30 seconds.")
         def done(result, error):
             self.connection_busy = False

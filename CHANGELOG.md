@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.51 Alpine — 28 October 2026
+
+- Primary connection: a connection switch that was never kept or undone no longer locks the screen. The Ethernet and Wi-Fi buttons stay usable (tapping one first goes back to the previous connection, then switches), and Go back is always shown while a trial is pending.
+
 ## 1.1.8-beta.50 Alpine — 28 October 2026
 
 - Current connection now says "Disconnected" when the cable is unplugged. It used to show the WireGuard VPN link, which stays "connected" without a physical link; only Ethernet and Wi-Fi count.
