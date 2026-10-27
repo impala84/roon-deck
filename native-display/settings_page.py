@@ -148,7 +148,8 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
     def arrange_settings_sidebar(self, graph_allowed, portrait=False):
         if not getattr(self, "settings_sidebar_active", False): self.build_settings_sidebar()
         # Landscape has width to spare and little height: the Network page runs in two columns so nothing scrolls.
-        self.settings_network_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
+        self.settings_network_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL); self.settings_network_columns.set_homogeneous(not portrait)
+        if getattr(self, "wifi_columns", None) is not None: self.wifi_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL); self.wifi_columns.set_homogeneous(not portrait)
         self.settings_nav["performance"].set_visible(graph_allowed)
         if not graph_allowed and self.settings_panes.get_visible_child_name() == "performance": self.show_settings_pane("overview")
         # Full labels fit the wide content area; the section heading is APPEARANCE.

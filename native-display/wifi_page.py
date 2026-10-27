@@ -118,11 +118,15 @@ class WifiPageMixin:
         back = self.button("Back", self.close_wifi_page, "settings-action wifi-back"); back.set_valign(Gtk.Align.CENTER); top.append(back); page.append(top)
         divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); divider.add_css_class("settings-divider"); page.append(divider)
 
+        # Landscape: networks on the left, name, password and keyboard on the right, so nothing scrolls. Portrait stacks them.
+        columns = Gtk.Box(spacing=24); columns.set_homogeneous(True); columns.set_vexpand(True); self.wifi_columns = columns; page.append(columns)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); left.set_vexpand(True); columns.append(left)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); columns.append(right)
         scan_row = Gtk.Box(spacing=12); scan_row.append(self.label("NEARBY NETWORKS", "eyebrow")); scan_row.get_first_child().set_hexpand(True)
-        self.wifi_scan_button = self.button("Scan", self.wifi_scan, "settings-action wifi-scan"); scan_row.append(self.wifi_scan_button); page.append(scan_row)
+        self.wifi_scan_button = self.button("Scan", self.wifi_scan, "settings-action wifi-scan"); scan_row.append(self.wifi_scan_button); left.append(scan_row)
         self.wifi_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True); scroll.set_min_content_height(150)
-        scroll.set_child(self.wifi_list); elastic_vertical_scroll(scroll); page.append(scroll)
+        scroll.set_child(self.wifi_list); elastic_vertical_scroll(scroll); left.append(scroll)
 
         self.wifi_ssid = Gtk.Entry(); self.wifi_ssid.set_placeholder_text("Network name"); self.wifi_ssid.add_css_class("wifi-entry")
         self.wifi_password = Gtk.Entry(); self.wifi_password.set_placeholder_text("Password"); self.wifi_password.set_visibility(False); self.wifi_password.add_css_class("wifi-entry")
@@ -130,12 +134,12 @@ class WifiPageMixin:
         for entry in (self.wifi_ssid, self.wifi_password):
             focus = Gtk.EventControllerFocus(); focus.connect("enter", lambda _c, widget=entry: setattr(self, "wifi_active_entry", widget)); entry.add_controller(focus)
             entry.connect("activate", self.wifi_join)
-        fields = Gtk.Box(spacing=12); fields.set_homogeneous(True); fields.append(self.wifi_ssid); fields.append(self.wifi_password); page.append(fields)
+        fields = Gtk.Box(spacing=12); fields.set_homogeneous(True); fields.append(self.wifi_ssid); fields.append(self.wifi_password); right.append(fields)
 
-        self.wifi_layer = 0; self.wifi_keys = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); page.append(self.wifi_keys); self.wifi_build_keys()
+        self.wifi_layer = 0; self.wifi_keys = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); right.append(self.wifi_keys); self.wifi_build_keys()
         actions = Gtk.Box(spacing=12); actions.set_homogeneous(True)
         show = self.button("Show password", self.wifi_toggle_password, "settings-action"); self.wifi_show_button = show; actions.append(show)
-        self.wifi_join_button = self.button("Join", self.wifi_join, "settings-action wifi-join"); actions.append(self.wifi_join_button); page.append(actions)
+        self.wifi_join_button = self.button("Join", self.wifi_join, "settings-action wifi-join"); actions.append(self.wifi_join_button); right.append(actions)
         self.wifi_networks = []
         return page
 

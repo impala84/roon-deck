@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.37 Alpine — 28 October 2026
+
+- 7-inch landscape Join Wi-Fi: networks on the left, name, password and keyboard on the right, so it fits without scrolling.
+
 ## 1.1.8-beta.36 Alpine — 28 October 2026
 
 - 7-inch landscape Settings: the Network page uses two columns (status on the left, Primary connection on the right) so it fits without scrolling.
