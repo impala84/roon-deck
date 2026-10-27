@@ -3,6 +3,7 @@
 ## 1.1.8-beta.54 Alpine — 28 October 2026
 
 - Network: the Keep / Go back row no longer stretches the whole Settings screen wide. The status line can no longer set the page width, and "Keep this connection" is now just "Keep".
+- Network: a "Roon Discovery (experimental)" switch sits under VPN (shown when VPN support is on). It uses the Roon server address saved on the web page, and asks you to add one first if there is none.
 
 ## 1.1.8-beta.53 Alpine — 28 October 2026
 

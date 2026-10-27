@@ -220,6 +220,10 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         info_row("CURRENT CONNECTION", self.settings_net_connection_row)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
+        self.settings_net_disc_row, self.settings_net_disc = self.info_cell(); self.build_discovery_switch(self.settings_net_disc_row)
+        info_row("ROON DISCOVERY (EXPERIMENTAL)", self.settings_net_disc_row)
+        self.settings_net_disc_heading = self.settings_net_disc_row.get_prev_sibling()
+        self.settings_net_disc_row.set_visible(False); self.settings_net_disc_heading.set_visible(False)
         # Right-hand column: the primary connection, joining Wi-Fi and the Netdata switch, in rows that line up with the left.
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(right)
         if getattr(self, "connection_block", None) is not None: take(self.connection_block, right)
@@ -414,6 +418,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         def done(data):
             self.settings_vpn_busy = False
             if isinstance(data, dict): self.settings_vpn = (data.get("vpn") or {}) if data.get("features", {}).get("vpn") else None
+            if isinstance(data, dict): self.settings_discovery = (data.get("discovery") or {}) if data.get("features", {}).get("vpn") else None
             self.refresh_vpn_text()
             return False
         threading.Thread(target=work, daemon=True).start()
@@ -422,6 +427,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         vpn = getattr(self, "settings_vpn", None)
         show = bool(vpn and (vpn.get("configured") or vpn.get("active")))
         self.settings_net_vpn_row.set_visible(show)
+        self.discovery_text()
         if getattr(self, "settings_net_vpn_heading", None) is not None: self.settings_net_vpn_heading.set_visible(show)
         if show:
             parts = ["VPN"] if getattr(self, "settings_three_up", False) else []

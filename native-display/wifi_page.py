@@ -257,6 +257,44 @@ class WifiPageMixin:
         if isinstance(status, dict) and (status.get("trial") or {}).get("token"):
             post_json(BUS + "/api/admin/network", {"operation": "restore"}, timeout=40)
 
+    # ---- Roon Discovery switch (experimental) ----------------------------------------------------------------
+    def build_discovery_switch(self, row):
+        switch = Gtk.Switch(); switch.set_valign(Gtk.Align.CENTER); row.append(switch)
+        self.settings_disc_switch = switch; self.discovery_updating = False; self.discovery_busy = False
+        switch.connect("notify::active", self.discovery_toggled)
+
+    def discovery_text(self):
+        """Shown only when VPN support is on, since discovery relays over WireGuard. Uses the server address saved on the web page."""
+        config = getattr(self, "settings_discovery", None); row = getattr(self, "settings_net_disc_row", None)
+        if row is None: return
+        row.set_visible(config is not None); self.settings_net_disc_heading.set_visible(config is not None)
+        if config is None or getattr(self, "discovery_busy", False): return
+        enabled = bool(config.get("enabled"))
+        self.settings_net_disc.set_text(("On  ·  " + str(config.get("server") or "")).rstrip(" ·") if enabled else "Off")
+        switch = self.settings_disc_switch
+        if switch.get_active() != enabled:
+            self.discovery_updating = True; switch.set_active(enabled); self.discovery_updating = False
+
+    def discovery_toggled(self, switch, *_):
+        if self.discovery_updating or self.discovery_busy: return
+        want = switch.get_active(); config = getattr(self, "settings_discovery", None) or {}
+        server = str(config.get("server") or "")
+        if want and not server:
+            self.settings_net_disc.set_text("Add the Roon server address on the web page first")
+            self.discovery_updating = True; switch.set_active(False); self.discovery_updating = False; return
+        self.discovery_busy = True; switch.set_sensitive(False); self.settings_net_disc.set_text("Starting…" if want else "Stopping…")
+        def work():
+            result = post_json(BUS + "/api/admin/accessories", {"operation": "discovery_save", "enabled": want, "server": server}, timeout=45)
+            GLib.idle_add(done, result)
+        def done(result):
+            self.discovery_busy = False; switch.set_sensitive(True)
+            if isinstance(result, dict) and result.get("discovery") is not None: self.settings_discovery = result["discovery"]
+            else:
+                self.settings_net_disc.set_text("Could not change Roon Discovery")
+                self.discovery_updating = True; switch.set_active(not want); self.discovery_updating = False; return False
+            self.discovery_text(); return False
+        threading.Thread(target=work, daemon=True).start()
+
     # ---- VPN switch ------------------------------------------------------------------------------------------
     def build_vpn_switch(self, row):
         """An on/off switch at the end of the VPN status line. On connects with the same 90-second keep-or-undo trial as the web page."""
