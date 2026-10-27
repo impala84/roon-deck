@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.52 Alpine — 28 October 2026
+
+- Reboot and Update did nothing while a connection switch or VPN trial was waiting to be kept; they now undo the pending trial first and say so on screen if the request fails.
+- Connecting the VPN no longer pushes the Network page off the screen: the Keep / Go back buttons take the place of Join Wi-Fi while they show, and the status line is a single line.
+
 ## 1.1.8-beta.51 Alpine — 28 October 2026
 
 - Primary connection: a connection switch that was never kept or undone no longer locks the screen. The Ethernet and Wi-Fi buttons stay usable (tapping one first goes back to the previous connection, then switches), and Go back is always shown while a trial is pending.

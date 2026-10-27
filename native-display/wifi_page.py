@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 from gi.repository import Pango
-from native_common import BUS, FamilyIcon, Gtk, GLib, get_json, elastic_vertical_scroll
+from native_common import BUS, FamilyIcon, Gtk, GLib, get_json, post_json, elastic_vertical_scroll
 
 KEY_LAYERS = (
     ("qwertyuiop", "asdfghjkl", "zxcvbnm"),
@@ -43,12 +43,14 @@ class WifiPageMixin:
             button = self.button(title, lambda _button, value=target: self.connection_choose(value), "settings-action connection-choice")
             self.connection_buttons[target] = button; choice.append(button)
         self.connection_buttons["wifi"].set_tooltip_text("Use Wi-Fi as the primary connection")
-        block.append(self.label("WI-FI", "eyebrow"))
+        wifi_heading = self.label("WI-FI", "eyebrow"); block.append(wifi_heading)
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
-        self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(True); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
+        self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(False); self.connection_message.set_ellipsize(3); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
         trial = Gtk.Box(spacing=12); trial.set_homogeneous(True); trial.set_visible(False); self.connection_trial = trial
         self.connection_keep_button = self.button("Keep this connection", self.connection_keep, "settings-action"); trial.append(self.connection_keep_button)
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
+        # Keep/Go back takes the place of the Join button while it shows, so the column never grows past the screen.
+        trial.connect("notify::visible", lambda row, _p: (wifi_heading.set_visible(not row.get_visible()), join.set_visible(not row.get_visible())))
         self.connection_status = {}; self.connection_timer = None; self.connection_busy = False; self.vpn_trial_token = ""
         self.connection_block = block
         block.connect("map", self.connection_start); block.connect("unmap", self.connection_stop)
@@ -248,6 +250,13 @@ class WifiPageMixin:
         self.wifi_password.set_text("")
         self.connection_choose("wifi", ssid, password)
 
+    def clear_network_trial(self):
+        """Blocking; call from a worker thread. The Pi refuses Update and Reboot while a connection trial is waiting to be kept or
+        undone, which made both buttons do nothing. Undo the trial first, since the person asking for either is at the screen."""
+        status = get_json(BUS + "/api/admin/network", timeout=6)
+        if isinstance(status, dict) and (status.get("trial") or {}).get("token"):
+            post_json(BUS + "/api/admin/network", {"operation": "restore"}, timeout=40)
+
     # ---- VPN switch ------------------------------------------------------------------------------------------
     def build_vpn_switch(self, row):
         """An on/off switch at the end of the VPN status line. On connects with the same 90-second keep-or-undo trial as the web page."""
@@ -287,7 +296,7 @@ class WifiPageMixin:
                 self.connection_say(error); self.vpn_switch_updating = True; self.settings_vpn_switch.set_active(not self.settings_vpn_switch.get_active()); self.vpn_switch_updating = False
             elif token:
                 self.vpn_trial_token = token; self.connection_trial.set_visible(True)
-                self.connection_say("VPN connected. Keep it within 90 seconds, or it disconnects.")
+                self.connection_say("VPN on. Keep it within 90 seconds?")
             else: self.connection_say(message)
             self.settings_vpn_at = 0; self.refresh_network_pane()
             return False

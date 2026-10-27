@@ -773,11 +773,15 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
             self.root_overlay.remove_overlay(shade); self.reboot_confirmation = None
         def restart(button):
             button.set_sensitive(False); self.device_status.set_text("Restarting RoonDeck…")
-            threading.Thread(target=post_json, args=(BUS + "/api/device/reboot", {}), daemon=True).start()
+            def reboot():
+                self.clear_network_trial()
+                if post_json(BUS + "/api/device/reboot", {}, timeout=5) is None: GLib.idle_add(self.device_status.set_text, "Could not restart RoonDeck")
+            threading.Thread(target=reboot, daemon=True).start()
         actions.append(self.button("CANCEL", close, "confirm-cancel")); actions.append(self.button("RESTART", restart, "confirm-reboot")); card.append(actions); shade.add_overlay(card)
         self.reboot_confirmation = shade; self.root_overlay.add_overlay(shade); shade.set_cursor_from_name("none")
 
     def _request_update(self):
+        self.clear_network_trial()
         result = post_json(BUS + "/api/device/update", {})
         queued = bool(result and result.get("queued", True))
         GLib.idle_add(self.device_status.set_text, "Update · Queued…" if queued else ("Update already running…" if result else "Could not start update"))
