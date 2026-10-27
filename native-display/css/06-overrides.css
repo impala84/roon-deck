@@ -399,3 +399,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .wifi-page .settings-header { min-height: 56px; }
 .wifi-page .wifi-key.browser-key { min-height: 46px; }
 .portrait .wifi-page .wifi-key.browser-key { min-height: 64px; }
+
+/* Play this mix / Queue this mix: one size on every display. The two share a size group, so the outlined Queue pill takes no height
+   of its own (its border used to make it taller than Play) and simply fills the space Play sets; Play loses its top offset. */
+.mix-controls.mix-controls.mix-controls.mix-controls.mix-controls .queue-pill { min-height: 0; padding-top: 0; padding-bottom: 0; }
+.mix-controls.mix-controls.mix-controls.mix-controls.mix-controls .artist-play { margin-top: 0; }

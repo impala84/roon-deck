@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.39 Alpine — 28 October 2026
+
+- Discover mixes: "Queue this mix" is now always exactly the size of "Play this mix" on every display, orientation and scaling, and keeps its outlined style.
+
 ## 1.1.8-beta.38 Alpine — 28 October 2026
 
 - Join Wi-Fi: slimmer header and tighter padding on 7-inch landscape so the whole keyboard fits with no scrolling.
