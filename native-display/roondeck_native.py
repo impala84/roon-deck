@@ -197,6 +197,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         # moved them to the middle.
         panel.set_halign(Gtk.Align.CENTER); panel.set_valign(Gtk.Align.START)
         panel.set_hexpand(True); panel.set_vexpand(False)
+        panel.is_loading_notice = True
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         original = width <= 820 and height <= 500
         portrait = getattr(self, "responsive_portrait", False)
@@ -216,6 +217,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             for index, label in enumerate(labels):
                 label.set_opacity(.25 + .75 * (1 + math.sin(elapsed * 5 - index * 1.1)) / 2)
             return True
+        if gen2_seven: panel.set_opacity(0)  # hidden until the centring below has moved it, so it never visibly jumps
         def centre(*_):
             if not gen2_seven: return False
             try:
@@ -229,6 +231,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
                     if shift > 0: panel.set_margin_end(panel.get_margin_end() + 2 * shift)
                     else: panel.set_margin_start(panel.get_margin_start() - 2 * shift)
             except Exception: pass
+            panel.set_opacity(1)
             return False
         def start(*_):
             if gen2_seven: GLib.timeout_add(60, centre)
@@ -263,6 +266,8 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         self.stack.add_named(self.build_boot_splash(), "boot"); self.stack.add_named(self.build_bus(), "bus"); self.stack.add_named(self.build_roon(), "roon"); self.stack.add_named(self.build_home(), "home"); self.stack.add_named(self.build_settings(), "settings"); self.stack.add_named(self.build_sleep(), "sleep")
         self.root_overlay = Gtk.Overlay(); self.root_overlay.set_child(self.stack)
         self.window.set_child(self.root_overlay)
+        # A forgiving tap target for the Settings cog: a tap just outside the small icon still opens Settings.
+        cog_zone = Gtk.GestureClick(); cog_zone.connect("released", self.cog_zone_tapped); self.window.add_controller(cog_zone)
         # Apply the saved interface size and background before the first frame. Waiting for the first API poll drew the
         # standard layout and then rescaled it about a second later.
         try:
@@ -492,6 +497,17 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         self.now_playing_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
         self.apply_interface_size((self.settings_data or {}).get("interface_size", "standard"))
         return False
+
+    def cog_zone_tapped(self, _gesture, presses, x, y):
+        """Taps landing within about 30px of a visible Settings cog (which the cog itself did not take) open Settings."""
+        if presses != 1 or getattr(self, "settings_open", False): return
+        for button in getattr(self, "header_utility_buttons", []):
+            if button.get_tooltip_text() != "Settings" or not button.get_mapped(): continue
+            point = button.translate_coordinates(self.window, 0, 0)
+            if point is None: continue
+            margin = 30
+            if point[0] - margin <= x <= point[0] + button.get_width() + margin and point[1] - margin <= y <= point[1] + button.get_height() + margin:
+                self.open_settings(); return
 
     def header(self, centre, clock):
         row = Gtk.Box(spacing=10); row.add_css_class("page-header")

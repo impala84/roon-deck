@@ -159,6 +159,11 @@ class DiscoverPageMixin:
         if signature == self.discovery_signature: return False
         self.discovery_signature = signature
         self.discovery_data = data
+        # Already showing the loading dots for this section: keep that very widget instead of replacing it with an identical
+        # one, which restarted the animation and made the dots flicker and jump.
+        first = self.discovery_list.get_first_child()
+        if data.get("status") == "loading" and first is not None and getattr(first, "is_loading_notice", False) and first.get_next_sibling() is None:
+            self.apply_discovery_layout(); return False
         self.discovery_list.cancel_spring()
         while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
         self.discovery_pictures = {}

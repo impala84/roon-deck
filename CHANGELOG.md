@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.46 Alpine — 28 October 2026
+
+- Settings cog: a tap within about 30px of the icon now opens Settings, so it no longer sometimes needs two taps.
+- Discover: the loading dots are no longer replaced by an identical copy when the first reply arrives, and on the 7-inch Touch Display 2 they stay hidden until centred, which removes the flicker and jump when switching to Discover.
+
 ## 1.1.8-beta.45 Alpine — 28 October 2026
 
 - 7-inch Settings: Overview now starts with Roon status and the zone choice, side by side. Network holds Current connection and VPN on the left, Primary connection, Join Wi-Fi and the Netdata switch on the right, with every row the same height so the columns line up.
