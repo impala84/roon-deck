@@ -34,7 +34,7 @@ class WifiPageMixin:
         threading.Thread(target=work, daemon=True).start()
 
     def build_connection_block(self):
-        block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); block.add_css_class("connection-block")
+        block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); block.add_css_class("connection-block")
         block.append(self.label("PRIMARY CONNECTION", "eyebrow"))
         choice = Gtk.Box(spacing=12); choice.set_homogeneous(True); block.append(choice)
         self.connection_buttons = {}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.42 Alpine — 28 October 2026
+
+- Fix: "Join Wi-Fi network…" flashed the keyboard page for a moment and closed. Every Settings refresh sent the screen back to the main page when no Surface Dial is configured; it now only does that from the Controls page.
+- Primary connection: more space between Ethernet / Wi-Fi and the Join button.
+
 ## 1.1.8-beta.41 Alpine — 28 October 2026
 
 - Discover: the loading dots no longer shift when a section first opens. The section's margins are now applied immediately instead of when the first response arrives.

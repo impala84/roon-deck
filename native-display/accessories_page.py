@@ -118,7 +118,8 @@ class AccessoriesPageMixin:
             self.settings_nav["controls"].set_visible(dial)
             if not dial and self.settings_panes.get_visible_child_name() == "controls": self.show_settings_pane("overview")
             return
-        if not dial: self.settings_sections.set_visible_child_name(self.settings_home())
+        # Only leave the Controls page when the Dial goes away; this runs on every refresh and must not close other pages (Join Wi-Fi).
+        if not dial and self.settings_sections.get_visible_child_name() == "accessories": self.settings_sections.set_visible_child_name(self.settings_home())
 
     def open_accessories(self, *_):
         if getattr(self, "settings_tabs_active", False):
