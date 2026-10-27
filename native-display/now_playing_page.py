@@ -290,6 +290,17 @@ class NowPlayingPageMixin:
             button = Gtk.CheckButton(label=item.get("name", "")); button.add_css_class("bus-number-choice"); button.set_active(bool(item.get("enabled"))); button.connect("toggled", self.toggle_service, item.get("name", "")); services.append(button)
         self.settings_row_sizes.add_widget(services)
 
+    def repaint_whole_frame(self):
+        """Redraw the whole window after the track or album text changes.
+
+        The live GTK renderer only repaints the changed label's area, so a few pixels of the previous title that
+        spilled outside that area (a descender, or the top of a taller line) stayed on the real screen. Screenshots are
+        drawn fresh by a software renderer, which is why they never showed it.
+        """
+        def redraw():
+            self.window.queue_draw(); return False
+        GLib.idle_add(redraw); GLib.timeout_add(250, redraw)
+
     def render_roon(self, data):
         self.state = data
         if hasattr(self, "refresh_roon_pane"): self.refresh_roon_pane()
@@ -334,6 +345,9 @@ class NowPlayingPageMixin:
         else:
             self.image_misses = 0
         self.zone.set_text(zone.get("name") or "ROON"); self.title.set_text(lines.get("line1") or "Nothing playing"); self.artist.set_text(playing.get("display_artist") or re.split(r"\s+/\s+|\s*;\s*", lines.get("line2") or "Roon")[0])
+        shown = (self.title.get_text(), self.artist.get_text())
+        if shown != getattr(self, "shown_track_text", None):
+            self.shown_track_text = shown; self.repaint_whole_frame()
         icon_name = "play" if external or zone.get("state") != "playing" else "pause"
         icon_size = 80 if self.window.has_css_class("large-display") else 42
         current_icon = self.play.get_child()
@@ -486,6 +500,7 @@ class NowPlayingPageMixin:
         if signature == self.detail_signature: return
         self.detail_signature = signature
         self.detail_title.set_text(details.get("album") or details.get("track") or "Nothing playing")
+        self.repaint_whole_frame()
         detail_artist = details.get("artist") or ""
         self.detail_artist.set_text(detail_artist); self.detail_artist.set_visible(bool(detail_artist) and getattr(self, "album_focus_detail", False))
         self.detail_artist_name.set_text(details.get("artist") or "Unknown artist")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.26 Alpine — 27 October 2026
+
+- Redraw the whole screen when the track or album text changes, to clear stray pixels of the previous title that the live renderer left behind (they never appeared in screenshots, which use a software renderer).
+
 ## 1.1.8-beta.25 Alpine — 27 October 2026
 
 - Album page: an add-to-library button sits to the right of the Play Album pill at the same height (a filled heart, inactive, once the album is already in the library). It uses the album's own "Add to Library" action from Roon Browse.
