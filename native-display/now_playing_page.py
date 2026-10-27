@@ -275,9 +275,11 @@ class NowPlayingPageMixin:
         per_row = 3 if three_up else 2
         for index in range(0, len(cells), per_row):
             row_cells = cells[index:index + per_row]
-            pair = Gtk.Box(spacing=16); pair.set_homogeneous(len(row_cells) == per_row or three_up)
+            # Switches keep a fixed half-width cell even when alone (no AirPlay), so the switch stays close to its name.
+            fixed = three_up or getattr(self, "settings_sidebar_active", False)
+            pair = Gtk.Box(spacing=16); pair.set_homogeneous(len(row_cells) == per_row or fixed)
             for line in row_cells: pair.append(line)
-            for _ in range(per_row - len(row_cells) if three_up else 0):
+            for _ in range(per_row - len(row_cells) if fixed else 0):
                 filler = Gtk.Box(); filler.set_hexpand(True); pair.append(filler)
             self.touch_daily.append(pair)
         if dial and not tabs and not (three_up and not getattr(self, "settings_sidebar_active", False)):

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.47 Alpine — 28 October 2026
+
+- 7-inch Settings: every row, button and box is now the same height, so headings and boxes line up across both columns. Netdata moved under VPN on the left of Network.
+- 7-inch Overview order: Display brightness, Roon and Zone, Services, then Bus times. A lone service switch (no AirPlay) takes half the width, so the switch stays next to its name.
+
 ## 1.1.8-beta.46 Alpine — 28 October 2026
 
 - Settings cog: a tap within about 30px of the icon now opens Settings, so it no longer sometimes needs two taps.
