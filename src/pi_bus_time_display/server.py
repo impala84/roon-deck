@@ -26,6 +26,7 @@ from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
 from . import __version__
 from .releases import ReleaseChecker
+from .performance import PerformanceHistory
 from .remote_access import load_json
 
 
@@ -73,6 +74,7 @@ def accessory_request(data, *, helper_action="accessories"):
 class State:
     def __init__(self, config: Config, state_dir: Path | None = None):
         self.config = config
+        self.performance = PerformanceHistory()
         self.lock = threading.Lock()
         self.display_capture = None
         self.display_view_request = None
@@ -1112,6 +1114,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = json.dumps(system).encode()
                 self.send_json(200, body)
                 return
+            if self.path == "/api/admin/performance":
+                if not self.authorised(): return
+                self.send_json(200, json.dumps(state.performance.snapshot()).encode())
+                return
             if self.path == "/api/admin/diagnostics":
                 if not self.authorised():
                     return
@@ -1726,6 +1732,7 @@ def main() -> None:
     state = State(config, args.state_dir)
     events = OpenObserveLogger(lambda: state.config)
     stop = threading.Event()
+    threading.Thread(target=state.performance.run, args=(stop,), daemon=True).start()
     threading.Thread(target=poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=home_assistant_poll, args=(state, stop, events), daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(state, args.config, args.env, args.state_dir / "display-mode", events))

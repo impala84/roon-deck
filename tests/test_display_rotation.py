@@ -41,7 +41,7 @@ class DisplayRotationTests(unittest.TestCase):
     def test_diagnostics_can_select_physical_views_and_theme_the_favicon(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()
         javascript = (ROOT / "src/pi_bus_time_display/static/admin.js").read_text()
-        self.assertIn('href="/preview.html"', html)
+        self.assertIn('data-tab="preview"', html)
         preview = (ROOT / "src/pi_bus_time_display/static/preview.html").read_text()
         self.assertIn('value="recent"', preview)
         self.assertIn('value="daily"', preview)

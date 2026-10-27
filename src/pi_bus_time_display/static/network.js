@@ -32,11 +32,15 @@ async function refresh() {
     for (const kind of ['ethernet','wifi']) {
       let description = describe(data.devices, kind);
       if (kind === 'wifi' && !data.wifi_enabled && data.devices.some(item => item.kind === kind)) description = 'Radio off';
-      byId(kind+'-summary').textContent = description;
+      byId(kind+'-summary').textContent = description.split(' · ').slice(1).join(' · ') || 'No active connection';
+      const adapters=data.devices.filter(item=>item.kind===kind),connected=adapters.some(item=>item.connected),off=kind==='wifi'&&!data.wifi_enabled||adapters.length&&adapters.every(item=>!item.managed);
+      byId(kind+'-state').textContent=connected?'Connected':off?'Off':adapters.length?'Disconnected':'No adapter';
+      byId(kind+'-card').dataset.state=connected?'connected':off?'off':'disconnected';
       byId(kind+'-detail').textContent = description;
     }
     const connected = data.devices.filter(item => item.connected);
     byId('wifi-status').textContent = connected.map(item => (item.kind === 'wifi' ? 'Wi-Fi' : 'Ethernet') + (item.name && item.name !== '--' ? ' · '+item.name : '')).join(' + ') || 'Not connected';
+    byId('network-route').dataset.transport=connected.map(item=>item.kind==='wifi'?'Wi-Fi':'Ethernet').join(' + ');updateNetworkRoute();
     byId('network-details').hidden = !connected.length;
     byId('network-type').textContent = connected.map(item => item.kind === 'wifi' ? 'Wi-Fi' : 'Ethernet').join(' + ') || '—';
     byId('network-address').textContent = connected.map(item => item.address).filter(Boolean).join(' · ') || '—';

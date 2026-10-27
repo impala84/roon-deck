@@ -39,6 +39,9 @@ async function refresh(fill = false) {
   snapshot = data;
   const vpn = data.vpn;
   byId('current-vpn-status').textContent = !data.features.vpn ? 'Off' : !data.support.vpn ? 'Support not installed' : vpn.status + (vpn.active ? ' · ' + (vpn.mode === 'split' ? 'Split Tunnel' : 'Full Tunnel') : '');
+  byId('network-route').dataset.vpn=data.features.vpn?vpn.status:'Off';byId('network-route').dataset.mode=vpn.mode==='split'?'Split Tunnel':'Full Tunnel';updateNetworkRoute();
+  byId('vpn-card').dataset.state=data.features.vpn&&vpn.status==='Connected'?'connected':!data.features.vpn?'off':'disconnected';
+  byId('current-vpn-summary').textContent=!data.features.vpn?'Enable VPN in its settings when needed.':!data.support.vpn?'Optional support needs installing.':vpn.active?[vpn.address,vpn.handshake_age===null?'No handshake yet':'Handshake '+vpn.handshake_age+'s ago'].filter(Boolean).join('\n'):vpn.configured?'Saved profile ready to connect.':'Import a WireGuard profile to connect.';
   byId('vpn-section').hidden = !data.features.vpn;
   byId('dial-section').hidden = !data.features.dial;
   const installation = data.installation || {status: 'idle', message: ''};

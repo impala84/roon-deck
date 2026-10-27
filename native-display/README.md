@@ -25,3 +25,5 @@ Add new methods to the page they belong to.
 
 Rules: only one agent edits the native layout at a time, and a layout change is
 checked with `tools/check screen layout` before release.
+
+The web Settings Performance view and the touchscreen share the pure samplers in `src/pi_bus_time_display/performance.py`. The web API keeps a bounded, in-memory 60-second history at one-second intervals; it is authenticated and writes no measurement history to disk.

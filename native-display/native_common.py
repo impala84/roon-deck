@@ -33,6 +33,8 @@ gi.require_foreign("cairo")
 import cairo
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Graphene, Gsk, Gtk, Pango
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Shared web/native helpers are also available when running directly from a checkout.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from icon_family import FamilyIcon
 from white_balance import create_display_window
 from layout_constants import CAROUSEL_END_SPACE, PORTRAIT_CONTENT_GAP
