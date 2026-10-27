@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.34 Alpine — 28 October 2026
+
+- 10-inch Settings: more space between sections; bus times and the bus numbers share one line again.
+- 7-inch and 10-inch Settings: the brightness slider sits in its own box under its heading.
+- Settings opens from the last system reading instead of forcing a new one each time.
+
 ## 1.1.8-beta.33 Alpine — 27 October 2026
 
 - Fix: the 10-inch Settings page came up blank with only the old Update and Reboot buttons (beta.32 error while building the Controls tab).

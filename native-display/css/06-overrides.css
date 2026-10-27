@@ -365,7 +365,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-tabs-layout .settings-tabs-page.settings-page.page { padding-left: 30px; padding-right: 30px; padding-bottom: 30px; }
 .settings-tabs-layout .settings-footer { margin-top: 18px; }
 .settings-tabs-layout .settings-footer button { min-height: 84px; }
-.settings-tabs-layout .brightness-card { padding: 20px 22px 14px; border-radius: 10px; background: #1f1e25; }
+.settings-tabs-layout .brightness-card, .settings-sidebar-layout .brightness-card { padding: 10px 22px; border-radius: 10px; background: #1f1e25; }
 .settings-tabs-layout .brightness-card scale { min-height: 64px; padding: 14px 0; }
 .settings-tabs-layout .brightness-card scale trough { min-height: 12px; border-radius: 6px; }
 .settings-tabs-layout .brightness-card scale highlight { min-height: 12px; border-radius: 6px; }
@@ -378,3 +378,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-tabs-layout .perf-panel-value { color: #b5b5be; font-size: 20px; }
 .settings-tabs-layout .perf-panel-title { font-size: 18px; letter-spacing: 1px; }
 .settings-tabs-layout .perf-axis { padding: 0 6px; }
+.settings-sidebar-layout .brightness-card { padding: 4px 18px; }
+.settings-sidebar-layout .brightness-card scale { min-height: 52px; padding: 10px 0; }
+.settings-sidebar-layout .brightness-card scale trough, .settings-sidebar-layout .brightness-card scale highlight { min-height: 10px; border-radius: 5px; }
+.settings-sidebar-layout .brightness-card scale slider { min-width: 34px; min-height: 34px; border-radius: 17px; margin: -12px 0; }
+.settings-sidebar-layout .brightness-card .brightness-value { font-size: 20px; min-width: 64px; }

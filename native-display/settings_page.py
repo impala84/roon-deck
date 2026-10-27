@@ -188,6 +188,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         row = self.touch_bus_visibility_row
         row.set_hexpand(True); self.touch_bus_services.set_hexpand(True); self.touch_bus_pair.set_homogeneous(True)
         self.touch_bus_heading.set_text("BUS TIMES")
+        self.touch_brightness.get_parent().add_css_class("brightness-card")
         for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
         self.settings_controls_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); take(self.settings_accessories_button, self.settings_controls_slot); overview.append(self.settings_controls_slot)
         # Display: how it looks. Installation options stay hidden on the seven-inch panel, as before.
@@ -233,14 +234,14 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_title_row.set_margin_top(0)
         # Full-width rows: bus times and the network status stack, one cell per line.
         self.settings_network_block.set_visible(True); self.settings_bus_spacer.set_visible(False)
-        self.touch_bus_pair.set_orientation(Gtk.Orientation.VERTICAL); self.touch_bus_pair.set_homogeneous(False); self.touch_bus_pair.set_spacing(16)
-        self.settings_net_status_row.set_orientation(Gtk.Orientation.VERTICAL); self.settings_net_status_row.set_homogeneous(False)
+        self.touch_bus_pair.set_orientation(Gtk.Orientation.HORIZONTAL); self.touch_bus_pair.set_homogeneous(True); self.touch_bus_pair.set_spacing(16)
+        self.settings_net_status_row.set_orientation(Gtk.Orientation.HORIZONTAL); self.settings_net_status_row.set_homogeneous(True)
 
     def make_mirrored_brightness(self):
         """A second brightness slider for the Display tab, kept in step with the one on Overview."""
-        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); row.add_css_class("brightness-setting"); row.add_css_class("brightness-card")
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); row.add_css_class("brightness-setting")
         row.append(self.label("DISPLAY BRIGHTNESS", "eyebrow"))
-        control = Gtk.Box(spacing=12); control.add_css_class("brightness-control")
+        control = Gtk.Box(spacing=12); control.add_css_class("brightness-control"); control.add_css_class("brightness-card")
         scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); scale.set_draw_value(False); scale.set_hexpand(True)
         value = self.label("100%", "brightness-value", 1)
         control.append(scale); control.append(value); row.append(control)
@@ -278,7 +279,9 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_bus_spacer.set_visible(False)
         for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_network_block, self.settings_brightness_row): take(widget, overview)
         self.network_controls_heading.set_text("SERVICES")
-        self.settings_brightness_row.add_css_class("brightness-card")
+        self.touch_brightness.get_parent().add_css_class("brightness-card")
+        # Room between sections: each later section starts a little lower than the gap inside it.
+        for section in (self.touch_bus_heading, self.settings_network_block, self.settings_brightness_row, self.display_settings_heading): section.set_margin_top(20)
         # Display: appearance and the installation settings, with Apply display under them.
         display = pane("display")
         for widget in (self.settings_appearance, self.settings_scaling_heading, self.touch_interface_size): widget.set_visible(False)
@@ -548,7 +551,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         threading.Thread(target=save, daemon=True).start()
 
     def open_settings(self, *_):
-        self.settings_open = True; self.last_system_fetch = 0
+        self.settings_open = True  # keep the last system reading on screen; the poll refreshes it when it is over 15 seconds old
         # Always start on the main page, even if the screen last left Settings from Controls.
         self.settings_sections.set_visible_child_name(self.settings_home())
         if getattr(self, "settings_sidebar_active", False) or getattr(self, "settings_tabs_active", False): self.show_settings_pane("overview")
