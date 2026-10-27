@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1110">
   <title>RoonDeck · Settings</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/admin.css?v=1029">
+  <link rel="stylesheet" href="/admin.css?v=1030">
 </head>
 <body class="admin-page">
   <header class="masthead admin-header"><div class="masthead-identity"><a href="#overview" data-jump="overview" class="brand-home"><img src="/brand/roondeck-wordmark.svg" alt="RoonDeck" width="737" height="121"></a><h1>Settings</h1><p id="version"></p></div><button class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="settings-sidebar">Menu</button><div class="masthead-actions"><a id="network-trial-link" href="#network/current" hidden>Confirm network switch</a><a class="view-display-button" href="/">View web display</a><button class="global-update" type="button" data-action="update">Update software</button></div></header>
@@ -136,6 +136,7 @@
     <section id="panel-software" data-panel="software" hidden><div class="section-heading"><div><p class="kicker">MAINTENANCE</p><h2>Software</h2></div></div>      <details id="system-maintenance" class="software-controls" data-save="software" open><summary>Maintenance</summary>
         <label>Release Channel<select name="release_channel"><option value="stable">Stable</option><option value="beta">Beta</option></select></label>
         <p class="help">Stable offers tested production releases. Beta also offers prereleases. Switching to Stable never silently downgrades an installed beta.</p>
+        <section class="auto-update-settings"><h3>Automatic updates</h3><label class="check"><input type="checkbox" name="auto_update_enabled"> Automatically install updates daily</label><label>Update at<input type="time" name="auto_update_time" required></label><small>Time zone: <span id="auto-update-timezone">device timezone</span>. Uses your saved release channel. The display and web app restart briefly during an update. If the Pi misses the update window, it waits until the next day. Save changes to apply.</small></section>
         <div class="maintenance-row"><div><strong>Published releases</strong><small id="release-status">Checking…</small></div><button class="secondary" id="check-releases" type="button">Check availability</button></div>
         <div class="maintenance-row"><div><strong>Software update</strong><small id="update-status">Ready</small></div><button class="secondary" type="button" data-action="update">Update software</button></div><div id="update-feed" class="update-feed" aria-live="polite" hidden></div><div class="maintenance-row danger-zone"><div><strong>Restart Raspberry Pi</strong><small>The display and web app will be unavailable briefly.</small></div><button class="secondary warning-action" type="button" data-action="reboot" data-confirm="Reboot the Raspberry Pi now?">Reboot Pi</button></div></details></section>
     <section id="panel-system" data-panel="system" hidden>
@@ -169,4 +170,4 @@
   </form>
 </main>
 <form id="vpn-profile"></form><form id="dial-config"></form>
-<script src="/admin-layout.js?v=2"></script><script src="/admin.js?v=1043"></script><script src="/accessories.js?v=8" defer></script><script src="/network.js?v=3" defer></script><script src="/diagnostics.js?v=1" defer></script><script src="/preview.js?v=20" defer></script></body></html>
+<script src="/admin-layout.js?v=2"></script><script src="/admin.js?v=1044"></script><script src="/accessories.js?v=9" defer></script><script src="/network.js?v=4" defer></script><script src="/diagnostics.js?v=1" defer></script><script src="/preview.js?v=20" defer></script></body></html>

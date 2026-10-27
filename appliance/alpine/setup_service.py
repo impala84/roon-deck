@@ -1,5 +1,7 @@
 """Local-only, bounded first-boot actions. Never expose this helper over HTTP."""
 import json
+from datetime import datetime
+import tomllib
 import fcntl
 import os
 import platform
@@ -492,6 +494,43 @@ class Setup:
 
     def save(self, state):
         atomic(self.progress, json.dumps(state), 0o600)
+
+    def scheduled_update(self, now=None):
+        """Queue at most one daily update, through the same safeguards as the UI.
+
+        A fifteen-minute window permits brief installs/network trials to finish.
+        There is no catch-up installation when a Pi boots hours after its time.
+        The date marker survives helper restarts and repeated DST clock hours.
+        """
+        try:
+            if any(lock.locked() for lock in (self.tools_lock, self.netdata_install_lock, self.roon_install_lock, self.airplay_install_lock)):
+                return False
+            config = tomllib.loads(read(self.root / "etc/pi-home/config.toml"))
+            if config.get("auto_update_enabled") is not True or not self.saved().get("complete"):
+                return False
+            clock = config.get("auto_update_time", "03:00")
+            if not isinstance(clock, str) or not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", clock):
+                return False
+            zone = ZoneInfo(config.get("timezone", "Asia/Singapore"))
+            local = (now or datetime.now(zone)).astimezone(zone)
+            if local.year < 2025:
+                return False
+            hour, minute = map(int, clock.split(":"))
+            if not 0 <= local.hour * 60 + local.minute - hour * 60 - minute < 15:
+                return False
+            marker = self.root / "var/lib/pi-home/auto-update-date"
+            day = local.date().isoformat()
+            if marker.exists() and read(marker).strip() == day:
+                return False
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            result = self.handle({"action": "update"})
+            if result.get("queued"):
+                atomic(marker, day + "\n", 0o600)
+                return True
+        except (OSError, ValueError, TypeError, ZoneInfoNotFoundError):
+            # Invalid settings or a busy helper must not stop manual controls.
+            pass
+        return False
 
     def setting(self, key, value):
         path = self.root / "etc/pi-home/config.toml"
@@ -1056,8 +1095,16 @@ def serve():
         path.unlink()
     with socket.socket(socket.AF_UNIX) as server:
         server.bind(SOCKET); os.chmod(SOCKET, 0o600); os.chown(SOCKET, uid, -1); server.listen(4)
+        server.settimeout(30)
+        last_schedule_check = float("-inf")
         while True:
-            connection, _ = server.accept()
+            if time.monotonic() - last_schedule_check >= 30:
+                last_schedule_check = time.monotonic()
+                app.scheduled_update()
+            try:
+                connection, _ = server.accept()
+            except socket.timeout:
+                continue
             with connection:
                 connection.settimeout(5)
                 peer = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))

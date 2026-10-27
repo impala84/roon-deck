@@ -11,6 +11,19 @@ from pi_bus_time_display.server import State, active_wifi_ssid, automatic_displa
 
 
 class DisplayModeTests(unittest.TestCase):
+    def test_automatic_update_settings_round_trip_and_validate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            write_config(path, Config(auto_update_enabled=True, auto_update_time="02:45", release_channel="beta"))
+            saved = load_config(path)
+            self.assertTrue(saved.auto_update_enabled)
+            self.assertEqual(saved.auto_update_time, "02:45")
+            self.assertEqual(saved.release_channel, "beta")
+            for values in ({"auto_update_time": "24:00"}, {"auto_update_time": "3:00"}, {"auto_update_enabled": "false"}):
+                import json
+                path.write_text("\n".join(f"{key} = {json.dumps(value)}" for key, value in values.items()))
+                with self.assertRaises(ValueError): load_config(path)
+
     def test_home_assistant_tile_colours_are_persisted_and_validated(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.toml"

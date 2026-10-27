@@ -7,6 +7,14 @@ let installationTimer = null;
 const buttons = () => document.querySelectorAll('.accessory-settings button');
 let currentFeature = null;
 let coreHost = '';
+function readableBytes(input) {
+  let value = Number(input);
+  if (input === null || input === undefined || !Number.isFinite(value) || value < 0) return '—';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let unit = 0;
+  while (value >= 1000 && unit < units.length - 1) { value /= 1000; unit++; }
+  return value.toLocaleString(undefined, {maximumFractionDigits: unit === 0 ? 0 : value < 10 ? 2 : 1}) + ' ' + units[unit];
+}
 async function saveCore() {
   const value = byId('home-server').value.trim();
   const response = await fetch('/api/admin/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({section: 'roon', roon_core_host: value})});
@@ -69,7 +77,7 @@ async function refresh(fill = false) {
   byId('vpn-status').textContent = vpn.status + (vpn.pending_token ? ` · Confirm within ${vpn.confirm_seconds} seconds` : '');
   byId('vpn-confirm').hidden = !vpn.pending_token;
   const details = byId('vpn-details'); details.replaceChildren();
-  for (const [label, value] of [['Address', vpn.address || '—'], ['Endpoint', vpn.endpoint || '—'], ['Handshake', vpn.handshake_age === null ? 'None yet' : `${vpn.handshake_age} seconds ago`], ['Received / sent', `${vpn.received} / ${vpn.sent} bytes`]]) {
+  for (const [label, value] of [['Address', vpn.address || '—'], ['Endpoint', vpn.endpoint || '—'], ['Handshake', vpn.handshake_age === null ? 'None yet' : `${vpn.handshake_age} seconds ago`], ['Received / sent', `${readableBytes(vpn.received)} / ${readableBytes(vpn.sent)}`]]) {
     const term = document.createElement('dt'), description = document.createElement('dd');
     term.textContent = label; description.textContent = value; details.append(term, description);
   }

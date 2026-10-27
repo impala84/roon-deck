@@ -22,7 +22,7 @@ async function refresh() {
   try {
     const hadSnapshot=Boolean(snapshot);
     const previousMessage=snapshot?.message;
-    const data = await request(); snapshot = data;
+    const data = await request(); data.devices=data.devices.map(item=>item.kind==='ethernet'?{...item,name:'Wired Connection'}:item); snapshot = data;
     const pending = Boolean(data.trial.token);
     const hostname = data.hostname || byId('hostname').value;
     if (/^[a-zA-Z0-9-]+(?:\.local)?$/.test(hostname)) {

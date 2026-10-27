@@ -786,7 +786,8 @@ assert display.settings_reboot.get_parent().get_last_child() is display.settings
 assert display.touch_bus_enabled.get_visible()
 # The seven-inch sidebar gives Bus Times its own heading in Overview.
 assert display.touch_bus_heading.get_visible() == (getattr(display, "settings_sidebar_active", False) or screen_height > screen_width or screen_width > 1280)
-assert display.touch_bus_enabled.get_label() == "Bus Times"
+assert isinstance(display.touch_bus_enabled, Gtk.Switch)
+assert display.touch_bus_visibility_row.get_first_child().get_label() == "Bus Times"
 
 # The optional black canvas preserves all foreground controls and works on
 # every native page without changing the selected colour theme.

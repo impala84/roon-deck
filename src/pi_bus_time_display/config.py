@@ -12,6 +12,8 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Config:
     release_channel: str = "stable"
+    auto_update_enabled: bool = False
+    auto_update_time: str = "03:00"
     bus_enabled: bool = True
     bus_stop_code: str = "00000"
     bus_stop_name: str = "Bus stop"
@@ -106,6 +108,10 @@ def load_config(path: Path) -> Config:
     config = Config(**data)
     if type(config.portrait_discovery_columns) is not int or config.portrait_discovery_columns not in {2, 3}:
         raise ValueError("portrait_discovery_columns must be 2 or 3")
+    if type(config.auto_update_enabled) is not bool:
+        raise ValueError("auto_update_enabled must be true or false")
+    if not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", config.auto_update_time):
+        raise ValueError("Choose an automatic update time in HH:MM format")
     if config.release_channel not in {"stable", "beta"}:
         raise ValueError("release_channel must be stable or beta")
     if config.landscape_music_clock not in {"icon", "full"}:

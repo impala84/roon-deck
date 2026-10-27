@@ -2,6 +2,8 @@ import importlib.util
 import io
 import fcntl
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import tarfile
 import tempfile
@@ -402,6 +404,59 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertEqual(self.run.call_args.args[0], ["rc-update", "add", "pi-home-clock", "boot"])
         self.assertEqual(chrony.read_text(), "pool pool.ntp.org iburst\nmakestep 0.1 -1\n")
         self.assertEqual((self.root / "var/lib/pi-home/clock-seed").read_text(), "1800000000\n")
+
+    def prepare_auto_updates(self, zone="Asia/Singapore", clock="03:00"):
+        self.setup.save({"complete": True})
+        for key, value in (("auto_update_enabled", True), ("auto_update_time", clock), ("timezone", zone)):
+            self.setup.setting(key, value)
+        return self.root / "var/lib/pi-home/auto-update-date"
+
+    def test_automatic_update_is_opt_in_and_requires_completed_setup(self):
+        now = datetime(2026, 10, 27, 3, tzinfo=ZoneInfo("Asia/Singapore"))
+        with patch.object(self.setup, "handle") as handle:
+            self.assertFalse(self.setup.scheduled_update(now))
+            self.prepare_auto_updates()
+            self.setup.save({"complete": False})
+            self.assertFalse(self.setup.scheduled_update(now))
+            handle.assert_not_called()
+
+    def test_automatic_update_uses_device_timezone_and_persists_daily_marker(self):
+        marker = self.prepare_auto_updates()
+        with patch.object(self.setup, "handle", return_value={"queued": True}) as handle:
+            before = datetime(2026, 10, 26, 18, 59, tzinfo=ZoneInfo("UTC"))
+            due = datetime(2026, 10, 26, 19, 0, tzinfo=ZoneInfo("UTC"))
+            self.assertFalse(self.setup.scheduled_update(before))
+            self.assertTrue(self.setup.scheduled_update(due))
+            self.assertEqual(marker.read_text().strip(), "2026-10-27")
+            self.assertFalse(self.setup.scheduled_update(due.replace(minute=1)))
+            handle.assert_called_once_with({"action": "update"})
+
+    def test_busy_update_retries_within_window_but_does_not_catch_up_hours_later(self):
+        self.prepare_auto_updates()
+        now = datetime(2026, 10, 27, 3, tzinfo=ZoneInfo("Asia/Singapore"))
+        with patch.object(self.setup, "handle", side_effect=[ValueError("network trial"), {"queued": False}, {"queued": True}]) as handle:
+            self.assertFalse(self.setup.scheduled_update(now))
+            self.assertFalse(self.setup.scheduled_update(now.replace(minute=1)))
+            self.assertTrue(self.setup.scheduled_update(now.replace(minute=2)))
+            self.assertEqual(handle.call_count, 3)
+        with patch.object(self.setup, "handle") as handle:
+            self.assertFalse(self.setup.scheduled_update(now.replace(day=28, hour=8)))
+            handle.assert_not_called()
+
+    def test_automatic_update_waits_for_optional_installers(self):
+        self.prepare_auto_updates()
+        self.setup.tools_lock.acquire()
+        with patch.object(self.setup, "handle") as handle:
+            self.assertFalse(self.setup.scheduled_update(datetime(2026, 10, 27, 3, tzinfo=ZoneInfo("Asia/Singapore"))))
+            handle.assert_not_called()
+
+    def test_repeated_dst_hour_does_not_install_twice(self):
+        self.prepare_auto_updates("Europe/London", "01:30")
+        with patch.object(self.setup, "handle", return_value={"queued": True}) as handle:
+            first = datetime(2026, 10, 25, 1, 30, tzinfo=ZoneInfo("Europe/London"), fold=0)
+            self.assertTrue(self.setup.scheduled_update(first))
+            self.assertFalse(self.setup.scheduled_update(first.replace(fold=1)))
+            handle.assert_called_once()
 
     def test_daily_update_check_is_installed_once_at_three_am(self):
         path = self.root / "etc/crontabs/root"

@@ -1,4 +1,7 @@
 release_channel = "stable"
+# Optional daily updates, in the configured timezone; off until enabled.
+auto_update_enabled = false
+auto_update_time = "03:00"
 display_theme = "fresh-mint"
 # New installs are music-first. Existing appliance settings are preserved.
 bus_enabled = false

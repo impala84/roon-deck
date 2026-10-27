@@ -366,6 +366,8 @@ def write_config(path: Path, config: Config) -> None:
     services = ", ".join(json.dumps(item) for item in config.services)
     content = "\n".join((
         f"release_channel = {json.dumps(config.release_channel)}",
+        f"auto_update_enabled = {str(config.auto_update_enabled).lower()}",
+        f"auto_update_time = {json.dumps(config.auto_update_time)}",
         f"bus_stop_code = {json.dumps(config.bus_stop_code)}",
         f"bus_stop_name = {json.dumps(config.bus_stop_name)}",
         f"services = [{services}]",
@@ -1091,6 +1093,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "has_openobserve_password": bool(os.getenv("OPENOBSERVE_PASSWORD")),
                     "app_version": display_version(),
                     "release_channel": config.release_channel,
+                    "auto_update_enabled": config.auto_update_enabled,
+                    "auto_update_time": config.auto_update_time,
+                    "update_timezone": config.timezone,
                     "admin_username": os.getenv("ADMIN_USERNAME", "admin"),
                     "admin_auth_enabled": os.getenv("ADMIN_AUTH_ENABLED", "true").lower() != "false",
                     "display_mode": read_display_mode(mode_path),
@@ -1508,6 +1513,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 openobserve_url = str(data.get("openobserve_url", current.openobserve_url)).strip().rstrip("/")
                 candidate = Config(
                     release_channel=str(data.get("release_channel", current.release_channel)),
+                    auto_update_enabled=data.get("auto_update_enabled", current.auto_update_enabled),
+                    auto_update_time=str(data.get("auto_update_time", current.auto_update_time)),
                     bus_stop_code=str(data.get("bus_stop_code", current.bus_stop_code)).strip(),
                     bus_stop_name=str(data.get("bus_stop_name", current.bus_stop_name)).strip(),
                     services=values("services", current.services),
@@ -1580,6 +1587,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Choose 2 or 3 portrait Discover columns")
                 if candidate.landscape_music_clock not in {"icon", "full"}:
                     raise ValueError("Choose Full clock or Clock icon")
+                if type(candidate.auto_update_enabled) is not bool:
+                    raise ValueError("Choose whether automatic updates are enabled")
+                if not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", candidate.auto_update_time):
+                    raise ValueError("Choose an automatic update time in HH:MM format")
                 if candidate.release_channel not in {"stable", "beta"}:
                     raise ValueError("Choose Stable or Beta for the release channel")
                 if len(candidate.roon_display_name) > 16:

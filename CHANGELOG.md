@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8-beta.22 Alpine — 27 October 2026
+
+- Remove decorative divider rules from Settings sections and software actions; keep clear spacing and the fixed header/sidebar boundaries.
+- Show Wired Connection in the web interface while preserving the saved network profile.
+- Arrange Tools in one readable column.
+- Format WireGuard received and sent totals with readable B/KB/MB/GB units.
+- Add opt-in daily automatic updates under Software, with a chosen time in the device timezone and the saved Stable/Beta channel. Existing update verification and rollback apply. A persistent daily marker prevents repeated installation after restarts or a repeated daylight-saving hour; busy installations and network trials defer the attempt within a fifteen-minute window. Missed windows are skipped rather than updating unexpectedly later.
+
 ## 1.1.8-beta.21 Alpine — 27 October 2026
 
 - Fix the on/off switches showing mint instead of purple in the Roon theme.
