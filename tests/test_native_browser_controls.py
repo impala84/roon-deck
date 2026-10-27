@@ -68,8 +68,8 @@ class PortraitRefinementTests(unittest.TestCase):
         timeout = native_method("browser_request_timeout")
         self.assertEqual(timeout("artist"), 35.0)
         self.assertEqual(timeout("search"), 35.0)
-        self.assertEqual(timeout("open"), 15.0)
-        self.assertEqual(timeout("back"), 4.0)
+        self.assertEqual(timeout("open"), 35.0)
+        self.assertEqual(timeout("back"), 25.0)
 
     def test_merged_artist_routes_do_not_trigger_hidden_grouped_search_layout(self):
         code = native_text()

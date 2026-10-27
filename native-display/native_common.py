@@ -249,8 +249,10 @@ def post_json(url: str, data: dict, timeout: float = 1.2):
 def browser_request_timeout(action: str) -> float:
     """Keep slow browse operations bounded without blocking ordinary taps."""
     if action in {"sort", "jump", "section", "search", "surprise", "artist"}: return 35.0
-    if action in {"surprise_play", "open"}: return 15.0
-    return 4.0
+    # A browse action can make several Roon requests of up to 20 seconds each (a slow Core, or one reached over a VPN),
+    # so the touch screen waits longer than any one of them rather than reporting a timeout while Roon is still working.
+    if action in {"surprise_play", "open"}: return 35.0
+    return 25.0
 
 
 def release_period_label(value) -> str:

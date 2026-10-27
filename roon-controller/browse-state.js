@@ -2,7 +2,7 @@
 
 const PAGE_SIZE = 30;
 
-function request(service, method, options, timeoutMs = 8000) {
+function request(service, method, options, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Roon Browse request timed out')), timeoutMs);
     try {

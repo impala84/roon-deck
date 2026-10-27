@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.27 Alpine — 27 October 2026
+
+- Roon Browse waits up to 20 seconds for each Roon request (was 8), and the touch screen waits longer than that (25–35 seconds, was 4–15), so slow Core responses no longer show "Roon Browse request timed out".
+
 ## 1.1.8-beta.26 Alpine — 27 October 2026
 
 - Redraw the whole screen when the track or album text changes, to clear stray pixels of the previous title that the live renderer left behind (they never appeared in screenshots, which use a software renderer).
