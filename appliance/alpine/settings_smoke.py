@@ -108,6 +108,13 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert max(actions)-min(actions) <= 1, actions
         assert display.settings_actions.get_first_child() == display.update_button
         assert display.update_button.get_next_sibling() == display.apply_display_button
+    if portrait and width >= 1000:
+        # One page: network status under the bus times, inside the viewport and left-aligned with the other headings.
+        assert display.settings_network_block.get_visible()
+        for widget in (display.settings_network_block, display.touch_bus_pair, display.touch_daily):
+            bounds = widget.compute_bounds(window)[1]
+            assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, (widget, bounds.get_x(), bounds.get_width())
+        assert display.settings_net_connection.get_text()
     theme_widths=[button.get_width() for button in display.touch_theme_buttons.values()]
     assert max(theme_widths)-min(theme_widths)<=1, theme_widths
     if width==1280 and height==720:

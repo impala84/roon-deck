@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.21 Alpine — 27 October 2026
+
+- Fix the on/off switches showing mint instead of purple in the Roon theme.
+- Seven-inch Settings: the title, version and Sleep sit a little lower, closer to the rule.
+- Ten-inch portrait Settings: the title sits lower and the rule closer. Roon Bridge, Netdata, Bus Times and Controls share a three-column grid, so the toggles are no longer stretched. A new Network row shows Roon, the connection and the VPN when it is on. System Performance loses its grey card and its heading lines up with the others.
+
 ## 1.1.8-beta.20 Alpine — 27 October 2026
 
 - Use on/off switches for Roon Bridge, AirPlay, Netdata and Bus Times on every Settings layout. Sleep, Update and Reboot are sentence case on every screen size.

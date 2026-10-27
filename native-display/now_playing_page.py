@@ -235,9 +235,12 @@ class NowPlayingPageMixin:
         if hasattr(self, "refresh_network_pane"): self.refresh_network_pane(system)
         if hasattr(self, "sync_accessory_visibility"): self.sync_accessory_visibility(features)
         enabled = (system or {}).get("network_controls", {})
-        signature = json.dumps({"accessory_features": features, "network_controls": enabled, "services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "airplay": (system or {}).get("airplay"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
+        three_up = bool(getattr(self, "settings_three_up", False))
+        signature = json.dumps({"three_up": three_up, "accessory_features": features, "network_controls": enabled, "services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "airplay": (system or {}).get("airplay"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)
         if signature == getattr(self, "touch_controls_signature", None): return
         self.touch_controls_signature = signature
+        button = getattr(self, "settings_accessories_button", None)
+        if button is not None and button.get_parent() is not None and button.get_parent() is not getattr(self, "settings_controls_slot", None): button.get_parent().remove(button)
         while child := self.touch_daily.get_last_child():
             if child.has_css_class("setting-line"): self.settings_row_sizes.remove_widget(child)
             self.touch_daily.remove(child)
@@ -253,12 +256,17 @@ class NowPlayingPageMixin:
         service_toggle("Roon Bridge", (system or {}).get("roon_bridge"), "roon_bridge", self.toggle_bridge)
         service_toggle("AirPlay", (system or {}).get("airplay"), "airplay", self.toggle_airplay)
         service_toggle("Netdata", (system or {}).get("netdata"), "netdata", self.toggle_netdata)
-        for index in range(0, len(toggles), 2):
-            pair = Gtk.Box(spacing=16); pair.set_homogeneous(len(toggles[index:index + 2]) == 2)
-            for line in toggles[index:index + 2]: pair.append(line)
+        dial = features.get("dial") is True and button is not None
+        cells = toggles + ([button] if dial and three_up and not getattr(self, "settings_sidebar_active", False) else [])
+        per_row = 3 if three_up else 2
+        for index in range(0, len(cells), per_row):
+            row_cells = cells[index:index + per_row]
+            pair = Gtk.Box(spacing=16); pair.set_homogeneous(len(row_cells) == per_row or three_up)
+            for line in row_cells: pair.append(line)
+            for _ in range(per_row - len(row_cells) if three_up else 0):
+                filler = Gtk.Box(); filler.set_hexpand(True); pair.append(filler)
             self.touch_daily.append(pair)
-        if features.get("dial") is True and hasattr(self, "settings_accessories_button"):
-            button = self.settings_accessories_button
+        if dial and not (three_up and not getattr(self, "settings_sidebar_active", False)):
             home = self.settings_controls_slot if getattr(self, "settings_sidebar_active", False) else self.touch_daily
             if button.get_parent() is not home:
                 if button.get_parent() is not None: button.get_parent().remove(button)

@@ -298,7 +298,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-page switch { min-width: 56px; min-height: 30px; padding: 0; border: 0; border-radius: 15px; background: #3a3f3d; }
 .settings-page switch slider { min-width: 24px; min-height: 24px; margin: 3px; border-radius: 12px; background: #ffffff; }
 .settings-page switch:checked { background: #6ed9ae; }
-.theme-roon.settings-page switch:checked { background: #9868F9; }
+.theme-roon .settings-page switch:checked { background: #9868F9; }
 .settings-sidebar-layout .perf-roon { color: #cf8f6b; }
 .settings-sidebar-layout .perf-roon.on { color: #6ed9ae; }
 .theme-roon.settings-sidebar-layout .perf-roon.on { color: #9868F9; }
@@ -317,3 +317,14 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 /* Play Album: a touch more room around the label. */
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-split .artist-play { min-height: 54px; padding: 10px 22px 10px 30px; }
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-menu { min-height: 54px; min-width: 48px; }
+/* Seven-inch sidebar header: title and utilities sit a little lower, closer to the rule. */
+.settings-sidebar-layout .settings-divider { margin-top: 4px; }
+.settings-sidebar-layout .settings-header .settings-utilities { margin-top: 4px; }
+/* Ten-inch portrait: header lower, rule closer, performance without its own card, headings flush left. */
+.portrait.large-portrait .settings-page { padding-top: 34px; }
+.portrait.large-portrait .settings-header { min-height: 64px; }
+.portrait.large-portrait .settings-divider { margin-bottom: 6px; }
+.portrait.settings-with-graph .perf-card { margin-top: 10px; padding: 0; background: transparent; }
+.settings-page .settings-info { font-size: 17px; }
+.touch-landscape .settings-page .settings-info, .portrait .settings-page .settings-info { font-size: 21px; }
+.original-landscape .settings-page .settings-info { font-size: 14px; }
