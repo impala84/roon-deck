@@ -354,3 +354,11 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .high-resolution.background .album-profile .album-library-action { min-width: 40px; min-height: 40px; border-radius: 20px; }
 .large-display.background .album-profile .album-library-action { min-width: 46px; min-height: 46px; border-radius: 23px; }
 .album-profile-large.album-profile-large.album-profile-large.album-profile-large .album-library-action { min-width: 82px; min-height: 82px; border-radius: 41px; }
+
+/* 10-inch portrait Settings: tabs across the top, Update and Reboot always below */
+.settings-tabbar { padding: 6px; border-radius: 16px; background: #1a1920; }
+.settings-tabs-layout .settings-tab, .settings-tabs-layout .settings-tab.settings-tab { min-height: 68px; border-radius: 12px; background: transparent; color: #cfcfd6; font-size: 24px; font-weight: 600; }
+.settings-tabs-layout .settings-tab.active, .settings-tabs-layout .settings-tab.active.active { background: #6ed9ae; color: #101714; font-weight: 700; }
+.theme-roon.settings-tabs-layout .settings-tab.active, .theme-roon.settings-tabs-layout .settings-tab.active.active { background: #9868F9; color: #fff; }
+.settings-tabs-layout .settings-footer button { min-height: 76px; border-radius: 12px; font-size: 24px; font-weight: 700; }
+.settings-tabs-layout .settings-pane { padding-top: 14px; }

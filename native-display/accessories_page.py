@@ -34,7 +34,7 @@ class AccessoriesPageMixin:
         divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); divider.add_css_class("settings-divider"); page.append(divider)
 
         self.accessory_buttons = []
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); card.add_css_class("settings-card"); card.set_vexpand(True); self.accessory_card = card
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
         self.accessory_scroll = scroll
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); body.add_css_class("settings-controls"); body.add_css_class("settings-column")
@@ -114,9 +114,15 @@ class AccessoriesPageMixin:
     def sync_accessory_visibility(self, features):
         dial = features.get("dial") is True
         self.settings_accessories_button.set_visible(dial)
+        if getattr(self, "settings_tabs_active", False):
+            self.settings_nav["controls"].set_visible(dial)
+            if not dial and self.settings_panes.get_visible_child_name() == "controls": self.show_settings_pane("overview")
+            return
         if not dial: self.settings_sections.set_visible_child_name(self.settings_home())
 
     def open_accessories(self, *_):
+        if getattr(self, "settings_tabs_active", False):
+            self.show_settings_pane("controls"); return
         self.settings_sections.set_visible_child_name("accessories")
         adjustment = self.accessory_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
         self.accessory_message.set_text("")
@@ -191,7 +197,7 @@ class AccessoriesPageMixin:
         if (pairing.get("status") == "pairing" or snapshot.get("scanning")) and not getattr(self, "accessory_poll", None):
             def poll():
                 self.accessory_poll = None
-                if self.settings_sections.get_visible_child_name() == "accessories":
+                if self.accessories_showing():
                     self.accessory_operation("status")
                 return False
             self.accessory_poll = GLib.timeout_add(2000, poll)

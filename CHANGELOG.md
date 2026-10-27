@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.30 Alpine — 27 October 2026
+
+- 10-inch portrait Settings: now four tabs across the top — Overview, Display, Controls, Performance. Controls (Surface Dial) is a tab instead of a separate button; Apply display lives under the Display tab; Update software and Reboot RoonDeck sit permanently at the bottom. Button labels are sentence case.
+
 ## 1.1.8-beta.29 Alpine — 27 October 2026
 
 - Display: draw every frame in full (GSK full-redraw) to stop faint ghost pixels of the previous title remaining on the real screen after a track change. If the touch screen feels slower, tell us and this will be reverted.
