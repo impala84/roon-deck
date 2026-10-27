@@ -229,8 +229,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if control.get_parent() is not self.settings_display_row:
                 control.get_parent().remove(control); self.settings_display_row.append(control)
         graph = self.performance_graph
-        graph.set_compact(False); graph.area.set_size_request(-1, 320); graph.area.set_vexpand(True)
-        graph.set_vexpand(True); graph.set_valign(Gtk.Align.FILL); graph.set_visible(True); graph.short_values = False
+        graph.set_compact(False); graph.set_visible(True); graph.short_values = False; graph.set_stacked(True)
         self.settings_title_row.set_margin_top(0)
         # Full-width rows: bus times and the network status stack, one cell per line.
         self.settings_network_block.set_visible(True); self.settings_bus_spacer.set_visible(False)
@@ -293,10 +292,17 @@ class SettingsPageMixin(AccessoriesPageMixin):
         for widget in (self.settings_appearance_group, self.display_settings_heading, self.settings_display_row, self.make_mirrored_brightness(), self.apply_display_button): take(widget, display)
         # Controls: the Surface Dial page, as a tab instead of a separate page.
         controls = pane("controls")
-        take(self.accessory_message, controls); take(self.accessory_card, controls)
+        controls.add_css_class("controls-pane"); controls.set_spacing(10)
+        take(self.accessory_card, controls)
+        self.accessory_scroll.get_child().set_spacing(12)
         # The pane itself scrolls, so the card takes its full height instead of scrolling inside a collapsed box.
         self.accessory_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.accessory_scroll.set_propagate_natural_height(True); self.accessory_scroll.set_vexpand(False)
-        self.accessory_card.set_vexpand(False); take(self.accessory_save, controls)
+        self.accessory_card.set_vexpand(False)
+        # Progress messages and a compact Save share one line under the settings.
+        save_row = Gtk.Box(spacing=16); save_row.add_css_class("controls-save-row")
+        self.accessory_message.set_hexpand(True); self.accessory_message.set_valign(Gtk.Align.CENTER); take(self.accessory_message, save_row)
+        self.accessory_save.add_css_class("controls-save"); self.accessory_save.set_hexpand(False); self.accessory_save.set_halign(Gtk.Align.END); take(self.accessory_save, save_row)
+        controls.append(save_row)
         performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
         take(self.performance_graph, performance)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_hexpand(True); scroll.set_vexpand(True); scroll.set_child(self.settings_panes)

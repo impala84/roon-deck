@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.32 Alpine — 27 October 2026
+
+- 10-inch Settings: Performance is now four separate stacked graphs (Network, CPU, Memory, Temp), each with its own value, filling the page. Controls starts higher so it fits without scrolling, and Save is a compact button beside the progress message.
+
 ## 1.1.8-beta.31 Alpine — 27 October 2026
 
 - 10-inch Settings tabs: Controls tab now shows the Surface Dial settings (it was empty); the duplicate Controls button is gone from Overview; bus times and network status are full width; display brightness is a larger, easier-to-grab card on Overview and Display; Update software and Reboot RoonDeck have even 30px margins on the bottom and sides; Dial buttons use sentence case.

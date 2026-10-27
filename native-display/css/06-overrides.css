@@ -371,3 +371,10 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-tabs-layout .brightness-card scale highlight { min-height: 12px; border-radius: 6px; }
 .settings-tabs-layout .brightness-card scale slider { min-width: 42px; min-height: 42px; border-radius: 21px; margin: -15px 0; }
 .settings-tabs-layout .brightness-card .brightness-value { font-size: 24px; min-width: 76px; }
+.settings-tabs-layout .controls-pane { padding-top: 0; }
+.settings-tabs-layout .controls-pane .settings-card, .settings-tabs-layout .controls-pane .settings-controls { padding: 0; }
+.settings-tabs-layout .controls-save.settings-action.controls-save { min-height: 56px; min-width: 150px; padding: 0 34px; font-size: 22px; }
+.settings-tabs-layout .perf-panel { padding: 10px 16px 8px; border-radius: 12px; background: #1a1920; }
+.settings-tabs-layout .perf-panel-value { color: #b5b5be; font-size: 20px; }
+.settings-tabs-layout .perf-panel-title { font-size: 18px; letter-spacing: 1px; }
+.settings-tabs-layout .perf-axis { padding: 0 6px; }

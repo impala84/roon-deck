@@ -11,7 +11,7 @@ import threading
 from gi.repository import GLib, Gtk, Pango
 
 from pi_bus_time_display.performance import (
-    SAMPLES, SERIES, parse_cpu_times, cpu_percent, memory_percent,
+    NETWORK_CEILINGS, SAMPLES, SERIES, parse_cpu_times, cpu_percent, memory_percent,
     network_bytes, read_text, PerformanceSampler, format_value,
 )
 
@@ -48,6 +48,23 @@ class PerformanceGraph(Gtk.Box):
         self.append(chips)
         self.area = Gtk.DrawingArea(); self.area.set_hexpand(True); self.area.set_vexpand(False); self.area.set_size_request(-1, 470)
         self.area.set_draw_func(self.draw); self.append(self.area)
+        # Stacked mode (10-inch portrait): one card per measurement instead of four lines sharing one chart.
+        self.stacked = False; self.panel_areas = {}; self.panel_values = {}; self.panel_ranges = {}
+        self.panels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.panels.set_vexpand(True); self.panels.set_homogeneous(True); self.panels.set_visible(False)
+        for key, name, colour in SERIES:
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("perf-panel"); card.set_vexpand(True)
+            head = Gtk.Box(spacing=12); hex_colour = "#%02x%02x%02x" % tuple(round(c * 255) for c in colour)
+            title = Gtk.Label(); title.set_markup(f'<span foreground="{hex_colour}" weight="bold">{name.upper()}</span>'); title.add_css_class("perf-panel-title"); title.set_xalign(0); title.set_hexpand(True); head.append(title)
+            value = Gtk.Label(label="—"); value.add_css_class("perf-panel-value"); head.append(value)
+            area = Gtk.DrawingArea(); area.set_hexpand(True); area.set_vexpand(True); area.set_size_request(-1, 40)
+            area.set_draw_func(lambda _a, cr, w, h, series=key: self.draw_panel(cr, w, h, series))
+            card.append(head); card.append(area); self.panels.append(card)
+            self.panel_areas[key] = area; self.panel_values[key] = value
+        self.append(self.panels)
+        self.axis = Gtk.Box(); self.axis.add_css_class("perf-axis"); self.axis.set_visible(False)
+        for text, align in (("60s ago", Gtk.Align.START), ("30s", Gtk.Align.CENTER), ("Now", Gtk.Align.END)):
+            tick = Gtk.Label(label=text); tick.add_css_class("perf-note"); tick.set_hexpand(True); tick.set_halign(align); self.axis.append(tick)
+        self.append(self.axis)
         self.connect("map", self.start); self.connect("unmap", self.stop)
 
     def set_compact(self, compact):
@@ -57,6 +74,29 @@ class PerformanceGraph(Gtk.Box):
         self.area.set_size_request(-1, 100 if compact else 470); self.area.set_vexpand(compact)
         for check in self.chip_checks.values(): check.set_visible(not compact)
         self.set_vexpand(compact); self.set_valign(Gtk.Align.FILL if compact else Gtk.Align.START); self.set_spacing(10 if compact else 14)
+
+    def set_stacked(self, stacked):
+        self.stacked = stacked
+        self.chips[SERIES[0][0]].get_parent().set_visible(not stacked)
+        self.area.set_visible(not stacked); self.panels.set_visible(stacked); self.axis.set_visible(stacked)
+        self.set_vexpand(True); self.set_valign(Gtk.Align.FILL)
+
+    def redraw(self):
+        self.area.queue_draw()
+        for area in self.panel_areas.values(): area.queue_draw()
+
+    def draw_panel(self, cr, width, height, key):
+        values = self.sampler.plotted(key)
+        colour = next(item[2] for item in SERIES if item[0] == key)
+        cr.set_line_width(1); cr.set_dash([6, 6]); cr.set_source_rgba(1, 1, 1, .12)
+        cr.move_to(0, height / 2); cr.line_to(width, height / 2); cr.stroke(); cr.set_dash([])
+        if len(values) < 2: return
+        pad = 4; step = width / (SAMPLES - 1); count = len(values)
+        points = [(width - (count - 1 - index) * step, height - pad - value / 100 * (height - 2 * pad)) for index, value in enumerate(values)]
+        cr.save(); cr.rectangle(0, 0, width, height); cr.clip()
+        curve(cr, points); cr.line_to(points[-1][0], height); cr.line_to(points[0][0], height); cr.close_path(); cr.set_source_rgba(*colour, .14); cr.fill()
+        curve(cr, points); cr.set_source_rgb(*colour); cr.set_line_width(2.4); cr.set_line_join(1); cr.set_line_cap(1); cr.stroke()
+        cr.restore()
 
     def toggle(self, key):
         self.enabled[key] = not self.enabled[key]
@@ -81,7 +121,7 @@ class PerformanceGraph(Gtk.Box):
             received = history.get(key)
             if isinstance(received, list) and len(received) > len(values):
                 values.clear(); values.extend(float(item) for item in received[-SAMPLES:] if isinstance(item, (int, float)))
-        self.area.queue_draw()
+        self.redraw()
         return False
 
     def start(self, *_):
@@ -97,7 +137,13 @@ class PerformanceGraph(Gtk.Box):
         latest = self.sampler.sample(GLib.get_monotonic_time() / 1_000_000, read_text("/proc/stat"), read_text("/proc/meminfo"),
                                      read_text("/sys/class/thermal/thermal_zone0/temp"), read_text("/proc/net/dev"))
         for key, _name, _colour in SERIES: self.chip_values[key].set_text(format_value(key, latest.get(key), self.compact or self.short_values))
-        self.area.queue_draw()
+        for key, _name, _colour in SERIES:
+            text = format_value(key, latest.get(key))
+            if key == "network":
+                peak = max(self.sampler.history["network"], default=0) * 1.05
+                text += f"  ·  0–{next((step for step in NETWORK_CEILINGS if step >= peak), peak):g} Mb/s"
+            self.panel_values[key].set_text(text)
+        self.redraw()
         return True
 
     def draw(self, _area, cr, width, height):
