@@ -785,6 +785,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.settings_data = {}
         owner.window = SimpleNamespace(has_css_class=lambda _: False)
         owner.loading_notice = lambda: LayoutWidget(text="Loading…", style="loading-notice")
+        owner.apply_discovery_layout = lambda: native_method("apply_discovery_layout",{"Gtk":LAYOUT_GTK})(owner)
         native_method("render_discover",{"json":__import__("json"), "Gtk":LAYOUT_GTK})(owner,1,{"status":"loading"})
         self.assertEqual(owner.discovery_list.children[0].properties,{"text":"Loading…","style":"loading-notice"})
         owner.sync_discovery_sidebar.assert_called_once()
