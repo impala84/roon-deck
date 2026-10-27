@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.49 Alpine — 28 October 2026
+
+- 7-inch Settings: every row, box, dropdown and button on Overview, Display and Network is 80px (the Display page's theme and background buttons were still the old sizes). The Primary connection and Wi-Fi sections used 16px between their heading and button where the left column used 12px, which shifted them 4px lower per section; both columns now use 12px so headings and boxes line up exactly.
+
 ## 1.1.8-beta.48 Alpine — 28 October 2026
 
 - 7-inch Settings: rows, boxes and buttons are now exactly 72px tall (they measured 86-96px and differed, because GTK adds padding outside the minimum height). The Overview fits without scrolling and the Ethernet / Wi-Fi and Join buttons match the boxes beside them.

@@ -409,9 +409,11 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .now-volume-row .now-mute.now-mute.now-mute { min-width: 0; padding-left: 18px; padding-right: 18px; margin-right: 10px; }
 .now-volume-row .volume-step.volume-step { margin-left: 0; margin-right: 0; }
 
-/* 7-inch Network and Overview: every row, box and button is exactly the same height (72px), so headings and boxes line up.
+/* 7-inch Network and Overview: every row, box and button is exactly the same height (80px), so headings and boxes line up.
    GTK adds padding outside min-height, so vertical padding is zeroed on all of them. */
 .settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .settings-pane .setting-line,
 .settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .settings-pane .settings-select,
 .settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .settings-pane .brightness-card,
-.settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .connection-block .settings-action { min-height: 72px; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; }
+.settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .settings-pane .theme-choice,
+.settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .settings-pane .settings-theme-choice,
+.settings-sidebar-layout.settings-sidebar-layout.settings-sidebar-layout .connection-block .settings-action { min-height: 80px; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; }
