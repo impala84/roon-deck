@@ -131,7 +131,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_short_appearance = False; self.settings_wide_portrait = False
         graph = self.performance_graph
         graph.set_compact(False); graph.area.set_size_request(-1, 220); graph.area.set_vexpand(True)
-        graph.set_vexpand(True); graph.set_valign(Gtk.Align.FILL); graph.set_visible(True)
+        graph.set_vexpand(True); graph.set_valign(Gtk.Align.FILL); graph.set_visible(True); graph.short_values = True
         self.settings_title_row.set_margin_top(14)
 
     def build_settings_sidebar(self):
@@ -151,8 +151,10 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if isinstance(nav.get_child(), Gtk.Label): nav.get_child().set_xalign(0)
             self.settings_nav[name] = nav; rail.append(nav)
         gap = Gtk.Box(); gap.set_vexpand(True); rail.append(gap)
-        self.update_button.set_label("UPDATE")
-        take(self.update_button, rail); take(self.settings_reboot, rail)
+        # Sentence case throughout the sidebar page, matching Sleep in the header.
+        self.settings_sleep_button.set_label("Sleep"); self.update_button.set_label("Update"); self.settings_reboot.set_label("Reboot")
+        footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); footer.add_css_class("settings-footer"); rail.append(footer)
+        take(self.update_button, footer); take(self.settings_reboot, footer)
         self.settings_actions.set_visible(False)
         self.settings_action_stack.set_visible(False)
         self.settings_panes = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE); self.settings_panes.set_hhomogeneous(False); self.settings_panes.set_vhomogeneous(False)
@@ -163,6 +165,14 @@ class SettingsPageMixin(AccessoriesPageMixin):
         overview = pane("overview")
         self.network_controls_heading.set_text("SERVICES"); self.network_controls_heading.set_visible(True)
         self.touch_bus_heading.set_visible(True); self.settings_brightness_row.set_margin_top(0)
+        # Bus Times is a switch like the services; the service numbers stay as ticks. Both pairs share one grid: two equal columns.
+        row = self.touch_bus_visibility_row
+        while child := row.get_first_child(): row.remove(child)
+        caption = self.label("Bus Times", "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); row.append(caption)
+        bus_switch = Gtk.Switch(); bus_switch.set_valign(Gtk.Align.CENTER); bus_switch.set_active(bool((self.settings_data or {}).get("bus_enabled", True))); row.append(bus_switch)
+        self.touch_bus_enabled = bus_switch; self.connect_toggle(bus_switch, self.toggle_bus_visibility)
+        row.set_hexpand(True); self.touch_bus_services.set_hexpand(True); self.touch_bus_pair.set_homogeneous(True)
+        self.touch_bus_heading.set_text("BUS TIMES")
         for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
         self.settings_controls_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); take(self.settings_accessories_button, self.settings_controls_slot); overview.append(self.settings_controls_slot)
         # Display: how it looks. Installation options stay hidden on the seven-inch panel, as before.
@@ -178,6 +188,10 @@ class SettingsPageMixin(AccessoriesPageMixin):
             row = Gtk.Box(spacing=8); row.add_css_class("setting-line"); row.set_hexpand(True)
             text = self.label("—", "settings-info"); text.set_xalign(0); text.set_hexpand(True); text.set_ellipsize(Pango.EllipsizeMode.END); row.append(text)
             network.append(row); return row, text
+        self.settings_net_roon_row, self.settings_net_roon = info_row("ROON")
+        network.append(self.label("ZONE", "eyebrow"))
+        self.settings_zone_select = Gtk.DropDown.new_from_strings(["Follow the playing zone"]); self.settings_zone_select.add_css_class("settings-select"); self.settings_zone_names = []
+        self.settings_zone_select.connect("notify::selected", self.zone_selected); network.append(self.settings_zone_select)
         self.settings_net_connection_row, self.settings_net_connection = info_row("CONNECTION")
         self.settings_net_vpn_row, self.settings_net_vpn = info_row("VPN")
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
@@ -189,6 +203,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_sections.add_named(page, "sidebar")
         self.settings_sidebar_active = True
         if self.settings_sections.get_visible_child_name() == "main": self.settings_sections.set_visible_child_name("sidebar")
+        self.touch_controls_signature = None
         self.show_settings_pane("overview")
 
     def show_settings_pane(self, name):
@@ -198,10 +213,45 @@ class SettingsPageMixin(AccessoriesPageMixin):
         adjustment = self.settings_pane_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
         if name == "network": self.refresh_network_pane()
 
+    def refresh_roon_pane(self):
+        """Roon connection state and the zone choice, shown on Network and summarised on Performance."""
+        if not getattr(self, "settings_sidebar_active", False): return
+        state = self.state if isinstance(getattr(self, "state", None), dict) else None
+        connected = bool(state and state.get("connected"))
+        zone_name = ((state or {}).get("zone") or {}).get("name") or ""
+        self.settings_net_roon.set_text(("Connected  ·  " + zone_name) if connected and zone_name else "Connected" if connected else "Not connected" if state is not None else "Checking…")
+        self.performance_graph.set_roon_status(connected)
+        names = sorted({zone.get("name") for zone in ((state or {}).get("zones") or []) if zone.get("name")}, key=str.casefold)
+        chosen = str((self.settings_data or {}).get("roon_zone_name") or "")
+        if chosen and chosen not in names: names.append(chosen)
+        if names != self.settings_zone_names or chosen != getattr(self, "settings_zone_chosen", None):
+            self.settings_zone_names = names; self.settings_zone_chosen = chosen
+            self.settings_zone_updating = True
+            self.settings_zone_select.set_model(Gtk.StringList.new(["Follow the playing zone"] + names))
+            self.settings_zone_select.set_selected(names.index(chosen) + 1 if chosen in names else 0)
+            self.settings_zone_updating = False
+
+    def zone_selected(self, dropdown, *_):
+        if getattr(self, "settings_zone_updating", False): return
+        index = dropdown.get_selected()
+        name = self.settings_zone_names[index - 1] if 0 < index <= len(self.settings_zone_names) else ""
+        if name == str((self.settings_data or {}).get("roon_zone_name") or ""): return
+        self.settings_zone_chosen = name
+        def save():
+            result = post_json(f"{BUS}/api/admin/config", {"section": "roon", "roon_zone_name": name}, timeout=4)
+            def finish():
+                if result and not result.get("error"):
+                    self.settings_data["roon_zone_name"] = name; self.last_config_fetch = 0
+                else: self.touch_diagnostics.set_text("Could not save the Roon zone. Please try again.")
+                return False
+            GLib.idle_add(finish)
+        threading.Thread(target=save, daemon=True).start()
+
     def refresh_network_pane(self, system=None):
         """Connection and VPN lines. The connection comes from the system poll; the VPN is read while this section is open."""
         if not getattr(self, "settings_sidebar_active", False): return
         if system and system.get("network") is not None: self.settings_network = system["network"]
+        self.refresh_roon_pane()
         link = getattr(self, "settings_network", None) or {}
         if link.get("type") or link.get("name"):
             parts = [link.get("type") or "Network"]
@@ -259,7 +309,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.device_status = self.label("", "settings-version"); self.device_status.set_valign(Gtk.Align.BASELINE); self.device_status.set_max_width_chars(64); self.device_status.set_hexpand(True); self.device_status.set_halign(Gtk.Align.START); self.device_status.set_ellipsize(Pango.EllipsizeMode.END); title_row.append(self.device_status); heading.append(title_row)
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
         utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START); self.settings_utilities = utilities
-        sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); utilities.append(sleep_button)
+        sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); self.settings_sleep_button = sleep_button; utilities.append(sleep_button)
         close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); self.settings_close = close; utilities.append(close)
         top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
@@ -394,6 +444,16 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.library_add.set_child(icon)
         self.library_add.set_tooltip_text("Unfavourite album" if filled else "Favourite album")
 
+    def connect_toggle(self, widget, callback):
+        """Check buttons and the sidebar's switches share one handler signature; the id lets a failed save revert silently."""
+        if isinstance(widget, Gtk.Switch): widget.toggle_handler_id = widget.connect("notify::active", lambda switch, _pspec: callback(switch))
+        else: widget.toggle_handler_id = widget.connect("toggled", callback)
+
+    def set_quietly(self, widget, value):
+        handler = getattr(widget, "toggle_handler_id", None)
+        if handler is None: widget.set_active(value); return
+        widget.handler_block(handler); widget.set_active(value); widget.handler_unblock(handler)
+
     def toggle_bridge(self, button):
         requested = button.get_active(); button.set_sensitive(False)
         threading.Thread(target=self._toggle_bridge, args=(button, requested), daemon=True).start()
@@ -402,9 +462,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         result = post_json(BUS + "/api/device/roon-bridge", {"enabled": requested}, timeout=110)
         def finish():
             if not result:
-                button.handler_block_by_func(self.toggle_bridge)
-                button.set_active(not requested)
-                button.handler_unblock_by_func(self.toggle_bridge)
+                self.set_quietly(button, not requested)
                 self.touch_diagnostics.set_text("Could not change Roon Bridge. Check backend Tools for service status.")
             self.touch_controls_signature = None
             self.last_system_fetch = 0
@@ -420,7 +478,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         result = post_json(BUS + "/api/device/netdata", {"enabled": requested}, timeout=20)
         def finish():
             if not result:
-                button.handler_block_by_func(self.toggle_netdata); button.set_active(not requested); button.handler_unblock_by_func(self.toggle_netdata)
+                self.set_quietly(button, not requested)
                 self.touch_diagnostics.set_text("Could not change Netdata. Check backend Tools for service status.")
             self.touch_controls_signature = None; self.last_system_fetch = 0; button.set_sensitive(True)
             return False
@@ -434,7 +492,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         result = post_json(BUS + "/api/device/airplay", {"enabled": requested}, timeout=30)
         def finish():
             if not result:
-                button.handler_block_by_func(self.toggle_airplay); button.set_active(not requested); button.handler_unblock_by_func(self.toggle_airplay)
+                self.set_quietly(button, not requested)
                 self.touch_diagnostics.set_text("Could not change AirPlay. Check backend Tools for service status.")
             self.touch_controls_signature = None; self.last_system_fetch = 0; button.set_sensitive(True)
             return False

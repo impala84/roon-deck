@@ -78,7 +78,10 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         assert all(not row.get_visible() for row in rows) and not display.apply_display_button.get_visible()
         assert display.touch_interface_size.compute_bounds(window)[1].get_y() + 56 <= height
         display.show_settings_pane("network"); settle()
-        assert display.settings_net_connection.get_text()
+        assert display.settings_net_connection.get_text() and display.settings_net_roon.get_text()
+        zone_bounds = display.settings_zone_select.compute_bounds(window)[1]
+        assert zone_bounds.get_y() + zone_bounds.get_height() <= height, ("zone", zone_bounds.get_y())
+        for button in (display.update_button, display.settings_reboot, display.settings_sleep_button): assert button.get_label() in {"Update", "Reboot", "Sleep"}
         display.show_settings_pane("overview"); settle()
         assert display.touch_daily.get_parent() is display.settings_panes.get_child_by_name("overview")
         assert not display.touch_diagnostics.get_visible() or not display.touch_diagnostics.get_text().startswith("Memory")
@@ -123,7 +126,7 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
     display.render_touch_controls({"services":[]},{"roon_bridge":"not_installed"})
     assert display.touch_bus_services.get_first_child() is None
     display.render_touch_controls({"services":[]},{"roon_bridge":"running"})
-    bridge_check=display.touch_daily.get_first_child().get_first_child().get_first_child()
+    bridge_check=display.touch_daily.get_first_child().get_first_child().service_toggle
     assert bridge_check.get_active()
     from unittest.mock import patch
     restore_post_json = patch_native(native, "post_json", lambda *args, **kwargs: None)

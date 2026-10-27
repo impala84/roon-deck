@@ -6,7 +6,8 @@ CPU, memory, temperature and network are sampled once a second while the graph i
 from __future__ import annotations
 
 
-from native_common import FamilyIcon
+from native_common import BUS, FamilyIcon, get_json
+import threading
 from gi.repository import GLib, Gtk, Pango
 
 from pi_bus_time_display.performance import (
@@ -31,7 +32,9 @@ class PerformanceGraph(Gtk.Box):
         self.sampler = PerformanceSampler(); self.enabled = {key: True for key, _name, _colour in SERIES}; self.timer = None
         header = Gtk.Box(spacing=12)
         title = Gtk.Label(label="SYSTEM PERFORMANCE"); title.add_css_class("eyebrow"); title.set_xalign(0); title.set_hexpand(True); header.append(title)
+        self.roon_status = Gtk.Label(label=""); self.roon_status.add_css_class("perf-note"); self.roon_status.add_css_class("perf-roon"); self.roon_status.set_visible(False); header.append(self.roon_status)
         note = Gtk.Label(label="Last 60 seconds"); note.add_css_class("perf-note"); header.append(note)
+        self.short_values = False
         self.append(header)
         chips = Gtk.Box(spacing=12); chips.set_homogeneous(True); self.chips = {}; self.chip_values = {}; self.chip_checks = {}; self.chip_names = {}; self.compact = False
         for key, name, _colour in SERIES:
@@ -61,8 +64,28 @@ class PerformanceGraph(Gtk.Box):
         self.chip_checks[key].set_opacity(1 if self.enabled[key] else 0)
         self.area.queue_draw()
 
+    def set_roon_status(self, connected):
+        self.roon_status.set_visible(True); self.roon_status.set_text("Roon connected" if connected else "Roon not connected")
+        (self.roon_status.add_css_class if connected else self.roon_status.remove_css_class)("on")
+
+    def preload(self):
+        """The server already holds the last 60 seconds; draw that at once instead of building it from scratch."""
+        def work():
+            data = get_json(BUS + "/api/admin/performance", timeout=2)
+            if isinstance(data, dict): GLib.idle_add(self.apply_history, data)
+        threading.Thread(target=work, daemon=True).start()
+
+    def apply_history(self, data):
+        history = data.get("history") or {}
+        for key, values in self.sampler.history.items():
+            received = history.get(key)
+            if isinstance(received, list) and len(received) > len(values):
+                values.clear(); values.extend(float(item) for item in received[-SAMPLES:] if isinstance(item, (int, float)))
+        self.area.queue_draw()
+        return False
+
     def start(self, *_):
-        self.tick()
+        self.preload(); self.tick()
         if self.timer is None: self.timer = GLib.timeout_add(1000, self.tick)
 
     def stop(self, *_):
@@ -73,7 +96,7 @@ class PerformanceGraph(Gtk.Box):
     def tick(self):
         latest = self.sampler.sample(GLib.get_monotonic_time() / 1_000_000, read_text("/proc/stat"), read_text("/proc/meminfo"),
                                      read_text("/sys/class/thermal/thermal_zone0/temp"), read_text("/proc/net/dev"))
-        for key, _name, _colour in SERIES: self.chip_values[key].set_text(format_value(key, latest.get(key), self.compact))
+        for key, _name, _colour in SERIES: self.chip_values[key].set_text(format_value(key, latest.get(key), self.compact or self.short_values))
         self.area.queue_draw()
         return True
 

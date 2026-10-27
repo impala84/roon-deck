@@ -270,7 +270,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .original-landscape .settings-page .settings-action { border-radius: 6px; }
 
 /* Touch Display 2 (7-inch) Settings: a section sidebar on the left, the chosen section on the right. */
-.settings-sidebar-layout .settings-sidebar-page { padding: 10px 28px 18px; }
+.settings-sidebar-layout .settings-sidebar-page { padding: 10px 28px 28px; }
+.settings-sidebar-layout .settings-divider { margin-top: 12px; margin-bottom: 12px; }
 .settings-sidebar-layout .settings-shell { padding-top: 6px; }
 .settings-sidebar-layout .settings-sidebar { padding-right: 8px; }
 .settings-sidebar-layout .settings-nav { min-height: 56px; padding: 0 20px; border-radius: 12px; background: transparent; color: #cfd8d4; font-size: 22px; font-weight: 600; }
@@ -288,3 +289,13 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-sidebar-layout .perf-card .perf-chip { min-height: 48px; padding: 0 10px; }
 .settings-sidebar-layout .perf-card .perf-chip-name, .settings-sidebar-layout .perf-card .perf-chip-value { font-size: 17px; }
 .settings-sidebar-layout .perf-card .perf-note { font-size: 16px; }
+.settings-sidebar-layout .settings-nav, .settings-sidebar-layout .settings-nav.active, .settings-sidebar-layout .settings-sidebar .settings-action, .settings-sidebar-layout .settings-sidebar .settings-action.reboot-action { border-radius: 12px; }
+.settings-sidebar-layout .settings-pane .settings-toggle-label { font-size: 21px; font-weight: 600; }
+.settings-sidebar-layout switch { min-width: 62px; min-height: 34px; padding: 0; border: 0; border-radius: 17px; background: #3a3f3d; }
+.settings-sidebar-layout switch slider { min-width: 28px; min-height: 28px; margin: 3px; border-radius: 14px; background: #ffffff; }
+.settings-sidebar-layout switch:checked { background: #6ed9ae; }
+.theme-roon.settings-sidebar-layout switch:checked { background: #9868F9; }
+.settings-sidebar-layout .perf-roon { color: #cf8f6b; }
+.settings-sidebar-layout .perf-roon.on { color: #6ed9ae; }
+.theme-roon.settings-sidebar-layout .perf-roon.on { color: #9868F9; }
+.settings-sidebar-layout .perf-card { padding-top: 0; }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.19 Alpine — 27 October 2026
+
+- Refine the Touch Display 2 (7-inch) Settings sidebar. Roon Bridge, Netdata and Bus Times are on/off switches in two even columns; the Bus Times service numbers stay as ticks. Sleep, Update and Reboot use sentence case, with matching corners, more space between Update and Reboot, equal margins to the screen edge and more room under the header rule.
+- Network shows whether Roon is connected, a zone drop-down to choose the zone by hand, the current connection and the VPN. Performance shows whether Roon is connected, and draws the last 60 seconds at once from the history the Pi already keeps.
+
 ## 1.1.8-beta.18 Alpine — 27 October 2026
 
 - Organise web Display settings into Appearance, Layout & navigation and Screen hardware tabs, retaining the shared Save changes behaviour and direct links to each tab.

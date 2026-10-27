@@ -247,7 +247,12 @@ class NowPlayingPageMixin:
         def service_toggle(label, state, flag, handler):
             if not flags.get(flag, state in {"active", "running"}) or state not in {"active", "running", "inactive", "stopped"}: return
             line = Gtk.Box(spacing=8); line.add_css_class("setting-line"); line.set_hexpand(True)
-            check = Gtk.CheckButton(label=label); check.set_active(state in {"active", "running"}); check.connect("toggled", handler); line.append(check); toggles.append(line)
+            if getattr(self, "settings_sidebar_active", False):
+                caption = self.label(label, "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); line.append(caption)
+                check = Gtk.Switch(); check.set_valign(Gtk.Align.CENTER); check.set_active(state in {"active", "running"}); self.connect_toggle(check, handler); line.append(check)
+            else:
+                check = Gtk.CheckButton(label=label); check.set_active(state in {"active", "running"}); check.connect("toggled", handler); line.append(check)
+            line.service_toggle = check; toggles.append(line)
         service_toggle("Roon Bridge", (system or {}).get("roon_bridge"), "roon_bridge", self.toggle_bridge)
         service_toggle("AirPlay", (system or {}).get("airplay"), "airplay", self.toggle_airplay)
         service_toggle("Netdata", (system or {}).get("netdata"), "netdata", self.toggle_netdata)
@@ -273,7 +278,9 @@ class NowPlayingPageMixin:
         self.settings_row_sizes.add_widget(services)
 
     def render_roon(self, data):
-        self.state = data; self.render_queue((data or {}).get("queue") or {}); self.render_details((data or {}).get("details") or {}); zone = (data or {}).get("zone")
+        self.state = data
+        if hasattr(self, "refresh_roon_pane"): self.refresh_roon_pane()
+        self.render_queue((data or {}).get("queue") or {}); self.render_details((data or {}).get("details") or {}); zone = (data or {}).get("zone")
         amplifier = (data or {}).get("amplifier") or {}; active_input = amplifier.get("active_input")
         active_id = str((active_input or {}).get("id") or "")
         if active_id != self.last_active_input:
