@@ -270,7 +270,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .original-landscape .settings-page .settings-action { border-radius: 6px; }
 
 /* Touch Display 2 (7-inch) Settings: a section sidebar on the left, the chosen section on the right. */
-.settings-sidebar-layout .settings-sidebar-page { padding: 10px 28px 28px; }
+.touch-landscape.seven-inch-settings.settings-sidebar-layout .settings-page.settings-sidebar-page { padding: 10px 28px 36px; }
 .settings-sidebar-layout .settings-divider { margin-top: 12px; margin-bottom: 12px; }
 .settings-sidebar-layout .settings-shell { padding-top: 6px; }
 .settings-sidebar-layout .settings-sidebar { padding-right: 8px; }
@@ -290,12 +290,30 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-sidebar-layout .perf-card .perf-chip-name, .settings-sidebar-layout .perf-card .perf-chip-value { font-size: 17px; }
 .settings-sidebar-layout .perf-card .perf-note { font-size: 16px; }
 .settings-sidebar-layout .settings-nav, .settings-sidebar-layout .settings-nav.active, .settings-sidebar-layout .settings-sidebar .settings-action, .settings-sidebar-layout .settings-sidebar .settings-action.reboot-action { border-radius: 12px; }
-.settings-sidebar-layout .settings-pane .settings-toggle-label { font-size: 21px; font-weight: 600; }
-.settings-sidebar-layout switch { min-width: 62px; min-height: 34px; padding: 0; border: 0; border-radius: 17px; background: #3a3f3d; }
-.settings-sidebar-layout switch slider { min-width: 28px; min-height: 28px; margin: 3px; border-radius: 14px; background: #ffffff; }
-.settings-sidebar-layout switch:checked { background: #6ed9ae; }
-.theme-roon.settings-sidebar-layout switch:checked { background: #9868F9; }
+.settings-page .settings-toggle-label { font-size: 17px; font-weight: 600; }
+.touch-landscape .settings-page .settings-toggle-label, .portrait .settings-page .settings-toggle-label { font-size: 21px; }
+.original-landscape .settings-page .settings-toggle-label { font-size: 14px; }
+.original-landscape .settings-page switch { min-width: 48px; min-height: 26px; border-radius: 13px; }
+.original-landscape .settings-page switch slider { min-width: 20px; min-height: 20px; margin: 3px; border-radius: 10px; }
+.settings-page switch { min-width: 56px; min-height: 30px; padding: 0; border: 0; border-radius: 15px; background: #3a3f3d; }
+.settings-page switch slider { min-width: 24px; min-height: 24px; margin: 3px; border-radius: 12px; background: #ffffff; }
+.settings-page switch:checked { background: #6ed9ae; }
+.theme-roon.settings-page switch:checked { background: #9868F9; }
 .settings-sidebar-layout .perf-roon { color: #cf8f6b; }
 .settings-sidebar-layout .perf-roon.on { color: #6ed9ae; }
 .theme-roon.settings-sidebar-layout .perf-roon.on { color: #9868F9; }
 .settings-sidebar-layout .perf-card { padding-top: 0; }
+.touch-landscape .settings-page switch, .portrait .settings-page switch { min-width: 62px; min-height: 34px; border-radius: 17px; }
+.touch-landscape .settings-page switch slider, .portrait .settings-page switch slider { min-width: 28px; min-height: 28px; border-radius: 14px; }
+/* Brightness slider in the layout's own colour, not the toolkit default blue. */
+.settings-page .brightness-control scale trough { min-height: 6px; border: 0; border-radius: 3px; background: #3a3f3d; }
+.settings-page .brightness-control scale highlight { min-height: 6px; border: 0; border-radius: 3px; background: #6ed9ae; }
+.theme-roon .settings-page .brightness-control scale highlight { background: #9868F9; }
+.settings-page .brightness-control scale slider { min-width: 22px; min-height: 22px; border: 0; border-radius: 11px; background: #ffffff; box-shadow: none; }
+/* Sidebar sections start at one fixed line, so headings do not move between sections. */
+.settings-sidebar-layout .settings-pane .settings-appearance { margin-top: 0; padding: 0; }
+.settings-sidebar-layout .settings-pane { padding-top: 0; margin-top: 0; }
+.settings-sidebar-layout .settings-pane .brightness-setting { padding-top: 0; padding-bottom: 0; }
+/* Play Album: a touch more room around the label. */
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-split .artist-play { min-height: 54px; padding: 10px 22px 10px 30px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-menu { min-height: 54px; min-width: 48px; }

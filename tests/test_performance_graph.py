@@ -41,6 +41,19 @@ class PerformanceGraphTests(unittest.TestCase):
                 "  wlan0: 4000 5 0 0 0 0 0 0 2000 4 0 0 0 0 0 0\n")
         self.assertEqual(self.p["network_bytes"](text), 6000)
 
+    def test_network_bytes_counts_each_byte_once_and_skips_tunnel_interfaces(self):
+        text = ("Inter-|   Receive\n face |bytes\n"
+                "   eth0: 4000 5 0 0 0 0 0 0 2000 4 0 0 0 0 0 0\n"
+                "    wg0: 3000 5 0 0 0 0 0 0 1000 4 0 0 0 0 0 0\n")
+        self.assertEqual(self.p["network_bytes"](text), 6000)
+
+    def test_network_plot_uses_fixed_ceilings_so_idle_looks_idle(self):
+        sampler = self.p["PerformanceSampler"]()
+        sampler.history["network"].extend([0.2, 0.3, 0.2])
+        self.assertLess(max(sampler.plotted("network")), 10)
+        sampler.history["network"].extend([18.0])
+        self.assertAlmostEqual(max(sampler.plotted("network")), 72.0, delta=1)
+
     def test_sampler_reports_rate_and_scales_network_to_its_peak(self):
         sampler = self.p["PerformanceSampler"]()
         header = "a\nb\n"

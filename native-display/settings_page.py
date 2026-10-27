@@ -151,8 +151,6 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if isinstance(nav.get_child(), Gtk.Label): nav.get_child().set_xalign(0)
             self.settings_nav[name] = nav; rail.append(nav)
         gap = Gtk.Box(); gap.set_vexpand(True); rail.append(gap)
-        # Sentence case throughout the sidebar page, matching Sleep in the header.
-        self.settings_sleep_button.set_label("Sleep"); self.update_button.set_label("Update"); self.settings_reboot.set_label("Reboot")
         footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); footer.add_css_class("settings-footer"); rail.append(footer)
         take(self.update_button, footer); take(self.settings_reboot, footer)
         self.settings_actions.set_visible(False)
@@ -165,12 +163,8 @@ class SettingsPageMixin(AccessoriesPageMixin):
         overview = pane("overview")
         self.network_controls_heading.set_text("SERVICES"); self.network_controls_heading.set_visible(True)
         self.touch_bus_heading.set_visible(True); self.settings_brightness_row.set_margin_top(0)
-        # Bus Times is a switch like the services; the service numbers stay as ticks. Both pairs share one grid: two equal columns.
+        # Bus Times and the services share one two-column grid.
         row = self.touch_bus_visibility_row
-        while child := row.get_first_child(): row.remove(child)
-        caption = self.label("Bus Times", "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); row.append(caption)
-        bus_switch = Gtk.Switch(); bus_switch.set_valign(Gtk.Align.CENTER); bus_switch.set_active(bool((self.settings_data or {}).get("bus_enabled", True))); row.append(bus_switch)
-        self.touch_bus_enabled = bus_switch; self.connect_toggle(bus_switch, self.toggle_bus_visibility)
         row.set_hexpand(True); self.touch_bus_services.set_hexpand(True); self.touch_bus_pair.set_homogeneous(True)
         self.touch_bus_heading.set_text("BUS TIMES")
         for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
@@ -179,6 +173,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         display = pane("display")
         self.settings_appearance_group.set_visible(False)
         for widget in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading): widget.set_visible(False)
+        self.settings_appearance.get_first_child().set_text("THEME"); self.touch_background_row.get_prev_sibling().set_text("BACKGROUND")
         self.settings_appearance.set_visible(True); self.settings_scaling_heading.set_visible(True); self.touch_interface_size.set_visible(True)
         take(self.settings_appearance, display); take(self.settings_scaling_heading, display); take(self.touch_interface_size, display)
         # Network: the live connection and the VPN.
@@ -309,7 +304,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.device_status = self.label("", "settings-version"); self.device_status.set_valign(Gtk.Align.BASELINE); self.device_status.set_max_width_chars(64); self.device_status.set_hexpand(True); self.device_status.set_halign(Gtk.Align.START); self.device_status.set_ellipsize(Pango.EllipsizeMode.END); title_row.append(self.device_status); heading.append(title_row)
         self.touch_diagnostics = self.label("Loading diagnostics…", "settings-diagnostic"); self.touch_diagnostics.set_wrap(True); self.touch_diagnostics.set_margin_top(2); heading.append(self.touch_diagnostics); top.append(heading)
         utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START); self.settings_utilities = utilities
-        sleep_button = self.button("SLEEP", self.sleep, "settings-sleep"); self.settings_sleep_button = sleep_button; utilities.append(sleep_button)
+        sleep_button = self.button("Sleep", self.sleep, "settings-sleep"); self.settings_sleep_button = sleep_button; utilities.append(sleep_button)
         close = Gtk.Button(); close.add_css_class("settings-close"); close.set_size_request(58, 58); close.set_hexpand(False); close.set_vexpand(False); close.set_halign(Gtk.Align.CENTER); close.set_valign(Gtk.Align.CENTER); close.set_tooltip_text("Close settings"); close.set_child(FamilyIcon("close", 32, stroke_width=3)); close.connect("clicked", self.close_settings); self.settings_close = close; utilities.append(close)
         top.append(utilities); page.append(top)
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); separator.add_css_class("settings-divider"); self.settings_divider = separator; page.append(separator)
@@ -330,7 +325,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         appearance.append(self.touch_background_row)
         controls = Gtk.Box(spacing=28); controls.add_css_class("settings-controls"); controls.set_vexpand(True); controls.set_valign(Gtk.Align.START); self.settings_controls = controls
         daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.add_css_class("settings-column"); daily.set_size_request(400, -1); self.network_controls_heading = self.label("NETWORK CONTROLS", "eyebrow"); daily.append(self.network_controls_heading); self.touch_daily = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); daily.append(self.touch_daily)
-        self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=16); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); self.touch_bus_enabled = Gtk.CheckButton(label="Bus Times"); self.touch_bus_enabled.set_active(True); self.touch_bus_enabled.connect("toggled", self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
+        self.touch_bus_heading = self.label("BUS TIMES", "eyebrow"); daily.append(self.touch_bus_heading); bus_pair = Gtk.Box(spacing=16); self.touch_bus_pair = bus_pair; bus_visibility = Gtk.Box(spacing=8); bus_visibility.add_css_class("setting-line"); bus_caption = self.label("Bus Times", "settings-toggle-label"); bus_caption.set_xalign(0); bus_caption.set_hexpand(True); bus_visibility.append(bus_caption); self.touch_bus_enabled = Gtk.Switch(); self.touch_bus_enabled.set_valign(Gtk.Align.CENTER); self.touch_bus_enabled.set_active(True); self.connect_toggle(self.touch_bus_enabled, self.toggle_bus_visibility); bus_visibility.append(self.touch_bus_enabled); bus_pair.append(bus_visibility); self.touch_bus_services = Gtk.Box(spacing=8); self.touch_bus_services.add_css_class("setting-line"); self.touch_bus_services.set_hexpand(True); bus_pair.append(self.touch_bus_services); daily.append(bus_pair); self.touch_bus_visibility_row = bus_visibility
         daily.append(self.label("INTERFACE SCALING", "eyebrow")); self.settings_scaling_heading = daily.get_last_child()
         self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
@@ -376,8 +371,8 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.touch_diagnostics.connect("notify::label", self.sync_diagnostics_visibility)
         for row in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.touch_bus_visibility_row): self.settings_row_sizes.add_widget(row)
         action_stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); action_stack.add_css_class("settings-action-stack"); action_stack.set_valign(Gtk.Align.END)
-        actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("INSTALL UPDATE", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
-        reboot = self.button("REBOOT", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); self.settings_reboot = reboot; self.settings_action_stack = action_stack; card.append(action_stack); page.append(card)
+        actions = Gtk.Box(spacing=18); actions.add_css_class("settings-primary-actions"); actions.set_homogeneous(True); self.settings_actions = actions; self.apply_display_button = self.button("APPLY DISPLAY", self.request_display_settings, "settings-action"); self.apply_display_button.set_hexpand(True); self.update_button = self.button("Update", self.request_update, "settings-action"); self.update_button.set_hexpand(True); actions.append(self.update_button); actions.append(self.apply_display_button); action_stack.append(actions)
+        reboot = self.button("Reboot", self.confirm_reboot, "settings-action"); reboot.add_css_class("reboot-action"); reboot.set_hexpand(True); action_stack.append(reboot); self.settings_reboot = reboot; self.settings_action_stack = action_stack; card.append(action_stack); page.append(card)
         return page
 
     def build_sleep(self):

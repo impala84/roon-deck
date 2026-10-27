@@ -7,6 +7,7 @@ import threading
 import time
 
 SAMPLES = 60
+NETWORK_CEILINGS = (5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0)  # Mb/s
 SERIES = (
     ("cpu", "CPU", (.30, .65, 1.0)),
     ("memory", "Memory", (.60, .41, .98)),
@@ -45,7 +46,8 @@ def network_bytes(text):
     for line in text.splitlines()[2:]:
         name, _, rest = line.partition(":")
         fields = rest.split()
-        if name.strip() == "lo" or len(fields) < 9: continue
+        # Tunnel, bridge and container interfaces carry the same bytes again as the physical link; count each byte once.
+        if name.strip() == "lo" or name.strip().startswith(("wg", "tun", "tap", "veth", "docker", "br-", "virbr")) or len(fields) < 9: continue
         try: total += int(fields[0]) + int(fields[8])
         except ValueError: continue
     return total
@@ -89,7 +91,9 @@ class PerformanceSampler:
         """The points to draw, 0-100. Network has no fixed ceiling, so it is scaled to its recent peak."""
         values = list(self.history[key])
         if key != "network": return values
-        ceiling = max(5.0, max(values, default=0) * 1.2)
+        # A fixed set of ceilings, not the recent peak: an idle link then looks idle and a stream looks like a stream.
+        peak = max(values, default=0) * 1.05
+        ceiling = next((step for step in NETWORK_CEILINGS if step >= peak), peak)
         return [min(100.0, value * 100.0 / ceiling) for value in values]
 
 

@@ -736,7 +736,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_small_landscape_settings_compact_bus_times_controls(self):
         code = native_text()
         self.assertIn('self.touch_bus_heading.set_visible(portrait or width > 1280)', code)
-        self.assertIn('Gtk.CheckButton(label="Bus Times")', code)
+        self.assertIn('self.label("Bus Times", "settings-toggle-label")', code)
         self.assertIn('self.settings_header.set_orientation(Gtk.Orientation.VERTICAL if narrow_portrait else Gtk.Orientation.HORIZONTAL)', code)
         self.assertIn('self.settings_utilities.set_halign(Gtk.Align.END if narrow_portrait else Gtk.Align.START)', code)
         self.assertIn('else 9 if height > width and width < 600 else 16 if height > width and width >= 1000 else 7 if height > width', code)

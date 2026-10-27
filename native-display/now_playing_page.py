@@ -247,11 +247,8 @@ class NowPlayingPageMixin:
         def service_toggle(label, state, flag, handler):
             if not flags.get(flag, state in {"active", "running"}) or state not in {"active", "running", "inactive", "stopped"}: return
             line = Gtk.Box(spacing=8); line.add_css_class("setting-line"); line.set_hexpand(True)
-            if getattr(self, "settings_sidebar_active", False):
-                caption = self.label(label, "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); line.append(caption)
-                check = Gtk.Switch(); check.set_valign(Gtk.Align.CENTER); check.set_active(state in {"active", "running"}); self.connect_toggle(check, handler); line.append(check)
-            else:
-                check = Gtk.CheckButton(label=label); check.set_active(state in {"active", "running"}); check.connect("toggled", handler); line.append(check)
+            caption = self.label(label, "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); line.append(caption)
+            check = Gtk.Switch(); check.set_valign(Gtk.Align.CENTER); check.set_active(state in {"active", "running"}); self.connect_toggle(check, handler); line.append(check)
             line.service_toggle = check; toggles.append(line)
         service_toggle("Roon Bridge", (system or {}).get("roon_bridge"), "roon_bridge", self.toggle_bridge)
         service_toggle("AirPlay", (system or {}).get("airplay"), "airplay", self.toggle_airplay)

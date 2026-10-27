@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.8-beta.20 Alpine — 27 October 2026
+
+- Use on/off switches for Roon Bridge, AirPlay, Netdata and Bus Times on every Settings layout. Sleep, Update and Reboot are sentence case on every screen size.
+- Seven-inch Settings: section headings start on the same line in every section, the Display section says Theme and Background, and there is more space below Reboot. The brightness slider uses the layout colour instead of the toolkit blue.
+- Performance: the network line is drawn against fixed ceilings (5 to 1000 Mb/s) so an idle link looks idle and a stream looks like a stream, and it no longer counts tunnel traffic twice.
+- Give the seven-inch Play Album pill more padding.
+
 ## 1.1.8-beta.19 Alpine — 27 October 2026
 
 - Refine the Touch Display 2 (7-inch) Settings sidebar. Roon Bridge, Netdata and Bus Times are on/off switches in two even columns; the Bus Times service numbers stay as ticks. Sleep, Update and Reboot use sentence case, with matching corners, more space between Update and Reboot, equal margins to the screen edge and more room under the header rule.
