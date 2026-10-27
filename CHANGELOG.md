@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.55 Alpine — 28 October 2026
+
+- Network: the Keep / Go back buttons now sit level with the Join Wi-Fi button; their message takes the heading line above them instead of pushing them down.
+
 ## 1.1.8-beta.54 Alpine — 28 October 2026
 
 - Network: the Keep / Go back row no longer stretches the whole Settings screen wide. The status line can no longer set the page width, and "Keep this connection" is now just "Keep".

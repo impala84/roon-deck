@@ -50,7 +50,9 @@ class WifiPageMixin:
         self.connection_keep_button = self.button("Keep", self.connection_keep, "settings-action"); trial.append(self.connection_keep_button)
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
         # Keep/Go back takes the place of the Join button while it shows, so the column never grows past the screen.
-        trial.connect("notify::visible", lambda row, _p: (wifi_heading.set_visible(not row.get_visible()), join.set_visible(not row.get_visible())))
+        # While it shows, the status text takes the heading's line above the buttons so they stay level with the VPN row.
+        self.connection_heading = wifi_heading; self.connection_last = ""
+        trial.connect("notify::visible", lambda row, _p: (join.set_visible(not row.get_visible()), self.connection_say(self.connection_last)))
         self.connection_status = {}; self.connection_timer = None; self.connection_busy = False; self.vpn_trial_token = ""
         self.connection_block = block
         block.connect("map", self.connection_start); block.connect("unmap", self.connection_stop)
@@ -96,11 +98,15 @@ class WifiPageMixin:
         if has_trial and not pending: message = "Switch unfinished. Tap Go back."
         if pending: message = f"Keep within {trial.get('seconds', 0)}s or it goes back."
         elif data.get("status") not in ("switching", "trial"): return False
-        self.connection_message.set_text(message); self.connection_message.set_visible(bool(message))
+        self.connection_say(message)
         return False
 
     def connection_say(self, text):
-        self.connection_message.set_text(text); self.connection_message.set_visible(bool(text))
+        self.connection_last = text
+        if self.connection_trial.get_visible():
+            self.connection_heading.set_text((text or "Keep this connection?").upper()); self.connection_message.set_visible(False)
+        else:
+            self.connection_heading.set_text("WI-FI"); self.connection_message.set_text(text); self.connection_message.set_visible(bool(text))
 
     def connection_choose(self, target, ssid="", password=""):
         if self.connection_busy: return
