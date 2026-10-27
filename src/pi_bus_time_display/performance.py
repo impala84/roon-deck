@@ -9,10 +9,10 @@ import time
 SAMPLES = 60
 NETWORK_CEILINGS = (5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0)  # Mb/s
 SERIES = (
+    ("network", "Network", (.25, .85, .62)),
     ("cpu", "CPU", (.30, .65, 1.0)),
     ("memory", "Memory", (.60, .41, .98)),
     ("temp", "Temp", (1.0, .65, .30)),
-    ("network", "Network", (.25, .85, .62)),
 )
 
 
