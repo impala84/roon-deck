@@ -47,6 +47,15 @@ class PerformanceGraphTests(unittest.TestCase):
                 "    wg0: 3000 5 0 0 0 0 0 0 1000 4 0 0 0 0 0 0\n")
         self.assertEqual(self.p["network_bytes"](text), 6000)
 
+    def test_network_rate_ignores_an_interface_that_appears_mid_run(self):
+        sampler = self.p["PerformanceSampler"]()
+        head = "a\nb\n"
+        row = lambda name, rx: f"{name}: {rx} 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+        args = ("cpu 0 0 0 100\n", "MemTotal: 100 kB\nMemAvailable: 50 kB\n", "48000\n")
+        sampler.sample(0, *args, head + row("eth0", 1000))
+        sampler.sample(1, *args, head + row("eth0", 1000) + row("usb0", 900_000_000))
+        self.assertEqual(sampler.latest["network"], 0.0)
+
     def test_network_plot_uses_fixed_ceilings_so_idle_looks_idle(self):
         sampler = self.p["PerformanceSampler"]()
         sampler.history["network"].extend([0.2, 0.3, 0.2])

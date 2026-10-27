@@ -40,17 +40,21 @@ def memory_percent(text):
         return None
 
 
-def network_bytes(text):
-    """Received plus sent bytes on every interface except loopback, from /proc/net/dev."""
-    total = 0
+def network_counters(text):
+    """Bytes received plus sent per interface, except loopback and tunnel/virtual ones, from /proc/net/dev."""
+    counters = {}
     for line in text.splitlines()[2:]:
         name, _, rest = line.partition(":")
-        fields = rest.split()
+        name = name.strip(); fields = rest.split()
         # Tunnel, bridge and container interfaces carry the same bytes again as the physical link; count each byte once.
-        if name.strip() == "lo" or name.strip().startswith(("wg", "tun", "tap", "veth", "docker", "br-", "virbr")) or len(fields) < 9: continue
-        try: total += int(fields[0]) + int(fields[8])
+        if name == "lo" or name.startswith(("wg", "tun", "tap", "veth", "docker", "br-", "virbr")) or len(fields) < 9: continue
+        try: counters[name] = int(fields[0]) + int(fields[8])
         except ValueError: continue
-    return total
+    return counters
+
+
+def network_bytes(text):
+    return sum(network_counters(text).values())
 
 
 def read_text(path):
@@ -73,10 +77,12 @@ class PerformanceSampler:
         memory = memory_percent(meminfo_text)
         try: temperature = int(temperature_text.strip()) / 1000.0
         except ValueError: temperature = None
-        counted = network_bytes(network_text) if network_text else None
+        counted = network_counters(network_text) if network_text else None
         rate = None
         if counted is not None and self.previous_network is not None and self.previous_time is not None and now > self.previous_time:
-            rate = max(0.0, (counted - self.previous_network) * 8 / 1_000_000 / (now - self.previous_time))
+            # Per interface, so an interface appearing or a counter resetting cannot add its whole lifetime total as one spike.
+            moved = sum(max(0, value - self.previous_network[name]) for name, value in counted.items() if name in self.previous_network)
+            rate = moved * 8 / 1_000_000 / (now - self.previous_time)
         self.previous_network = counted; self.previous_time = now
         self.latest = {"cpu": cpu, "memory": memory, "temp": temperature, "network": rate}
         if cpu is not None: self.history["cpu"].append(cpu)
