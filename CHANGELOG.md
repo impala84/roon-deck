@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.23 Alpine — 27 October 2026
+
+- Performance graph: the network line now counts each interface separately, so an interface appearing or resetting cannot show as a huge spike, and averages over 5 seconds so bursty audio streams read as a steady rate.
+- Performance series now run Network, CPU, Memory, Temp.
+
 ## 1.1.8-beta.22 Alpine — 27 October 2026
 
 - Remove decorative divider rules from Settings sections and software actions; keep clear spacing and the fixed header/sidebar boundaries.
