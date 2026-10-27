@@ -51,7 +51,7 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn('data-browse="search"', preview)
         self.assertNotIn('id="capture-display"', html)
         self.assertIn("'/favicon-roon.svg':'/favicon.svg'", javascript)
-        self.assertIn('>Check and install</button>', html)
+        self.assertIn('>Update software</button>', html)
 
     def test_netdata_accepts_the_official_generated_command_not_raw_token_fields(self):
         html = (ROOT / "src/pi_bus_time_display/static/admin.html").read_text()

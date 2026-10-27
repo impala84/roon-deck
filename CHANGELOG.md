@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.16 Alpine — 27 October 2026
+
+- Separate the fixed web Settings header and sidebar from the workspace with faint grey lines. Start Overview flush beneath the header.
+- Put View web display to the left of a purple Update software button at the far right. Use Update software consistently in the Software section.
+- Include the latest main-branch touchscreen Settings refinements and Roon-over-VPN fixes.
+
 ## 1.1.8-beta.15 Alpine — 27 October 2026
 
 - Touch Display 2 (7-inch) Settings now has a sidebar. Overview, Display, Network and Performance sit on the left, with Install Update and Reboot below a gap at the bottom. The chosen section fills the right-hand side with larger controls.

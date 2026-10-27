@@ -784,7 +784,8 @@ assert window.get_width() == screen_width and window.get_height() == screen_heig
 assert display.settings_reboot.has_css_class("reboot-action")
 assert display.settings_reboot.get_parent().get_last_child() is display.settings_reboot
 assert display.touch_bus_enabled.get_visible()
-assert display.touch_bus_heading.get_visible() == (screen_height > screen_width or screen_width > 1280)
+# The seven-inch sidebar gives Bus Times its own heading in Overview.
+assert display.touch_bus_heading.get_visible() == (getattr(display, "settings_sidebar_active", False) or screen_height > screen_width or screen_width > 1280)
 assert display.touch_bus_enabled.get_label() == "Bus Times"
 
 # The optional black canvas preserves all foreground controls and works on
