@@ -255,16 +255,21 @@ class NowPlayingPageMixin:
             self.touch_daily.remove(child)
         # The web Settings decide which switches exist; an installed service whose switch is on is always shown here.
         flags = enabled if isinstance(enabled, dict) else {}
-        toggles = []
+        toggles = []; side_toggles = []
+        slot = getattr(self, "settings_netdata_slot", None) if getattr(self, "settings_sidebar_active", False) else None
         def service_toggle(label, state, flag, handler):
             if not flags.get(flag, state in {"active", "running"}) or state not in {"active", "running", "inactive", "stopped"}: return
             line = Gtk.Box(spacing=8); line.add_css_class("setting-line"); line.set_hexpand(True)
             caption = self.label(label, "settings-toggle-label"); caption.set_xalign(0); caption.set_hexpand(True); line.append(caption)
             check = Gtk.Switch(); check.set_valign(Gtk.Align.CENTER); check.set_active(state in {"active", "running"}); self.connect_toggle(check, handler); line.append(check)
-            line.service_toggle = check; toggles.append(line)
+            line.service_toggle = check; (side_toggles if slot is not None and flag == "netdata" else toggles).append(line)
         service_toggle("Roon Bridge", (system or {}).get("roon_bridge"), "roon_bridge", self.toggle_bridge)
         service_toggle("AirPlay", (system or {}).get("airplay"), "airplay", self.toggle_airplay)
         service_toggle("Netdata", (system or {}).get("netdata"), "netdata", self.toggle_netdata)
+        if slot is not None:
+            while child := slot.get_first_child(): slot.remove(child)
+            if side_toggles: slot.append(self.label("MONITORING", "eyebrow"))
+            for line in side_toggles: slot.append(line)
         dial = features.get("dial") is True and button is not None
         cells = toggles + ([button] if dial and three_up and not getattr(self, "settings_sidebar_active", False) else [])
         per_row = 3 if three_up else 2

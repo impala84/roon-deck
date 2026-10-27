@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.45 Alpine — 28 October 2026
+
+- 7-inch Settings: Overview now starts with Roon status and the zone choice, side by side. Network holds Current connection and VPN on the left, Primary connection, Join Wi-Fi and the Netdata switch on the right, with every row the same height so the columns line up.
+- VPN has an on/off switch on its status line (also on the 10-inch page). Switching it on uses the same 90-second keep-or-undo trial as the web Settings.
+- Join Wi-Fi: Back is now the round back-arrow button used on Controls.
+
 ## 1.1.8-beta.44 Alpine — 28 October 2026
 
 - Group Roon, Roon Bridge, BluOS and AirPlay under Services → Music, retaining existing settings and old BluOS bookmarks.

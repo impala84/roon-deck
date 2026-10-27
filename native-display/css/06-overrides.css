@@ -408,3 +408,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 /* Now Playing volume row: a narrower Mute, tighter −/+ and the number kept off the screen edge */
 .now-volume-row .now-mute.now-mute.now-mute { min-width: 0; padding-left: 18px; padding-right: 18px; margin-right: 10px; }
 .now-volume-row .volume-step.volume-step { margin-left: 0; margin-right: 0; }
+
+/* 7-inch Network and Overview: every control the same height, so the two columns line up */
+.settings-sidebar-layout .settings-pane .setting-line, .settings-sidebar-layout .settings-pane .settings-select, .settings-sidebar-layout .connection-block .settings-action { min-height: 76px; }
+.settings-sidebar-layout .connection-block .settings-action.connection-choice, .settings-sidebar-layout .connection-block .settings-action.connection-join { min-height: 76px; }
+.settings-sidebar-layout .connection-block .settings-action { padding-top: 0; padding-bottom: 0; }

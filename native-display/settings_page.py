@@ -208,14 +208,20 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         network = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(network)
         def info_row(heading, row):
             network.append(self.label(heading, "eyebrow")); take(row, network)
-        info_row("ROON", self.settings_net_roon_row)
-        network.append(self.label("ZONE", "eyebrow"))
+        # Roon status and the zone choice are everyday controls: they head the Overview page, side by side.
         self.settings_zone_select = Gtk.DropDown.new_from_strings(["Follow the playing zone"]); self.settings_zone_select.add_css_class("settings-select"); self.settings_zone_names = []
-        self.settings_zone_select.connect("notify::selected", self.zone_selected); network.append(self.settings_zone_select)
+        self.settings_zone_select.connect("notify::selected", self.zone_selected)
+        roon_zone = Gtk.Box(spacing=16); roon_zone.set_homogeneous(True); roon_zone.add_css_class("roon-zone-row")
+        for heading, widget in (("ROON", self.settings_net_roon_row), ("ZONE", self.settings_zone_select)):
+            cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); cell.append(self.label(heading, "eyebrow")); take(widget, cell); roon_zone.append(cell)
+        overview.prepend(roon_zone)
         info_row("CURRENT CONNECTION", self.settings_net_connection_row)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
-        if getattr(self, "connection_block", None) is not None: take(self.connection_block, columns)
+        # Right-hand column: the primary connection, joining Wi-Fi and the Netdata switch, in rows that line up with the left.
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(right)
+        if getattr(self, "connection_block", None) is not None: take(self.connection_block, right)
+        self.settings_netdata_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); right.append(self.settings_netdata_slot)
         self.settings_three_up = False
         self.refresh_vpn_text()
         performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
@@ -419,6 +425,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
             parts.append(vpn.get("status") or "Disconnected")
             if vpn.get("address"): parts.append(str(vpn["address"]).replace("\n", " ").split("/")[0])
             self.settings_net_vpn.set_text("  ·  ".join(parts))
+            self.vpn_switch_sync(vpn)
 
     def build_settings(self):
         self.settings_sections = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE)
@@ -473,6 +480,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         network_block.append(self.label("NETWORK", "eyebrow")); status_row = Gtk.Box(spacing=16); status_row.set_homogeneous(True); network_block.append(status_row)
         self.settings_net_status_row = status_row; self.settings_net_roon_row, self.settings_net_roon = self.info_cell(); self.settings_net_connection_row, self.settings_net_connection = self.info_cell(); self.settings_net_vpn_row, self.settings_net_vpn = self.info_cell()
         self.settings_net_vpn_row.set_visible(False); self.settings_net_vpn_heading = None
+        self.build_vpn_switch(self.settings_net_vpn_row)
         for cell in (self.settings_net_roon_row, self.settings_net_connection_row, self.settings_net_vpn_row): status_row.append(cell)
         daily.append(network_block)
         daily.append(self.label("INTERFACE SCALING", "eyebrow")); self.settings_scaling_heading = daily.get_last_child()

@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 from gi.repository import Pango
-from native_common import BUS, Gtk, GLib, get_json, elastic_vertical_scroll
+from native_common import BUS, FamilyIcon, Gtk, GLib, get_json, elastic_vertical_scroll
 
 KEY_LAYERS = (
     ("qwertyuiop", "asdfghjkl", "zxcvbnm"),
@@ -43,12 +43,13 @@ class WifiPageMixin:
             button = self.button(title, lambda _button, value=target: self.connection_choose(value), "settings-action connection-choice")
             self.connection_buttons[target] = button; choice.append(button)
         self.connection_buttons["wifi"].set_tooltip_text("Use Wi-Fi as the primary connection")
+        block.append(self.label("WI-FI", "eyebrow"))
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
         self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(True); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
         trial = Gtk.Box(spacing=12); trial.set_homogeneous(True); trial.set_visible(False); self.connection_trial = trial
         trial.append(self.button("Keep this connection", self.connection_keep, "settings-action"))
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
-        self.connection_status = {}; self.connection_timer = None; self.connection_busy = False
+        self.connection_status = {}; self.connection_timer = None; self.connection_busy = False; self.vpn_trial_token = ""
         self.connection_block = block
         block.connect("map", self.connection_start); block.connect("unmap", self.connection_stop)
         return block
@@ -78,8 +79,10 @@ class WifiPageMixin:
             kinds = [item for item in data.get("devices", []) if item.get("kind") == target]
             button.set_sensitive(bool(kinds) and not trial.get("token"))
         pending = bool(trial.get("token")) and data.get("status") == "trial"
-        self.connection_trial.set_visible(pending)
+        vpn_pending = bool(self.vpn_trial_token)
+        self.connection_trial.set_visible(pending or vpn_pending)
         message = data.get("message") or ""
+        if vpn_pending and not pending: return False  # the VPN trial message stays until it is kept or undone
         if pending: message = f"Keep this connection within {trial.get('seconds', 0)} seconds, or the previous one returns."
         elif data.get("status") not in ("switching", "trial"): message = message if data.get("status") == "failed" else ""
         self.connection_message.set_text(message); self.connection_message.set_visible(bool(message))
@@ -99,12 +102,18 @@ class WifiPageMixin:
         self.network_request({"operation": "select", "target": target, "ssid": ssid, "password": password}, done)
 
     def connection_keep(self, *_):
+        if self.vpn_trial_token:
+            token, self.vpn_trial_token = self.vpn_trial_token, ""
+            self.vpn_request({"operation": "vpn_confirm", "token": token}, "VPN kept."); return
         token = (self.connection_status.get("trial") or {}).get("token", "")
         def done(result, error):
             self.connection_say(error or "Connection saved."); self.connection_refresh(); return False
         self.network_request({"operation": "confirm", "token": token}, done)
 
     def connection_undo(self, *_):
+        if self.vpn_trial_token:
+            self.vpn_trial_token = ""
+            self.vpn_request({"operation": "vpn_disconnect"}, "VPN disconnected."); return
         def done(result, error):
             self.connection_say(error or "Going back to the previous connection."); self.connection_refresh(); return False
         self.network_request({"operation": "restore"}, done)
@@ -116,7 +125,10 @@ class WifiPageMixin:
         heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); heading.set_hexpand(True); heading.set_valign(Gtk.Align.CENTER)
         title = self.label("Join Wi-Fi", "settings-title"); title.set_halign(Gtk.Align.START); heading.append(title)
         self.wifi_message = self.label("", "settings-diagnostic"); self.wifi_message.set_wrap(True); self.wifi_message.set_xalign(0); heading.append(self.wifi_message); top.append(heading)
-        back = self.button("Back", self.close_wifi_page, "settings-action wifi-back"); back.set_valign(Gtk.Align.CENTER); top.append(back); page.append(top)
+        back = Gtk.Button(); back.add_css_class("settings-close"); back.set_size_request(58, 58)
+        back.set_hexpand(False); back.set_vexpand(False); back.set_halign(Gtk.Align.CENTER); back.set_valign(Gtk.Align.CENTER)
+        back.set_tooltip_text("Back to Settings"); back.set_child(FamilyIcon("back", 32, stroke_width=3)); back.connect("clicked", self.close_wifi_page)
+        utilities = Gtk.Box(spacing=12); utilities.add_css_class("settings-utilities"); utilities.set_valign(Gtk.Align.START); utilities.append(back); top.append(utilities); page.append(top)
         divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL); divider.add_css_class("settings-divider"); page.append(divider)
 
         # Landscape: networks on the left, name, password and keyboard on the right, so nothing scrolls. Portrait stacks them.
@@ -213,3 +225,48 @@ class WifiPageMixin:
         self.settings_sections.set_visible_child_name(self.settings_home())
         self.wifi_password.set_text("")
         self.connection_choose("wifi", ssid, password)
+
+    # ---- VPN switch ------------------------------------------------------------------------------------------
+    def build_vpn_switch(self, row):
+        """An on/off switch at the end of the VPN status line. On connects with the same 90-second keep-or-undo trial as the web page."""
+        switch = Gtk.Switch(); switch.set_valign(Gtk.Align.CENTER); row.append(switch)
+        self.settings_vpn_switch = switch; self.vpn_switch_updating = False
+        switch.connect("notify::active", self.vpn_toggled)
+
+    def vpn_switch_sync(self, vpn):
+        switch = getattr(self, "settings_vpn_switch", None)
+        if switch is None or getattr(self, "vpn_busy", False): return
+        active = bool(vpn.get("active"))
+        if switch.get_active() != active:
+            self.vpn_switch_updating = True; switch.set_active(active); self.vpn_switch_updating = False
+
+    def vpn_toggled(self, switch, *_):
+        if self.vpn_switch_updating or getattr(self, "vpn_busy", False): return
+        if switch.get_active(): self.vpn_request({"operation": "vpn_connect"}, "VPN connecting…")
+        else: self.vpn_request({"operation": "vpn_disconnect"}, "VPN disconnected.")
+
+    def vpn_request(self, data, message):
+        self.vpn_busy = True; self.settings_vpn_switch.set_sensitive(False); self.connection_say(message if message.endswith("…") else "Working…")
+        def work():
+            result, error = None, ""
+            try:
+                request = urllib.request.Request(BUS + "/api/admin/accessories", data=json.dumps(data).encode(), headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(request, timeout=45) as response: result = json.load(response)
+            except urllib.error.HTTPError as exc:
+                try: error = json.load(exc).get("error", "")
+                except (ValueError, OSError): error = ""
+                error = error or "The VPN could not be changed."
+            except (ValueError, OSError): error = "The VPN did not answer."
+            GLib.idle_add(done, result, error)
+        def done(result, error):
+            self.vpn_busy = False; self.settings_vpn_switch.set_sensitive(True)
+            token = (result or {}).get("pending_token", "") if not error else ""
+            if error:
+                self.connection_say(error); self.vpn_switch_updating = True; self.settings_vpn_switch.set_active(not self.settings_vpn_switch.get_active()); self.vpn_switch_updating = False
+            elif token:
+                self.vpn_trial_token = token; self.connection_trial.set_visible(True)
+                self.connection_say("VPN connected. Keep it within 90 seconds, or it disconnects.")
+            else: self.connection_say(message)
+            self.settings_vpn_at = 0; self.refresh_network_pane()
+            return False
+        threading.Thread(target=work, daemon=True).start()
