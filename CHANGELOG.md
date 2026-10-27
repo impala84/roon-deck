@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8-beta.18 Alpine — 27 October 2026
+
+- Organise web Display settings into Appearance, Layout & navigation and Screen hardware tabs, retaining the shared Save changes behaviour and direct links to each tab.
+- Rebuild Overview with one row of status summaries and a compact touchscreen view selector. Split Roon and BluOS into separate Services tabs, and add matching outline icons for Bus, Roon, BluOS and Home Assistant.
+- Align equivalent username, password and confirmation fields across the System Access columns, including their Save buttons.
+- Centre the brightness thumb on its track, remove the extra gap before Screen Preview, centre its play glyph, and simplify Controls to two circles.
+- Improve inactive tab contrast, slightly strengthen the background gradient, and add breathing room around Screen Preview actions. Preserve mobile navigation and existing saved configuration.
+
 ## 1.1.8-beta.17 Alpine — 27 October 2026
 
 - Rework web Settings into a compact grid with flat section groups, consistent spacing, simple outline navigation icons and a subtle background gradient. Remove unnecessary nested boxes, the stray empty notification popup and repeated completed-update messages.
