@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.48 Alpine — 28 October 2026
+
+- 7-inch Settings: rows, boxes and buttons are now exactly 72px tall (they measured 86-96px and differed, because GTK adds padding outside the minimum height). The Overview fits without scrolling and the Ethernet / Wi-Fi and Join buttons match the boxes beside them.
+
 ## 1.1.8-beta.47 Alpine — 28 October 2026
 
 - 7-inch Settings: every row, button and box is now the same height, so headings and boxes line up across both columns. Netdata moved under VPN on the left of Network.
