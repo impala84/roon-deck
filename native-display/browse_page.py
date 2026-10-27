@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from native_common import ElasticVerticalTrack, FamilyIcon, ROON, browser_request_timeout, get_json, post_json
+from icon_family import TOUCH_CONTROL_STROKE
 from pathlib import Path
 import threading
 import time
@@ -361,8 +362,13 @@ class BrowsePageMixin:
         if "from here" in value: return "go-jump-symbolic"
         return "play"
 
-    def browser_svg_icon(self, name, size=54):
-        icon = FamilyIcon(name, size, stroke_width=.7)
+    def play_matched_stroke(self, size):
+        """Stroke (in 64-unit viewBox terms) that draws at the same pixel thickness as the track-row play symbol."""
+        play_size = 60 if self.window.has_css_class("large-display") else 40
+        return round(TOUCH_CONTROL_STROKE * play_size / max(1, size), 2)
+
+    def browser_svg_icon(self, name, size=54, match_play=False):
+        icon = FamilyIcon(name, size, stroke_width=self.play_matched_stroke(size) if match_play else .7)
         icon.set_size_request(size, size)
         icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER)
         icon.add_css_class("browser-tile-icon")
@@ -446,11 +452,13 @@ class BrowsePageMixin:
         slot.set_size_request(size, size); slot.set_valign(Gtk.Align.START); slot.set_hexpand(False); slot.set_child(picture); header.append(slot)
         if key := profile.get("image_key"): self.load_preview_artwork(picture, key)
         copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20 if large_portrait else 16); copy.set_hexpand(True); copy.set_valign(Gtk.Align.START if width <= 820 and getattr(self, "viewport_height", 480) <= 500 else Gtk.Align.CENTER)
-        title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(22 if large_portrait else 28); copy.append(title)
+        # Album title and artist sit together in a tight box so the artist reads as part of the title, not a separate row.
+        heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); heading.add_css_class("album-heading"); copy.append(heading)
+        title = self.label(profile.get("name") or "Album", "artist-name"); title.set_wrap(True); title.set_wrap_mode(Pango.WrapMode.WORD_CHAR); title.set_max_width_chars(22 if large_portrait else 28); heading.append(title)
         if artist := profile.get("artist"):
             link = self.button(artist, lambda *_: self.request_browser("artist", name=artist), "album-artist")
             link.get_child().set_wrap(True); link.get_child().set_wrap_mode(Pango.WrapMode.WORD_CHAR); link.get_child().set_max_width_chars(23)
-            link.set_halign(Gtk.Align.START); link.set_tooltip_text("View artist"); copy.append(link)
+            link.set_halign(Gtk.Align.START); link.set_tooltip_text("View artist"); heading.append(link)
         if play := next((item for item in items if item.get("action") and item.get("title", "").lower() == "play album"), None):
             split = Gtk.Box(spacing=0); split.add_css_class("album-play-split"); split.set_halign(Gtk.Align.START)
             button = self.labelled_icon_button("play", "Play Album", lambda *_: self.open_browser_item(None, play.get("item_key")), "artist-play primary-play")
@@ -526,8 +534,9 @@ class BrowsePageMixin:
             heading = self.label(data.get("title") or "", "genre-heading"); heading.set_ellipsize(Pango.EllipsizeMode.END); self.browser_trail_list.append(heading)
             for item in actions:
                 copy = Gtk.Box(spacing=18); copy.set_valign(Gtk.Align.CENTER)
-                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(64, 64); frame.set_valign(Gtk.Align.CENTER)
-                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 56)); copy.append(frame)
+                large = self.window.has_css_class("large-display")
+                frame = Gtk.CenterBox(); frame.add_css_class("genre-action-icon"); frame.set_size_request(96 if large else 64, 96 if large else 64); frame.set_valign(Gtk.Align.CENTER)
+                frame.set_center_widget(self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 84 if large else 56, match_play=True)); copy.append(frame)
                 raw = (item.get("title") or "").strip().lower()
                 short = "Shuffle" if raw.startswith("shuffle") else "Artists" if "artists" in raw else "Albums" if "albums" in raw else item.get("title") or ""
                 title = self.label(short, "genre-action-title"); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(0); title.set_hexpand(True); copy.append(title)
@@ -774,7 +783,7 @@ class BrowsePageMixin:
                 # key-line tile icons; the sub-genres below them open another list and keep the plain thumbnail.
                 genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums", "genre artists", "genre albums"} or row_title.startswith("shuffle")))
                 if item.get("action") or genre_shortcut:
-                    action_icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut else FamilyIcon(self.browser_action_icon(item.get("title")), 42)
+                    action_icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 90 if self.window.has_css_class("large-display") else 62, match_play=True) if genre_shortcut else FamilyIcon(self.browser_action_icon(item.get("title")), 42)
                     action_frame = Gtk.CenterBox(); action_frame.add_css_class("browser-action-icon"); action_frame.set_size_request(84, 84); action_frame.set_hexpand(False); action_frame.set_halign(Gtk.Align.START); action_frame.set_valign(Gtk.Align.CENTER); action_frame.set_center_widget(action_icon); row.append(action_frame)
                 elif album_profile:
                     action_icon = FamilyIcon("play", 60 if self.window.has_css_class("large-display") else 40)

@@ -129,7 +129,6 @@ popover listview row label { font-size: 19px; }
 .original-landscape .settings-header .settings-utilities .settings-sleep { min-width: 96px; min-height: 40px; padding: 0 14px; border: 2px solid transparent; font-size: 15px; }
 /* 800x480 scaling dropdown and its menu: the 23px / 22px Larger sizes were enormous here. */
 .original-landscape.interface-larger .settings-select { font-size: 15px; }
-.original-landscape.interface-smaller .settings-select { font-size: 13px; }
 .original-landscape popover listview row { min-height: 40px; padding: 4px 12px; }
 .original-landscape popover listview row label,
 .original-landscape.interface-larger popover listview row label { font-size: 16px; }
@@ -328,3 +327,20 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-page .settings-info { font-size: 17px; }
 .touch-landscape .settings-page .settings-info, .portrait .settings-page .settings-info { font-size: 21px; }
 .original-landscape .settings-page .settings-info { font-size: 14px; }
+
+/* 7-inch (Touch Display 2) landscape: artist, album and Now Playing detail pages.
+   One pill size for Play Artist Radio and Play Album, a tighter album title and artist, and larger body copy. */
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .artist-play { min-height: 50px; margin-top: 12px; padding: 8px 30px 8px 26px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-split .artist-play { min-height: 50px; margin-top: 0; padding: 8px 18px 8px 26px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-menu { min-height: 50px; min-width: 48px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .artist-overlay-info { padding-bottom: 6px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .artist-overlay-info .artist-name { margin-bottom: 10px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .artist-profile-summary { padding-top: 0; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-profile .artist-name { font-size: 33px; line-height: 1.08; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-profile .album-artist { font-size: 26px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-profile .queue-meta { font-size: 23px; line-height: 1.36; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-profile .artist-name { font-size: 37px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-profile .album-artist { font-size: 29px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-profile .queue-meta { font-size: 25px; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 24px; line-height: 1.38; }
+.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-focus-detail .detail-writeup { font-size: 27px; line-height: 1.3; }

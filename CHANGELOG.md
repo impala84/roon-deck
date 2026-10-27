@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8-beta.24 Alpine — 27 October 2026
+
+- Remove the Smaller interface scaling option everywhere (Standard and Larger remain; a saved Smaller reads as Standard).
+- Touch Display 2 (7-inch): Play Artist Radio and Play Album pills share one size and padding; the artist name sits higher with the body copy closer; the album title and artist sit together and are larger, with larger body copy; larger body copy on the Now Playing album page.
+- Genre Shuffle / Artists / Albums icons draw at the same stroke thickness as the track play symbols, scaled on large displays.
+- Loading dots sit at a fixed position instead of jumping from high to centred as a page rebuilds.
+- Browse and Discover lists no longer scroll to a newly focused widget, which could leave a list scrolled down after going back.
+
 ## 1.1.8-beta.23 Alpine — 27 October 2026
 
 - Performance graph: the network line now counts each interface separately, so an interface appearing or resetting cannot show as a huge spike, and averages over 5 seconds so bursty audio streams read as a steady rate.

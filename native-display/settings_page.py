@@ -343,7 +343,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         for cell in (self.settings_net_roon_row, self.settings_net_connection_row, self.settings_net_vpn_row): status_row.append(cell)
         daily.append(network_block)
         daily.append(self.label("INTERFACE SCALING", "eyebrow")); self.settings_scaling_heading = daily.get_last_child()
-        self.touch_interface_size = Gtk.DropDown.new_from_strings(["Smaller", "Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
+        self.touch_interface_size = Gtk.DropDown.new_from_strings(["Standard", "Larger"]); self.touch_interface_size.add_css_class("settings-select"); self.touch_interface_size.connect("notify::selected", self.change_interface_size); daily.append(self.touch_interface_size)
         self.settings_daily = daily; controls.append(daily)
         display_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); display_column.add_css_class("settings-column"); self.settings_display_column = display_column; display_column.set_hexpand(True)
         display_column.append(appearance)
@@ -375,7 +375,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         appearance_group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); appearance_group.set_visible(False); self.settings_appearance_group = appearance_group
         appearance_group.append(self.label("APPEARANCE", "eyebrow"))
         appearance_row = Gtk.Box(spacing=16); appearance_row.set_homogeneous(True); appearance_row.add_css_class("settings-appearance-row"); appearance_group.append(appearance_row)
-        self.scaling_select = Gtk.DropDown.new_from_strings(["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"])
+        self.scaling_select = Gtk.DropDown.new_from_strings(["Scaling · Standard", "Scaling · Larger"])
         self.theme_select = Gtk.DropDown.new_from_strings(["Theme · Mint", "Theme · Roon"])
         self.background_select = Gtk.DropDown.new_from_strings(["Background · Gradient", "Background · Black"])
         for select in (self.scaling_select, self.theme_select, self.background_select):
@@ -532,7 +532,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         """Show the current scaling, theme and background in the 10-inch drop-downs without re-saving them."""
         if not hasattr(self, "scaling_select"): return
         data = self.settings_data or {}
-        wanted = ((self.scaling_select, {"smaller": 0, "standard": 1, "larger": 2}.get(data.get("interface_size"), 1)),
+        wanted = ((self.scaling_select, {"standard": 0, "larger": 1}.get(data.get("interface_size"), 0)),
                   (self.theme_select, 1 if data.get("display_theme") == "roon" else 0),
                   (self.background_select, 1 if data.get("display_background", "current") == "black" else 0))
         self.appearance_select_updating = True
@@ -540,7 +540,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         short = bool(getattr(self, "settings_short_appearance", False))
         if short != getattr(self, "appearance_labels_short", False):
             self.appearance_labels_short = short
-            choices = ((self.scaling_select, ["Smaller", "Standard", "Larger"], ["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"]),
+            choices = ((self.scaling_select, ["Standard", "Larger"], ["Scaling · Standard", "Scaling · Larger"]),
                        (self.theme_select, ["Mint", "Roon"], ["Theme · Mint", "Theme · Roon"]),
                        (self.background_select, ["Gradient", "Black"], ["Background · Gradient", "Background · Black"]))
             for select, brief, full in choices: select.set_model(Gtk.StringList.new(brief if short else full))
@@ -560,7 +560,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
 
     def change_interface_size(self, dropdown, *_):
         if getattr(self, "interface_size_updating", False): return
-        values = ("smaller", "standard", "larger"); value = values[min(dropdown.get_selected(), 2)]
+        values = ("standard", "larger"); value = values[min(dropdown.get_selected(), 1)]
         self.apply_interface_size(value)
         # Several layouts have finite line counts and physical-pixel budgets.
         # Recalculate them immediately when scaling changes instead of waiting

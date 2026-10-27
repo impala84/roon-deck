@@ -620,13 +620,13 @@ class NativeBrowserControlsTests(unittest.TestCase):
 
     def test_accessible_interface_sizes_are_global_and_persistent(self):
         code = native_text()
-        self.assertIn('["Smaller", "Standard", "Larger"]', code)
+        self.assertIn('["Standard", "Larger"]', code)
         self.assertIn('attributes.insert(Pango.attr_scale_new(', code)
         self.assertIn('{"section": "appearance", "interface_size": value}', code)
         self.assertIn('self.bus_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)', code)
         self.assertIn('self.now_playing_scroll = now_scroll', code)
         self.assertIn('self.source_scroll = source_scroll', code)
-        self.assertIn('factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)', code)
+        self.assertIn('factor = {"larger": 1.2}.get(size, 1.0)', code)
         self.assertIn('.interface-larger .transport button { min-width: 60px;', code)
         self.assertIn('.touch-landscape.interface-larger .nav button { min-height: 70px;', code)
         self.assertIn('.interface-larger .detail-action { min-height: 70px;', code)

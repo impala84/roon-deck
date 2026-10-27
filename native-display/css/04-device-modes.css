@@ -176,25 +176,17 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .touch2-7-landscape .album-focus-detail .detail-action { margin-top: 8px; }
 .touch2-7-landscape .transport button { min-width: 76px; min-height: 76px; border-radius: 38px; }
 .touch2-7-landscape .transport .play { min-width: 96px; min-height: 96px; border-radius: 48px; }
-.interface-smaller .transport button { min-width: 43px; min-height: 43px; border-radius: 22px; }
-.interface-smaller .transport .play { min-width: 58px; min-height: 58px; border-radius: 29px; }
 .interface-larger .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
 .interface-larger .transport .play { min-width: 82px; min-height: 82px; border-radius: 41px; }
-.touch-landscape.interface-smaller .transport button { min-width: 60px; min-height: 60px; border-radius: 30px; }
-.touch-landscape.interface-smaller .transport .play { min-width: 75px; min-height: 75px; border-radius: 38px; }
 .touch-landscape.interface-larger .transport button { min-width: 84px; min-height: 84px; border-radius: 42px; }
 .touch-landscape.interface-larger .transport .play { min-width: 106px; min-height: 106px; border-radius: 53px; }
 /* Do not let the generic larger rule collapse the 10-inch hierarchy. */
 .large-display.interface-larger .transport button,
 .large-display.interface-larger .transport button.library-action { min-width: 120px; min-height: 120px; border-radius: 60px; }
 .large-display.interface-larger .transport .play { min-width: 150px; min-height: 150px; border-radius: 75px; }
-.interface-smaller .nav button { min-height: 36px; }
 .interface-larger .nav button { min-height: 48px; }
-.touch-landscape.interface-smaller .nav button { min-height: 52px; }
 .touch-landscape.interface-larger .nav button { min-height: 70px; }
-.interface-smaller .detail-action { min-height: 49px; padding-top: 5px; padding-bottom: 5px; }
 .interface-larger .detail-action { min-height: 70px; padding-top: 10px; padding-bottom: 10px; }
-.touch-landscape.interface-smaller .detail-action { min-height: 46px; }
 .touch-landscape.interface-larger .detail-action { min-height: 65px; }
 /* Shared semantic heading tier. Display profiles change geometry, not rank. */
 .page-title, .stop, .settings-title, .detail-heading { font-size: 25px; font-weight: 700; }
@@ -215,7 +207,6 @@ popover.sort-menu .track-menu-action.active:focus { background: #6ed9ae; color: 
 .interface-larger .album-profile .album-artist { font-size: 26px; }
 .interface-larger .album-profile .queue-meta { font-size: 21px; line-height: 1.35; }
 .interface-larger .settings-select { font-size: 23px; }
-.interface-smaller .settings-select { font-size: 16px; }
 .album-play-split { margin-top: 2px; }
 .album-play-split .artist-play { border-top-right-radius: 0; border-bottom-right-radius: 0; margin: 0; }
 .album-play-menu { min-width: 64px; padding: 0 12px; border-left: 2px solid rgba(21,21,21,.72); border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 999px; border-bottom-right-radius: 999px; background: #6ed9ae; color: #111; }

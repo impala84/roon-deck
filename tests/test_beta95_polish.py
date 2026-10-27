@@ -59,7 +59,9 @@ class GenreShortcutIconTests(unittest.TestCase):
     def test_genre_list_shortcuts_use_the_larger_key_line_tile_icons(self):
         code = native_text()
         self.assertIn('genre_shortcut = (data.get("section") == "genres" and not key and (row_title in {"artists", "albums", "genre artists", "genre albums"} or row_title.startswith("shuffle")))', code)
-        self.assertIn('self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 62) if genre_shortcut', code)
+        self.assertIn('self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), "genres"), 90 if self.window.has_css_class("large-display") else 62, match_play=True) if genre_shortcut', code)
+        # Same drawn thickness as the track-row play symbol, so the genre icons are not hairlines.
+        self.assertIn("TOUCH_CONTROL_STROKE * play_size / max(1, size)", code)
 
 
 class TenInchSettingsTests(unittest.TestCase):
@@ -67,7 +69,7 @@ class TenInchSettingsTests(unittest.TestCase):
         self.code = native_text()
 
     def test_appearance_is_one_row_of_three_dropdowns_on_the_10_inch(self):
-        for text in ('["Scaling · Smaller", "Scaling · Standard", "Scaling · Larger"]', '["Theme · Mint", "Theme · Roon"]',
+        for text in ('["Scaling · Standard", "Scaling · Larger"]', '["Theme · Mint", "Theme · Roon"]',
                      '["Background · Gradient", "Background · Black"]', 'appearance_group.append(self.label("APPEARANCE", "eyebrow"))',
                      "self.settings_appearance.set_visible(not graph_layout)"):
             self.assertIn(text, self.code)

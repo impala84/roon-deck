@@ -252,7 +252,7 @@ def measure_browse(size):
 
 
 landscape = WIDTH > HEIGHT
-for size in ("standard", "larger", "smaller"):
+for size in ("standard", "larger"):
     report.append(f"=== interface size: {size}")
     set_interface(size)
     for count, due in ((2, False), (3, False), (2, True)):

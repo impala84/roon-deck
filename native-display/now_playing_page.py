@@ -122,6 +122,14 @@ class NowPlayingPageMixin:
         browser_scroll.get_vadjustment().connect("value-changed", self.note_browse_scroll)
         browser_scroll.get_vadjustment().connect("value-changed", self.browser_scrolled)
         self.browser_list.connect_scroll(browser_scroll)
+        # Rebuilding a page moves keyboard focus to a new widget; with scroll-to-focus on, the viewport then jumps down to
+        # it, which is why a list could come back scrolled down. This is a touch screen, so never scroll to focus.
+        def stop_scroll_to_focus(*scrollers):
+            for scroller in scrollers:
+                viewport = scroller.get_child()
+                if isinstance(viewport, Gtk.Viewport): viewport.set_scroll_to_focus(False)
+            return False
+        GLib.idle_add(stop_scroll_to_focus, self.discovery_scroll, browser_scroll)
         browser_scroll.set_margin_bottom(10)
         previous_scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
         previous_scroll.connect("scroll", self.browser_previous_scroll); browser_scroll.add_controller(previous_scroll)

@@ -124,7 +124,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             widget.roondeck_base_attributes = current.copy() if current else Pango.AttrList()
         attributes = widget.roondeck_base_attributes.copy()
         size = (self.settings_data or {}).get("interface_size", "standard")
-        factor = {"smaller": .86, "larger": 1.2}.get(size, 1.0)
+        factor = {"larger": 1.2}.get(size, 1.0)
         # Route and arrival numerals are intentionally the largest information
         # on their page already. They still respond, but at half the global
         # delta; headings and clocks retain the same scale as every other page.
@@ -139,9 +139,9 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         widget.set_attributes(attributes)
 
     def apply_interface_size(self, value):
-        value = value if value in {"smaller", "standard", "larger"} else "standard"
+        value = value if value in {"standard", "larger"} else "standard"  # a saved "smaller" now reads as Standard
         self.settings_data["interface_size"] = value
-        for name in ("interface-smaller", "interface-larger"): self.window.remove_css_class(name)
+        self.window.remove_css_class("interface-larger")
         if value != "standard": self.window.add_css_class("interface-" + value)
         pending = [self.window]
         while pending:
@@ -150,7 +150,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             child = widget.get_first_child()
             while child:
                 pending.append(child); child = child.get_next_sibling()
-        factor = {"smaller": .86, "larger": 1.2}.get(value, 1.0)
+        factor = {"larger": 1.2}.get(value, 1.0)
         for icon in getattr(self, "utility_icons", []):
             base = getattr(icon, "roondeck_base_size", None)
             if base:
@@ -192,16 +192,19 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
     def loading_notice(self):
         """Animate only while mapped; remove the timer when this view leaves."""
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        panel.set_halign(Gtk.Align.CENTER); panel.set_valign(Gtk.Align.CENTER)
-        panel.set_hexpand(True); panel.set_vexpand(True)
+        # Fixed offset from the top of the list instead of centring in whatever height the container happens to give
+        # it: the container is briefly short while a page is rebuilt, which put the dots high at first and then
+        # moved them to the middle.
+        panel.set_halign(Gtk.Align.CENTER); panel.set_valign(Gtk.Align.START)
+        panel.set_hexpand(True); panel.set_vexpand(False)
         width, height = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
         original = width <= 820 and height <= 500
         portrait = getattr(self, "responsive_portrait", False)
         gen2_seven = not portrait and 1200 <= width < 1500 and 650 <= height < 850
-        # Portrait: the dots sit about a quarter of the way down. Elsewhere they are centred in whatever area the
-        # panel fills, so Browse, Discover and Search all agree; Gen 2 Browse is then nudged to the middle of the
+        # Portrait: the dots sit about a quarter of the way down; landscape puts them about a third of the way down,
+        # which is the middle of the content area, so Browse, Discover and Search all agree; Gen 2 Browse is then nudged to the middle of the
         # cover area (right of the 170px rail) once the dots are on screen.
-        top = 18 if original else round(height * .26) if portrait else 48
+        top = round(height * .35) if original else round(height * .26) if portrait else round(height * .36)
         panel.set_margin_top(top); panel.set_margin_bottom(18 if original else 48)
         dots = Gtk.Box(spacing=12); dots.set_halign(Gtk.Align.CENTER)
         labels = [self.label("●", "loading-dots") for _ in range(3)]
@@ -264,7 +267,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         # standard layout and then rescaled it about a second later.
         try:
             if initial_config.get("display_background") == "black": self.window.add_css_class("background-black")
-            if initial_config.get("interface_size") in {"smaller", "larger"}: self.apply_interface_size(initial_config["interface_size"])
+            if initial_config.get("interface_size") == "larger": self.apply_interface_size(initial_config["interface_size"])
         except (NameError, AttributeError, TypeError, ValueError): pass
         self.window.present()
         GLib.timeout_add_seconds(1, self.log_renderer)
@@ -633,7 +636,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             for button in self.bus_nav_buttons: button.set_visible(config.get("bus_enabled", True))
             if hasattr(self, "touch_bus_enabled") and self.touch_bus_enabled.get_active() != config.get("bus_enabled", True):
                 self.bus_visibility_updating = True; self.touch_bus_enabled.set_active(config.get("bus_enabled", True)); self.bus_visibility_updating = False
-            requested_interface_size = {"smaller": 0, "standard": 1, "larger": 2}.get(config.get("interface_size"), 1)
+            requested_interface_size = {"standard": 0, "larger": 1}.get(config.get("interface_size"), 0)
             if self.touch_interface_size.get_selected() != requested_interface_size:
                 self.interface_size_updating = True; self.touch_interface_size.set_selected(requested_interface_size); self.interface_size_updating = False
             self.sync_appearance_selects()
