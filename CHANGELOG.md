@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.11 Alpine — 27 October 2026
+
+- Roon Core over VPN: the Roon API library threw while cleaning up a closed connection ("Cannot read properties of undefined (reading 'cb')"), which skipped its close callback, so reconnection never restarted. The controller now ignores that library fault instead of crashing, retries the direct connection every 30 seconds, and logs why a direct connection closed or failed to `roon-error.log`.
+
 ## 1.1.8-beta.10 Alpine — 27 October 2026
 
 - Roon over VPN: Roon is normally found by broadcast, which cannot cross a VPN, so no zones appeared. Web Settings → Roon now has an optional **Roon Core address**; when set, the controller connects to that Core directly (port 9330) and retries every 15 seconds. The extension authorisation from your home network is reused. Leave it blank on a home network.

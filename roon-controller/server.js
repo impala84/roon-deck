@@ -335,15 +335,20 @@ roon.init_services({required_services: [RoonApiTransport, RoonApiImage, RoonApiB
 status.set_status('Waiting for Roon authorisation', false);
 roon.start_discovery();
 // Roon is found by broadcast, which does not cross a VPN. A configured Core address is connected to directly.
-let directConnecting = false;
+let lastDirectAttempt = 0;
 setInterval(() => {
   const host = configuredRuntime().coreHost;
-  if (!host || core || directConnecting) return;
-  directConnecting = true;
-  const done = () => { directConnecting = false; };
-  try { roon.ws_connect({host, port: 9330, onclose: done, onerror: done}); }
-  catch { done(); }
-}, 15000);
+  if (!host || core || Date.now() - lastDirectAttempt < 30000) return;
+  lastDirectAttempt = Date.now();
+  // node-roon-api's close handler can throw, which skips its own onclose callback, so retries are timed rather than callback-driven.
+  try { roon.ws_connect({host, port: 9330, onclose: () => console.error('Roon Core connection closed'), onerror: error => console.error('Roon Core connection error', error && error.message || error)}); }
+  catch (error) { console.error('Roon Core connection failed', error && error.message || error); }
+}, 5000);
+// A throw inside node-roon-api's connection clean-up (moo.js) is a library fault, not a reason to restart the whole display service.
+process.on('uncaughtException', error => {
+  if (error instanceof TypeError && /node-roon-api[\\/]moo\.js/.test(error.stack || '')) { console.error('Ignored Roon API clean-up error after a closed connection'); return; }
+  console.error(error); process.exit(1);
+});
 roon._sood.on('message', message => {
   if (message.props.service_id !== '00720724-5143-4a9b-abac-0e50cba674bb') return;
   try {
