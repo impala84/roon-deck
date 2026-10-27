@@ -74,6 +74,11 @@ class WifiPageMixin:
         self.connection_status = data
         trial = data.get("trial") or {}
         active = trial.get("target") or data.get("selected") or next((item["kind"] for item in data.get("devices", []) if item.get("connected")), "")
+        if getattr(self, "connection_expect_result", False) and data.get("status") in ("restored", "error", "ready") and not trial.get("token"):
+            self.connection_expect_result = False
+            self.connection_say({"restored": "That connection did not come up, so the previous one was restored.",
+                                 "error": data.get("message") or "The connection could not be changed.",
+                                 "ready": "Connection saved."}[data["status"]])
         for target, button in self.connection_buttons.items():
             (button.add_css_class if target == active else button.remove_css_class)("active")
             kinds = [item for item in data.get("devices", []) if item.get("kind") == target]
@@ -84,7 +89,7 @@ class WifiPageMixin:
         message = data.get("message") or ""
         if vpn_pending and not pending: return False  # the VPN trial message stays until it is kept or undone
         if pending: message = f"Keep this connection within {trial.get('seconds', 0)} seconds, or the previous one returns."
-        elif data.get("status") not in ("switching", "trial"): message = message if data.get("status") == "failed" else ""
+        elif data.get("status") not in ("switching", "trial"): return False
         self.connection_message.set_text(message); self.connection_message.set_visible(bool(message))
         return False
 
@@ -93,6 +98,10 @@ class WifiPageMixin:
 
     def connection_choose(self, target, ssid="", password=""):
         if self.connection_busy: return
+        # Wi-Fi with no saved network has nothing to connect to: ask for one on the Join page instead of switching and failing.
+        if target == "wifi" and not ssid and not self.connection_status.get("saved_wifi") and not any(item.get("kind") == "wifi" and item.get("connected") for item in self.connection_status.get("devices", [])):
+            self.open_wifi_page(); return
+        self.connection_expect_result = True
         self.connection_busy = True; self.connection_say("Switching… this takes up to 30 seconds.")
         def done(result, error):
             self.connection_busy = False
@@ -194,6 +203,7 @@ class WifiPageMixin:
     def open_wifi_page(self, *_):
         if "wifi" not in getattr(self, "settings_page_names", set()): return
         self.settings_sections.set_visible_child_name("wifi"); self.wifi_scan()
+        if not self.connection_status.get("saved_wifi"): self.wifi_message.set_text("No Wi-Fi network is saved yet. Scanning…")
 
     def close_wifi_page(self, *_):
         self.settings_sections.set_visible_child_name(self.settings_home())

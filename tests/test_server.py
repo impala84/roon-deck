@@ -607,6 +607,12 @@ class DisplayModeTests(unittest.TestCase):
             details = connected_network_snapshot()
         self.assertEqual(details, {"name": "Boogaloo", "interface": "wlan0", "type": "Wi-Fi", "address": "10.12.0.50/24", "signal": "72%", "speed": "866 Mbit/s"})
 
+    def test_cable_unplugged_with_vpn_up_reports_no_connection(self):
+        outputs = ["eth0:ethernet:unavailable:--\nwlan0:wifi:disconnected:--\nrdremote:wireguard:connected:rdremote\nlo:loopback:connected (externally):lo", ""]
+        with patch("pi_bus_time_display.server.command_output", side_effect=outputs):
+            details = connected_network_snapshot()
+        self.assertEqual(details["type"], ""); self.assertEqual(details["interface"], "")
+
     def test_diagnostics_includes_running_airplay(self):
         from pi_bus_time_display.server import diagnostics_snapshot
         output = "24 4096 0.2 /usr/bin/shairport-sync -c /etc/shairport-sync.conf\n"

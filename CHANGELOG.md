@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.50 Alpine — 28 October 2026
+
+- Current connection now says "Disconnected" when the cable is unplugged. It used to show the WireGuard VPN link, which stays "connected" without a physical link; only Ethernet and Wi-Fi count.
+- Switching to Wi-Fi: when no Wi-Fi network is saved, tapping Wi-Fi now opens Join Wi-Fi instead of switching, failing and silently restoring Ethernet. If a switch does fail, the screen now says the previous connection was restored.
+- Join Wi-Fi: Scan now turns the Wi-Fi radio on for the scan (it is off while Ethernet is primary) and puts it back afterwards, so nearby networks appear.
+
 ## 1.1.8-beta.49 Alpine — 28 October 2026
 
 - 7-inch Settings: every row, box, dropdown and button on Overview, Display and Network is 80px (the Display page's theme and background buttons were still the old sizes). The Primary connection and Wi-Fi sections used 16px between their heading and button where the left column used 12px, which shifted them 4px lower per section; both columns now use 12px so headings and boxes line up exactly.

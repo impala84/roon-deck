@@ -82,6 +82,7 @@ class NetworkControl:
         saved = load_json(self.policy, {})
         result = load_json(self.result, {})
         return {'ok': True, 'hostname': socket.gethostname(), 'devices': self.devices(), 'selected': saved.get('selected', ''),
+                'saved_wifi': sum(1 for line in self.safe(['nmcli', '-t', '-f', 'TYPE', 'connection', 'show']).splitlines() if line.strip() in ('802-11-wireless', 'wifi')),
                 'wifi_enabled': self.run(['nmcli', 'radio', 'wifi']) == 'enabled',
                 'trial': {'token': pending.get('token', ''), 'target': pending.get('target', ''),
                           'seconds': max(0, round(pending.get('deadline', 0) - time.time()))},
@@ -89,8 +90,16 @@ class NetworkControl:
 
     def scan(self):
         """Nearby Wi-Fi networks, strongest first. Names only: no saved profiles or passwords are read."""
-        if self.run(['nmcli', 'radio', 'wifi']) != 'enabled':
-            return {'ok': True, 'networks': [], 'message': 'Wi-Fi is off. Switch to Wi-Fi or type a network name.'}
+        # The Wi-Fi radio is off while Ethernet is primary. Scanning needs it on, so turn it on for the scan and put it back after.
+        was_off = self.run(['nmcli', 'radio', 'wifi']) != 'enabled'
+        if was_off:
+            self.run(['nmcli', 'radio', 'wifi', 'on']); time.sleep(3)
+        try:
+            return self._scan_list()
+        finally:
+            if was_off: self.safe(['nmcli', 'radio', 'wifi', 'off'])
+
+    def _scan_list(self):
         try:
             result = subprocess.run(['nmcli', '--escape', 'no', '-t', '-f', 'IN-USE,SIGNAL,SECURITY,SSID', 'device', 'wifi', 'list', '--rescan', 'yes'],
                                     capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'C'}, timeout=20)

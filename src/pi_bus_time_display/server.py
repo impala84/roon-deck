@@ -698,7 +698,8 @@ def active_wifi_ssid() -> str:
 def connected_network_snapshot() -> dict:
     """Return useful, non-sensitive details for the active network link."""
     rows = command_output(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"])
-    active = next((line.split(":", 3) for line in rows.splitlines() if ":connected:" in line), [])
+    # Only a physical link counts: a WireGuard, bridge or loopback entry stays "connected" with the cable unplugged.
+    active = next((fields for fields in (line.split(":", 3) for line in rows.splitlines() if ":connected:" in line) if len(fields) == 4 and fields[1] in {"ethernet", "wifi", "802-11-wireless"}), [])
     if len(active) != 4:
         return {"name": active_wifi_ssid(), "interface": "", "type": "", "address": "", "signal": "", "speed": ""}
     interface, link_type, _, connection = active

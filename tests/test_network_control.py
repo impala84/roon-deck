@@ -68,11 +68,14 @@ class NetworkControlTests(unittest.TestCase):
         self.assertTrue(result['networks'][0]['in_use']); self.assertFalse(result['networks'][2]['secured'])
         self.assertEqual(result['networks'][1]['signal'],88)
 
-    def test_scan_when_wifi_is_off_says_so_without_scanning(self):
+    def test_scan_with_wifi_off_turns_it_on_for_the_scan_and_back_off(self):
         self.radio=False
-        with patch('pi_bus_time_display.network_control.subprocess.run') as run:
+        with patch('pi_bus_time_display.network_control.subprocess.run') as run, patch('pi_bus_time_display.network_control.time.sleep'):
+            run.return_value.returncode=0; run.return_value.stdout=' :80:WPA2:Cafe\n'
             result=self.manager.handle({'operation':'scan'})
-        run.assert_not_called(); self.assertEqual(result['networks'],[]); self.assertIn('Wi-Fi is off',result['message'])
+        self.assertEqual([item['ssid'] for item in result['networks']],['Cafe'])
+        self.assertIn(['nmcli','radio','wifi','on'],self.calls); self.assertIn(['nmcli','radio','wifi','off'],self.calls)
+        self.assertFalse(self.radio)
 
     def test_wifi_switch_persists_ethernet_off_and_only_confirm_commits(self):
         token=self.prepare('wifi'); self.apply(token)

@@ -401,7 +401,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
             if link.get("type") == "Wi-Fi" and link.get("name"): parts.append(link["name"])
             if link.get("address"): parts.append(link["address"])
             self.settings_net_connection.set_text("  ·  ".join(parts))
-        else: self.settings_net_connection.set_text("Not connected")
+        else: self.settings_net_connection.set_text("Disconnected")
         self.refresh_vpn_text()
         sidebar = getattr(self, "settings_sidebar_active", False)
         tabs = getattr(self, "settings_tabs_active", False)
