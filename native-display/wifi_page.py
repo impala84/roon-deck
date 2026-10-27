@@ -35,7 +35,7 @@ class WifiPageMixin:
 
     def build_connection_block(self):
         block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); block.add_css_class("connection-block")
-        block.append(self.label("CONNECTION", "eyebrow"))
+        block.append(self.label("PRIMARY CONNECTION", "eyebrow"))
         choice = Gtk.Box(spacing=12); choice.set_homogeneous(True); block.append(choice)
         self.connection_buttons = {}
         for target, title in (("ethernet", "Ethernet"), ("wifi", "Wi-Fi")):

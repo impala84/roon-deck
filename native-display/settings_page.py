@@ -50,7 +50,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         graph_allowed = (self.settings_data or {}).get("settings_layout", "graph") != "simple"
         if gen2_seven_landscape:
             self.window.add_css_class("seven-inch-settings"); self.window.add_css_class("settings-sidebar-layout"); self.window.remove_css_class("settings-with-graph")
-            self.arrange_settings_sidebar(graph_allowed)
+            self.arrange_settings_sidebar(graph_allowed, portrait)
             self.sync_diagnostics_visibility(); self.sync_appearance_selects()
             return
         self.window.remove_css_class("settings-sidebar-layout")
@@ -145,8 +145,10 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
             return self.settings_sections.get_visible_child_name() == "tabs" and self.settings_panes.get_visible_child_name() == "controls"
         return self.settings_sections.get_visible_child_name() == "accessories"
 
-    def arrange_settings_sidebar(self, graph_allowed):
+    def arrange_settings_sidebar(self, graph_allowed, portrait=False):
         if not getattr(self, "settings_sidebar_active", False): self.build_settings_sidebar()
+        # Landscape has width to spare and little height: the Network page runs in two columns so nothing scrolls.
+        self.settings_network_columns.set_orientation(Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL)
         self.settings_nav["performance"].set_visible(graph_allowed)
         if not graph_allowed and self.settings_panes.get_visible_child_name() == "performance": self.show_settings_pane("overview")
         # Full labels fit the wide content area; the section heading is APPEARANCE.
@@ -200,17 +202,19 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         self.settings_appearance.set_visible(True); self.settings_scaling_heading.set_visible(True); self.touch_interface_size.set_visible(True)
         take(self.settings_appearance, display); take(self.settings_scaling_heading, display); take(self.touch_interface_size, display)
         # Network: the live connection and the VPN.
-        network = pane("network")
+        network_page = pane("network")
+        columns = Gtk.Box(spacing=28); columns.set_homogeneous(True); self.settings_network_columns = columns; network_page.append(columns)
+        network = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(network)
         def info_row(heading, row):
             network.append(self.label(heading, "eyebrow")); take(row, network)
         info_row("ROON", self.settings_net_roon_row)
         network.append(self.label("ZONE", "eyebrow"))
         self.settings_zone_select = Gtk.DropDown.new_from_strings(["Follow the playing zone"]); self.settings_zone_select.add_css_class("settings-select"); self.settings_zone_names = []
         self.settings_zone_select.connect("notify::selected", self.zone_selected); network.append(self.settings_zone_select)
-        info_row("CONNECTION", self.settings_net_connection_row)
+        info_row("CURRENT CONNECTION", self.settings_net_connection_row)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
-        if getattr(self, "connection_block", None) is not None: take(self.connection_block, network)
+        if getattr(self, "connection_block", None) is not None: take(self.connection_block, columns)
         self.settings_three_up = False
         self.refresh_vpn_text()
         performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
