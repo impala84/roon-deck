@@ -117,6 +117,23 @@ class ManagerTests(unittest.TestCase):
     def configure(self):
         self.manager.handle({"operation": "vpn_import", "profile": PROFILE, "auto_connect": True})
 
+    def test_discovery_is_opt_in_and_does_not_change_vpn_or_bridge(self):
+        self.assertFalse(self.manager.discovery_settings()['enabled'])
+        self.calls.clear()
+        self.manager.handle({'operation':'discovery_save','enabled':True,'server':'198.51.100.20'})
+        self.assertTrue(self.manager.discovery_settings()['enabled'])
+        self.assertEqual(self.calls,[['rc-update','add','roondeck-discovery','default'],['rc-service','roondeck-discovery','restart']])
+        self.calls.clear()
+        self.manager.handle({'operation':'discovery_save','enabled':False,'server':'198.51.100.20'})
+        self.assertFalse(self.manager.discovery_settings()['enabled'])
+        self.assertTrue(all('nmcli' not in call and 'roonbridge' not in call for call in self.calls))
+
+    def test_discovery_rejects_invalid_server_and_disabled_vpn_support(self):
+        for value in ('example.com','127.0.0.1','239.255.90.90','0.0.0.0','198.51.100.20; reboot',''):
+            with self.assertRaises(ValueError):self.manager.handle({'operation':'discovery_save','enabled':True,'server':value})
+        self.manager.handle({'operation':'features_save','features':{'vpn':False,'dial':False}})
+        with self.assertRaisesRegex(ValueError,'Enable VPN'):self.manager.handle({'operation':'discovery_save','enabled':True,'server':'198.51.100.20'})
+
     def test_pairing_worker_does_not_block_status_and_verifies_pair(self):
         entered, release = threading.Event(), threading.Event()
         address = 'AA:BB:CC:DD:EE:FF'

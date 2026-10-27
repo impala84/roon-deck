@@ -13,12 +13,14 @@ Usage:
   tools/check fast
   tools/check screen [settings|discover|layout|all] [viewport-id]
   tools/check candidate
+  tools/check appliance
   tools/check image
 
 fast       Python, controller, shell and version checks.
 screen     Cached Alpine/GTK rendering across the supported viewport matrix.
            "layout" reports real header/nav positions per page (not part of "all").
 candidate  Fast checks, all native layouts and deterministic appliance smoke tests.
+appliance  Run only the Alpine application smoke phase (native renders are separate).
 image      Candidate checks plus the complete ARM64 disk image (ARM64 Linux only).
 EOF
 }
@@ -84,9 +86,7 @@ native() {
     python3 tools/run_native_matrix.py --screen "$target" --output "/opt/pi-home/dist/native-review/$target" ${extra[@]+"${extra[@]}"}
 }
 
-candidate() {
-  fast
-  native all
+appliance() {
   require_container_engine
   docker build --platform linux/arm64 \
     --build-arg "PI_HOME_SOURCE_SHA=$(git -C "$repo" rev-parse HEAD)" \
@@ -101,16 +101,24 @@ candidate() {
     "$appliance_image" python3 appliance/alpine/updater_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/update_button_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/accessory_helper_smoke.py
+  docker run --rm --network none "$appliance_image" .venv/bin/python appliance/alpine/sood_smoke.py
   docker run --rm --network none "$appliance_image" .venv/bin/python appliance/alpine/network_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/cursor_smoke.py
   docker run --rm "$appliance_image" sh -ec \
     'apk add --no-cache xvfb-run >/dev/null && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'
 }
 
+candidate() {
+  fast
+  native all
+  appliance
+}
+
 case "$mode" in
   fast) fast ;;
   screen) native "$screen" "${3:-}" ;;
   candidate) candidate ;;
+  appliance) appliance ;;
   image)
     candidate
     bash "$repo/appliance/alpine/build-image.sh"

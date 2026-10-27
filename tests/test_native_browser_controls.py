@@ -910,6 +910,18 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.show_roon_now.assert_called_once_with()
         owner.set_mode.assert_called_once_with("roon")
 
+    def test_preview_selects_settings_pane_or_reports_unavailable(self):
+        owner=SimpleNamespace(open_settings=Mock(),settings_sidebar_active=True,settings_tabs_active=False,settings_nav={'display':Mock(get_visible=lambda:True)},show_settings_pane=Mock())
+        native_method('apply_display_view_request')(owner,{'view':'settings','settings_page':'display'})
+        owner.show_settings_pane.assert_called_once_with('display')
+        self.assertEqual(owner.preview_settings_error,'')
+        native_method('apply_display_view_request')(owner,{'view':'settings','settings_page':'performance'})
+        self.assertIn('unavailable',owner.preview_settings_error)
+        owner.settings_tabs_active=True
+        owner.settings_nav={'overview':Mock(get_visible=lambda:True)}
+        native_method('apply_display_view_request')(owner,{'view':'settings','settings_page':'network'})
+        owner.show_settings_pane.assert_called_with('overview')
+
     def test_preview_waits_until_browser_render_finishes(self):
         posted=Mock()
         thread=SimpleNamespace(Thread=lambda **kwargs:SimpleNamespace(start=lambda:posted(kwargs['args'][1])))

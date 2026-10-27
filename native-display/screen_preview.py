@@ -174,6 +174,20 @@ class ScreenPreviewMixin:
             self.set_mode("roon"); self.set_roon_view("details")
         elif view == "settings":
             self.open_settings()
+            self.preview_settings_error = ""
+            pane = request.get("settings_page", "overview")
+            if pane == "controls":
+                if self.settings_accessories_button.get_visible():
+                    self.open_accessories()
+                else:
+                    self.preview_settings_error = "Enable Surface Dial support in web Controls to preview this page."
+            elif getattr(self, "settings_sidebar_active", False) or getattr(self, "settings_tabs_active", False):
+                if pane == "network" and getattr(self, "settings_tabs_active", False): pane = "overview"
+                nav = self.settings_nav.get(pane)
+                if nav is not None and nav.get_visible(): self.show_settings_pane(pane)
+                else: self.preview_settings_error = "This Settings page is unavailable in the selected touchscreen layout."
+            elif pane != "overview":
+                self.preview_settings_error = "This display uses one Settings page; choose Overview or enable the graph layout."
         elif view == "search":
             self.discovery_browser_origin = False
             self.discovery_active = True; self.discovery_section = "browse"
@@ -195,6 +209,6 @@ class ScreenPreviewMixin:
         if loading and time.monotonic() < deadline: return True
         data = (self.browser_state or {}) if browser else (getattr(self, "discovery_data", {}) or {}) if view == "discover" else {}
         error = "The display did not finish opening this view." if loading else str(data.get("message") or "Could not open this view") if data.get("error") or data.get("status") in {"error", "unavailable"} else ""
-        result = {"id": request["id"], "error": error, "title": data.get("title") or request.get("view", "Display"), "can_back": data.get("can_back", False), "items": data.get("items", []) if browser else []}
+        result = {"id": request["id"], "error": (getattr(self, "preview_settings_error", "") if requested == "settings" else "") or error, "title": data.get("title") or request.get("view", "Display"), "can_back": data.get("can_back", False), "items": data.get("items", []) if browser else []}
         threading.Thread(target=post_json, args=(BUS + "/api/device/preview", result), kwargs={"timeout": 5}, daemon=True).start()
         return False

@@ -6,8 +6,9 @@ offers these prereleases; there is no additional release channel or branch to
 select. Stable users remain on published stable releases.
 
 The first beta implements the control and configuration paths. It does not
-claim physical Bluetooth acceptance or successful remote RAAT audio. Haptics
-and a cross-subnet discovery relay are not bundled. Keep the normal 1.1.7
+claim physical Bluetooth acceptance or successful remote RAAT audio. Haptics are not bundled. A disabled-by-default IPv4 SOOD-only discovery
+prototype is available under Network → VPN → Roon Discovery. Hardware discovery
+and playback acceptance remain required. Keep the normal 1.1.7
 installation and its existing Roon Bridge configuration intact while testing.
 
 ## Install and find Settings
@@ -141,3 +142,50 @@ In **Network**, choose **Use Ethernet** or **Use saved Wi-Fi connection**. A new
 A root-owned journal records the previous managed/radio states and active connection UUIDs, without passwords. A detached watchdog must acknowledge readiness before switching begins. Expiry, a failed switch or an interrupted helper restores the prior configuration. A helper restart also recovers an unfinished journal. Confirming verifies the selected interface is connected and the other connection is off. Software changes and reboot actions are blocked while a trial is outstanding.
 
 Local verification includes an isolated Alpine test of NetworkManager's real configuration parser, persistent radio state across service restart, detached watchdog expiry, and the authenticated HTTP/root-socket boundary. Physical Ethernet/Wi-Fi switching, reachability after DHCP address changes and power-cycle behaviour must still be checked on the Pi.
+
+
+## Experimental SOOD discovery (Pi-side only)
+
+The discovery helper is deliberately separate from WireGuard, Bridge and the
+control API. It does not install Bridge, proxy RAAT/TCP, run another VPN, or edit
+routes, DNS, multicast routing or firewall rules. Existing users stay disabled.
+Enable it explicitly in **Network → VPN → Roon Discovery**, enter the actual
+home Roon Server IPv4 address and save. The pre-existing route to that address
+must select `rdremote` and the Pi's real VPN source address. Otherwise it waits
+and reports the problem without changing the network.
+
+The helper observes SOOD through a kernel-filtered AF_PACKET socket, without
+binding UDP 9003 or consuming Bridge/controller unicast replies. It accepts
+local RAAT endpoint announcements, preserves endpoint identity and TCP port,
+and forwards discovery using the VPN source address and SOOD reply-address
+override. Home Server RAAT queries arriving through WireGuard are sent to the
+local Bridge, with a private ephemeral reply socket. Matching replies return
+to the Server's original query port. Bounded caches suppress duplicates and
+expire stale endpoints. Local RAAT probes refresh discovery without restarting
+Bridge. This is IPv4 only, not a generic multicast forwarder.
+
+OpenRC supervises `roondeck-discovery` only after explicit enable. The root
+process needs raw-packet access; it has no arbitrary shell actions or HTTP
+listener. It checks the VPN route/address every five seconds and opens fresh
+sockets after a reconnect. Disabling VPN support stops this helper too;
+disabling only discovery never disconnects VPN. Enabled helpers restart on
+application updates so they do not retain old source code.
+
+- Private settings: `/var/lib/roondeck-remote/discovery.json`.
+- Non-secret status: `/var/lib/pi-home/roon-discovery-status.json`.
+- Service install occurs only when its settings are saved; no new packages.
+- Status counters mean packets relayed, **not** endpoint/audio acceptance.
+- Restart discovery clears old in-memory packet/error state; it does not restart Bridge.
+
+Before acceptance: record the working VPN and controller baseline; capture
+SOOD at both ends; confirm real announcements reach the Server with the Pi's
+VPN address; confirm the Bridge appears automatically in Roon Settings → Audio;
+check the direct RAAT TCP path and sustained physical playback; restart Bridge,
+reconnect VPN and reboot the Pi, confirming automatic rediscovery each time.
+A container packet test verifies filtering and raw source preservation only.
+It is not proof of the Synology Docker network path or physical playback.
+
+Design references reviewed: [RoonBroadcastRelay](https://github.com/simonefil/RoonBroadcastRelay)
+and [roon-beacon](https://github.com/ca-x/roon-beacon). Neither full application
+is bundled. In particular, no TCP proxy, additional web UI or broad multicast
+AllowedIPs changes are introduced.

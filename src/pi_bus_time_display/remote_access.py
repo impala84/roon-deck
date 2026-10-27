@@ -30,7 +30,7 @@ ADDRESS = re.compile(r"(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\Z")
 DEFAULT_DIAL = {"enabled": False, "address": "", "target": "selected", "output_id": "", "sensitivity": "normal",
                 "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"}
 ACTIONS = {"status", "install", "features_save", "vpn_import", "vpn_connect", "vpn_confirm", "vpn_disconnect", "diagnostics",
-           "bluetooth_scan", "bluetooth_pair", "bluetooth_connect", "bluetooth_disconnect", "bluetooth_forget", "dial_save"}
+           "discovery_save", "discovery_restart", "bluetooth_scan", "bluetooth_pair", "bluetooth_connect", "bluetooth_disconnect", "bluetooth_forget", "dial_save"}
 
 
 def run_command(args):
@@ -264,6 +264,43 @@ class AccessoryManager:
         try: return self.run(args)
         except (ValueError, OSError, subprocess.TimeoutExpired): return ""
 
+    def discovery_settings(self):
+        config = load_json(self.private / "discovery.json", {})
+        if not isinstance(config, dict): config = {}
+        enabled = config.get("enabled") is True
+        state = load_json(self.root / "var/lib/pi-home/roon-discovery-status.json", {})
+        if not isinstance(state, dict): state = {}
+        running = enabled and load_json(self.features_path, {}).get("vpn") is True
+        if not running: state = {"state":"disabled", "message":"SOOD discovery is disabled."}
+        elif not isinstance(state.get("updated_at"), (int, float)) or time.time() - state.get("updated_at", 0) > 20:
+            state = {"state":"stopped", "message":"Discovery service is not reporting. Restart it or check VPN support."}
+        return {**{key:state[key] for key in ("state", "message", "vpn_address", "forwarded", "replies", "tcp_port") if key in state}, "enabled":enabled, "server":config.get("server", "")}
+
+    def configure_discovery(self, data):
+        enabled = boolean(data, "enabled")
+        server = str(data.get("server", "")).strip()
+        if server:
+            try: address = ipaddress.IPv4Address(server)
+            except ipaddress.AddressValueError: raise ValueError("Enter the home Roon Server IPv4 address.") from None
+            if address.is_loopback or address.is_multicast or address.is_unspecified or address.is_link_local or server == "255.255.255.255":
+                raise ValueError("Enter a reachable home Roon Server IPv4 address.")
+        if enabled and not server: raise ValueError("Enter the home Roon Server IPv4 address.")
+        if enabled and load_json(self.features_path, {}).get("vpn") is not True:
+            raise ValueError("Enable VPN support before enabling Roon Discovery.")
+        source = Path(__file__).resolve().parents[2] / "appliance/alpine/init.d/roondeck-discovery"
+        if not source.is_file(): source = self.root / "opt/pi-home/appliance/alpine/init.d/roondeck-discovery"
+        target = self.root / "etc/init.d/roondeck-discovery"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        atomic_text(target, source.read_text(), 0o755)
+        atomic_json(self.private / "discovery.json", {"enabled":enabled, "server":server})
+        if enabled:
+            self.run(["rc-update", "add", "roondeck-discovery", "default"])
+            self.run(["rc-service", "roondeck-discovery", "restart"])
+        else:
+            self.safe(["rc-service", "roondeck-discovery", "stop"])
+            self.safe(["rc-update", "del", "roondeck-discovery", "default"])
+        return {"ok":True, "discovery":self.discovery_settings()}
+
     def support(self):
         return {"dial": (self.root / "usr/bin/bluetoothctl").is_file() and (self.root / "etc/init.d/bluetooth").is_file() and (self.root / "etc/init.d/roondeck-dial").is_file(),
                 "vpn": (self.root / "usr/bin/wg").is_file()}
@@ -482,7 +519,7 @@ class AccessoryManager:
                         "handshake_age": max(0, round(time.time() - newest)) if newest else None,
                         "received": sum(int(x[1]) for x in counters), "sent": sum(int(x[2]) for x in counters),
                         "pending_token": pending.get("token", ""), "confirm_seconds": max(0, round(pending.get("deadline", 0) - time.time()))},
-                "dial": dial, "devices": devices, "dial_diagnostics": diagnostics, "dial_hint": hint,
+                "discovery": self.discovery_settings(), "dial": dial, "devices": devices, "dial_diagnostics": diagnostics, "dial_hint": hint,
                 "scanning": self.scan_lock.locked(), "scan_message": self.scan_note,
                 "dial_status": str(load_json(self.root / "var/lib/pi-home/dial-status.json", {}).get("message", "Not running"))[:200],
                 "haptics_supported": False}
@@ -502,6 +539,11 @@ class AccessoryManager:
             action = data.get("operation", "status")
             if action not in ACTIONS: raise ValueError("Unknown accessory operation.")
             if action == "status": return self.status()
+            if action == "discovery_save": return self.configure_discovery(data)
+            if action == "discovery_restart":
+                config = load_json(self.private / "discovery.json", {})
+                if not isinstance(config, dict) or config.get("enabled") is not True: raise ValueError("Enable Roon Discovery first.")
+                return self.configure_discovery(config)
             # Disconnecting the VPN is a safety action and never waits for Bluetooth.
             if self.pair_lock.locked() and action not in {"status", "vpn_disconnect"}:
                 raise ValueError("Wait for Surface Dial pairing to finish.")
@@ -512,6 +554,8 @@ class AccessoryManager:
                 if not isinstance(values, dict): raise ValueError("Choose supported optional features.")
                 features = {name: boolean(values, name) for name in ("vpn", "dial")}
                 if not features["vpn"]:
+                    self.safe(["rc-service", "roondeck-discovery", "stop"])
+                    self.safe(["rc-update", "del", "roondeck-discovery", "default"])
                     if self.profile_path.exists(): self.disconnect()
                     self.pending_path.unlink(missing_ok=True)
                 if not features["dial"]:
@@ -525,6 +569,9 @@ class AccessoryManager:
                 # touchscreen visibility; operations enforce the root copy.
                 atomic_json(self.features_path, features)
                 atomic_json(self.visible_features_path, features, 0o644)
+                discovery = load_json(self.private / "discovery.json", {})
+                if features["vpn"] and discovery.get("enabled") is True:
+                    self.configure_discovery(discovery)
                 if features["dial"] and self.support()["dial"]:
                     self.ensure_hid()
                     self.safe(["rc-service", "bluetooth", "start"])

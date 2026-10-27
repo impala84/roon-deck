@@ -133,8 +133,10 @@ class State:
             "display_view_request": view_request,
         }
 
-    def request_display_view(self, view: str, browse_action: str = "", item_key: str = "", section: str = "") -> dict:
+    def request_display_view(self, view: str, browse_action: str = "", item_key: str = "", section: str = "", settings_page: str = "") -> dict:
         request = {"id": secrets.token_urlsafe(12), "view": view}
+        if settings_page:
+            request["settings_page"] = settings_page
         if browse_action:
             request.update(browse_action=browse_action, item_key=item_key, section=section)
         with self.lock:
@@ -1489,7 +1491,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                             raise ValueError("Unknown preview navigation")
                         if browse_action == "section" and section not in {"albums", "artists", "genres", "playlists"}:
                             raise ValueError("Unknown preview section")
-                        preview_request = state.request_display_view(view, browse_action, item_key, section)
+                        settings_page = str(data.get("settings_page", "overview")) if view == "settings" else ""
+                        if settings_page and settings_page not in {"overview", "display", "network", "controls", "performance"}:
+                            raise ValueError("Unknown touchscreen Settings page")
+                        preview_request = state.request_display_view(view, browse_action, item_key, section, settings_page)
                     if events:
                         events.emit("display.mode.changed", mode=mode)
                     self.send_json(200, json.dumps({"ok": True, "display_mode": mode, "display_view": view or None, "request_id": preview_request["id"] if preview_request else None}).encode())

@@ -94,13 +94,22 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         nav_bottom = display.settings_nav["performance"].compute_bounds(window)[1]
         assert display.update_button.compute_bounds(window)[1].get_y() > nav_bottom.get_y() + nav_bottom.get_height() + 8
         display.show_settings_pane("overview"); settle()
+    elif getattr(display, "settings_tabs_active", False):
+        display.show_settings_pane("display"); settle()
+        heights = [row.get_height() for row in rows]
+        assert min(heights) > 0 and max(heights)-min(heights) <= 1, (width,height,heights)
+        assert display.update_button.get_parent().get_last_child() is display.settings_reboot
+        for button in (display.update_button, display.settings_reboot):
+            bounds=button.compute_bounds(window)[1]
+            assert bounds.get_height()>0 and bounds.get_y()+bounds.get_height()<=height, (width,height,"footer")
+        display.show_settings_pane("overview"); settle()
     elif seven_inch:
         assert all(not row.get_visible() for row in rows)
         assert not display.apply_display_button.get_visible()
     else:
         heights = [row.get_height() for row in rows]
         assert min(heights) > 0 and max(heights)-min(heights) <= 1, (width,height,heights)
-    if not sidebar:
+    if not sidebar and not getattr(display, "settings_tabs_active", False):
         actions=[]; child=display.settings_actions.get_first_child()
         while child:
             if child.get_visible(): actions.append(child.get_width())
@@ -148,11 +157,13 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         "dial": {"enabled": False, "address": "AA:BB:CC:DD:EE:FF", "target": "selected", "output_id": "", "sensitivity": "normal", "acceleration": False, "maximum_volume": None, "single": "playpause", "double": "next", "long": "mute"},
         "devices": [{"address": "AA:BB:CC:DD:EE:FF", "paired": True, "connected": True, "battery": 80}]},
         {"outputs": [{"id": "dac", "name": "Local Roon Bridge USB DAC"}]}, {}, "", True)
-    display.settings_sections.set_visible_child_name("accessories"); settle()
+    with patch.object(display, "accessory_operation"):
+        display.open_accessories(); settle()
     assert window.get_width() == width and window.get_height() == height, ("accessories",width,height,window.get_width(),window.get_height())
     # One page: everything, including the pinned Save button, must stay inside the viewport.
     widgets = (display.accessory_back, display.accessory_save, display.accessory_device, display.accessory_forget, display.accessory_target, display.accessory_sensitivity, display.accessory_limit, *display.accessory_mappings.values())
     for widget in widgets:
+        if not widget.get_mapped(): continue
         bounds = widget.compute_bounds(window)[1]
         assert bounds.get_x() >= 0 and bounds.get_x() + bounds.get_width() <= width, ("accessory control", width, height, bounds.get_x(), bounds.get_width())
     save_bounds = display.accessory_save.compute_bounds(window)[1]
@@ -175,6 +186,20 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
         start_poll.assert_called_once()
     assert display.stack.get_visible_child_name() == "settings"
     assert display.settings_sections.get_visible_child_name() == display.settings_home()
+    # Real Screen Preview requests select the actual Settings pane, not just the outer Settings page.
+    for requested in ("overview", "display", "network", "performance"):
+        with patch.object(display, "start_poll"):
+            display.apply_display_view_request({"view":"settings", "settings_page":requested}); settle()
+        if getattr(display, "settings_sidebar_active", False) or getattr(display, "settings_tabs_active", False):
+            target = "overview" if requested == "network" and getattr(display, "settings_tabs_active", False) else requested
+            nav = display.settings_nav.get(target)
+            if nav is not None and nav.get_visible():
+                assert display.settings_panes.get_visible_child_name() == target, (width,height,requested)
+                assert not display.preview_settings_error
+            else:
+                assert display.preview_settings_error
+        elif requested != "overview":
+            assert display.preview_settings_error
     display.sync_accessory_visibility({"dial": False})
     assert not display.settings_accessories_button.get_visible()
     window.destroy(); settle()

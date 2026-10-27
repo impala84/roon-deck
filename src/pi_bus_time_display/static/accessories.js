@@ -15,6 +15,22 @@ function readableBytes(input) {
   while (value >= 1000 && unit < units.length - 1) { value /= 1000; unit++; }
   return value.toLocaleString(undefined, {maximumFractionDigits: unit === 0 ? 0 : value < 10 ? 2 : 1}) + ' ' + units[unit];
 }
+let discoveryFilled = false;
+function renderDiscovery(data) {
+  const config = data.discovery || {enabled:false,message:'Disabled'};
+  if (!discoveryFilled) { byId('discovery-enabled').checked=Boolean(config.enabled);byId('discovery-server').value=config.server||'';discoveryFilled=true; }
+  byId('discovery-status').textContent=config.message||'Disabled';
+  const details=byId('discovery-details');details.replaceChildren();
+  for(const [label,value] of [['Service',config.state||'disabled'],['VPN address',config.vpn_address||'—'],['Announcements relayed',config.forwarded??0],['Core discovery packets handled',config.replies??0],['Bridge TCP port',config.tcp_port||'—']]){
+    const key=document.createElement('dt'),val=document.createElement('dd');key.textContent=label;val.textContent=String(value);details.append(key,val);
+  }
+}
+async function saveDiscovery(restart=false) {
+  try { await request(restart?{operation:'discovery_restart'}:{operation:'discovery_save',enabled:byId('discovery-enabled').checked,server:byId('discovery-server').value.trim()});discoveryFilled=false;await refresh();message(restart?'Discovery restarted.':'Roon Discovery settings saved.','vpn'); }
+  catch(error){message(error.message,'vpn',true);}
+}
+byId('discovery-save').addEventListener('click',()=>saveDiscovery());
+byId('discovery-restart').addEventListener('click',()=>saveDiscovery(true));
 async function saveCore() {
   const value = byId('home-server').value.trim();
   const response = await fetch('/api/admin/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({section: 'roon', roon_core_host: value})});
@@ -41,6 +57,7 @@ function deviceStatus() {
 }
 async function refresh(fill = false) {
   const data = await request();
+  renderDiscovery(data);
   const previousInstallation = snapshot?.installation?.status;
   const previousPairing = snapshot?.pairing;
   const previousScan = snapshot?.scan_message;

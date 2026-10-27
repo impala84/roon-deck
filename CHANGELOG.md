@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.8-beta.44 Alpine — 28 October 2026
+
+- Group Roon, Roon Bridge, BluOS and AirPlay under Services → Music, retaining existing settings and old BluOS bookmarks.
+- Add Screen Preview selection for the touchscreen Settings pages, with explicit unavailable-page messages and Network mapped to Overview where the native layout combines them.
+- Clarify Roon player/navigation options, move its bottom navigation name above the Core address, remove remaining decorative rules and make Software separators consistent.
+- Add disabled-by-default, IPv4 SOOD discovery under Network → VPN → Roon Discovery. The separate Pi-side helper preserves Bridge identity/TCP ports, uses the real WireGuard endpoint address, tracks Core query return ports and handles both hardware RAAT and software Bridge service IDs. It edits no routes, DNS, firewall, VPN profile or Bridge/audio configuration.
+- Supervise the optional helper with OpenRC, wait/rebind after VPN changes, and expose bounded discovery counters/errors. Kernel filtering avoids capturing unrelated traffic or binding the Bridge/controller UDP port.
+- Hardware acceptance remains pending: first temporary trial received Core traffic but relayed no Bridge responses; a local probe subsequently confirmed the software Bridge service and TCP port 9200. Discovery appearance, sustained playback, restart/reconnect and reboot tests must still pass before calling this supported remote discovery.
+
 ## 1.1.8-beta.43 Alpine — 28 October 2026
 
 - Join Wi-Fi: the page was wider than the screen (the name and password boxes asked for 20 characters each), pushing the keyboard off the right edge. The boxes now share the width, the network list takes a fixed 380px and long names are shortened.

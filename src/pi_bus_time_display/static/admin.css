@@ -177,3 +177,13 @@ body.admin-page{--admin-sidebar-width:clamp(150px,18vw,220px);position:fixed;ins
 .admin-page .auto-update-settings input[type=time]{max-width:260px}
 
 .admin-page #alpine-tools{margin-bottom:32px}
+
+/* Section spacing replaces ornamental rules across every responsive layout. */
+.admin-page #settings .settings-grid>.settings-group,.admin-page #settings .settings-group>details[open]>summary{border:0}
+.admin-page #settings .maintenance-row{border:0;border-bottom:1px solid rgba(150,145,160,.14)}
+.admin-page #settings .maintenance-row.danger-zone{border:0}
+.admin-page .service-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.admin-page .integration-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container(max-width:700px){.admin-page .integration-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.admin-page .roon-discovery-settings{margin:32px 0;display:grid;gap:18px}.admin-page .roon-discovery-settings :is(label,p,small,h3){margin:0}.admin-page .roon-discovery-settings .action-buttons{gap:12px;margin:0}.admin-page #discovery-details{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,1fr);gap:8px 20px;margin:0}.admin-page #discovery-details dd{margin:0;overflow-wrap:anywhere}

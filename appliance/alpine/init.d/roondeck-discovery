@@ -1,0 +1,9 @@
+#!/sbin/openrc-run
+description="Optional SOOD-only Roon Bridge discovery over the existing VPN"
+supervisor=supervise-daemon
+command=/opt/pi-home/.venv/bin/python
+command_args="-m pi_bus_time_display.sood_relay"
+command_user=root:root
+respawn_delay=5
+respawn_max=0
+depend() { need net; after networkmanager; }

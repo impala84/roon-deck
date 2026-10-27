@@ -15,6 +15,13 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4
 
 
 class DisplayCaptureTests(unittest.TestCase):
+    def test_settings_page_is_preserved_in_the_device_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=State(Config(),Path(directory))
+            command=state.request_display_view('settings',settings_page='performance')
+            self.assertEqual(command['settings_page'],'performance')
+            self.assertEqual(state.display_view_request['settings_page'],'performance')
+
     def test_native_capture_has_parent_paintable_and_cairo_fallbacks(self):
         source = native_text()
         capture = source.split('    def capture_display(self, capture_id, retry=0):', 1)[1].split('    def apply_display_view_request', 1)[0]
