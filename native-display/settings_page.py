@@ -7,9 +7,10 @@ import threading
 import time
 from gi.repository import GLib, Gtk, Pango
 from accessories_page import AccessoriesPageMixin
+from wifi_page import WifiPageMixin
 
 
-class SettingsPageMixin(AccessoriesPageMixin):
+class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
     def configure_settings_layout(self, width, height):
         portrait = height > width
         compact = not portrait and (height <= 600 or width < 1000)
@@ -209,6 +210,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         info_row("CONNECTION", self.settings_net_connection_row)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
+        if getattr(self, "connection_block", None) is not None: take(self.connection_block, network)
         self.settings_three_up = False
         self.refresh_vpn_text()
         performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
@@ -418,6 +420,13 @@ class SettingsPageMixin(AccessoriesPageMixin):
         self.settings_sections.set_hhomogeneous(False); self.settings_sections.set_vhomogeneous(False)
         self.settings_sections.add_named(self.build_main_settings(), "main")
         self.settings_sections.add_named(self.build_accessories(), "accessories")
+        # Connection choice and Wi-Fi joining: if this part cannot be built the rest of Settings still works.
+        self.settings_page_names = set()
+        try:
+            self.settings_network_block.append(self.build_connection_block())
+            self.settings_sections.add_named(self.build_wifi_page(), "wifi"); self.settings_page_names.add("wifi")
+        except Exception as error:
+            print(f"RoonDeck: connection controls unavailable: {error}", flush=True)
         self.settings_sections.set_visible_child_name("main")
         return self.settings_sections
 

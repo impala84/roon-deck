@@ -59,6 +59,21 @@ class NetworkControlTests(unittest.TestCase):
         with patch('pi_bus_time_display.network_control.time.sleep'):
             self.manager.apply(token, **values)
 
+    def test_scan_lists_networks_strongest_first_without_duplicates(self):
+        output='*:61:WPA2:Home: 5G\n :88:WPA2:Cafe\n :40:--:Open\n :30:WPA2:Cafe\n :70:WPA2:\n'
+        with patch('pi_bus_time_display.network_control.subprocess.run') as run:
+            run.return_value.returncode=0; run.return_value.stdout=output
+            result=self.manager.handle({'operation':'scan'})
+        self.assertEqual([item['ssid'] for item in result['networks']],['Home: 5G','Cafe','Open'])
+        self.assertTrue(result['networks'][0]['in_use']); self.assertFalse(result['networks'][2]['secured'])
+        self.assertEqual(result['networks'][1]['signal'],88)
+
+    def test_scan_when_wifi_is_off_says_so_without_scanning(self):
+        self.radio=False
+        with patch('pi_bus_time_display.network_control.subprocess.run') as run:
+            result=self.manager.handle({'operation':'scan'})
+        run.assert_not_called(); self.assertEqual(result['networks'],[]); self.assertIn('Wi-Fi is off',result['message'])
+
     def test_wifi_switch_persists_ethernet_off_and_only_confirm_commits(self):
         token=self.prepare('wifi'); self.apply(token)
         self.assertTrue(self.manager.pending.exists()); self.assertFalse(self.manager.policy.exists())

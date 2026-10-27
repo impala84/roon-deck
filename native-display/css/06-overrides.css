@@ -383,3 +383,14 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-sidebar-layout .brightness-card scale trough, .settings-sidebar-layout .brightness-card scale highlight { min-height: 10px; border-radius: 5px; }
 .settings-sidebar-layout .brightness-card scale slider { min-width: 34px; min-height: 34px; border-radius: 17px; margin: -12px 0; }
 .settings-sidebar-layout .brightness-card .brightness-value { font-size: 20px; min-width: 64px; }
+
+/* Connection choice and Join Wi-Fi */
+.connection-block .settings-action.connection-choice { background: #2a2a31; color: #cfcfd6; min-height: 60px; }
+.connection-block .settings-action.connection-choice.active { background: #6ed9ae; color: #101714; }
+.theme-roon .connection-block .settings-action.connection-choice.active { background: #9868F9; color: #fff; }
+.connection-block .settings-action.connection-join { min-height: 56px; }
+.wifi-page .settings-action { min-height: 52px; }
+.wifi-page .wifi-network { background: #1f1e25; color: #fff; font-weight: 600; min-height: 56px; }
+.wifi-page .wifi-entry { min-height: 52px; font-size: 22px; }
+.wifi-key.browser-key { min-height: 50px; min-width: 0; padding: 2px; font-size: 24px; }
+.portrait .wifi-key.browser-key { min-height: 64px; font-size: 28px; }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.35 Alpine — 28 October 2026
+
+- 7-inch and 10-inch Settings: choose Ethernet or Wi-Fi as the primary connection, and join a Wi-Fi network from the screen (Scan, pick or type a name, password on an on-screen keyboard). It uses the same 90-second trial as the web Settings: keep the new connection, or the previous one returns by itself. The Pi gains a Wi-Fi scan operation for this.
+
 ## 1.1.8-beta.34 Alpine — 28 October 2026
 
 - 10-inch Settings: more space between sections; bus times and the bus numbers share one line again.

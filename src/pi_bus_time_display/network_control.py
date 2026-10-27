@@ -87,6 +87,25 @@ class NetworkControl:
                           'seconds': max(0, round(pending.get('deadline', 0) - time.time()))},
                 'status': result.get('status', 'idle'), 'message': result.get('message', '')}
 
+    def scan(self):
+        """Nearby Wi-Fi networks, strongest first. Names only: no saved profiles or passwords are read."""
+        if self.run(['nmcli', 'radio', 'wifi']) != 'enabled':
+            return {'ok': True, 'networks': [], 'message': 'Wi-Fi is off. Switch to Wi-Fi or type a network name.'}
+        try:
+            result = subprocess.run(['nmcli', '--escape', 'no', '-t', '-f', 'IN-USE,SIGNAL,SECURITY,SSID', 'device', 'wifi', 'list', '--rescan', 'yes'],
+                                    capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'C'}, timeout=20)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise ValueError('Wi-Fi scan timed out.') from error
+        if result.returncode: raise ValueError('Wi-Fi scan failed.')
+        seen = {}
+        for line in result.stdout.splitlines():
+            fields = line.split(':', 3)
+            if len(fields) != 4 or not fields[3] or len(fields[3].encode()) > 32: continue
+            use, signal, security, ssid = fields
+            entry = {'ssid': ssid, 'signal': int(signal) if signal.isdigit() else 0, 'secured': security not in ('', '--'), 'in_use': use == '*'}
+            if ssid not in seen or entry['signal'] > seen[ssid]['signal'] or entry['in_use']: seen[ssid] = entry
+        return {'ok': True, 'networks': sorted(seen.values(), key=lambda item: (not item['in_use'], -item['signal']))[:20], 'message': ''}
+
     def arm_watchdog(self, token):
         process = subprocess.Popen(['/usr/bin/python3', '/opt/pi-home/appliance/alpine/network_rollback.py', token],
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -219,6 +238,7 @@ class NetworkControl:
     def handle(self, data):
         operation = data.get('operation', 'status')
         if operation == 'status': return self.status()
+        if operation == 'scan': return self.scan()
         if operation == 'select': return self.prepare(data.get('target'), data.get('ssid', ''), data.get('password', ''))
         if operation == 'restore':
             record = load_json(self.pending, {})
