@@ -344,3 +344,13 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-profile .queue-meta { font-size: 25px; }
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-focus-detail .detail-writeup { font-size: 24px; line-height: 1.38; }
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.touch2-7-landscape.interface-larger .album-focus-detail .detail-writeup { font-size: 27px; line-height: 1.3; }
+
+/* Add-to-library button beside the Play Album pill, matching the pill's height on every screen. */
+.album-profile .album-library-action { min-width: 50px; min-height: 50px; padding: 0; border-radius: 25px; background: #2a2a2a; color: #cfcfcf; }
+.album-profile .album-library-action:hover, .album-profile .album-library-action:active { background: #353535; }
+.album-profile .album-library-action.in-library, .album-profile .album-library-action.in-library:disabled { color: #6ed9ae; opacity: 1; }
+.theme-roon .album-profile .album-library-action.in-library, .theme-roon .album-profile .album-library-action.in-library:disabled { color: #9868F9; }
+.original-landscape .album-profile .album-library-action { min-width: 38px; min-height: 38px; border-radius: 19px; }
+.high-resolution.background .album-profile .album-library-action { min-width: 40px; min-height: 40px; border-radius: 20px; }
+.large-display.background .album-profile .album-library-action { min-width: 46px; min-height: 46px; border-radius: 23px; }
+.album-profile-large.album-profile-large.album-profile-large.album-profile-large .album-library-action { min-width: 82px; min-height: 82px; border-radius: 41px; }

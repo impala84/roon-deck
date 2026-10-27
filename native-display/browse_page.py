@@ -4,6 +4,7 @@ from __future__ import annotations
 from native_common import ElasticVerticalTrack, FamilyIcon, ROON, browser_request_timeout, get_json, post_json
 from icon_family import TOUCH_CONTROL_STROKE
 from pathlib import Path
+import re
 import threading
 import time
 import unicodedata
@@ -468,6 +469,19 @@ class BrowsePageMixin:
             vw, vh = getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)
             menu.set_child(FamilyIcon("chevron-play", 34 if large_portrait else 24 if min(vw, vh) >= 1000 else 14 if vw <= 820 and vh <= 500 else 16))
             menu.set_tooltip_text("More album play options"); split.append(button); split.append(menu)
+            # Add-to-library (or, once added, a filled heart) sits to the right of the pill, the same height as it.
+            add_item = next((item for item in items if item.get("action") and item.get("item_key") and re.match(r"^\+?\s*add (album )?to library$", (item.get("title") or "").strip(), re.I)), None)
+            in_library = any(item.get("action") and re.match(r"^remove (album )?from library$", (item.get("title") or "").strip(), re.I) for item in items)
+            if add_item or in_library:
+                icon_size = 40 if large_portrait else 34 if min(vw, vh) >= 1000 else 20 if vw <= 820 and vh <= 500 else 26
+                library = Gtk.Button(); library.add_css_class("album-library-action"); library.set_focusable(False); library.set_valign(Gtk.Align.CENTER)
+                if add_item:
+                    library.set_child(FamilyIcon("add", icon_size)); library.set_tooltip_text("Add album to library")
+                    library.connect("clicked", lambda *_, key=add_item.get("item_key"): self.open_browser_item(None, key))
+                else:
+                    library.add_css_class("in-library"); library.set_child(FamilyIcon("heart", icon_size, filled=True)); library.set_tooltip_text("In your library"); library.set_sensitive(False)
+                play_row = Gtk.Box(spacing=14 if min(vw, vh) >= 1000 else 10); play_row.set_halign(Gtk.Align.START); play_row.append(split); play_row.append(library)
+                split = play_row
             if narrow_portrait:
                 play_slot = Gtk.ScrolledWindow(); play_slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
                 play_slot.set_propagate_natural_width(False); play_slot.set_propagate_natural_height(True)
@@ -676,7 +690,7 @@ class BrowsePageMixin:
         album_profile = data.get("album_profile")
         if album_profile:
             self.browser_list.append(self.album_header(album_profile, items))
-            items = [item for item in items if not (item.get("action") and item.get("title", "").lower() == "play album")]
+            items = [item for item in items if not (item.get("action") and (item.get("title", "").lower() == "play album" or re.match(r"^\+?\s*add (album )?to library$", (item.get("title") or "").strip(), re.I)))]
         if data.get("artist_profile"):
             heading = self.label("ARTIST ALBUMS", "browser-section"); heading.add_css_class("artist-albums-heading"); self.browser_list.append(heading)
             items = [item for item in items if item is not artist_play]
