@@ -232,6 +232,7 @@ class NowPlayingPageMixin:
             if (system or {}).get(key) is not None: remembered[key] = system[key]
         system = {**(system or {}), **{key: value for key, value in remembered.items() if (system or {}).get(key) is None}}
         features = device.get("accessory_features", {})
+        if hasattr(self, "refresh_network_pane"): self.refresh_network_pane(system)
         if hasattr(self, "sync_accessory_visibility"): self.sync_accessory_visibility(features)
         enabled = (system or {}).get("network_controls", {})
         signature = json.dumps({"accessory_features": features, "network_controls": enabled, "services": device.get("services", []), "bridge": (system or {}).get("roon_bridge"), "airplay": (system or {}).get("airplay"), "netdata": (system or {}).get("netdata"), "background": self.settings_data.get("display_background")}, sort_keys=True)

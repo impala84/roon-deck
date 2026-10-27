@@ -75,8 +75,13 @@ for width, height in (tuple(map(int,os.environ["PI_HOME_SETTINGS_VIEWPORT"].spli
             assert bounds.get_x() >= 270 and bounds.get_x() + bounds.get_width() <= width, (pane, bounds.get_x(), bounds.get_width())
             assert display.settings_nav[pane].has_css_class("active")
         display.show_settings_pane("display"); settle()
-        assert all(row.get_visible() and row.get_height() > 0 for row in rows)
-        assert display.apply_display_button.get_visible()
+        assert all(not row.get_visible() for row in rows) and not display.apply_display_button.get_visible()
+        assert display.touch_interface_size.compute_bounds(window)[1].get_y() + 56 <= height
+        display.show_settings_pane("network"); settle()
+        assert display.settings_net_connection.get_text()
+        display.show_settings_pane("overview"); settle()
+        assert display.touch_daily.get_parent() is display.settings_panes.get_child_by_name("overview")
+        assert not display.touch_diagnostics.get_visible() or not display.touch_diagnostics.get_text().startswith("Memory")
         display.show_settings_pane("performance"); settle()
         graph = display.performance_graph.compute_bounds(window)[1]
         assert graph.get_y() + graph.get_height() <= height, (graph.get_y(), graph.get_height(), height)

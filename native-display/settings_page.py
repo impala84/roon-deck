@@ -1,7 +1,7 @@
 """Settings page: layout, theme, services, software and display options."""
 from __future__ import annotations
 
-from native_common import BUS, FamilyIcon, elastic_vertical_scroll, post_json, wordmark_paintable_tinted
+from native_common import BUS, FamilyIcon, elastic_vertical_scroll, get_json, post_json, wordmark_paintable_tinted
 from performance_graph import PerformanceGraph
 import threading
 from gi.repository import GLib, Gtk, Pango
@@ -130,7 +130,8 @@ class SettingsPageMixin(AccessoriesPageMixin):
         # Full labels fit the wide content area; the section heading is APPEARANCE.
         self.settings_short_appearance = False; self.settings_wide_portrait = False
         graph = self.performance_graph
-        graph.set_compact(False); graph.area.set_size_request(-1, 330); graph.set_vexpand(False); graph.set_visible(True)
+        graph.set_compact(False); graph.area.set_size_request(-1, 220); graph.area.set_vexpand(True)
+        graph.set_vexpand(True); graph.set_valign(Gtk.Align.FILL); graph.set_visible(True)
         self.settings_title_row.set_margin_top(14)
 
     def build_settings_sidebar(self):
@@ -142,7 +143,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); page.add_css_class("page"); page.add_css_class("settings-page"); page.add_css_class("settings-sidebar-page")
         take(self.settings_header, page); take(self.settings_divider, page)
         shell = Gtk.Box(spacing=28); shell.set_vexpand(True); shell.add_css_class("settings-shell"); page.append(shell)
-        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); rail.add_css_class("settings-sidebar"); rail.set_size_request(270, -1); rail.set_hexpand(False); shell.append(rail)
+        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); rail.add_css_class("settings-sidebar"); rail.set_size_request(250, -1); rail.set_hexpand(False); shell.append(rail)
         self.settings_nav = {}
         for name, title in self.SETTINGS_PANES:
             nav = self.button(title, lambda _button, pane=name: self.show_settings_pane(pane), "settings-nav")
@@ -150,6 +151,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
             if isinstance(nav.get_child(), Gtk.Label): nav.get_child().set_xalign(0)
             self.settings_nav[name] = nav; rail.append(nav)
         gap = Gtk.Box(); gap.set_vexpand(True); rail.append(gap)
+        self.update_button.set_label("UPDATE")
         take(self.update_button, rail); take(self.settings_reboot, rail)
         self.settings_actions.set_visible(False)
         self.settings_action_stack.set_visible(False)
@@ -157,21 +159,31 @@ class SettingsPageMixin(AccessoriesPageMixin):
         def pane(name):
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); box.add_css_class("settings-pane"); box.set_valign(Gtk.Align.START)
             self.settings_panes.add_named(box, name); return box
+        # Overview: the controls used every day. Network controls are the Roon Bridge / AirPlay / Netdata switches.
         overview = pane("overview")
+        self.network_controls_heading.set_text("SERVICES"); self.network_controls_heading.set_visible(True)
         self.touch_bus_heading.set_visible(True); self.settings_brightness_row.set_margin_top(0)
-        for widget in (self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
+        for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
         self.settings_controls_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); take(self.settings_accessories_button, self.settings_controls_slot); overview.append(self.settings_controls_slot)
+        # Display: how it looks. Installation options stay hidden on the seven-inch panel, as before.
         display = pane("display")
-        self.settings_appearance.set_visible(False); self.settings_scaling_heading.set_visible(False); self.touch_interface_size.set_visible(False)
-        self.settings_appearance_group.set_visible(True)
-        take(self.settings_appearance_group, display)
-        for widget in (self.display_settings_heading, self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button):
-            widget.set_visible(True); take(widget, display)
-        self.apply_display_button.set_hexpand(False); self.apply_display_button.set_halign(Gtk.Align.START)
+        self.settings_appearance_group.set_visible(False)
+        for widget in (self.touch_profile, self.touch_orientation, self.touch_mounting, self.apply_display_button, self.display_settings_heading): widget.set_visible(False)
+        self.settings_appearance.set_visible(True); self.settings_scaling_heading.set_visible(True); self.touch_interface_size.set_visible(True)
+        take(self.settings_appearance, display); take(self.settings_scaling_heading, display); take(self.touch_interface_size, display)
+        # Network: the live connection and the VPN.
         network = pane("network")
-        self.network_controls_heading.set_visible(True)
-        take(self.network_controls_heading, network); take(self.touch_daily, network)
-        take(self.performance_graph, pane("performance"))
+        def info_row(heading):
+            network.append(self.label(heading, "eyebrow"))
+            row = Gtk.Box(spacing=8); row.add_css_class("setting-line"); row.set_hexpand(True)
+            text = self.label("—", "settings-info"); text.set_xalign(0); text.set_hexpand(True); text.set_ellipsize(Pango.EllipsizeMode.END); row.append(text)
+            network.append(row); return row, text
+        self.settings_net_connection_row, self.settings_net_connection = info_row("CONNECTION")
+        self.settings_net_vpn_row, self.settings_net_vpn = info_row("VPN")
+        self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
+        self.settings_net_vpn_row.set_visible(False); self.settings_net_vpn_heading.set_visible(False)
+        performance = pane("performance"); performance.set_valign(Gtk.Align.FILL); performance.set_vexpand(True)
+        take(self.performance_graph, performance)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_hexpand(True); scroll.set_vexpand(True); scroll.set_child(self.settings_panes)
         elastic_vertical_scroll(scroll); self.settings_pane_scroll = scroll; shell.append(scroll)
         self.settings_sections.add_named(page, "sidebar")
@@ -184,6 +196,49 @@ class SettingsPageMixin(AccessoriesPageMixin):
         for key, nav in self.settings_nav.items():
             (nav.add_css_class if key == name else nav.remove_css_class)("active")
         adjustment = self.settings_pane_scroll.get_vadjustment(); adjustment.set_value(adjustment.get_lower())
+        if name == "network": self.refresh_network_pane()
+
+    def refresh_network_pane(self, system=None):
+        """Connection and VPN lines. The connection comes from the system poll; the VPN is read while this section is open."""
+        if not getattr(self, "settings_sidebar_active", False): return
+        if system and system.get("network") is not None: self.settings_network = system["network"]
+        link = getattr(self, "settings_network", None) or {}
+        if link.get("type") or link.get("name"):
+            parts = [link.get("type") or "Network"]
+            if link.get("type") == "Wi-Fi" and link.get("name"): parts.append(link["name"])
+            if link.get("address"): parts.append(link["address"])
+            self.settings_net_connection.set_text("  ·  ".join(parts))
+        else: self.settings_net_connection.set_text("Not connected")
+        vpn = getattr(self, "settings_vpn", None)
+        show = bool(vpn and (vpn.get("configured") or vpn.get("active")))
+        self.settings_net_vpn_row.set_visible(show); self.settings_net_vpn_heading.set_visible(show)
+        if show:
+            parts = [vpn.get("status") or "Disconnected"]
+            if vpn.get("address"): parts.append(str(vpn["address"]).replace("\n", " ").split("/")[0])
+            self.settings_net_vpn.set_text("  ·  ".join(parts))
+        if self.settings_panes.get_visible_child_name() == "network" and not getattr(self, "settings_vpn_busy", False):
+            self.settings_vpn_busy = True
+            def work():
+                data = get_json(BUS + "/api/admin/accessories", timeout=6)
+                GLib.idle_add(done, data)
+            def done(data):
+                self.settings_vpn_busy = False
+                if isinstance(data, dict) and data.get("features", {}).get("vpn"): self.settings_vpn = data.get("vpn") or {}
+                elif isinstance(data, dict): self.settings_vpn = None
+                shown = self.settings_panes.get_visible_child_name() == "network" and self.stack.get_visible_child_name() == "settings"
+                if isinstance(data, dict): self.refresh_network_pane_text()
+                if shown: GLib.timeout_add_seconds(10, lambda: (self.refresh_network_pane(), False)[1])
+                return False
+            threading.Thread(target=work, daemon=True).start()
+
+    def refresh_network_pane_text(self):
+        vpn = getattr(self, "settings_vpn", None)
+        show = bool(vpn and (vpn.get("configured") or vpn.get("active")))
+        self.settings_net_vpn_row.set_visible(show); self.settings_net_vpn_heading.set_visible(show)
+        if show:
+            parts = [vpn.get("status") or "Disconnected"]
+            if vpn.get("address"): parts.append(str(vpn["address"]).replace("\n", " ").split("/")[0])
+            self.settings_net_vpn.set_text("  ·  ".join(parts))
 
     def build_settings(self):
         self.settings_sections = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE)
@@ -402,7 +457,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         """10-inch: the graph shows the live figures, so the health line only appears when it carries a message."""
         text = self.touch_diagnostics.get_text() or ""
         health = text.startswith(("Memory", "Loading diagnostics"))
-        self.touch_diagnostics.set_visible(not (getattr(self, "settings_wide_portrait", False) and health))
+        self.touch_diagnostics.set_visible(not ((getattr(self, "settings_wide_portrait", False) or getattr(self, "settings_sidebar_active", False)) and health))
 
     def sync_appearance_selects(self):
         """Show the current scaling, theme and background in the 10-inch drop-downs without re-saving them."""
