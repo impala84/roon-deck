@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.33 Alpine — 27 October 2026
+
+- Fix: the 10-inch Settings page came up blank with only the old Update and Reboot buttons (beta.32 error while building the Controls tab).
+
 ## 1.1.8-beta.32 Alpine — 27 October 2026
 
 - 10-inch Settings: Performance is now four separate stacked graphs (Network, CPU, Memory, Temp), each with its own value, filling the page. Controls starts higher so it fits without scrolling, and Save is a compact button beside the progress message.

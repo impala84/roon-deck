@@ -294,7 +294,7 @@ class SettingsPageMixin(AccessoriesPageMixin):
         controls = pane("controls")
         controls.add_css_class("controls-pane"); controls.set_spacing(10)
         take(self.accessory_card, controls)
-        self.accessory_scroll.get_child().set_spacing(12)
+        self.accessory_body.set_spacing(12)
         # The pane itself scrolls, so the card takes its full height instead of scrolling inside a collapsed box.
         self.accessory_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); self.accessory_scroll.set_propagate_natural_height(True); self.accessory_scroll.set_vexpand(False)
         self.accessory_card.set_vexpand(False)

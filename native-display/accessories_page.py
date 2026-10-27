@@ -38,7 +38,7 @@ class AccessoriesPageMixin:
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_vexpand(True)
         self.accessory_scroll = scroll
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); body.add_css_class("settings-controls"); body.add_css_class("settings-column")
-        scroll.set_child(body); card.append(scroll); page.append(card)
+        self.accessory_body = body; scroll.set_child(body); card.append(scroll); page.append(card)
 
         def action(parent, text, operation, css="settings-action"):
             widget = self.button(text, lambda *_: self.accessory_operation(operation), css)
