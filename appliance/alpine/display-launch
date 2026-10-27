@@ -5,6 +5,9 @@ export XDG_SESSION_TYPE=wayland
 export GDK_BACKEND=wayland
 export LIBSEAT_BACKEND=seatd
 export PYTHONUNBUFFERED=1
+# Ghost pixels of the previous title stayed on the real screen after a track change (screenshots, which use a software
+# renderer, never showed them). Draw every frame in full instead of only the changed areas.
+export GSK_DEBUG="${GSK_DEBUG:+$GSK_DEBUG,}full-redraw"
 python3 /opt/pi-home/appliance/alpine/cursor_theme.py
 export XCURSOR_PATH=/run/pi-home/cursors
 export XCURSOR_THEME=pi-home-touch

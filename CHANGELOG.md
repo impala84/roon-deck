@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.29 Alpine — 27 October 2026
+
+- Display: draw every frame in full (GSK full-redraw) to stop faint ghost pixels of the previous title remaining on the real screen after a track change. If the touch screen feels slower, tell us and this will be reverted.
+
 ## 1.1.8-beta.28 Alpine — 27 October 2026
 
 - 7-inch Settings: Sleep and the close button are centred between the top of the screen and the header rule.
