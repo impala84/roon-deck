@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.28 Alpine — 27 October 2026
+
+- 7-inch Settings: Sleep and the close button are centred between the top of the screen and the header rule.
+
 ## 1.1.8-beta.27 Alpine — 27 October 2026
 
 - Roon Browse waits up to 20 seconds for each Roon request (was 8), and the touch screen waits longer than that (25–35 seconds, was 4–15), so slow Core responses no longer show "Roon Browse request timed out".

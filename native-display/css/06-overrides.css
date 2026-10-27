@@ -318,7 +318,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .touch2-7-landscape.touch2-7-landscape.touch2-7-landscape .album-play-menu { min-height: 54px; min-width: 48px; }
 /* Seven-inch sidebar header: title and utilities sit a little lower, closer to the rule. */
 .settings-sidebar-layout .settings-divider { margin-top: 4px; }
-.settings-sidebar-layout .settings-header .settings-utilities { margin-top: 4px; }
+.settings-sidebar-layout .settings-header .settings-utilities { margin-top: 11px; }
 /* Ten-inch portrait: header lower, rule closer, performance without its own card, headings flush left. */
 .portrait.large-portrait .settings-page { padding-top: 34px; }
 .portrait.large-portrait .settings-header { min-height: 64px; }
