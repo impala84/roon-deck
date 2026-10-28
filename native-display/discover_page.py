@@ -329,6 +329,7 @@ class DiscoverPageMixin:
                 self.discovery_browser_origin = True; self.discovery_active = True; self.discovery_tidal_pending = True
                 # Swap the rail and clear the page before Roon answers, so no Browse menu or old grid shows in between.
                 self.browser_sidebar.set_visible(False); self.browser_discovery_sidebar.set_visible(True)
+                self.browser_back.set_visible(False)  # the rail has its own Back; this one flashed at the top left
                 self.set_roon_view("browse"); self.show_browser_loading()
                 self.sync_discovery_sidebar(self.browser_discovery_sidebar, from_browser=True)
                 self.request_browser("section", section="tidal")

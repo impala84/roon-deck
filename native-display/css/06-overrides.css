@@ -432,3 +432,6 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .tidal-row-label { font-size: 20px; font-weight: 600; color: #f1f1f5; }
 .original-landscape .tidal-row { min-height: 48px; }
 .original-landscape .tidal-row-label { font-size: 16px; }
+.tidal-row.with-icon { min-height: 84px; padding: 0 22px; }
+.tidal-row.with-icon .tidal-row-label { font-size: 22px; font-weight: 700; }
+.original-landscape .tidal-row.with-icon { min-height: 62px; }

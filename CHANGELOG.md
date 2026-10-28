@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.67 Alpine — 28 October 2026
+
+- TIDAL menu: the two lists now scroll independently. The four new-release rows have icons and bigger buttons like the Genres page. The Browse Back button no longer flashes at the top left when TIDAL opens (the rail has its own Back).
+
 ## 1.1.8-beta.66 Alpine — 28 October 2026
 
 - Default device name is now "roondeck" instead of "pi-home" (new images and the setup wizard). This is the name Roon shows for the audio device. Renaming a device in Settings now also restarts Roon Bridge so Roon picks up the new name.
