@@ -413,8 +413,8 @@ class BrowseManager {
     try { genres = (await this.exploreTidal('Genres')).items.map(item => item.title).filter(Boolean); } catch { /* the list rows below still work */ }
     const row = (title, subtitle, key) => ({title, subtitle, image_key: null, item_key: key, hint: 'list', action: false, duration: '', input_prompt: null});
     const header = title => ({title, subtitle: '', image_key: null, item_key: null, hint: 'header', action: false, duration: '', input_prompt: null});
-    const items = [header('New on TIDAL'), ...['New', 'Recommended', 'Top 20', 'Masters'].map(name => row(name === 'New' ? 'New albums' : name, 'TIDAL', `tidal:list:${name}`))];
-    if (genres.length) items.push(header('New albums by genre'), ...genres.map(name => row(name, 'New albums', `tidal:genre:${name}`)));
+    const items = [header('NEW ON TIDAL'), ...['New', 'Recommended', 'Top 20', 'Masters'].map(name => row(name === 'New' ? 'New albums' : name, 'TIDAL', `tidal:list:${name}`))];
+    if (genres.length) items.push(header('NEW ALBUMS BY GENRE'), ...genres.map(name => row(name, 'New albums', `tidal:genre:${name}`)));
     return this.save(session, {status: 'ready', hierarchy: 'browse', level: 0, title: 'TIDAL', subtitle: '', count: items.length, offset: 0, items, section: 'tidal', section_root: true, breadcrumb: 'TIDAL', alpha_scrub: false, can_back: false, has_more: false, message: genres.length ? '' : 'TIDAL genres are not available from this Roon server.', error: false, layout: 'list', show_labels: true});
   }
 

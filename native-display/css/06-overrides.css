@@ -425,3 +425,10 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .original-landscape .browser-cover-subtitle.tidal-cover { font-size: 12px; }
 .large-display .browser-cover-title.tidal-cover { font-size: 26px; }
 .large-display .browser-cover-subtitle.tidal-cover { font-size: 21px; }
+
+/* TIDAL menu rows */
+.tidal-row { min-height: 62px; padding: 0 18px; border-radius: 10px; background: #1f1f24; border: none; box-shadow: none; }
+.tidal-row:active, .tidal-row:hover { background: #2a2a32; }
+.tidal-row-label { font-size: 20px; font-weight: 600; color: #f1f1f5; }
+.original-landscape .tidal-row { min-height: 48px; }
+.original-landscape .tidal-row-label { font-size: 16px; }

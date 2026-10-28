@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.65 Alpine — 28 October 2026
+
+- TIDAL menu is now two columns: the new-release lists on the left and the genres in a two-wide grid on the right, with plain buttons instead of thumbnail rows. Section headings are capitals.
+
 ## 1.1.8-beta.64 Alpine — 28 October 2026
 
 - TIDAL (New releases): a Back button appears in the rail as you go into a genre or album. Album and artist names are larger.

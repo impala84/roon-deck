@@ -742,6 +742,8 @@ class BrowsePageMixin:
             if play_controls:
                 play_controls.set_margin_top(round(getattr(self, "viewport_height", 1280) * .072)); preview.append(play_controls)
             self.browser_list.append(preview)
+        elif items and data.get("section") == "tidal" and data.get("section_root"):
+            self.browser_list.append(self.tidal_menu(items))
         elif items and layout in {"home", "menu"} and (getattr(self, "responsive_portrait", False) or data.get("section") != "genres"):
             grid = Gtk.Grid(column_spacing=12, row_spacing=12); grid.add_css_class("browser-home-grid"); grid.set_column_homogeneous(True); grid.set_row_homogeneous(True); columns = 4 if not getattr(self, "responsive_portrait", False) or getattr(self, "viewport_width", 800) >= 1000 else 2
             if getattr(self, "responsive_portrait", False): grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
@@ -841,6 +843,30 @@ class BrowsePageMixin:
         GLib.timeout_add(100, self.load_visible_browser_artwork)
         GLib.timeout_add(60, self.finish_browser_render)
         return False
+
+    def tidal_menu(self, items):
+        """TIDAL's menu in two columns: the new-release lists on the left, the genres in a two-wide grid on the right."""
+        groups = []
+        for item in items:
+            if item.get("hint") == "header": groups.append([item.get("title", "").upper(), []])
+            elif groups: groups[-1][1].append(item)
+        def row(item):
+            button = Gtk.Button(); button.add_css_class("tidal-row"); button.set_hexpand(True)
+            label = self.label(item.get("title") or "", "tidal-row-label"); label.set_xalign(0); label.set_ellipsize(Pango.EllipsizeMode.END); button.set_child(label)
+            button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
+        page = Gtk.Box(spacing=28); page.set_hexpand(True); page.set_valign(Gtk.Align.START)
+        for index, (title, rows) in enumerate(groups[:2]):
+            column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); column.set_hexpand(index == 1); column.set_valign(Gtk.Align.START)
+            if index == 0: column.set_size_request(300, -1)
+            column.append(self.label(title, "browser-section"))
+            if index == 0:
+                for item in rows: column.append(row(item))
+            else:
+                grid = Gtk.Grid(column_spacing=10, row_spacing=10); grid.set_column_homogeneous(True); grid.set_hexpand(True)
+                for position, item in enumerate(rows): grid.attach(row(item), position % 2, position // 2, 1, 1)
+                column.append(grid)
+            page.append(column)
+        return page
 
     def finish_browser_render(self):
         # Restore the old view before dispatching the next section/letter.
