@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.57 Alpine — 28 October 2026
+
+- Reboot now opens a "Restart or shut down RoonDeck?" prompt with Cancel, Restart and Shut down. Shut down powers the Pi off (unplug and replug to start it again).
+
 ## 1.1.8-beta.56 Alpine — 28 October 2026
 
 - Join Wi-Fi: when a join fails the screen now says why ("network not found", "password not accepted", "no answer in time") instead of silently going back. The Pi now rescans before joining (the radio was often just switched on, so a phone hotspot was not yet in the list), retries once if the network is not found, and removes the half-made saved profile left by a failed join.

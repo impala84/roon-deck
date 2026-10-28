@@ -716,7 +716,7 @@ class Setup:
             if self.network_control is None: self.network_control = NetworkControl(self.root)
             return self.network_control.handle(data)
         pending_network = self.root / "var/lib/roondeck-network/pending.json"
-        if pending_network.exists() and action in {"update", "reboot", "set_wifi", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install"}:
+        if pending_network.exists() and action in {"update", "reboot", "shutdown", "set_wifi", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install"}:
             raise ValueError("Confirm or restore the network connection before changing software or connections.")
         if action == "accessories":
             if (self.software_lock.locked() or update_locked(self.root)) and data.get("operation", "status") not in {"status", "vpn_disconnect"}:
@@ -963,6 +963,9 @@ class Setup:
             state["username"] = username; self.save(state)
             self.run(["rc-service", "sshd", "restart"])
             threading.Timer(1, lambda: self.run(["rc-service", "pi-home-api", "restart"])).start()
+            return {"ok": True}
+        if action == "shutdown" and state.get("complete"):
+            threading.Timer(2, lambda: self.run(["/sbin/poweroff"])).start()
             return {"ok": True}
         if action == "reboot" and (state.get("complete") or state.get("orientation")):
             threading.Timer(2, lambda: self.run(["/sbin/reboot"])).start()

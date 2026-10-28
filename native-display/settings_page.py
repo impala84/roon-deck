@@ -773,17 +773,23 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         backdrop = Gtk.Box(); backdrop.set_hexpand(True); backdrop.set_vexpand(True); shade.set_child(backdrop)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); card.add_css_class("confirm-card"); card.set_halign(Gtk.Align.CENTER); card.set_valign(Gtk.Align.CENTER)
         card.set_margin_bottom(round(self.window.get_height() * .08))
-        card.append(self.label("Restart RoonDeck?", "confirm-title", .5)); card.append(self.label("The touchscreen will be unavailable for about a minute.", "confirm-copy", .5))
+        card.append(self.label("Restart or shut down RoonDeck?", "confirm-title", .5)); card.append(self.label("Restart is back in about a minute. After a shutdown, unplug and replug the power to start it again.", "confirm-copy", .5))
         actions = Gtk.Box(spacing=12); actions.set_halign(Gtk.Align.CENTER)
         def close(*_):
             self.root_overlay.remove_overlay(shade); self.reboot_confirmation = None
-        def restart(button):
-            button.set_sensitive(False); self.device_status.set_text("Restarting RoonDeck…")
-            def reboot():
+        def power(button, path, doing, failed):
+            for item in actions_buttons: item.set_sensitive(False)
+            self.device_status.set_text(doing)
+            def run():
                 self.clear_network_trial()
-                if post_json(BUS + "/api/device/reboot", {}, timeout=5) is None: GLib.idle_add(self.device_status.set_text, "Could not restart RoonDeck")
-            threading.Thread(target=reboot, daemon=True).start()
-        actions.append(self.button("CANCEL", close, "confirm-cancel")); actions.append(self.button("RESTART", restart, "confirm-reboot")); card.append(actions); shade.add_overlay(card)
+                if post_json(BUS + path, {}, timeout=5) is None: GLib.idle_add(self.device_status.set_text, failed)
+            threading.Thread(target=run, daemon=True).start()
+        cancel = self.button("CANCEL", close, "confirm-cancel")
+        restart = self.button("RESTART", lambda b: power(b, "/api/device/reboot", "Restarting RoonDeck…", "Could not restart RoonDeck"), "confirm-reboot")
+        shutdown = self.button("SHUT DOWN", lambda b: power(b, "/api/device/shutdown", "Shutting down RoonDeck…", "Could not shut down RoonDeck"), "confirm-reboot")
+        actions_buttons = (cancel, restart, shutdown)
+        for item in actions_buttons: actions.append(item)
+        card.append(actions); shade.add_overlay(card)
         self.reboot_confirmation = shade; self.root_overlay.add_overlay(shade); shade.set_cursor_from_name("none")
 
     def _request_update(self):
