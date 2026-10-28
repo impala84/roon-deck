@@ -469,7 +469,7 @@ http.createServer(async (request, response) => {
       return json(response,200,section === 'daily-home' ? discovery.home(client) : discovery.state(section,url.searchParams.get('id') || '',client));
     }
     if (request.method === 'GET' && url.pathname === '/api/discovery/image') {
-      const imageUrl = discovery.imageUrl(url.searchParams.get('key'));
+      const imageUrl = discovery.imageUrl(url.searchParams.get('key'), url.searchParams.get('size'));
       if(!imageUrl) return response.writeHead(404).end();
       const upstream = await fetch(imageUrl,{signal:AbortSignal.timeout(4000),redirect:'error'});
       if(!upstream.ok) return response.writeHead(404).end();

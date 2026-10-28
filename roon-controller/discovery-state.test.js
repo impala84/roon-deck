@@ -36,6 +36,7 @@ test('public data replaces private artwork URLs with bounded keys and validates 
   const publicData=manager.decorate({items:[{kind:'album',id:'123',title:'Title',artist:'Artist',object_ref:'internal',artwork:{url:'broker:///image/example.__ROON_IMAGE_SIZE__.jpg'}}]});
   assert.equal(publicData.items[0].object_ref,undefined);assert.equal(publicData.items[0].artwork,undefined);
   assert.equal(publicData.items[0].key.length,24);assert.equal(manager.imageUrl(publicData.items[0].artwork_key),'http://example:9330/image/example.256.jpg');
+  assert.equal(manager.imageUrl(publicData.items[0].artwork_key,480),'http://example:9330/image/example.480.jpg');assert.equal(manager.imageUrl(publicData.items[0].artwork_key,99999),'http://example:9330/image/example.256.jpg');
   manager.images.set('unsafe','https://example.com/private');assert.equal(manager.imageUrl('unsafe'),null);
   manager.images.set('invalid','https://[');assert.equal(manager.imageUrl('invalid'),null);
   assert.equal(manager.imageUrl('unregistered'),null);

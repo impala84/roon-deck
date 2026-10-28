@@ -12,8 +12,9 @@ class ArtworkMixin:
         while True:
             key = self.queue_thumbnail_jobs.get()
             hero_size = 1200 if key in self.artist_hero_keys else 256
-            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size={hero_size}"
-            image = get_bytes(url, timeout=6.0 if key in self.artist_hero_keys else 2.5)
+            discover_size = 640 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 480
+            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}&size={discover_size}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size={hero_size}"
+            image = get_bytes(url, timeout=6.0 if key in self.artist_hero_keys or key.startswith("discover:") else 2.5)
             if image:
                 if not hasattr(self, "queue_artwork_light"): self.queue_artwork_light = {}
                 self.queue_artwork_light[key] = self.artwork_is_light(image)
@@ -81,7 +82,7 @@ class ArtworkMixin:
                 if picture.get_root() is not None: picture.set_paintable(texture)
             return False
         def load():
-            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size=900"
+            url = f"{ROON}/api/discovery/image?key={quote(key[9:], safe='')}&size=640" if key.startswith("discover:") else f"{ROON}/api/image?key={quote(key, safe='')}&size=900"
             GLib.idle_add(apply, self.decode_artwork(get_bytes(url, timeout=5)))
         threading.Thread(target=load, daemon=True).start()
 

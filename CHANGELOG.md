@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.70 Alpine — 28 October 2026
+
+- Discover artwork (Daily mixes, For you, New releases, Recent) is fetched at 480px (640px on the 10-inch) instead of a 256px thumbnail, so the larger tiles are sharp.
+
 ## 1.1.8-beta.69 Alpine — 28 October 2026
 
 - TIDAL menu: icons are larger, brighter and have a heavier stroke. The Back button no longer flashes above ROON in the rail when TIDAL opens.

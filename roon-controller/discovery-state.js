@@ -79,9 +79,11 @@ class DiscoveryManager {
     }
     return null;
   }
-  imageUrl(key) {
+  // size: the touchscreen's large Discover tiles ask for 480 or 640 instead of the default 256 thumbnail.
+  imageUrl(key, size=256) {
     const url=this.images.get(key); if(!url||!this.target)return null;
-    if(/^broker:\/\/\/image\/[A-Za-z0-9_-]+\.__ROON_IMAGE_SIZE__\.jpg$/.test(url)) return `http://${this.target.host}:${this.target.httpPort||9330}/${url.slice('broker:///'.length).replace('__ROON_IMAGE_SIZE__','256')}`;
+    size=[256,480,640].includes(Number(size))?Number(size):256;
+    if(/^broker:\/\/\/image\/[A-Za-z0-9_-]+\.__ROON_IMAGE_SIZE__\.jpg$/.test(url)) return `http://${this.target.host}:${this.target.httpPort||9330}/${url.slice('broker:///'.length).replace('__ROON_IMAGE_SIZE__',String(size))}`;
     try {const target=new URL(url); return target.protocol==='https:'&&target.hostname==='images.tidal.com'?url:null;} catch {return null;}
   }
   async mixAction(id,zoneId,action,nonce) {
