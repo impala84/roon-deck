@@ -83,7 +83,7 @@ class DiscoverPageMixin:
     def open_discover(self, section="recent", mix="", picks=False, recent_mode=None):
         if section == "recent": self.discovery_recent_mode = recent_mode or "added"
         self.discovery_pages = {}
-        self.discovery_browser_origin = False
+        self.discovery_browser_origin = False; self.discovery_tidal_pending = False
         self.discovery_active = True; self.discovery_section = section; self.discovery_mix = mix
         self.discovery_picks = picks
         self.discovery_opening = False
@@ -319,15 +319,19 @@ class DiscoverPageMixin:
             return (("mixes", "MIXES"), ("recommendations", "FOR YOU")), getattr(self, "discovery_daily_tab", "mixes") if getattr(self, "responsive_portrait", False) else "mixes"
         if self.discovery_section == "releases":
             # TIDAL's own new releases and genres live beside Roon's list; they open in the Browse view with this rail kept.
-            in_tidal = self.roon_views.get_visible_child_name() == "browse" and (getattr(self, "browser_state", None) or {}).get("section") == "tidal"
+            in_tidal = self.roon_views.get_visible_child_name() == "browse" and ((getattr(self, "browser_state", None) or {}).get("section") == "tidal" or getattr(self, "discovery_tidal_pending", False))
             return (("roon", "ROON"), ("tidal", "TIDAL")), "tidal" if in_tidal else "roon"
         return (), ""
 
     def select_discovery_secondary(self, value):
         if self.discovery_section == "releases":
             if value == "tidal":
-                self.discovery_browser_origin = True; self.discovery_active = True
-                self.set_roon_view("browse"); self.request_browser("section", section="tidal")
+                self.discovery_browser_origin = True; self.discovery_active = True; self.discovery_tidal_pending = True
+                # Swap the rail and clear the page before Roon answers, so no Browse menu or old grid shows in between.
+                self.browser_sidebar.set_visible(False); self.browser_discovery_sidebar.set_visible(True)
+                self.set_roon_view("browse"); self.show_browser_loading()
+                self.sync_discovery_sidebar(self.browser_discovery_sidebar, from_browser=True)
+                self.request_browser("section", section="tidal")
             else: self.open_discover("releases")
         elif self.discovery_section == "recent": self.open_recent(value)
         elif getattr(self, "responsive_portrait", False) and value in {"mixes", "recommendations"}:
@@ -363,7 +367,11 @@ class DiscoverPageMixin:
             back = self.button("BACK", lambda *_: self.open_discover("releases"), "browser-back")
             back.set_halign(Gtk.Align.START); sidebar.prepend(back)
         spacer = Gtk.Box(); spacer.set_vexpand(not portrait); spacer.set_hexpand(portrait); sidebar.append(spacer)
-        if self.discovery_mix or (from_browser and (self.discovery_section != "releases" or portrait)):
+        tidal_back = from_browser and self.discovery_section == "releases" and (getattr(self, "browser_state", None) or {}).get("section") == "tidal" and (self.browser_state or {}).get("can_back")
+        if tidal_back:
+            back = self.button("BACK", lambda *_: self.request_browser("back"), "browser-back")
+            back.set_halign(Gtk.Align.START); back.set_valign(Gtk.Align.END); sidebar.append(back)
+        elif self.discovery_mix or (from_browser and (self.discovery_section != "releases" or portrait)):
             back = self.button("BACK", lambda *_: self.open_discover(self.discovery_section, self.discovery_mix, self.discovery_picks) if from_browser else self.open_discover("daily"), "browser-back")
             back.set_halign(Gtk.Align.END if portrait else Gtk.Align.START); back.set_valign(Gtk.Align.END); sidebar.append(back)
 

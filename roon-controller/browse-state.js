@@ -540,6 +540,9 @@ class BrowseManager {
     normalised = normalised.map(item => /^play genre$/i.test(item.title) ? {...item, title: 'Shuffle Genre', action: true, shuffle_genre: true} : item);
     if (hierarchy === 'browse' && level === 0) normalised = rootItems(normalised);
     const presentation = browserLayout(hierarchy, level, list, normalised);
+    // TIDAL new-release grids keep their titles and never show the A-Z scrubber, including when Back returns to one.
+    const tidalGrid = this.sections.get(session) === 'tidal' && level > 0 && presentation.layout === 'covers';
+    if (tidalGrid) presentation.show_labels = true;
     const filteredLibrary = /^library$/i.test(String(list?.title || '').trim());
     const count = filteredLibrary ? normalised.length : Number(list?.count ?? normalised.length);
     const section = this.sections.get(session) || '';
@@ -561,7 +564,7 @@ class BrowseManager {
       // Nested album collections (for example Genre -> Pop/Rock) need the
       // same alphabetical navigation as the library album grid once their
       // result set spans more than one page.
-      alpha_scrub: !artistProfile && ((sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > 8)), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
+      alpha_scrub: !artistProfile && !tidalGrid && ((sectionRoot && ['albums', 'artists'].includes(section)) || (presentation.layout === 'covers' && count > 8)), can_back: !sectionRoot && (hierarchy !== 'browse' || Number(list?.level || 0) > 0),
       has_more: !filteredLibrary && presentation.layout !== 'home' && Number(loadedOffset || 0) + normalised.length < count,
       fallback_image_key: fallbackImageKey, message, error: false,
       ...(albumProfile ? {album_profile: albumProfile} : {}),

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.64 Alpine — 28 October 2026
+
+- TIDAL (New releases): a Back button appears in the rail as you go into a genre or album. Album and artist names are larger.
+- TIDAL: going Back from an album no longer brings up the A–Z scrubber and hides the titles; the grid keeps its labels.
+- TIDAL: tapping TIDAL, or a TIDAL row, now clears the page and shows the loading dots straight away with the right rail already in place, so the old Browse menu or previous grid no longer flashes up, and the dots stay centred.
+
 ## 1.1.8-beta.63 Alpine — 28 October 2026
 
 - TIDAL moves under Discover → New releases, as a ROON / TIDAL rail on the left, instead of sitting in the Browse rail. TIDAL opens New albums, Recommended, Top 20, Masters and the genre list in the Browse view with the same rail kept; ROON returns to Roon's own list. New releases tiles are slightly narrower to make room for the rail.

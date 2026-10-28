@@ -312,7 +312,7 @@ class BrowsePageMixin:
     def open_browser_item(self, _button, item_key):
         if item_key:
             self.browser_action_anchor = _button
-            if getattr(_button, "opens_page", False) and not self.browser_loading:
+            if (getattr(_button, "opens_page", False) or str(item_key).startswith("tidal:")) and not self.browser_loading:
                 state = self.browser_state or {}
                 self.show_browser_loading()
             if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search": self.set_roon_view("browse")
@@ -422,13 +422,18 @@ class BrowsePageMixin:
             gen2_genre = tile_kind == "genres" and self.window.has_css_class("touch2-7-landscape")
             icon_scale = .56 if gen2_genre else .58 if tile_kind == "playlists" else .65
             icon = self.browser_svg_icon(self.browser_tile_symbol(item.get("title"), tile_kind), size=max(54, round(size * icon_scale))); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_margin_bottom(round(size * (.26 if gen2_genre else .18 if separated_label_tile else .12))); artwork.add_overlay(icon)
+        tidal_tile = (self.browser_state or {}).get("section") == "tidal"
         if show_labels:
-            title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5); title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
+            title = self.label(item.get("title") or "Untitled", "browser-cover-title", .5)
+            if tidal_tile: title.add_css_class("tidal-cover")
+            title.set_max_width_chars(22); title.set_ellipsize(Pango.EllipsizeMode.END); content.append(title)
             if tile_kind in {"genres", "playlists"}:
                 content.remove(title); title.add_css_class("tile"); title.set_wrap(True); title.set_lines(2); title.set_ellipsize(Pango.EllipsizeMode.END); title.set_xalign(.5); title.set_justify(Gtk.Justification.CENTER); title.set_halign(Gtk.Align.FILL); title.set_valign(Gtk.Align.END); artwork.add_overlay(title)
                 title.set_margin_bottom(6 if separated_label_tile else max(12, round(size * .075)))
             if item.get("subtitle") and not tile_kind:
-                subtitle = self.label(item.get("subtitle"), "browser-cover-subtitle", .5); subtitle.set_max_width_chars(22); subtitle.set_ellipsize(Pango.EllipsizeMode.END); content.append(subtitle)
+                subtitle = self.label(item.get("subtitle"), "browser-cover-subtitle", .5)
+                if tidal_tile: subtitle.add_css_class("tidal-cover")
+                subtitle.set_max_width_chars(22); subtitle.set_ellipsize(Pango.EllipsizeMode.END); content.append(subtitle)
         caption_height = 0 if tile_kind in {"genres", "playlists"} else 96 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 60
         shell = Gtk.ScrolledWindow(); shell.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); shell.set_propagate_natural_width(False); shell.set_propagate_natural_height(False); shell.set_min_content_width(size); shell.set_max_content_width(size); shell.set_min_content_height(size + (caption_height if show_labels else 0)); shell.set_max_content_height(size + (caption_height if show_labels else 0)); shell.set_child(content)
         button = Gtk.Button(); button.add_css_class("browser-cover-card")
@@ -638,7 +643,7 @@ class BrowsePageMixin:
             anchor = getattr(self, "browser_action_anchor", None) or self.browser_body
             self.show_action_menu(data, anchor)
             return False
-        self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
+        self.discovery_tidal_pending = False; self.browser_rendering = True; self.browser_loading = True; self.browser_state = data; self.browser_back.set_visible(bool(data.get("can_back")) and not data.get("surprise_preview")); self.browser_back.set_sensitive(bool(data.get("can_back")))
         self.browser_scrubber_active = bool(data.get("alpha_scrub")) and not data.get("artist_profile") and data.get("layout") in {"covers", "tiles"}
         self.browser_scrubber.set_visible(self.browser_scrubber_active)
         # The page's 28px right margin and the list's 8px padding are redundant next to the 7-inch rail.
