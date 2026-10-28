@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.59 Alpine — 28 October 2026
+
+- Discover → Daily: mixes are now a wrapping grid that uses the full width (four across), and each "For you" row is three across, instead of small sideways-scrolling rows. Mix covers use a softer greyscale-with-lavender tint closer to Roon's own. The sidebar switches to "For you" as soon as that section is half-way up the screen.
+
 ## 1.1.8-beta.58 Alpine — 28 October 2026
 
 - Sleep now has the same forgiving tap area as the Settings cog (about 30px around the icon), on the page headers and on the Settings Sleep button.

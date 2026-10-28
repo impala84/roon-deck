@@ -184,7 +184,7 @@ def publish_display_source():
 
 def mix_duotone_matrix():
     """GTK transposes this row-major matrix: luminance maps black to violet."""
-    tint = (150 / 255, 144 / 255, 237 / 255)
+    tint = (186 / 255, 182 / 255, 224 / 255)
     values = [weight * channel for weight in (.2126, .7152, .0722) for channel in (*tint, 0)]
     return values + [0, 0, 0, 1]
 

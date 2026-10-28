@@ -983,7 +983,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         matrix = namespace["mix_duotone_matrix"]()
         transform = lambda pixel: [sum(matrix[row * 4 + column] * pixel[row] for row in range(4)) for column in range(4)]
         self.assertEqual(transform([0, 0, 0, 1]), [0, 0, 0, 1])
-        for actual, expected in zip(transform([1, 1, 1, 1]), [150/255, 144/255, 237/255, 1]): self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(transform([1, 1, 1, 1]), [186/255, 182/255, 224/255, 1]): self.assertAlmostEqual(actual, expected)
         red = transform([1, 0, 0, .5]); self.assertAlmostEqual(red[3], .5); self.assertGreater(red[2], red[0]); self.assertGreater(red[0], red[1])
 
     def test_discovery_drops_stale_results_without_touching_gtk(self):

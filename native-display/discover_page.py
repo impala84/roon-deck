@@ -195,6 +195,12 @@ class DiscoverPageMixin:
             columns, size = self.discovery_grid_metrics(self.discovery_section)
         content = self.discovery_list
         self.discovery_daily_sections = {}
+        daily_grid = self.discovery_section == "daily" and not portrait_grid and not self.discovery_mix
+        def daily_columns(count):
+            """Tiles scale to the full width beside the sidebar: four across for the mixes, three for each recommendation row."""
+            width = getattr(self, "viewport_width", 800)
+            room = width - (150 if width <= 820 else 190) - 40
+            return count, max(100, (room - 18 * (count - 1)) // count)
         def group(title, items, section_key="", seed=None):
             if title:
                 heading = self.label(title, "recommendation-heading" if seed else "browser-section")
@@ -211,7 +217,7 @@ class DiscoverPageMixin:
             original = not portrait_grid and getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500
             column_spacing = 14 if original and self.discovery_section == "releases" else 30 if portrait_grid or self.discovery_section == "releases" else 18 if daily else 24
             grid = Gtk.Grid(column_spacing=column_spacing, row_spacing=14 if original else 18 if daily else 20); grid.set_column_homogeneous(original and self.discovery_section == "releases"); grid.set_halign(Gtk.Align.FILL if original and self.discovery_section == "releases" else Gtk.Align.START); grid.set_hexpand(True); grid.set_valign(Gtk.Align.START); grid.set_vexpand(False)
-            track = ElasticCarouselTrack() if daily and not portrait_grid else None
+            track = None  # Daily is a wrapping grid now, like the album browser, instead of a sideways carousel.
             section_cards = []
             if track: track.add_css_class("daily-track"); track.set_margin_end(0)
             for index, item in enumerate(visible_items):
@@ -261,8 +267,11 @@ class DiscoverPageMixin:
             message = "Loading mixes…" if mixes == "loading" else data.get("mixes_message") or "No daily mixes available from Roon."
             notice = self.label(message, "browser-message"); notice.set_wrap(True); content.append(notice)
             self.discovery_daily_sections["mixes"] = notice
-        elif show_mixes: group(None, data.get("items", []), "mixes")
+        elif show_mixes:
+            if daily_grid: columns, size = daily_columns(4)
+            group(None, data.get("items", []), "mixes")
         for recommendation in data.get("groups", []) if show_recommendations else []:
+            if daily_grid: columns, size = daily_columns(3)
             seed = recommendation.get("seed") or {}
             reason = {"recent": "BECAUSE YOU LISTENED TO…", "added": "BECAUSE YOU ADDED…"}.get(recommendation.get("reason"), "INSPIRED BY…")
             group(reason, recommendation.get("items", []), "recommendations", seed if seed.get("title") else None)
@@ -282,7 +291,8 @@ class DiscoverPageMixin:
         if getattr(self, "responsive_portrait", False): return
         if self.discovery_section != "daily" or not getattr(self, "discovery_daily_sections", None): return
         marker = self.discovery_daily_sections.get("recommendations")
-        active = "recommendations" if marker and adjustment.get_value() >= max(0, marker.get_allocation().y - 30) else "mixes"
+        # Switch as soon as the next section reaches the middle of the view, not only when it has reached the top.
+        active = "recommendations" if marker and adjustment.get_value() + adjustment.get_page_size() * .45 >= marker.get_allocation().y else "mixes"
         for value, button in getattr(self, "discovery_sidebar_buttons", {}).items():
             if value == active: button.add_css_class("active")
             else: button.remove_css_class("active")
