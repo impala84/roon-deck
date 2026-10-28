@@ -860,7 +860,8 @@ class BrowsePageMixin:
             label = self.label(item.get("title") or "", "tidal-row-label"); label.set_xalign(0); label.set_ellipsize(Pango.EllipsizeMode.END)
             if icon:
                 button.add_css_class("with-icon")
-                line = Gtk.Box(spacing=18); line.append(self.browser_svg_icon(icon, 64 if large else 46)); label.set_hexpand(True); line.append(label); button.set_child(line)
+                mark = FamilyIcon(icon, 84 if large else 60, stroke_width=2.6); mark.add_css_class("tidal-icon"); mark.set_halign(Gtk.Align.CENTER); mark.set_valign(Gtk.Align.CENTER); mark.set_size_request(84 if large else 60, 84 if large else 60)
+                line = Gtk.Box(spacing=18); line.append(mark); label.set_hexpand(True); line.append(label); button.set_child(line)
             else: button.set_child(label)
             button.connect("clicked", self.open_browser_item, item.get("item_key")); return button
         def scroller(child):

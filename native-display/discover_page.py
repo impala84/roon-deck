@@ -364,7 +364,7 @@ class DiscoverPageMixin:
             if value == active: button.add_css_class("active")
             sidebar.append(button); self.discovery_sidebar_buttons[value] = button
         portrait = getattr(self, "responsive_portrait", False)
-        if from_browser and self.discovery_section == "releases" and not portrait and (getattr(self, "browser_state", None) or {}).get("section") != "tidal":
+        if from_browser and self.discovery_section == "releases" and not portrait and (getattr(self, "browser_state", None) or {}).get("section") != "tidal" and not getattr(self, "discovery_tidal_pending", False):
             back = self.button("BACK", lambda *_: self.open_discover("releases"), "browser-back")
             back.set_halign(Gtk.Align.START); sidebar.prepend(back)
         spacer = Gtk.Box(); spacer.set_vexpand(not portrait); spacer.set_hexpand(portrait); sidebar.append(spacer)

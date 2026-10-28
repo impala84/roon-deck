@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.69 Alpine — 28 October 2026
+
+- TIDAL menu: icons are larger, brighter and have a heavier stroke. The Back button no longer flashes above ROON in the rail when TIDAL opens.
+
 ## 1.1.8-beta.68 Alpine — 28 October 2026
 
 - TIDAL menu icons: Top 20 uses a line-art "20" and Masters a line-art "M", drawn in the same outline style as the other icons.
