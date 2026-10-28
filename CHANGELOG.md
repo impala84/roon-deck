@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.58 Alpine — 28 October 2026
+
+- Sleep now has the same forgiving tap area as the Settings cog (about 30px around the icon), on the page headers and on the Settings Sleep button.
+- Alphabet scrubber: wide letters such as M and W are no longer clipped at the left edge on the narrower rails.
+
 ## 1.1.8-beta.57 Alpine — 28 October 2026
 
 - Reboot now opens a "Restart or shut down RoonDeck?" prompt with Cancel, Restart and Shut down. Shut down powers the Pi off (unplug and replug to start it again).

@@ -500,14 +500,22 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
 
     def cog_zone_tapped(self, _gesture, presses, x, y):
         """Taps landing within about 30px of a visible Settings cog (which the cog itself did not take) open Settings."""
-        if presses != 1 or getattr(self, "settings_open", False): return
-        for button in getattr(self, "header_utility_buttons", []):
-            if button.get_tooltip_text() != "Settings" or not button.get_mapped(): continue
+        if presses != 1: return
+        best = None
+        for button in list(getattr(self, "header_utility_buttons", [])) + [getattr(self, "settings_sleep_button", None)]:
+            if button is None or button.get_tooltip_text() not in ("Settings", "Sleep", None) or not button.get_mapped(): continue
+            name = button.get_tooltip_text() or ("Sleep" if button is getattr(self, "settings_sleep_button", None) else "")
+            if name == "Settings" and getattr(self, "settings_open", False): continue
+            if name not in ("Settings", "Sleep"): continue
             point = button.translate_coordinates(self.window, 0, 0)
             if point is None: continue
             margin = 30
-            if point[0] - margin <= x <= point[0] + button.get_width() + margin and point[1] - margin <= y <= point[1] + button.get_height() + margin:
-                self.open_settings(); return
+            dx = max(point[0] - x, 0, x - (point[0] + button.get_width())); dy = max(point[1] - y, 0, y - (point[1] + button.get_height()))
+            if dx > margin or dy > margin: continue
+            if name == "Sleep" and dx == 0 and dy == 0: continue  # on the button itself: its own click handles it
+            distance = dx * dx + dy * dy
+            if best is None or distance < best[0]: best = (distance, name)
+        if best: (self.open_settings if best[1] == "Settings" else self.sleep)()
 
     def header(self, centre, clock):
         row = Gtk.Box(spacing=10); row.add_css_class("page-header")

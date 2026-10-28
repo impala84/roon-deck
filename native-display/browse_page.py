@@ -221,7 +221,9 @@ class BrowsePageMixin:
         large_interface = getattr(self, "settings_data", {}).get("interface_size") == "larger"
         cr.set_font_size(25 if min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000 else 22 if large_interface else 18)
         letter = chr(65 + value); extents = cr.text_extents(letter)
-        cr.move_to(x - 26 - extents[2], center - extents[1] - extents[3] / 2); cr.show_text(letter)
+        # Wide letters (M, W) on the narrow rails were clipped at the left edge: pull them nearer the dot instead of off the page.
+        gap = max(13, min(26, x - 3 - extents[2]))
+        cr.move_to(x - gap - extents[2] - extents[0], center - extents[1] - extents[3] / 2); cr.show_text(letter)
 
     def browser_scrub_at(self, y):
         height = self.browser_scrubber.get_allocated_height()
