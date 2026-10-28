@@ -322,7 +322,7 @@ class DisplayRotationTests(unittest.TestCase):
         html = (ROOT / "roon-controller" / "static" / "index.html").read_text(encoding="utf-8")
         self.assertNotIn("def build_browser_keyboard(self):", display)
         self.assertNotIn('id="browser-search"', html)
-        self.assertIn('for section in ("albums", "artists", "genres", "playlists", "tidal")', display)
+        self.assertIn('for section in ("albums", "artists", "genres", "playlists")', display)
         self.assertIn('self.browser_scrubber = Gtk.DrawingArea()', display)
         self.assertIn('self.browser_scrubber.set_draw_func(self.draw_browser_scrubber)', display)
         self.assertIn('def browser_scrub_changed(self, scale):', display)

@@ -102,7 +102,7 @@ class NowPlayingPageMixin:
         browser = Gtk.Overlay(); browser.add_css_class("browser-view"); browser.set_vexpand(True); browser.set_hexpand(True)
         browser_body = Gtk.Box(spacing=0); browser_body.set_vexpand(True); browser_body.set_hexpand(True); browser.set_child(browser_body); self.browser_body = browser_body
         self.browser_section_buttons = {}; sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); sidebar.add_css_class("browser-sidebar"); sidebar.add_css_class("library-sidebar")
-        for section in ("albums", "artists", "genres", "playlists", "tidal"):
+        for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: self.request_browser("section", section=value), "browser-filter"); button.get_child().set_xalign(0); self.browser_section_buttons[section] = button; sidebar.append(button)
         self.browser_search_button = self.button("SEARCH", self.show_browser_search, "browser-filter"); self.browser_search_button.get_child().set_xalign(0); sidebar.append(self.browser_search_button)
         # Surprise is a top-level Discover destination.  Keep no sixth rail
@@ -152,7 +152,7 @@ class NowPlayingPageMixin:
         self.roon_views.add_named(browser, "browse")
         search_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_panel.add_css_class("browser-search-panel"); self.browser_search_panel = search_panel
         search_nav = Gtk.Box(spacing=2); search_nav.add_css_class("browser-sidebar"); search_nav.add_css_class("library-sidebar"); self.search_nav = search_nav
-        for section in ("albums", "artists", "genres", "playlists", "tidal"):
+        for section in ("albums", "artists", "genres", "playlists"):
             button = self.button(section.upper(), lambda _button, value=section: (self.set_roon_view("browse"), self.request_browser("section", section=value)), "browser-filter"); button.get_child().set_xalign(0); search_nav.append(button)
         search_active = self.button("SEARCH", lambda *_: None, "browser-filter"); search_active.add_css_class("active"); search_active.get_child().set_xalign(0); search_nav.append(search_active); search_panel.append(search_nav)
         search_main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); search_main.add_css_class("search-main"); search_main.set_hexpand(True); search_main.set_vexpand(True); self.search_main = search_main

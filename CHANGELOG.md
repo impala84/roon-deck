@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.63 Alpine — 28 October 2026
+
+- TIDAL moves under Discover → New releases, as a ROON / TIDAL rail on the left, instead of sitting in the Browse rail. TIDAL opens New albums, Recommended, Top 20, Masters and the genre list in the Browse view with the same rail kept; ROON returns to Roon's own list. New releases tiles are slightly narrower to make room for the rail.
+
 ## 1.1.8-beta.62 Alpine — 28 October 2026
 
 - Browse → TIDAL: a new TIDAL section in the Browse rail lists New albums, Recommended, Top 20 and Masters, then every TIDAL genre. Tapping a genre opens its New Albums as a normal cover grid that plays through Roon; Back returns to the TIDAL menu. It reads TIDAL's own rows as Roon exposes them, so no TIDAL login or API key is needed.

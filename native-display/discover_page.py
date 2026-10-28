@@ -317,10 +317,19 @@ class DiscoverPageMixin:
             return (("added", "ADDED"), ("listened", "LISTENED")), self.discovery_recent_mode
         if self.discovery_section == "daily":
             return (("mixes", "MIXES"), ("recommendations", "FOR YOU")), getattr(self, "discovery_daily_tab", "mixes") if getattr(self, "responsive_portrait", False) else "mixes"
+        if self.discovery_section == "releases":
+            # TIDAL's own new releases and genres live beside Roon's list; they open in the Browse view with this rail kept.
+            in_tidal = self.roon_views.get_visible_child_name() == "browse" and (getattr(self, "browser_state", None) or {}).get("section") == "tidal"
+            return (("roon", "ROON"), ("tidal", "TIDAL")), "tidal" if in_tidal else "roon"
         return (), ""
 
     def select_discovery_secondary(self, value):
-        if self.discovery_section == "recent": self.open_recent(value)
+        if self.discovery_section == "releases":
+            if value == "tidal":
+                self.discovery_browser_origin = True; self.discovery_active = True
+                self.set_roon_view("browse"); self.request_browser("section", section="tidal")
+            else: self.open_discover("releases")
+        elif self.discovery_section == "recent": self.open_recent(value)
         elif getattr(self, "responsive_portrait", False) and value in {"mixes", "recommendations"}:
             self.discovery_daily_tab = value
             if self.discovery_mix:
@@ -350,7 +359,7 @@ class DiscoverPageMixin:
             if value == active: button.add_css_class("active")
             sidebar.append(button); self.discovery_sidebar_buttons[value] = button
         portrait = getattr(self, "responsive_portrait", False)
-        if from_browser and self.discovery_section == "releases" and not portrait:
+        if from_browser and self.discovery_section == "releases" and not portrait and (getattr(self, "browser_state", None) or {}).get("section") != "tidal":
             back = self.button("BACK", lambda *_: self.open_discover("releases"), "browser-back")
             back.set_halign(Gtk.Align.START); sidebar.prepend(back)
         spacer = Gtk.Box(); spacer.set_vexpand(not portrait); spacer.set_hexpand(portrait); sidebar.append(spacer)
@@ -589,14 +598,14 @@ class DiscoverPageMixin:
             columns = columns if columns in {2, 3} else 2
             gap = 30
             return columns, max(64, (available - gap * (columns - 1)) // columns)
-        sidebar = section == "recent"
+        sidebar = section in {"recent", "releases"} and not getattr(self, "responsive_portrait", False)
         available = max(300, width - (198 if sidebar else 56))
         original = width <= 820 and not getattr(self, "responsive_portrait", False)
         columns = 4 if width >= 1000 or (original and section == "releases") else 3
         gap = 14 if original and section == "releases" else 30 if section == "releases" else 24
         # Browse is the visual benchmark. Recent needs substantially more air
         # around its sidebar, while New Releases can remain a little larger.
-        cap = 236 if sidebar else 1000
+        cap = 236 if section == "recent" else 1000
         minimum = 96 if original and section == "releases" else 110 if width < 1000 else 140
         size = max(minimum, min(190 if width < 1000 else cap, (available - gap * (columns - 1)) // columns))
         return columns, size
