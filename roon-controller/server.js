@@ -444,6 +444,11 @@ http.createServer(async (request, response) => {
       if (!configuredRuntime().browserEnabled) return json(response, 404, {error: 'Roon Browse is disabled'});
       return json(response, 200, await browser.run(url.searchParams.get('session'), 'current'));
     }
+    if (request.method === 'GET' && url.pathname === '/api/tidal/explore') {
+      if (!configuredRuntime().browserEnabled) return json(response, 404, {error: 'Roon Browse is disabled'});
+      try { return json(response, 200, await browser.exploreTidal(url.searchParams.get('path') || '')); }
+      catch (error) { return json(response, 502, {error: error.message}); }
+    }
     if (request.method === 'GET' && url.pathname === '/api/bluos/players') return json(response, 200, {players: await discoverPlayers()});
     if (request.method === 'GET' && url.pathname === '/api/bluos/inputs') return json(response, 200, {connected: bluos.publicState().connected, inputs: bluos.publicState().inputs});
     if (request.method === 'GET' && url.pathname === '/api/events') {

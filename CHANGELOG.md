@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.60 Alpine — 28 October 2026
+
+- Diagnostic for the planned TIDAL new-releases browser: `/api/tidal/explore?path=…` lists the rows Roon exposes under TIDAL (read-only), so the screen can be built on what this Roon server really offers.
+
 ## 1.1.8-beta.59 Alpine — 28 October 2026
 
 - Discover → Daily: mixes are now a wrapping grid that uses the full width (four across), and each "For you" row is three across, instead of small sideways-scrolling rows. Mix covers use a softer greyscale-with-lavender tint closer to Roon's own. The sidebar switches to "For you" as soon as that section is half-way up the screen.

@@ -382,6 +382,27 @@ class BrowseManager {
     return {...saved, navigate: 'now'};
   }
 
+  // Read-only look at TIDAL's own menu as Roon exposes it to controllers, one level at a time: path is "Title/Title/…".
+  // Used to find out what New Releases / Genres rows this Roon server offers before building a screen on them.
+  async exploreTidal(path = '') {
+    const service = this.service(), zone = this.zone();
+    if (!service) throw new Error('Roon is not connected');
+    const session = 'tidal-explore';
+    const options = {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone)};
+    let result = await request(service, 'browse', {...options, pop_all: true});
+    result = await this.openNamed(service, zone, session, result, 'tidal');
+    if (!result || result.action !== 'list') throw new Error('TIDAL is not available in Roon');
+    for (const title of String(path).split('/').map(part => part.trim()).filter(Boolean)) {
+      const loaded = await request(service, 'load', {...options, level: result.list.level, offset: 0, count: 100});
+      const item = (loaded.items || []).find(candidate => String(candidate.title || '').trim().toLowerCase() === title.toLowerCase());
+      if (!item?.item_key) throw new Error(`No "${title}" row here`);
+      result = await request(service, 'browse', {...options, item_key: item.item_key});
+      if (result.action !== 'list') throw new Error(`"${title}" is not a list (${result.action || 'no action'})`);
+    }
+    const loaded = await request(service, 'load', {...options, level: result.list.level, offset: 0, count: 100});
+    return {path, title: result.list.title, count: result.list.count, items: (loaded.items || []).map(item => ({title: item.title, subtitle: item.subtitle || '', hint: item.hint || '', input: Boolean(item.input_prompt)}))};
+  }
+
   async openNamed(service, zone, session, result, title) {
     if (result?.action !== 'list' || !result.list) return null;
     const loaded = await request(service, 'load', {hierarchy: 'browse', multi_session_key: session, level: result.list.level, offset: 0, count: 100});
