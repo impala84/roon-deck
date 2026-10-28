@@ -1183,7 +1183,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('profile_text_height = 72 if original else 94', code)
         self.assertIn('picture.artist_hero = True', code)
         self.assertIn('hero_size = 1200 if key in self.artist_hero_keys else 256', code)
-        self.assertIn('timeout=6.0 if key in self.artist_hero_keys else 2.5', code)
+        self.assertIn('timeout=6.0 if key in self.artist_hero_keys or key.startswith("discover:") else 2.5', code)
         self.assertIn('self.queue_thumbnail_source = {}', code)
         self.assertIn('source := self.queue_thumbnail_source.get(key)', code)
         self.assertIn('self.queue_thumbnail_source[key] = source', code)
