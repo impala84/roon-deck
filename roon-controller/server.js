@@ -388,7 +388,7 @@ const accessoryControl = new AccessoryControl({
 function serveStatic(request, response) {
   const names = {'/': 'index.html', '/icons.js': 'icons.js', '/app.js': 'app.js', '/discovery.js': 'discovery.js', '/discovery.css': 'discovery.css', '/style.css': 'style.css', '/refinements.css': 'refinements.css', '/favicon.svg': 'favicon.svg', '/favicon-roon.svg': 'favicon-roon.svg'};
   const pathname = new URL(request.url, 'http://localhost').pathname;
-  const allowedIcons = new Set(['music','jazz','classical','electronic','rock','stage','avant','folk','country','blues','rap','rb','reggae','latin','world','easy','vocal','ambient','holiday','children','religious','comedy','search','playlist','artist','album','folder','settings','clock','play','pause','previous','next','add','remove','back','forward','close','refresh','shuffle','heart','fan','light','switch','switchon','brightness','home','bus','discover','overflow','power','orientation','check','erase','chevron-down','chevron-play']);
+  const allowedIcons = new Set(['twenty','masters','music','jazz','classical','electronic','rock','stage','avant','folk','country','blues','rap','rb','reggae','latin','world','easy','vocal','ambient','holiday','children','religious','comedy','search','playlist','artist','album','folder','settings','clock','play','pause','previous','next','add','remove','back','forward','close','refresh','shuffle','heart','fan','light','switch','switchon','brightness','home','bus','discover','overflow','power','orientation','check','erase','chevron-down','chevron-play']);
   const icon = /^\/icons\/([a-z]+(?:-[a-z]+)*)-symbolic\.svg$/.exec(pathname);
   const name = names[pathname] || (icon && allowedIcons.has(icon[1]) ? pathname.slice(1) : null);
   if (!name) return false;

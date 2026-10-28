@@ -853,7 +853,7 @@ class BrowsePageMixin:
         for item in items:
             if item.get("hint") == "header": groups.append([item.get("title", "").upper(), []])
             elif groups: groups[-1][1].append(item)
-        icons = {"new albums": "album", "recommended": "music", "top 20": "playlist", "masters": "classical"}
+        icons = {"new albums": "album", "recommended": "music", "top 20": "twenty", "masters": "masters"}
         large = self.window.has_css_class("large-display")
         def row(item, icon=None):
             button = Gtk.Button(); button.add_css_class("tidal-row"); button.set_hexpand(True)

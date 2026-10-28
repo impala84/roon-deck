@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.68 Alpine — 28 October 2026
+
+- TIDAL menu icons: Top 20 uses a line-art "20" and Masters a line-art "M", drawn in the same outline style as the other icons.
+
 ## 1.1.8-beta.67 Alpine — 28 October 2026
 
 - TIDAL menu: the two lists now scroll independently. The four new-release rows have icons and bigger buttons like the Genres page. The Browse Back button no longer flashes at the top left when TIDAL opens (the rail has its own Back).
