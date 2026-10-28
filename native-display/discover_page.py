@@ -197,7 +197,7 @@ class DiscoverPageMixin:
         self.discovery_daily_sections = {}
         daily_grid = self.discovery_section == "daily" and not portrait_grid and not self.discovery_mix
         def daily_columns(count):
-            """Tiles scale to the full width beside the sidebar: four across for the mixes, three for each recommendation row."""
+            """Tiles scale to the full width beside the sidebar, three across."""
             width = getattr(self, "viewport_width", 800)
             room = width - (150 if width <= 820 else 190) - 40
             return count, max(100, (room - 18 * (count - 1)) // count)
@@ -224,17 +224,21 @@ class DiscoverPageMixin:
                 card = Gtk.Button(); card.add_css_class("discovery-card"); card.set_hexpand(False); card.set_vexpand(False); card.set_halign(Gtk.Align.CENTER); card.set_valign(Gtk.Align.START)
                 if daily: card.add_css_class("daily-card")
                 if item.get("_context_seed"): card.add_css_class("recommendation-seed-card")
-                body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5); body.set_halign(Gtk.Align.CENTER); body.set_valign(Gtk.Align.START)
+                body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2 if daily else 5); body.set_halign(Gtk.Align.CENTER); body.set_valign(Gtk.Align.START)
                 picture = MixPicture(duotone=item.get("kind") == "mix" or item.get("_context_seed", False)); picture.add_css_class("queue-art"); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(picture)
                 art = Gtk.ScrolledWindow(); art.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); art.set_propagate_natural_width(False); art.set_propagate_natural_height(False); art.set_min_content_width(size); art.set_max_content_width(size); art.set_min_content_height(size); art.set_max_content_height(size); art.set_size_request(size, size); art.set_halign(Gtk.Align.CENTER); art.set_child(picture); body.append(art)
                 large_display = min(getattr(self, "viewport_width", 800), getattr(self, "viewport_height", 480)) >= 1000
                 title_height = 82 if large_display else 46 if original else 54 if daily else 58
                 credit_height = 62 if large_display else 31 if original else 36
+                # Daily: a mix name already carries the artist, so drop the repeated line; albums keep a single compact artist line.
+                mix_tile = daily and item.get("kind") == "mix" and not item.get("_context_seed")
+                if daily and not large_display:
+                    title_height = 44 if original else 52; credit_height = 0 if mix_tile else 22 if original else 26
                 title_label = self.label(item.get("title", ""), "queue-title", .5); title_label.set_wrap(True); title_label.set_max_width_chars(20 if daily else 23); title_label.set_lines(2); title_label.set_ellipsize(Pango.EllipsizeMode.END); title_label.set_size_request(size, title_height); title_label.set_valign(Gtk.Align.START); body.append(title_label)
                 title_label.set_justify(Gtk.Justification.CENTER)
-                credit = self.label(item.get("artist") or " · ".join(item.get("context") or []), "queue-subtitle", .5); credit.set_wrap(True); credit.set_max_width_chars(25); credit.set_lines(2); credit.set_ellipsize(Pango.EllipsizeMode.END); credit.set_size_request(size, credit_height); credit.set_valign(Gtk.Align.START); body.append(credit)
+                credit = self.label(item.get("artist") or " · ".join(item.get("context") or []), "queue-subtitle", .5); credit.set_wrap(True); credit.set_max_width_chars(25); credit.set_lines(1 if daily else 2); credit.set_ellipsize(Pango.EllipsizeMode.END); credit.set_size_request(size, credit_height); credit.set_valign(Gtk.Align.START); body.append(credit) if not mix_tile else None
                 credit.set_justify(Gtk.Justification.CENTER)
-                card_height = size + title_height + credit_height + 15
+                card_height = size + title_height + credit_height + (6 if daily else 15)
                 # A GTK size request is only a minimum. Clip the complete card
                 # inside a fixed viewport so even very long album names cannot
                 # widen a column or push the following covers off-grid.
@@ -268,7 +272,7 @@ class DiscoverPageMixin:
             notice = self.label(message, "browser-message"); notice.set_wrap(True); content.append(notice)
             self.discovery_daily_sections["mixes"] = notice
         elif show_mixes:
-            if daily_grid: columns, size = daily_columns(4)
+            if daily_grid: columns, size = daily_columns(3)
             group(None, data.get("items", []), "mixes")
         for recommendation in data.get("groups", []) if show_recommendations else []:
             if daily_grid: columns, size = daily_columns(3)

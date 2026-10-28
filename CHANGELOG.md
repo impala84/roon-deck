@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.61 Alpine — 28 October 2026
+
+- Discover → Daily: mixes are three across like the rest. Mix tiles no longer repeat the artist under the name, and the name and artist blocks sit closer to the cover (names still wrap to two lines inside a fixed height).
+
 ## 1.1.8-beta.60 Alpine — 28 October 2026
 
 - Diagnostic for the planned TIDAL new-releases browser: `/api/tidal/explore?path=…` lists the rows Roon exposes under TIDAL (read-only), so the screen can be built on what this Roon server really offers.
