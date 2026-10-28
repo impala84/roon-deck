@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.62 Alpine — 28 October 2026
+
+- Browse → TIDAL: a new TIDAL section in the Browse rail lists New albums, Recommended, Top 20 and Masters, then every TIDAL genre. Tapping a genre opens its New Albums as a normal cover grid that plays through Roon; Back returns to the TIDAL menu. It reads TIDAL's own rows as Roon exposes them, so no TIDAL login or API key is needed.
+
 ## 1.1.8-beta.61 Alpine — 28 October 2026
 
 - Discover → Daily: mixes are three across like the rest. Mix tiles no longer repeat the artist under the name, and the name and artist blocks sit closer to the cover (names still wrap to two lines inside a fixed height).

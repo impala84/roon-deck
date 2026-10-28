@@ -801,3 +801,38 @@ test('album artwork fills child track rows when Roon omits redundant image keys'
   assert.equal(items[1].image_key, 'album-cover');
   assert.equal(items[2].image_key, 'specific');
 });
+
+test('TIDAL section lists new-release rows and genres, opens them through Roon, and backs out to its own menu', async () => {
+  const tree = {
+    root: {title: 'Explore', level: 0, items: [{title: 'Library', item_key: 'lib'}, {title: 'TIDAL', item_key: 'tidal'}]},
+    tidal: {title: 'TIDAL', level: 1, items: [{title: "What's New", item_key: 'new'}, {title: 'Genres', item_key: 'genres'}]},
+    new: {title: "What's New", level: 2, items: [{title: 'Albums', item_key: 'new-albums'}]},
+    'new-albums': {title: 'Albums', level: 3, items: [{title: 'New', item_key: 'new-new'}, {title: 'Top 20', item_key: 'top'}]},
+    'new-new': {title: 'New', level: 4, count: 2, items: [{title: 'Fresh Album', subtitle: 'An Artist', image_key: 'img1', item_key: 'a1'}, {title: 'Other Album', subtitle: 'Someone', image_key: 'img2', item_key: 'a2'}]},
+    genres: {title: 'Genres', level: 2, items: [{title: 'Jazz', item_key: 'jazz'}, {title: 'Rock', item_key: 'rock'}]},
+    jazz: {title: 'Jazz', level: 3, items: [{title: 'New Albums', item_key: 'jazz-albums'}, {title: 'New Tracks', item_key: 'jazz-tracks'}]},
+    'jazz-albums': {title: 'New Albums', level: 4, count: 1, items: [{title: 'Blue Thing', subtitle: 'A Trio', image_key: 'img3', item_key: 'a3'}]},
+  };
+  let current = 'root';
+  const service = {
+    browse(options, callback) {
+      if (options.pop_all) current = 'root'; else if (options.item_key) current = options.item_key;
+      const node = tree[current]; callback(null, {action: 'list', list: {title: node.title, level: node.level, count: node.count ?? node.items.length}});
+    },
+    load(options, callback) {
+      const node = Object.values(tree).find(candidate => candidate.level === options.level && (candidate === tree[current]));
+      callback(null, {items: (node || tree[current]).items, list: {title: tree[current].title, level: tree[current].level, count: tree[current].count ?? tree[current].items.length}, offset: 0});
+    },
+  };
+  const manager = new BrowseManager(() => service, () => ({}));
+  const root = await manager.tidalRoot(service, 's');
+  assert.deepEqual(root.items.filter(item => item.item_key).map(item => item.item_key), ['tidal:list:New', 'tidal:list:Recommended', 'tidal:list:Top 20', 'tidal:list:Masters', 'tidal:genre:Jazz', 'tidal:genre:Rock']);
+  assert.equal(root.section, 'tidal');
+  const jazz = await manager._run('s', 'open', {item_key: 'tidal:genre:Jazz'});
+  assert.deepEqual(jazz.items.map(item => item.title), ['Blue Thing']);
+  assert.equal(jazz.show_labels, true); assert.equal(jazz.alpha_scrub, false); assert.equal(jazz.can_back, true);
+  const back = await manager._run('s', 'back', {});
+  assert.equal(back.title, 'TIDAL'); assert.equal(back.section_root, true);
+  const fresh = await manager._run('s', 'open', {item_key: 'tidal:list:New'});
+  assert.deepEqual(fresh.items.map(item => item.title), ['Fresh Album', 'Other Album']);
+});

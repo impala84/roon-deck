@@ -179,7 +179,7 @@ class BrowseManager {
         return this.sessions.get(origin.session);
       }
       if (command === 'section' || command === 'root') {
-        const section = ['albums', 'artists', 'genres', 'playlists'].includes(data.section) ? data.section : 'albums';
+        const section = ['albums', 'artists', 'genres', 'playlists', 'tidal'].includes(data.section) ? data.section : 'albums';
         active = `${session}-${section}`;
         this.activeSessions.set(session, active);
         if (this.sessions.has(active)) return this.sessions.get(active);
@@ -207,6 +207,9 @@ class BrowseManager {
     if (command === 'more') return this.loadMore(service, session);
     if (command === 'previous') return this.loadPrevious(service, session);
     if (command === 'jump') return this.jumpTo(service, session, String(data.letter || 'A'));
+    if (command === 'section' && data.section === 'tidal') { this.sections.set(session, 'tidal'); return this.tidalRoot(service, session); }
+    if (command === 'open' && String(data.item_key || '').startsWith('tidal:')) return this.tidalOpen(service, zone, session, String(data.item_key));
+    if (command === 'back' && this.tidalBase?.has(session) && this.sessions.get(session)?.level <= this.tidalBase.get(session)) return this.tidalRoot(service, session);
     if (command === 'section' || command === 'root' || (command === 'current' && !this.sessions.has(session))) return this.openSection(service, zone, session, String(data.section || 'albums'));
     if (command === 'search') return this.search(service, zone, session, String(data.query || '').trim(), data.source);
     const state = this.sessions.get(session);
@@ -401,6 +404,38 @@ class BrowseManager {
     }
     const loaded = await request(service, 'load', {...options, level: result.list.level, offset: 0, count: 100});
     return {path, title: result.list.title, count: result.list.count, items: (loaded.items || []).map(item => ({title: item.title, subtitle: item.subtitle || '', hint: item.hint || '', input: Boolean(item.input_prompt)}))};
+  }
+
+  // TIDAL new releases: a short list of Roon's own TIDAL rows (What's New → Albums, and Genres → <genre> → New Albums).
+  async tidalRoot(service, session) {
+    this.tidalBase = this.tidalBase || new Map(); this.tidalBase.delete(session);
+    let genres = [];
+    try { genres = (await this.exploreTidal('Genres')).items.map(item => item.title).filter(Boolean); } catch { /* the list rows below still work */ }
+    const row = (title, subtitle, key) => ({title, subtitle, image_key: null, item_key: key, hint: 'list', action: false, duration: '', input_prompt: null});
+    const header = title => ({title, subtitle: '', image_key: null, item_key: null, hint: 'header', action: false, duration: '', input_prompt: null});
+    const items = [header('New on TIDAL'), ...['New', 'Recommended', 'Top 20', 'Masters'].map(name => row(name === 'New' ? 'New albums' : name, 'TIDAL', `tidal:list:${name}`))];
+    if (genres.length) items.push(header('New albums by genre'), ...genres.map(name => row(name, 'New albums', `tidal:genre:${name}`)));
+    return this.save(session, {status: 'ready', hierarchy: 'browse', level: 0, title: 'TIDAL', subtitle: '', count: items.length, offset: 0, items, section: 'tidal', section_root: true, breadcrumb: 'TIDAL', alpha_scrub: false, can_back: false, has_more: false, message: genres.length ? '' : 'TIDAL genres are not available from this Roon server.', error: false, layout: 'list', show_labels: true});
+  }
+
+  async tidalOpen(service, zone, session, key) {
+    const [, kind, name] = key.split(':');
+    const names = kind === 'genre' ? ['Genres', name, 'New Albums'] : ['What\'s New', 'Albums', name];
+    const options = {hierarchy: 'browse', multi_session_key: session, ...zoneOptions(zone)};
+    let result = await request(service, 'browse', {...options, pop_all: true});
+    result = await this.openNamed(service, zone, session, result, 'tidal');
+    if (!result || result.action !== 'list') return this.save(session, {...(this.sessions.get(session) || {}), message: 'TIDAL is not available in Roon.', error: true});
+    for (const title of names) {
+      const loaded = await request(service, 'load', {...options, level: result.list.level, offset: 0, count: 100});
+      const item = (loaded.items || []).find(candidate => String(candidate.title || '').trim().toLowerCase() === title.toLowerCase());
+      if (!item?.item_key) return this.save(session, {...(this.sessions.get(session) || {}), message: `TIDAL has no "${title}" list right now.`, error: true});
+      result = await request(service, 'browse', {...options, item_key: item.item_key});
+      if (result.action !== 'list') break;
+    }
+    this.sections.set(session, 'tidal');
+    const next = await this.follow(service, session, 'browse', result);
+    this.tidalBase = this.tidalBase || new Map(); this.tidalBase.set(session, next.level);
+    return this.save(session, {...next, section: 'tidal', section_root: false, can_back: true, alpha_scrub: false, show_labels: true, breadcrumb: `TIDAL / ${(kind === 'genre' ? name : name === 'New' ? 'NEW ALBUMS' : name).toUpperCase()}`});
   }
 
   async openNamed(service, zone, session, result, title) {
