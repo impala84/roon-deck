@@ -36,7 +36,7 @@ class AlpinePrototypeTests(unittest.TestCase):
             prepare_rootfs.prepare(root)
             self.assertFalse((root / ".dockerenv").exists())
             self.assertFalse((root / "run/.containerenv").exists())
-            self.assertEqual((root / "etc/hostname").read_text(), "pi-home-alpine\n")
+            self.assertEqual((root / "etc/hostname").read_text(), "roondeck\n")
             self.assertNotIn("127.0.0.11", (root / "etc/resolv.conf").read_text())
             prepare_rootfs.prepare(root)
 

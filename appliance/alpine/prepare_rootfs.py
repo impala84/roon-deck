@@ -14,8 +14,8 @@ def prepare(root):
         marker.unlink(missing_ok=True)
     # Docker injects these at container creation, overriding image-build values.
     for relative, text in {
-        "etc/hostname": "pi-home-alpine\n",
-        "etc/hosts": "127.0.0.1 localhost pi-home-alpine\n::1 localhost pi-home-alpine\n",
+        "etc/hostname": "roondeck\n",
+        "etc/hosts": "127.0.0.1 localhost roondeck\n::1 localhost roondeck\n",
         "etc/resolv.conf": "# NetworkManager supplies DNS after connecting.\n",
     }.items():
         target = root / relative

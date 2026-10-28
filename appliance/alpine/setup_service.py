@@ -984,6 +984,10 @@ class Setup:
                 raise ValueError("Use 1–63 letters, numbers or hyphens; no spaces or edge hyphens.")
             self.run(["hostname", name]); atomic(self.root / "etc/hostname", name + "\n")
             self.run(["rc-service", "avahi-daemon", "restart"])
+            # Roon Bridge names this audio device from the hostname when it starts, so restart it to pick up the new name.
+            if (self.root / "etc/init.d/roonbridge").exists():
+                try: self.run(["rc-service", "roonbridge", "restart"])
+                except Exception: pass
             state["hostname"] = name
         elif action == "wifi":
             ssid = str(data.get("ssid", "")); password = str(data.get("password", ""))

@@ -202,8 +202,8 @@ class Wizard(Gtk.Application):
                 self.async_call({"action": "orientation", "profile": profiles[profile.get_selected()], "rotation": rotations[rotation.get_selected()]}, saved)
             self.footer.append(self.button("Apply and restart", apply_orientation))
         elif self.stage == 1:
-            self.content.append(self.label("This is its network name—for example pi-home-lounge. Web settings will be at http://NAME.local:8765/admin."))
-            name = self.field("Device name", self.progress.get("hostname", "pi-home"))
+            self.content.append(self.label("This is its network name—for example roondeck-lounge. Web settings will be at http://NAME.local:8765/admin."))
+            name = self.field("Device name", self.progress.get("hostname", "roondeck"))
             self.footer.append(self.button("Save and continue", lambda: self.advance({"action": "name", "hostname": name.get_text()})))
         elif self.stage == 2:
             self.content.append(self.label("Connected" if self.snapshot.get("connected") else "Plug in Ethernet, or enter your Wi-Fi details. Roon needs the same local network, not necessarily internet access."))
