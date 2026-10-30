@@ -80,7 +80,7 @@ class WifiPageMixin:
         active = trial.get("target") or data.get("selected") or next((item["kind"] for item in data.get("devices", []) if item.get("connected")), "")
         if getattr(self, "connection_expect_result", False) and data.get("status") in ("restored", "error", "ready") and not trial.get("token"):
             self.connection_expect_result = False
-            self.connection_say({"restored": data.get("message") if str(data.get("message", "")).startswith("Could not join") else "That connection did not come up, so the previous one was restored.",
+            self.connection_say({"restored": data.get("message") if str(data.get("message", "")).startswith("Could not") else "That connection did not come up, so the previous one was restored.",
                                  "error": data.get("message") or "The connection could not be changed.",
                                  "ready": "Connection saved."}[data["status"]])
         for target, button in self.connection_buttons.items():

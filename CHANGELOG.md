@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.71 Alpine — 30 October 2026
+
+- Switching to Ethernet: waits for the cable signal after bringing the port back up, retries the connection once, and creates a plain automatic (DHCP) wired profile if the Pi has none saved. If it still fails, the screen now says why (for example "No cable signal") before returning to the previous connection.
+
 ## 1.1.8-beta.70 Alpine — 28 October 2026
 
 - Discover artwork (Daily mixes, For you, New releases, Recent) is fetched at 480px (640px on the 10-inch) instead of a 256px thumbnail, so the larger tiles are sharp.

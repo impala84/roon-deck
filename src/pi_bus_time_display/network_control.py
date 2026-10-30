@@ -44,6 +44,16 @@ def join_reason(error):
     return text.splitlines()[0][:120] if text else 'The connection could not be made.'
 
 
+def ethernet_reason(error):
+    """Plain-words reason an Ethernet switch failed."""
+    text = str(getattr(error, 'detail', '') or error); low = text.lower()
+    if 'carrier' in low or 'not ready' in low or 'unavailable' in low or 'disconnected' in low: return 'No cable signal. Check the Ethernet cable is plugged in at both ends.'
+    if 'no suitable connection' in low or 'no connection' in low: return 'No wired connection profile was available.'
+    if 'timeout' in low or 'timed out' in low: return 'The network did not answer in time.'
+    if 'ip configuration' in low or 'dhcp' in low: return 'Connected, but the router gave no address.'
+    return text.splitlines()[0][:120] if text else 'The connection could not be made.'
+
+
 class NetworkControl:
     def __init__(self, root=Path('/'), run=run_command, arm=None):
         self.root, self.run = Path(root), run
@@ -55,6 +65,7 @@ class NetworkControl:
         self.result = self.private / 'status.json'
         self.config = self.root / 'etc/NetworkManager/conf.d/90-roondeck-selection.conf'
         self.lock = threading.RLock()
+        self.retry_delay = 3
         self.arm = arm or self.arm_watchdog
 
     def safe(self, args):
@@ -192,6 +203,12 @@ class NetworkControl:
                     self.run(['nmcli', 'general', 'reload', 'conf'])
                     self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
                     self.run(['ip', 'link', 'set', 'dev', interface, 'up'])
+                    # A link that was held down takes a few seconds to see the cable again; connecting before that fails.
+                    for _ in range(10):
+                        try:
+                            if (self.root / 'sys/class/net' / interface / 'carrier').read_text().strip() == '1': break
+                        except OSError: break
+                        time.sleep(1)
                 else:
                     self.run(['nmcli', 'radio', 'wifi', 'on'])
                     self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
@@ -205,6 +222,16 @@ class NetworkControl:
                         if 'no network with ssid' not in str(getattr(error, 'detail', '')).lower(): raise
                         self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(4)
                         self.run(args)
+                elif target == 'ethernet':
+                    try: self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
+                    except ValueError:
+                        # Retry once after a pause, then make a plain DHCP wired profile if this Pi has none.
+                        time.sleep(self.retry_delay)
+                        try: self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
+                        except ValueError:
+                            if 'ethernet' not in self.safe(['nmcli', '-t', '-f', 'TYPE', 'connection', 'show']).split():
+                                self.run(['nmcli', 'connection', 'add', 'type', 'ethernet', 'ifname', interface, 'con-name', 'RoonDeck Ethernet', 'ipv4.method', 'auto'])
+                            self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
                 else:
                     self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
                 state = self.run(['nmcli', '-g', 'GENERAL.STATE', 'device', 'show', interface])
@@ -222,8 +249,8 @@ class NetworkControl:
                         self.run(['ip', 'link', 'set', 'dev', name, 'down'])
                 atomic_json(self.result, {'status': 'trial', 'message': 'Confirm this connection within 90 seconds. The other connection is off.'})
             except Exception as error:
-                reason = join_reason(error) if target == 'wifi' and ssid else ''
-                if reason:
+                reason = join_reason(error) if target == 'wifi' and ssid else ethernet_reason(error) if target == 'ethernet' else ''
+                if reason and target == 'wifi':
                     # A failed join leaves a half-made saved profile (often with the wrong password); remove it.
                     self.safe(['nmcli', 'connection', 'delete', 'id', ssid])
                 self._restore(record, reason)
@@ -255,7 +282,7 @@ class NetworkControl:
             return
         atomic_json(self.policy, record['previous_policy'])
         self.pending.unlink(missing_ok=True)
-        atomic_json(self.result, {'status': 'restored', 'message': ('Could not join: ' + reason + ' The previous connection is back.') if reason else 'The previous network settings have been restored.'})
+        atomic_json(self.result, {'status': 'restored', 'message': ('Could not switch: ' + reason + ' The previous connection is back.') if reason else 'The previous network settings have been restored.'})
 
     def rollback(self, token):
         with self.lock, (self.private / 'transaction.lock').open('a') as lock:

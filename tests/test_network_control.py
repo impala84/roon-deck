@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pi_bus_time_display.network_control import NetworkControl, join_reason
+from pi_bus_time_display.network_control import NetworkControl, ethernet_reason, join_reason
 from pi_bus_time_display.remote_access import atomic_json
 from pi_bus_time_display.server import Config, State, make_handler
 
@@ -20,7 +20,7 @@ class NetworkControlTests(unittest.TestCase):
         self.links = {'eth0': {'kind':'ethernet','state':'connected','managed':True,'uuid':ETH_UUID},
                       'wlan0': {'kind':'wifi','state':'disconnected','managed':True,'uuid':WIFI_UUID}}
         self.radio = True
-        self.manager = NetworkControl(Path(self.temp.name), self.run_system, self.armed.append)
+        self.manager = NetworkControl(Path(self.temp.name), self.run_system, self.armed.append); self.manager.retry_delay = 0
 
     def run_system(self, args):
         self.calls.append(args)
@@ -117,6 +117,24 @@ class NetworkControlTests(unittest.TestCase):
         self.assertTrue(self.links['eth0']['managed']); self.assertEqual(self.links['eth0']['state'],'connected')
         self.assertNotIn(['ip','link','set','dev','eth0','down'],self.calls)
         self.assertNotIn('private system output',json.dumps(self.manager.status()))
+
+    def test_ethernet_failure_reasons_are_in_plain_words(self):
+        error = ValueError('generic'); error.detail = 'Error: Connection activation failed: Carrier/link changed'
+        self.assertIn('cable', ethernet_reason(error))
+        error.detail = 'Error: Device is not ready'; self.assertIn('cable', ethernet_reason(error))
+
+    def test_ethernet_switch_retries_and_creates_a_profile_when_none_exists(self):
+        self.links['eth0']['state'] = 'disconnected'
+        token = self.prepare('ethernet'); original = self.manager.run; attempts = []
+        def flaky(args):
+            if args[:5] == ['nmcli','--wait','20','device','connect'] and args[-1] == 'eth0':
+                attempts.append(1)
+                if len(attempts) < 3: raise ValueError('no suitable connection')
+                self.links['eth0']['state'] = 'connected'; return ''
+            return original(args)
+        self.manager.run = flaky; self.apply(token)
+        self.assertEqual(len(attempts), 3)
+        self.assertTrue(any(call[:4] == ['nmcli','connection','add','type'] for call in self.calls))
 
     def test_join_failure_reasons_are_in_plain_words(self):
         def failed(detail):
