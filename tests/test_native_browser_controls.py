@@ -986,6 +986,19 @@ class NativeBrowserControlsTests(unittest.TestCase):
         for actual, expected in zip(transform([1, 1, 1, 1]), [186/255, 182/255, 224/255, 1]): self.assertAlmostEqual(actual, expected)
         red = transform([1, 0, 0, .5]); self.assertAlmostEqual(red[3], .5); self.assertGreater(red[2], red[0]); self.assertGreater(red[0], red[1])
 
+    def test_morning_bus_window_keeps_the_display_awake(self):
+        import datetime as real
+        class Clock(real.datetime):
+            current = real.datetime(2026, 10, 30, 8, 0, tzinfo=real.timezone.utc)
+            @classmethod
+            def now(cls, tz=None): return cls.current
+        check = native_method("bus_window_active", {"datetime": Clock, "datetime_time": real.time, "TZ": real.timezone.utc})
+        config = {"bus_enabled": True, "morning_start": "07:00", "morning_end": "09:30"}
+        self.assertTrue(check(None, config))
+        Clock.current = real.datetime(2026, 10, 30, 9, 30, tzinfo=real.timezone.utc); self.assertFalse(check(None, config))
+        Clock.current = real.datetime(2026, 10, 30, 8, 0, tzinfo=real.timezone.utc); self.assertFalse(check(None, {**config, "bus_enabled": False}))
+        self.assertFalse(check(None, {}))
+
     def test_discovery_drops_stale_results_without_touching_gtk(self):
         owner = SimpleNamespace(discovery_request=2, discovery_active=True)
         self.assertFalse(native_method("render_discover")(owner, 1, {"status":"ready"}))

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.72 Alpine — 30 October 2026
+
+- The touchscreen no longer goes to sleep from inactivity during the morning bus-times window (Bus Times → Show from / Until). If it had dozed off just before the window opened, it now wakes at the start of the window instead of waiting for a touch.
+- Settings closes by itself after a minute without a touch and returns to Now Playing. It stays open while an update or a pending Wi-Fi/VPN keep-or-undo choice is in progress.
+
 ## 1.1.8-beta.71 Alpine — 30 October 2026
 
 - Switching to Ethernet: waits for the cable signal after bringing the port back up, retries the connection once, and creates a plain automatic (DHCP) wired profile if the Pi has none saved. If it still fails, the screen now says why (for example "No cable signal") before returning to the previous connection.

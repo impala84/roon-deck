@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from native_common import *  # noqa: F401,F403  shared imports, helpers and widgets
+from datetime import time as datetime_time
 from native_common import Gtk
 from bus_page import BusPageMixin
 from home_page import HomePageMixin
@@ -562,6 +563,13 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         if now != getattr(self, "last_clock_time", None):
             self.last_clock_time = now
             if icon := getattr(self, "music_clock_icon", None): icon.queue_draw()
+        # Settings left open and untouched returns to Now Playing, unless something there is still in progress.
+        settings_timeout = int(getattr(self, "settings_data", {}).get("settings_idle_return_seconds", 60) or 0)
+        if (settings_timeout > 0 and getattr(self, "settings_open", False) and hasattr(self, "stack") and self.stack.get_visible_child_name() == "settings"
+                and time.monotonic() - self.last_interaction >= settings_timeout and not getattr(self, "update_in_progress", False)
+                and not (getattr(self, "connection_status", {}).get("trial") or {}).get("token") and not getattr(self, "vpn_trial_token", "")
+                and not getattr(self, "connection_busy", False)):
+            self.close_settings(); self.set_mode("roon"); self.show_roon_now()
         browse_timeout = int(getattr(self, "settings_data", {}).get("browse_idle_return_seconds", 60))
         if (browse_timeout > 0 and hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
                 and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
@@ -569,6 +577,14 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
                 and time.monotonic() - self.browse_last_interaction >= browse_timeout):
             self.show_roon_now()
         return True
+
+    def bus_window_active(self, config):
+        """True while the configured morning bus-time window is running (and bus times are enabled)."""
+        try:
+            if not config.get("bus_enabled", True): return False
+            current = datetime.now(TZ).timetz().replace(tzinfo=None)
+            return datetime_time.fromisoformat(str(config["morning_start"])) <= current < datetime_time.fromisoformat(str(config["morning_end"]))
+        except (KeyError, TypeError, ValueError): return False
 
     def log_renderer(self):
         renderer = self.window.get_renderer()
@@ -764,7 +780,13 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
                 self.set_roon_view("now")
             self.playback_last_playing = now_playing_check
         self.playback_was_active = playing
-        inactivity_due = bool(not playing and inactivity_seconds and time.monotonic() - self.last_interaction >= inactivity_seconds and target != "/sleep.html")
+        if self.inactivity_sleeping and target not in (None, "/sleep.html") and self.bus_window_active(effective_config):
+            # The panel dozed off just before the window opened; wake it at the boundary rather than waiting for a touch.
+            self.inactivity_sleeping = False; self.last_interaction = time.monotonic(); self.set_screen_power(True, force=True)
+            print("RoonDeck waking for the morning bus window", flush=True)
+        # Inside the morning bus window the display stays on for the school run, whatever the idle timeout says.
+        inactivity_due = bool(not playing and inactivity_seconds and time.monotonic() - self.last_interaction >= inactivity_seconds and target != "/sleep.html"
+                              and not self.bus_window_active(effective_config))
         if inactivity_due and not self.inactivity_sleeping:
             self.inactivity_sleeping = True
             self.prepare_sleep_wake()
