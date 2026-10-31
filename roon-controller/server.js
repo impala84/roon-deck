@@ -330,6 +330,13 @@ const roon = new RoonApi({
     broadcast();
   }
 });
+// node-roon-api prints every request and reply, including album-art bytes; unchecked that filled the disk (a 10 GB log). Keep short, useful lines only.
+const originalLog = console.log.bind(console);
+console.log = (...args) => {
+  const text = args.map(String).join(' ');
+  if (/^(->|<-) (REQUEST|COMPLETE|CONTINUE)/.test(text)) return;
+  originalLog(text.length > 300 ? `${text.slice(0, 300)}…` : text);
+};
 const status = new RoonApiStatus(roon);
 roon.init_services({required_services: [RoonApiTransport, RoonApiImage, RoonApiBrowse], provided_services: [status]});
 status.set_status('Waiting for Roon authorisation', false);
@@ -346,7 +353,8 @@ setInterval(() => {
 }, 5000);
 // A throw inside node-roon-api's connection clean-up (moo.js) is a library fault, not a reason to restart the whole display service.
 process.on('uncaughtException', error => {
-  if (error instanceof TypeError && /node-roon-api[\\/]moo\.js/.test(error.stack || '')) { console.error('Ignored Roon API clean-up error after a closed connection'); return; }
+  // The library is left half-closed after this fault and never reconnects, so exit and let the service supervisor start a clean controller.
+  if (error instanceof TypeError && /node-roon-api[\\/](moo|lib)\.js/.test(error.stack || '')) { console.error('Roon API clean-up error after a closed connection; restarting the controller'); process.exit(1); }
   console.error(error); process.exit(1);
 });
 roon._sood.on('message', message => {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.73 Alpine — 31 October 2026
+
+- Roon: if the connection to the Core drops and the Roon library fails while closing it, the controller now restarts itself and reconnects, instead of staying disconnected until the Pi is rebooted.
+- Roon: the controller log no longer records every request and album-art payload, which could grow to many gigabytes.
+
 ## 1.1.8-beta.72 Alpine — 30 October 2026
 
 - The touchscreen no longer goes to sleep from inactivity during the morning bus-times window (Bus Times → Show from / Until). If it had dozed off just before the window opened, it now wakes at the start of the window instead of waiting for a touch.
