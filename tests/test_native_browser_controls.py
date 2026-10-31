@@ -899,6 +899,16 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertIn('threading.Thread(target=self._fetch_discovery',source)
         self.assertIn('GLib.timeout_add(600 if data and data.get("status") == "loading" else 1200',source)
 
+    def test_preview_can_open_tidal_new_releases_and_the_menu_stacks_in_portrait(self):
+        owner=SimpleNamespace(set_mode=Mock(),open_discover=Mock(),select_discovery_secondary=Mock())
+        self.assertFalse(native_method("apply_display_view_request")(owner,{"view":"tidal"}))
+        owner.open_discover.assert_called_once_with("releases")
+        owner.select_discovery_secondary.assert_called_once_with("tidal")
+        menu=native_text().split("    def tidal_menu(self, items):",1)[1].split("    def finish_browser_render",1)[0]
+        self.assertIn('Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL',menu)
+        self.assertIn('"tidal"',(Path(__file__).resolve().parents[1]/"src/pi_bus_time_display/server.py").read_text())
+        self.assertIn('value="tidal"',(Path(__file__).resolve().parents[1]/"src/pi_bus_time_display/static/admin.html").read_text())
+
     def test_admin_can_request_a_real_native_discover_view(self):
         source=native_text()
         self.assertIn('view_request = device.get("display_view_request") or {}', source)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.74 Alpine — 31 October 2026
+
+- New releases → TIDAL on portrait screens (7" and 10"): the new-release lists now sit above the genres, one section over the other, instead of two columns. Landscape is unchanged.
+- Screen Preview (web admin): new "New Releases › TIDAL" Discover view. Its lists and genres can be opened and backed out of from the preview list, so any TIDAL page can be captured without touching the screen.
+- Website: Vercel now skips the site rebuild when a commit changes nothing under the website folder, so app-only betas no longer use build allowance.
+
 ## 1.1.8-beta.73 Alpine — 31 October 2026
 
 - Roon: if the connection to the Core drops and the Roon library fails while closing it, the controller now restarts itself and reconnects, instead of staying disconnected until the Pi is rebooted.

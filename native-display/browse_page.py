@@ -867,11 +867,18 @@ class BrowsePageMixin:
         def scroller(child):
             scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_kinetic_scrolling(True)
             scroll.set_propagate_natural_height(False); scroll.set_min_content_height(80); scroll.set_vexpand(True); scroll.set_child(child); return scroll
-        page = Gtk.Box(spacing=28); page.set_hexpand(True); page.set_vexpand(True)
+        portrait = bool(getattr(self, "responsive_portrait", False))
+        # Portrait screens stack the two sections (new-release lists above, genres below); landscape puts them side by side.
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL, spacing=20 if portrait else 28)
+        page.set_hexpand(True); page.set_vexpand(True)
         for index, (title, rows) in enumerate(groups[:2]):
-            column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); column.set_hexpand(index == 1); column.set_vexpand(True)
-            if index == 0: column.set_size_request(300, -1)
+            column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); column.set_hexpand(portrait or index == 1); column.set_vexpand(not portrait or index == 1)
+            if index == 0 and not portrait: column.set_size_request(300, -1)
             column.append(self.label(title, "browser-section"))
+            if index == 0 and portrait:
+                body = Gtk.Grid(column_spacing=10, row_spacing=10); body.set_column_homogeneous(True); body.set_hexpand(True)
+                for position, item in enumerate(rows): body.attach(row(item, icons.get(str(item.get("title", "")).lower(), "music")), position % 2, position // 2, 1, 1)
+                column.append(body); page.append(column); continue
             if index == 0:
                 body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
                 for item in rows: body.append(row(item, icons.get(str(item.get("title", "")).lower(), "music")))

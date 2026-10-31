@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- \"$(git rev-parse --show-toplevel)/website\"",
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [

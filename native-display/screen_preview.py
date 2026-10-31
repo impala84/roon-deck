@@ -192,6 +192,11 @@ class ScreenPreviewMixin:
             self.discovery_browser_origin = False
             self.discovery_active = True; self.discovery_section = "browse"
             self.set_mode("roon"); self.set_roon_view("search")
+        elif view == "tidal":
+            # Discover > New releases > TIDAL, the same path as tapping the TIDAL button on the releases rail.
+            self.discovery_signature = None
+            self.open_discover("releases")
+            self.select_discovery_secondary("tidal")
         elif view in {"recent", "daily", "releases", "browse", "surprise"}:
             self.discovery_signature = None
             self.open_discover(view)

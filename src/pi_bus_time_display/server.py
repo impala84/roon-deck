@@ -1483,7 +1483,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     view = str(data.get("view", "")).strip()
                     preview_request = None
                     if view:
-                        if view not in {"now", "details", "recent", "daily", "releases", "browse", "search", "surprise", "bus", "home", "settings"}:
+                        if view not in {"now", "details", "recent", "daily", "releases", "browse", "search", "surprise", "tidal", "bus", "home", "settings"}:
                             raise ValueError("Unknown display view")
                         browse_action = str(data.get("browse_action", ""))
                         item_key = str(data.get("item_key", ""))
