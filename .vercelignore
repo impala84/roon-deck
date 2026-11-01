@@ -1,7 +1,6 @@
 artifacts/
 /build/
 /dist/
-.git/
 .github/
 .vercel/
 **/node_modules/
