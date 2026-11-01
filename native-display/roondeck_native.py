@@ -750,6 +750,19 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             else:
                 self.manual_sleep_pending = False
                 print("RoonDeck manual sleep confirmation timed out", flush=True)
+        # Turning the Surface Dial changes the volume without touching the screen. If the panel dozed off from inactivity,
+        # wake it on Now Playing so the new volume is visible.
+        zone_volume = (((roon or {}).get("zone") or {}).get("output") or {}).get("volume") or {}
+        amp_volume = (((roon or {}).get("amplifier") or {}).get("volume")) or {}
+        volume_signature = (zone_volume.get("value"), zone_volume.get("is_muted"), amp_volume.get("value"), amp_volume.get("muted"))
+        previous_volume = getattr(self, "volume_signature", None)
+        self.volume_signature = volume_signature
+        if (self.inactivity_sleeping and previous_volume is not None and volume_signature != previous_volume
+                and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")):
+            self.last_mode = "roon"
+            self.wake("volume change")
+            self.show_roon_now()
+            print("RoonDeck waking for a volume change", flush=True)
         scheduled_wake = bool(
             target is not None
             and target != "/sleep.html"

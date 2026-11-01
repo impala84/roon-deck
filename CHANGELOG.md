@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.75 Alpine — 1 November 2026
+
+- Surface Dial: turning the wheel while the screen has gone to sleep from inactivity now wakes it on Now Playing, so the new volume is visible. (An explicit Sleep or the scheduled night sleep is left alone.)
+- 10" portrait: the Back button no longer makes the Browse and New releases tab row taller, so pages no longer sit lower when Back is showing.
+- New releases → TIDAL on large portrait screens: larger type, larger and brighter-spaced icons, and more padding and spacing, keeping the two-column grids.
+
 ## 1.1.8-beta.74 Alpine — 31 October 2026
 
 - New releases → TIDAL on portrait screens (7" and 10"): the new-release lists now sit above the genres, one section over the other, instead of two columns. Landscape is unchanged.

@@ -170,6 +170,8 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn("self.last_interaction = max(self.last_interaction, contact_at or time.monotonic())", display)
         self.assertIn("contact_at <= self.sleep_entered_at", display)
         self.assertIn("self.inactivity_sleeping = True\n            self.prepare_sleep_wake()", display)
+        self.assertIn('self.wake("volume change")', display)
+        self.assertIn("volume_signature != previous_volume", display)
         self.assertIn("if self.manual_sleep_pending:", display)
         self.assertIn('target = "/sleep.html"', display)
         self.assertIn("for attempt in range(3):", display)

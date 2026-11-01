@@ -906,6 +906,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         owner.select_discovery_secondary.assert_called_once_with("tidal")
         menu=native_text().split("    def tidal_menu(self, items):",1)[1].split("    def finish_browser_render",1)[0]
         self.assertIn('Gtk.Orientation.VERTICAL if portrait else Gtk.Orientation.HORIZONTAL',menu)
+        self.assertIn('gap = 18 if portrait and large else 10',menu)
         self.assertIn('"tidal"',(Path(__file__).resolve().parents[1]/"src/pi_bus_time_display/server.py").read_text())
         self.assertIn('value="tidal"',(Path(__file__).resolve().parents[1]/"src/pi_bus_time_display/static/admin.html").read_text())
 

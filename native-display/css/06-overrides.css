@@ -438,3 +438,12 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .tidal-row .tidal-icon { color: #b99dff; }
 .tidal-row.with-icon { min-height: 96px; }
 .original-landscape .tidal-row.with-icon { min-height: 68px; }
+
+/* 10" portrait: the Back button must not make the Browse/Discover tab row taller than it is without Back (the page jumped down 16px). */
+.portrait.large-portrait .browser-back { padding-top: 4px; padding-bottom: 4px; }
+/* TIDAL new releases: bigger type, icons and padding on large portrait screens. */
+.portrait.large-portrait .tidal-row { min-height: 84px; padding: 0 28px; border-radius: 12px; }
+.portrait.large-portrait .tidal-row-label { font-size: 28px; }
+.portrait.large-portrait .tidal-row.with-icon { min-height: 150px; padding: 0 30px; }
+.portrait.large-portrait .tidal-row.with-icon .tidal-row-label { font-size: 32px; }
+.portrait.large-portrait .browser-section { font-size: 22px; padding-bottom: 16px; }
