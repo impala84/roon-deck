@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.76 Alpine — 1 November 2026
+
+- Surface Dial: turning the wheel now also wakes the screen when it is asleep through the Sleep button, the night sleep window or "sleep when Roon is idle", not just the inactivity timeout. It opens Now Playing so you can see the volume change. (Beta 75 only covered the inactivity timeout.)
+
 ## 1.1.8-beta.75 Alpine — 1 November 2026
 
 - Surface Dial: turning the wheel while the screen has gone to sleep from inactivity now wakes it on Now Playing, so the new volume is visible. (An explicit Sleep or the scheduled night sleep is left alone.)
