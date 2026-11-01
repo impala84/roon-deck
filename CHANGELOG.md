@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8-beta.78 Alpine — 1 November 2026
+
+- Fewer abrupt jumps back to Now Playing. Resuming playback only pulls you to Now Playing after the screen was asleep or playback had been stopped for 90 seconds or more (was 20), and never within two minutes of a touch. A Roon reconnect, an input switch or a short gap no longer counts as a new start.
+- Settings auto-close is timed from your last real touch (drags and typing count), so it now also works while music is playing, and it waits while you are typing in a field.
+- The display log now says why it returned to Now Playing ("Settings idle", "browse idle" or "playback started"), so any remaining jumps can be traced.
+
 ## 1.1.8-beta.77 Alpine — 1 November 2026
 
 - Surface Dial wake now returns to the screen that was showing before sleep instead of jumping to Now Playing.

@@ -70,6 +70,7 @@ class SleepAndTouchMixin:
         # press. Record every contact so inactivity is measured from the last
         # touch, not from the time the panel originally woke.
         self.last_interaction = max(self.last_interaction, contact_at or time.monotonic())
+        self.last_touch = time.monotonic()
         if (hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
                 and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
                      or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))):
@@ -98,6 +99,8 @@ class SleepAndTouchMixin:
             # A pointer entering or moving re-asserts the compositor's cursor; blank it on the surface too.
             try: self.window.get_surface().set_cursor(Gdk.Cursor.new_from_name("none", None))
             except (AttributeError, TypeError, GLib.Error): pass
+        if event_type in {Gdk.EventType.TOUCH_BEGIN, Gdk.EventType.TOUCH_UPDATE, Gdk.EventType.SCROLL, Gdk.EventType.BUTTON_PRESS, Gdk.EventType.KEY_PRESS}:
+            self.last_touch = time.monotonic()  # dragging or typing counts as being in use
         if event_type in {Gdk.EventType.TOUCH_UPDATE, Gdk.EventType.SCROLL}:
             # Dragging or flicking a list is activity too, not only the first touch of the gesture.
             if (self.stack.get_visible_child_name() == "roon"

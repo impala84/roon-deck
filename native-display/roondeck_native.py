@@ -87,6 +87,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         self.browser_section_scrolls = {}
         self.last_interaction = time.monotonic()
         self.browse_last_interaction = self.last_interaction
+        self.last_touch = self.last_interaction  # real finger contact only; playback and polling never refresh it
         self.inactivity_sleeping = False
         self.sleep_entered_at = 0.0
         self.manual_sleep_pending = False
@@ -565,16 +566,19 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             if icon := getattr(self, "music_clock_icon", None): icon.queue_draw()
         # Settings left open and untouched returns to Now Playing, unless something there is still in progress.
         settings_timeout = int(getattr(self, "settings_data", {}).get("settings_idle_return_seconds", 60) or 0)
+        typing = isinstance(self.window.get_focus(), Gtk.Editable) if hasattr(self, "window") else False
         if (settings_timeout > 0 and getattr(self, "settings_open", False) and hasattr(self, "stack") and self.stack.get_visible_child_name() == "settings"
-                and time.monotonic() - self.last_interaction >= settings_timeout and not getattr(self, "update_in_progress", False)
+                and not typing and time.monotonic() - getattr(self, "last_touch", self.last_interaction) >= settings_timeout and not getattr(self, "update_in_progress", False)
                 and not (getattr(self, "connection_status", {}).get("trial") or {}).get("token") and not getattr(self, "vpn_trial_token", "")
                 and not getattr(self, "connection_busy", False)):
+            print("RoonDeck Settings idle: returning to Now Playing", flush=True)
             self.close_settings(); self.set_mode("roon"); self.show_roon_now()
         browse_timeout = int(getattr(self, "settings_data", {}).get("browse_idle_return_seconds", 60))
         if (browse_timeout > 0 and hasattr(self, "stack") and self.stack.get_visible_child_name() == "roon"
                 and (self.roon_views.get_visible_child_name() in {"discover", "browse", "search"}
                      or (hasattr(self, "detail_takeover") and self.detail_takeover.get_visible()))
                 and time.monotonic() - self.browse_last_interaction >= browse_timeout):
+            print(f"RoonDeck browse idle: returning to Now Playing from {self.roon_views.get_visible_child_name()}", flush=True)
             self.show_roon_now()
         return True
 
@@ -789,9 +793,13 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
             # Playback that merely restarts between tracks (a "loading" blink) is not a new start, and nobody who is
             # touching the screen should be pulled away from what they are doing.
             gap = now_playing_check - getattr(self, "playback_last_playing", 0.0)
-            fresh_start = was_sleeping or (not getattr(self, "playback_was_active", False) and gap > 20)
-            browsing_now = now_playing_check - self.browse_last_interaction < 30 and not was_sleeping
+            # A brief drop (Roon reconnecting, switching input or zone) is not a new start. Only a long silence counts, and never
+            # while someone has touched the screen recently, so playback resuming does not yank them out of what they are doing.
+            fresh_start = was_sleeping or (not getattr(self, "playback_was_active", False) and gap > 90)
+            touched_recently = now_playing_check - getattr(self, "last_touch", 0.0) < 120 or now_playing_check - self.browse_last_interaction < 120
+            browsing_now = touched_recently and not was_sleeping
             if target and ":8766/" in target and fresh_start and not browsing_now and not self.settings_open:
+                print(f"RoonDeck playback started: showing Now Playing (asleep={was_sleeping}, gap={gap:.0f}s)", flush=True)
                 self.set_roon_view("now")
             self.playback_last_playing = now_playing_check
         self.playback_was_active = playing
