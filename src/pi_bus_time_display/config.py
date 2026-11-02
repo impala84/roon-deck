@@ -60,6 +60,7 @@ class Config:
     roon_idle_return_seconds: int = 300
     browse_idle_return_seconds: int = 60
     outside_hours_wake_seconds: int = 600
+    remote_wake_seconds: int = 30
     daytime_inactivity_seconds: int = 900
     home_assistant_enabled: bool = False
     home_assistant_title: str = "Home Controls"
@@ -139,6 +140,8 @@ def load_config(path: Path) -> Config:
         raise ValueError("browse_idle_return_seconds must be between 0 and 7200")
     if not (30 <= config.outside_hours_wake_seconds <= 7200):
         raise ValueError("outside_hours_wake_seconds must be between 30 and 7200")
+    if not (5 <= config.remote_wake_seconds <= 7200):
+        raise ValueError("remote_wake_seconds must be between 5 and 7200")
     if not (0 <= config.daytime_inactivity_seconds <= 7200):
         raise ValueError("daytime_inactivity_seconds must be between 0 and 7200")
     if len(config.home_assistant_entities) > 8:

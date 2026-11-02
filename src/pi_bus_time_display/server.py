@@ -414,6 +414,7 @@ def write_config(path: Path, config: Config) -> None:
         f"roon_idle_return_seconds = {config.roon_idle_return_seconds}",
         f"browse_idle_return_seconds = {config.browse_idle_return_seconds}",
         f"outside_hours_wake_seconds = {config.outside_hours_wake_seconds}",
+        f"remote_wake_seconds = {config.remote_wake_seconds}",
         f"daytime_inactivity_seconds = {config.daytime_inactivity_seconds}",
         f"home_assistant_enabled = {str(config.home_assistant_enabled).lower()}",
         f"home_assistant_title = {json.dumps(config.home_assistant_title)}",
@@ -1076,6 +1077,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "roon_idle_return_seconds": config.roon_idle_return_seconds,
                     "browse_idle_return_seconds": config.browse_idle_return_seconds,
                     "outside_hours_wake_seconds": config.outside_hours_wake_seconds,
+                    "remote_wake_seconds": config.remote_wake_seconds,
                     "daytime_inactivity_seconds": config.daytime_inactivity_seconds,
                     "home_assistant_enabled": config.home_assistant_enabled,
                     "home_assistant_title": config.home_assistant_title,
@@ -1301,10 +1303,12 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 length = min(int(self.headers.get("Content-Length", "0")), 4096)
                 data = json.loads(self.rfile.read(length) or b"{}")
                 state.awake_view = "roon" if data.get("view") == "roon" else "bus"
-                state.awake_until = time.monotonic() + state.config.outside_hours_wake_seconds
+                # A Dial or TV-remote volume change wakes the screen only briefly; a touch keeps the full period.
+                awake_seconds = state.config.remote_wake_seconds if data.get("source") == "remote" else state.config.outside_hours_wake_seconds
+                state.awake_until = time.monotonic() + awake_seconds
                 if events:
                     events.emit("display.wake.requested", view=state.awake_view)
-                self.send_json(200, json.dumps({"ok": True, "awake_seconds": state.config.outside_hours_wake_seconds}).encode())
+                self.send_json(200, json.dumps({"ok": True, "awake_seconds": awake_seconds}).encode())
                 return
             if self.path in {"/api/device/service-visibility", "/api/device/roon-bridge", "/api/device/airplay", "/api/device/netdata", "/api/device/home-toggle", "/api/device/home-state", "/api/device/home-value"}:
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
@@ -1561,6 +1565,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     roon_idle_return_seconds=int(data.get("roon_idle_return_seconds", current.roon_idle_return_seconds)),
                     browse_idle_return_seconds=int(data.get("browse_idle_return_seconds", current.browse_idle_return_seconds)),
                     outside_hours_wake_seconds=int(data.get("outside_hours_wake_seconds", current.outside_hours_wake_seconds)),
+                    remote_wake_seconds=int(data.get("remote_wake_seconds", current.remote_wake_seconds)),
                     daytime_inactivity_seconds=int(data.get("daytime_inactivity_seconds", current.daytime_inactivity_seconds)),
                     home_assistant_enabled=bool(data.get("home_assistant_enabled", current.home_assistant_enabled)),
                     home_assistant_title=str(data.get("home_assistant_title", current.home_assistant_title)).strip(),
@@ -1613,6 +1618,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Browse return delay must be between 0 and 7200 seconds")
                 if not (30 <= candidate.outside_hours_wake_seconds <= 7200):
                     raise ValueError("Wake timeout must be between 30 and 7200 seconds")
+                if not (5 <= candidate.remote_wake_seconds <= 7200):
+                    raise ValueError("Dial and remote wake time must be between 5 and 7200 seconds")
                 if not (0 <= candidate.daytime_inactivity_seconds <= 7200):
                     raise ValueError("Daytime inactivity timeout must be between 0 and 7200 seconds")
                 if candidate.home_assistant_color_mode not in {"single", "multi"}:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.79 Alpine — 2 November 2026
+
+- Waking the screen with the Surface Dial or a TV-remote volume change now keeps it on for a shorter time (30 seconds by default) than waking it with a tap. The new "Stay awake after a Dial or TV remote volume change" setting is in the web admin next to "Stay awake after a tap", which is unchanged.
+
 ## 1.1.8-beta.78 Alpine — 1 November 2026
 
 - Fewer abrupt jumps back to Now Playing. Resuming playback only pulls you to Now Playing after the screen was asleep or playback had been stopped for 90 seconds or more (was 20), and never within two minutes of a touch. A Roon reconnect, an input switch or a short gap no longer counts as a new start.

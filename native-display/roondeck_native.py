@@ -765,7 +765,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         if (asleep and previous_volume is not None and volume_signature != previous_volume
                 and any(item is not None for item in volume_signature) and target is not None):
             # Wake to whatever was showing before it slept (Bus Times, Home or a Roon page), not Now Playing.
-            self.wake("volume change")
+            self.wake("volume change", remote=True)
             # The controller still reports sleep until it has seen the wake request; show the previous screen meanwhile.
             target = {"home": "/home", "roon": "http://127.0.0.1:8766/"}.get(self.last_mode, "/")
             print("RoonDeck waking for a volume change", flush=True)
