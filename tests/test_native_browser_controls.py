@@ -806,7 +806,7 @@ class NativeBrowserControlsTests(unittest.TestCase):
         self.assertEqual(columns,4)
         metrics=native_method("discovery_grid_metrics",{"Gdk":gdk})
         self.assertEqual(metrics(SimpleNamespace(),"recent"),(4,236))
-        self.assertEqual(metrics(SimpleNamespace(),"releases"),(4,248))
+        self.assertEqual(metrics(SimpleNamespace(),"releases"),(4,241))
         source=native_text()
         self.assertIn('columns, size = self.discovery_grid_metrics(self.discovery_section)',source)
         self.assertIn('30 if portrait_grid or self.discovery_section == "releases"',source)
