@@ -24,6 +24,15 @@ class AlpinePrototypeTests(unittest.TestCase):
         self.assertIn("roon_install", ALPINE_SYSTEM_ACTIONS)
         self.assertIn("roon_start", ALPINE_SYSTEM_ACTIONS)
 
+    def test_update_command_is_a_launcher_for_the_installed_updater_and_never_a_stale_copy(self):
+        root = Path(__file__).resolve().parents[1]
+        updater = (root / "appliance/alpine/updater.py").read_text()
+        self.assertIn("def install_update_command():", updater)
+        self.assertIn("exec /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py", updater)
+        self.assertIn("    install_update_command()\n", updater.split("def main():", 1)[1])
+        provision = (root / "appliance/alpine/provision.sh").read_text()
+        self.assertNotIn("cp appliance/alpine/updater.py /usr/local/sbin", provision)
+
     def test_export_sanitizer_removes_container_identity_and_resets_network_identity(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

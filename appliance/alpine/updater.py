@@ -345,8 +345,23 @@ def check():
         status("Update available. Open Settings → System → Software to install the latest Alpine release.")
 
 
+UPDATE_COMMAND = Path("/usr/local/sbin/pi-home-alpine-update")
+UPDATE_COMMAND_TEXT = "#!/bin/sh\n# Always run the updater that ships with the installed app, so this command can never go stale.\nexec /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py \"$@\"\n"
+
+
+def install_update_command():
+    """Replace any copied updater with a launcher for the installed one (an old copy pointed at a renamed repository)."""
+    try:
+        if UPDATE_COMMAND.exists() and UPDATE_COMMAND.read_text() == UPDATE_COMMAND_TEXT: return
+        UPDATE_COMMAND.parent.mkdir(parents=True, exist_ok=True)
+        temporary = UPDATE_COMMAND.with_suffix(".tmp")
+        temporary.write_text(UPDATE_COMMAND_TEXT); temporary.chmod(0o755); temporary.replace(UPDATE_COMMAND)
+    except OSError: pass
+
+
 def main():
     if os.geteuid() != 0: raise SystemExit("Run with sudo")
+    install_update_command()
     with open("/run/pi-home-update.lock", "a") as lock:
         try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError: return

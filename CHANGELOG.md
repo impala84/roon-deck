@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.8-beta.81 Alpine — 6 November 2026
+
+- Updates: the `pi-home-alpine-update` command (used over SSH) is now a small launcher for the updater inside the installed app, instead of a copied file. An old copy still pointed at the renamed `pi-home` repository and failed with "HTTP Error 404". It is refreshed automatically the next time any update runs. The Settings update button and the nightly check were not affected.
+
 ## 1.1.8-beta.80 Alpine — 5 November 2026
 
 - Settings no longer closes itself within moments of opening. The idle auto-close now counts from when Settings was opened (or your last touch, whichever is later), so a screen that has not yet recorded a touch since boot cannot close it at once.

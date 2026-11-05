@@ -36,7 +36,7 @@ chmod 755 appliance/alpine/display-session
 cp appliance/alpine/reset-password.py /usr/local/bin/pi-home-reset-password
 chmod 755 /usr/local/bin/pi-home-reset-password
 mkdir -p /usr/local/sbin
-cp appliance/alpine/updater.py /usr/local/sbin/pi-home-alpine-update
+printf '%s\n' '#!/bin/sh' 'exec /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py "$@"' > /usr/local/sbin/pi-home-alpine-update
 chmod 755 /usr/local/sbin/pi-home-alpine-update
 cp appliance/alpine/init.d/* /etc/init.d/
 chmod 755 /etc/init.d/pi-home-*
