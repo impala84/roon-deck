@@ -163,50 +163,20 @@ if (screen_width, screen_height) == (800, 480):
     # Overscan the viewport beyond the panel edge so the physical GTK clip,
     # including its hidden scrollbar allocation, cannot leave a black gutter.
     assert outer_bounds.get_x() + outer_bounds.get_width() >= screen_width + 10, (outer_bounds.get_x(), outer_bounds.get_width())
+    # Daily is a wrapping three-across grid beside the sidebar, not a sideways carousel: it must sit inside the panel and use the width.
     for row in display.discovery_daily_sections.values():
         bounds = row.compute_bounds(page)[1]
-        assert bounds.get_x() + bounds.get_width() >= screen_width - 1, (bounds.get_x(), bounds.get_width())
+        assert bounds.get_x() + bounds.get_width() <= screen_width + 1, (bounds.get_x(), bounds.get_width())
+        assert bounds.get_width() >= screen_width * .6, (bounds.get_x(), bounds.get_width())
 if screen_width >= 1200 and screen_height < screen_width:
-    recommendation_row = display.discovery_daily_sections["recommendations"]
-    track = recommendation_row.get_child()
-    if isinstance(track, Gtk.Viewport): track = track.get_child()
-    first_cover = track.get_first_child().compute_bounds(page)[1]
-    child = display.discovery_list.get_first_child()
-    while child:
-        if child.has_css_class("recommendation-heading") or child.has_css_class("recommendation-album"):
-            text_left = child.compute_bounds(page)[1].get_x()
-            assert abs(text_left - first_cover.get_x()) <= 1, (text_left, first_cover.get_x())
-        child = child.get_next_sibling()
-    for row in display.discovery_daily_sections.values():
+    for name, row in display.discovery_daily_sections.items():
+        assert isinstance(row, Gtk.Grid), name
         bounds = row.compute_bounds(page)[1]
-        assert abs(bounds.get_x() + bounds.get_width() - screen_width) <= 1
-        track = row.get_child()
-        if isinstance(track, Gtk.Viewport): track = track.get_child()
-        start_x = track.get_first_child().compute_bounds(page)[1].get_x()
-        assert track.get_margin_end() == native.CAROUSEL_END_SPACE == 30
-        adjustment = row.get_hadjustment()
-        adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
-        settle()
-        final = track.get_last_child().compute_bounds(page)[1]
-        if adjustment.get_upper() > adjustment.get_page_size() + 1:
-            assert abs(screen_width - final.get_x() - final.get_width() - 30) <= 2
-        else:
-            # A wider 10-inch fixture may fit every card without scrolling.
-            # Preserve the start position; do not spread cards to fill it.
-            assert screen_width - final.get_x() - final.get_width() >= 30
-        capture("daily-carousel-end-" + ("mixes" if row is display.discovery_daily_sections["mixes"] else "recommendations"))
-        adjustment.set_value(adjustment.get_lower())
-        settle()
-        assert abs(track.get_first_child().compute_bounds(page)[1].get_x() - start_x) <= 1
-        # Exercise the actual GTK paint-only spring at both ends, independent
-        # of synthetic input delivery; physical touch feel still needs Pi testing.
-        for pull in (16.0, -16.0):
-            track.elastic_offset = pull; track.queue_draw(); track.spring_back()
-            settle()
-            assert abs(track.elastic_offset) < 16
-            time.sleep(.5); settle()
-            assert track.elastic_offset == 0
-            assert abs(track.get_first_child().compute_bounds(page)[1].get_x() - start_x) <= 1
+        assert bounds.get_x() + bounds.get_width() <= screen_width + 1, (name, bounds.get_x(), bounds.get_width())
+        assert bounds.get_width() >= screen_width * .6, (name, bounds.get_x(), bounds.get_width())
+        first_cover = row.get_first_child().compute_bounds(page)[1]
+        assert first_cover.get_x() >= bounds.get_x() - 1
+        capture("daily-grid-" + name)
 assert "discover:" + daily["groups"][0]["seed"]["artwork_key"] not in display.discovery_pictures
 if screen_height > screen_width:
     assert "recommendations" not in display.discovery_daily_sections
@@ -235,9 +205,6 @@ else:
     vertical = display.discovery_scroll.get_vadjustment()
     vertical.set_value(max(vertical.get_lower(), min(vertical.get_upper() - vertical.get_page_size(), for_you.get_allocation().y - 42)))
     capture("daily-for-you")
-    horizontal = for_you.get_hadjustment()
-    horizontal.set_value(min(horizontal.get_upper() - horizontal.get_page_size(), 240))
-    capture("daily-for-you-scrolled")
 
 # Check actual allocated portrait geometry, not just requested widget sizes.
 if screen_height > screen_width:
