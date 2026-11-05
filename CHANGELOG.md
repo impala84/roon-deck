@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.8 Alpine — 6 November 2026
+
+RoonDeck 1.1.8 Alpine is a full clean-install ARM64 image for Raspberry Pi, rolling up beta.1 to beta.81.
+
+- Settings: a redesigned web Settings workspace (Overview, Services, Automation, Display, Controls, Network, Software, System), a sidebar on the 7-inch display and tabs on the 10-inch, on/off switches for Roon Bridge, AirPlay, Netdata and Bus Times, and live performance and memory views. Settings now closes by itself after a minute without a touch and returns to Now Playing.
+- Network: choose Ethernet or Wi-Fi as the primary connection and join Wi-Fi from the screen, with clear reasons when a join or switch fails. Every connection change has a 90-second Keep / Go back trial with a recovery watchdog. VPN (WireGuard) support, Roon Core over VPN, and an experimental Roon Discovery switch.
+- Surface Dial: optional Bluetooth Dial support with pairing, battery and status. Turning the Dial while the screen sleeps wakes it for a short, separately set time; touch wakes are unchanged.
+- Discover: a redesigned Daily mixes page (three across, softer artwork tint, no repeated artist) and sharper artwork. New releases gains a TIDAL browser (New albums, Recommended, Top 20, Masters and every genre), stacked above the genres on portrait screens, with its own Back button.
+- Power: Reboot opens a Restart / Shut down prompt. The display stays awake during the morning bus window. The Sleep and Settings buttons have a larger tap area.
+- Reliability: the Roon controller restarts and reconnects itself after a dropped Core connection, its log is no longer allowed to grow to gigabytes, fewer abrupt jumps back to Now Playing, a memory watch for the 1 GB Pi, and an SSH update command that always uses the installed updater.
+- Default device name is now "roondeck". Screen Preview can open Settings pages and the TIDAL browser.
+
 ## 1.1.8-beta.81 Alpine — 6 November 2026
 
 - Updates: the `pi-home-alpine-update` command (used over SSH) is now a small launcher for the updater inside the installed app, instead of a copied file. An old copy still pointed at the renamed `pi-home` repository and failed with "HTTP Error 404". It is refreshed automatically the next time any update runs. The Settings update button and the nightly check were not affected.
