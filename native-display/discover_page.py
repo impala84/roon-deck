@@ -608,7 +608,8 @@ class DiscoverPageMixin:
             gap = 30
             return columns, max(64, (available - gap * (columns - 1)) // columns)
         sidebar = section in {"recent", "releases"} and not getattr(self, "responsive_portrait", False)
-        available = max(300, width - (198 if sidebar else 56))
+        # Wide screens keep a 28px margin to the right of the page body, so the rail and that margin both come off the width.
+        available = max(300, width - (198 if sidebar else 56) - (28 if sidebar and width >= 1200 else 0))
         original = width <= 820 and not getattr(self, "responsive_portrait", False)
         columns = 4 if width >= 1000 or (original and section == "releases") else 3
         gap = 14 if original and section == "releases" else 30 if section == "releases" else 24
