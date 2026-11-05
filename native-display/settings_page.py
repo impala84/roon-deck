@@ -583,6 +583,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
 
     def open_settings(self, *_):
         self.settings_open = True  # keep the last system reading on screen; the poll refreshes it when it is over 15 seconds old
+        self.settings_opened_at = time.monotonic()  # the idle auto-close counts from here at the earliest
         # Always start on the main page, even if the screen last left Settings from Controls.
         self.settings_sections.set_visible_child_name(self.settings_home())
         if getattr(self, "settings_sidebar_active", False) or getattr(self, "settings_tabs_active", False): self.show_settings_pane("overview")

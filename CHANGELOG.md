@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8-beta.80 Alpine — 5 November 2026
+
+- Settings no longer closes itself within moments of opening. The idle auto-close now counts from when Settings was opened (or your last touch, whichever is later), so a screen that has not yet recorded a touch since boot cannot close it at once.
+- Memory watch for the 1 GB Pi: the display log now records free memory and the five largest processes every 15 minutes (and every minute when memory runs low), so a slow leak that eventually hangs the Pi can be traced. If memory stays critically low for three minutes and the display itself is the cause, it restarts itself rather than letting the whole Pi hang.
+
 ## 1.1.8-beta.79 Alpine — 2 November 2026
 
 - Waking the screen with the Surface Dial or a TV-remote volume change now keeps it on for a shorter time (30 seconds by default) than waking it with a tap. The new "Stay awake after a Dial or TV remote volume change" setting is in the web admin next to "Stay awake after a tap", which is unchanged.

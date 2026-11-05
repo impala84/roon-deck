@@ -556,7 +556,42 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         logo = Gtk.Picture.new_for_paintable(paintable); logo.add_css_class("boot-wordmark"); logo.set_size_request(width, logo_height); logo.set_can_shrink(True); logo.set_content_fit(Gtk.ContentFit.CONTAIN); logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); logo.set_margin_bottom(200 if shortest >= 1000 else 0); page.append(logo)
         return page
 
+    def watch_memory(self):
+        """This Pi has about 1 GB and no swap. Log the biggest processes every 15 minutes (and when memory is low) so a slow
+        leak can be traced, and restart this display only if memory stays critically low and the display is what is using it."""
+        now = time.monotonic()
+        if now - getattr(self, "memory_checked_at", 0.0) < 60: return
+        self.memory_checked_at = now
+        try:
+            info = {}
+            with open("/proc/meminfo") as handle:
+                for line in handle:
+                    key, _, rest = line.partition(":"); info[key] = int(rest.split()[0])
+            available = info.get("MemAvailable", 0) // 1024
+        except (OSError, ValueError, IndexError): return
+        sizes = []
+        if now - getattr(self, "memory_logged_at", 0.0) >= 900 or available < 150:
+            self.memory_logged_at = now
+            for entry in os.listdir("/proc"):
+                if not entry.isdigit(): continue
+                try:
+                    name = rss = None
+                    with open(f"/proc/{entry}/status") as handle:
+                        for line in handle:
+                            if line.startswith("Name:"): name = line.split()[1]
+                            elif line.startswith("VmRSS:"): rss = int(line.split()[1]) // 1024
+                    if name and rss: sizes.append((rss, name, int(entry)))
+                except (OSError, ValueError, IndexError): continue
+            top = ", ".join(f"{name} {rss}MB" for rss, name, _pid in sorted(sizes, reverse=True)[:5])
+            print(f"RoonDeck memory: {available} MB available; largest: {top}", flush=True)
+        self.low_memory_checks = getattr(self, "low_memory_checks", 0) + 1 if available < 70 else 0
+        own = next((rss for rss, _name, pid in sizes if pid == os.getpid()), 0)
+        if self.low_memory_checks >= 3 and own >= 200:
+            print(f"RoonDeck restarting the display: only {available} MB free and the display holds {own} MB", flush=True)
+            os._exit(3)  # the service supervisor starts a fresh display
+
     def tick(self):
+        if hasattr(self, "watch_memory"): self.watch_memory()
         current = datetime.now(TZ)
         now = current.strftime("%H:%M") if current.year >= 2024 else "--:--"
         self.bus_clock.set_text(now); self.roon_clock.set_text(now); self.home_clock.set_text(now); self.sleep_clock.set_text(now)
@@ -568,7 +603,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         settings_timeout = int(getattr(self, "settings_data", {}).get("settings_idle_return_seconds", 60) or 0)
         typing = isinstance(self.window.get_focus(), Gtk.Editable) if hasattr(self, "window") else False
         if (settings_timeout > 0 and getattr(self, "settings_open", False) and hasattr(self, "stack") and self.stack.get_visible_child_name() == "settings"
-                and not typing and time.monotonic() - getattr(self, "last_touch", self.last_interaction) >= settings_timeout and not getattr(self, "update_in_progress", False)
+                and not typing and time.monotonic() - max(getattr(self, "last_touch", self.last_interaction), getattr(self, "settings_opened_at", 0.0)) >= settings_timeout and not getattr(self, "update_in_progress", False)
                 and not (getattr(self, "connection_status", {}).get("trial") or {}).get("token") and not getattr(self, "vpn_trial_token", "")
                 and not getattr(self, "connection_busy", False)):
             print("RoonDeck Settings idle: returning to Now Playing", flush=True)
