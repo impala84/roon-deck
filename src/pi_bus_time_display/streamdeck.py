@@ -201,11 +201,11 @@ class Painter:
     def strip(self, dials, state, home, error):
         return self.safe("strip", (800, 100), "#11201d", lambda: self._strip(dials, state, home, error))
 
-    def level_tint(self, image, level):
+    def level_tint(self, image, level, colour="#c98a22"):
         """Warm the key's background in step with the light's brightness: unchanged when off, glowing at full."""
         from PIL import Image
         if level <= 0: return image
-        glow = Image.new("RGB", image.size, "#c98a22")
+        glow = Image.new("RGB", image.size, colour)
         return Image.blend(image, glow, min(.85, .18 + .67 * level / 100))
 
     def draw_sun(self, image, level):
@@ -243,7 +243,7 @@ class Painter:
             # Ease towards the real level a little every refresh: a soft fade, not a jump.
             shown = target if abs(target - shown) < 2 else shown + (target - shown) * .4
             self.eased[level_id] = shown; self.targets[level_id] = target
-            image = self.level_tint(image, shown)
+            image = self.level_tint(image, shown, binding.get("level_color") or "#c98a22")
         playpause = binding.get("action") == "playpause"
         if playpause and cover is not None:
             # Current album artwork behind the control, dimmed so the icon and time stay readable.

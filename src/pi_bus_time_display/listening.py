@@ -137,7 +137,7 @@ def validate_settings(data):
                 raise ValueError("Dial steps must be between 1 and 10")
             if "image" in binding and (not isinstance(binding["image"], str) or len(binding["image"]) > 120 or Path(binding["image"]).name != binding["image"]):
                 raise ValueError("Artwork must be a filename in the deck-art folder")
-            for colour_name in ("color", "active_color", "text_color"):
+            for colour_name in ("color", "active_color", "text_color", "level_color"):
                 if colour_name in binding and (not isinstance(binding[colour_name], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", binding[colour_name])):
                     raise ValueError("Button colours must look like #236650")
             if "level_entity" in binding and (not isinstance(binding["level_entity"], str) or not re.fullmatch(r"(light|fan)\.[a-z0-9_]{1,100}", binding["level_entity"])):

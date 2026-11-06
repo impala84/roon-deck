@@ -46,7 +46,7 @@
   const selectOf = (options, value) => { const select = h('select'); for (const [id, name] of options) select.add(new Option(name, id)); select.value = options.some(([id]) => id === value) ? value : options[0][0]; return select; };
   const field = (text, control, hint) => h('label', {class: 'cd-field'}, h('span', {}, text), control, hint ? h('small', {}, hint) : null);
 
-  let buttons = [], dials = [], art = [], entities = [], catalog = [], selection = {type: 'key', index: 0}, dirty = false, built = false, dragFrom = null;
+  let buttons = [], dials = [], art = [], entities = [], catalog = [], haUrl = '', selection = {type: 'key', index: 0}, dirty = false, built = false, dragFrom = null;
   const status = h('p', {role: 'status', class: 'cd-message'});
   const notice = h('span', {class: 'dd-dirty', hidden: true}, 'Unsaved changes');
   const connection = h('span', {class: 'cd-muted'});
@@ -89,11 +89,33 @@
   }
 
   /* ------------------------------------------------------------ device preview */
+  const GLOW = '#c98a22', GLOW_SWATCHES = ['#c98a22', '#e8c14d', '#e85d3a', '#d94f8c', '#8a5cf0', '#3d8bff', '#3fc7a0', '#e9e4da'];
+  const mix = (a, b, t) => { const n = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)); const x = n(a), y = n(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(',')})`; };
+  function levelOf(id) {
+    const item = entities.find(entry => entry.entity_id === id);
+    if (!item || item.state !== 'on') return 0;
+    return item.percentage ?? Math.round((item.brightness || 0) / 2.55);
+  }
+  // The same sun the deck draws: more and longer rays, and a warmer background, as the light gets brighter.
+  function sunSvg(level) {
+    const amount = Math.max(0, Math.min(1, level / 100)), rays = level <= 0 ? 0 : amount < .3 ? 4 : amount < .7 ? 8 : 12;
+    const length = 5 + 11 * amount, opacity = .4 + .6 * amount;
+    let out = '<circle cx="60" cy="46" r="11" fill="none" stroke="#fff" stroke-width="1.6"/>';
+    for (let i = 0; i < rays; i++) {
+      const angle = 2 * Math.PI * i / rays + (rays === 4 ? Math.PI / 4 : 0);
+      out += `<line x1="${(60 + Math.cos(angle) * 17).toFixed(1)}" y1="${(46 + Math.sin(angle) * 17).toFixed(1)}" x2="${(60 + Math.cos(angle) * (17 + length)).toFixed(1)}" y2="${(46 + Math.sin(angle) * (17 + length)).toFixed(1)}" stroke="#fff" stroke-opacity="${opacity.toFixed(2)}" stroke-width="1.6" stroke-linecap="round"/>`;
+    }
+    return `<svg class="dd-sun" viewBox="0 0 120 120" aria-hidden="true">${out}</svg>`;
+  }
   function keyTile(index) {
     const binding = buttons[index];
     const tile = h('button', {type: 'button', class: 'dd-key', draggable: 'true', 'aria-label': `Key ${index + 1}: ${binding.label || describe(binding) || 'unused'}`,
       'aria-pressed': selection.type === 'key' && selection.index === index ? 'true' : 'false', style: `background:${binding.color || KEY_DEFAULT}`});
-    if (binding.image) tile.append(h('img', {src: artUrl(binding.image), alt: '', draggable: 'false'}));
+    const level = binding.level_entity ? levelOf(binding.level_entity) : null;
+    if (level !== null) {
+      if (level > 0) tile.style.background = mix(binding.color || KEY_DEFAULT, binding.level_color || GLOW, Math.min(.85, .18 + .67 * level / 100));
+      tile.insertAdjacentHTML('beforeend', sunSvg(level));
+    } else if (binding.image) tile.append(h('img', {src: artUrl(binding.image), alt: '', draggable: 'false'}));
     if (binding.action === 'none' && !binding.label && !binding.image) tile.append(h('span', {class: 'dd-empty'}, '+'));
     else if (binding.label) tile.append(h('span', {class: `dd-label${binding.image ? ' low' : ''}`}, binding.label));
     tile.append(h('span', {class: 'dd-index'}, index + 1));
@@ -152,11 +174,18 @@
         select.onchange = () => { binding.value = select.value; change(); };
         return field('KEF input', select);
       }
-      case 'home_toggle': case 'home_scene': return entityPicker(binding, change, binding.action === 'home_scene' ? item => item.domain === 'scene' : item => item.domain !== 'scene' && item.domain !== 'script', binding.action === 'home_scene' ? 'Scene' : 'Home device');
-      case 'home_script': return entityPicker(binding, change, item => item.domain === 'script', 'Script');
+      case 'home_toggle': case 'home_scene': return withLink(entityPicker(binding, change, binding.action === 'home_scene' ? item => item.domain === 'scene' : item => item.domain !== 'scene' && item.domain !== 'script', binding.action === 'home_scene' ? 'Scene' : 'Home device'), binding.action === 'home_scene' ? 'scene' : null);
+      case 'home_script': return withLink(entityPicker(binding, change, item => item.domain === 'script', 'Script'), 'script');
       default: return null;
     }
   }
+  // A shortcut to where scripts and scenes are made in Home Assistant, opened in its own tab.
+  function haLink(kind) {
+    if (!/^https?:\/\//i.test(haUrl)) return null;
+    const page = kind === 'scene' ? 'scene' : 'script';
+    return h('a', {class: 'dd-ha-link', href: `${haUrl.replace(/\/+$/, '')}/config/${page}/dashboard`, target: '_blank', rel: 'noopener'}, `Create or edit ${page}s in Home Assistant ↗`);
+  }
+  function withLink(node, kind) { const link = haLink(kind); return link ? h('div', {class: 'dd-linked'}, node, link) : node; }
   function entityPicker(binding, onChange, filter = () => true, labelText = 'Home device', key = 'entity_id') {
     // Everything shared on Home, plus every other device Home Assistant knows about, so a new script appears without extra setup.
     const known = new Set(entities.map(item => item.entity_id));
@@ -302,7 +331,7 @@
   }
   function levelFields(binding) {
     const picker = entityPicker(binding, () => { if (!binding.level_entity) delete binding.level_entity; markDirty(); drawStage(); }, item => item.domain === 'light' || item.domain === 'fan', 'Show the brightness of', 'level_entity');
-    return h('div', {class: 'dd-group'}, picker, h('small', {class: 'cd-muted'}, 'The key shows a sun whose rays grow, and a background that warms and brightens, as this light does. It follows the real level, even if you change it elsewhere.'));
+    return h('div', {class: 'dd-group'}, picker, binding.level_entity ? colourPicker(binding, 'The background warms towards this colour as the light gets brighter.', 'level_color', 'Glow colour', GLOW_SWATCHES, GLOW) : null, h('small', {class: 'cd-muted'}, 'The key shows a sun whose rays grow, and a background that warms and brightens, as this light does. It follows the real level, even if you change it elsewhere.'));
   }
   function toggleFields(press) {
     const text = (name, placeholder) => { const input = h('input', {type: 'text', placeholder, autocomplete: 'off', spellcheck: 'false'}); input.value = press[name] ?? ''; input.oninput = () => { press[name] = input.value.trim(); markDirty(); }; return input; };
@@ -409,7 +438,7 @@
     value.oninput = () => { onPlay.value = value.value.trim(); mark(); };
     return h('div', {class: 'dd-group'}, h('h4', {}, 'When Roon starts playing'),
       h('p', {class: 'cd-muted'}, 'Run a Home script as soon as playback starts, for example to switch the DAC to its optical input. Add the input helper and its wanted value to skip the script when the input is already right.'),
-      picker, field('Input helper (optional)', helper), field('Skip when the helper already equals', value));
+      withLink(picker, 'script'), field('Input helper (optional)', helper), field('Skip when the helper already equals', value));
   }
   function build() {
     enableBox = h('input', {type: 'checkbox'}); enableBox.checked = !!SHARED().settings.streamdeck_enabled;
@@ -433,7 +462,7 @@
         settings.streamdeck_awake_seconds = Math.max(5, Math.min(3600, Math.round(Number(wake.awake.value) || 30)));
         settings.streamdeck_brightness = Number(deckBrightness.value);
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
-        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.level_entity) delete out.level_entity; if (!out.also || out.also.action === 'none') delete out.also; return out; });
+        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.level_entity) { delete out.level_entity; delete out.level_color; } else if (!out.level_color || out.level_color.toLowerCase() === GLOW) delete out.level_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.action === 'remote_steps' ? {device: item.device || '', command: item.command || '', min: item.min, max: item.max, start: item.start, unit: item.unit || ''} : {}), ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {}), ...(item.press.action === 'remote_toggle' ? {entity_id: item.press.entity_id || '', device: item.press.device || '', command_on: item.press.command_on || '', command_off: item.press.command_off || '', initial_on: !!item.press.initial_on, off_only: !!item.press.off_only} : {})}}));
         await SHARED().save();
@@ -491,6 +520,7 @@
   async function loadLibrary() {
     try { art = (await SHARED().call('GET', undefined, '/api/admin/listening/art')).art || []; } catch (_) { art = []; }
     try { const response = await fetch('/api/home/status', {cache: 'no-store'}); if (response.ok) { const body = await response.json(); entities = [...(body.entities || []), ...(body.deck_entities || [])]; } } catch (_) { entities = []; }
+    try { const response = await fetch('/api/admin/config', {cache: 'no-store'}); if (response.ok) haUrl = String((await response.json()).home_assistant_url || ''); } catch (_) { haUrl = ''; }
     try { const response = await fetch('/api/admin/home-catalog', {cache: 'no-store'}); if (response.ok) catalog = (await response.json()).entities || []; } catch (_) { catalog = []; }
   }
   async function start() {

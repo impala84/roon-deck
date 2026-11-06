@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.38 Alpine — 7 November 2026
+
+- Stream Deck designer: a key that shows a light's brightness now previews the sun, rays and warm background in the designer too, instead of the old icon.
+- Stream Deck: choose the glow colour a key warms towards as its light gets brighter.
+- Stream Deck designer: under the Script and Scene pickers is a link that opens Home Assistant's scripts or scenes page in a new tab, to create or edit them.
+- Stream Deck designer: more room between the deck picture and the hint line under it.
+
 ## 1.2.0-beta.37 Alpine — 7 November 2026
 
 - Stream Deck: the brightness fade on a key is much quicker and smoother. Only the keys showing a light's level are redrawn, about a dozen times a second while they fade, and the deck checks Home Assistant several times a second for a few seconds after any press so changes appear straight away.

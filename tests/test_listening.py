@@ -448,6 +448,17 @@ class LevelKeyTests(unittest.TestCase):
             self.draw(painter, "on", 255); frames += 1
         self.assertFalse(painter.animating()); self.assertLessEqual(frames, 12)
 
+    def test_glow_colour_is_used_and_validated(self):
+        from io import BytesIO
+        from PIL import Image
+        from pi_bus_time_display.listening import validate_settings
+        home = {"entities": [{"entity_id": "light.study_uplight", "state": "on", "brightness": 255}]}
+        raw = Painter(tempfile.mkdtemp()).key({"action": "home_script", "entity_id": "script.c", "level_entity": "light.study_uplight", "level_color": "#3d8bff", "color": "#000000"}, {}, home, None, None)
+        red, green, blue = Image.open(BytesIO(raw)).convert("RGB").getpixel((12, 60))
+        self.assertGreater(blue, red)
+        with self.assertRaises(ValueError):
+            validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "level_color": "blue"}]})
+
     def test_only_lights_and_fans_can_show_a_level(self):
         from pi_bus_time_display.listening import validate_settings
         validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "level_entity": "light.study_uplight"}]})
