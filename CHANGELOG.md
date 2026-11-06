@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.36 Alpine — 7 November 2026
+
+- Stream Deck: a key can now show the brightness of a light or fan ("Show the brightness of"). The key draws a sun whose rays lengthen and multiply as the light gets brighter, and its background warms and brightens with it, fading smoothly between levels. It follows the real level, so changes made in the Hue app show too.
+
 ## 1.2.0-beta.35 Alpine — 7 November 2026
 
 - Stream Deck designer: the key, dial and strip editor is now on the left and the deck picture on the right, matching Wake & sleep. On narrow screens the picture stays on top.

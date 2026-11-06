@@ -409,3 +409,38 @@ class ReferencedEntitiesTests(unittest.TestCase):
             "dials": [{"action": "home_level", "entity_id": "light.study_uplight", "press": {"action": "home_toggle", "entity_id": "switch.desk_lamp_none"}}],
             "on_play": {"script": "script.topping_input_optical"}})
         self.assertEqual(found, {"script.study_desk_cycle", "script.b", "light.study_uplight", "switch.desk_lamp_none", "script.topping_input_optical"})
+
+
+class LevelKeyTests(unittest.TestCase):
+    def setUp(self):
+        global Painter
+        try: from pi_bus_time_display.streamdeck import Painter
+        except ImportError: self.skipTest('no Pillow')
+
+    def draw(self, painter, state, brightness):
+        from io import BytesIO
+        from PIL import Image
+        home = {"entities": [{"entity_id": "light.study_uplight", "state": state, "brightness": brightness}]}
+        raw = painter.key({"action": "home_script", "entity_id": "script.cycle", "label": "Study", "level_entity": "light.study_uplight"}, {}, home, None, None)
+        return Image.open(BytesIO(raw)).convert("RGB")
+
+    def test_background_warms_as_the_light_gets_brighter(self):
+        centre = lambda image: image.getpixel((12, 60))
+        off = centre(self.draw(Painter(tempfile.mkdtemp()), "off", 0))
+        low = centre(self.draw(Painter(tempfile.mkdtemp()), "on", 26))
+        full = centre(self.draw(Painter(tempfile.mkdtemp()), "on", 255))
+        self.assertLess(sum(off), sum(low)); self.assertLess(sum(low), sum(full))
+
+    def test_fades_between_levels_instead_of_jumping(self):
+        painter = Painter(tempfile.mkdtemp())
+        self.draw(painter, "off", 0)
+        step = self.draw(painter, "on", 255).getpixel((12, 60))
+        settled = step
+        for _ in range(12): settled = self.draw(painter, "on", 255).getpixel((12, 60))
+        self.assertLess(sum(step), sum(settled))
+
+    def test_only_lights_and_fans_can_show_a_level(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "level_entity": "light.study_uplight"}]})
+        with self.assertRaises(ValueError):
+            validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "level_entity": "switch.lamp"}]})

@@ -145,6 +145,7 @@ class Painter:
         self.art_dir = Path(art_dir)
         self.fonts = {}
         self.reported = set()
+        self.eased = {}   # level entity -> brightness shown so far, so the tint fades instead of jumping
 
     def load_font(self, size):
         from PIL import ImageFont
@@ -196,6 +197,32 @@ class Painter:
     def strip(self, dials, state, home, error):
         return self.safe("strip", (800, 100), "#11201d", lambda: self._strip(dials, state, home, error))
 
+    def level_tint(self, image, level):
+        """Warm the key's background in step with the light's brightness: unchanged when off, glowing at full."""
+        from PIL import Image
+        if level <= 0: return image
+        glow = Image.new("RGB", image.size, "#c98a22")
+        return Image.blend(image, glow, min(.85, .18 + .67 * level / 100))
+
+    def draw_sun(self, image, level):
+        """A sun with rays that lengthen and multiply with the level (none when off); drawn large, then shrunk for smooth lines."""
+        import math
+        from PIL import Image, ImageDraw
+        scale = 4
+        layer = Image.new("RGBA", (120 * scale, 120 * scale), (0, 0, 0, 0)); draw = ImageDraw.Draw(layer)
+        cx, cy, radius = 60 * scale, 46 * scale, 11 * scale
+        width = round(1.6 * scale)
+        draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline=(255, 255, 255, 255), width=width)
+        if level > 0:
+            amount = max(0.0, min(1.0, level / 100))
+            rays = 4 if amount < .3 else 8 if amount < .7 else 12
+            length = (5 + 11 * amount) * scale; start = 17 * scale; opacity = round(255 * (.4 + .6 * amount))
+            for index in range(rays):
+                angle = 2 * math.pi * index / rays + (math.pi / rays if rays == 4 else 0)
+                draw.line((cx + math.cos(angle) * start, cy + math.sin(angle) * start, cx + math.cos(angle) * (start + length), cy + math.sin(angle) * (start + length)), fill=(255, 255, 255, opacity), width=width)
+        layer = layer.resize((120, 120), getattr(Image, "Resampling", Image).LANCZOS)
+        image.paste(layer, (0, 0), layer)
+
     def _key(self, binding, state, home, cover, elapsed):
         from PIL import Image, ImageDraw
         selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
@@ -203,12 +230,24 @@ class Painter:
         active = selected or entity.get("state") == "on"
         # A switched-on key gets its own "on" colour (or a brighter green) instead of an outline.
         image = Image.new("RGB", (120, 120), (binding.get("active_color") or "#236650") if active else (binding.get("color") or "#11201d"))
+        level_id = binding.get("level_entity")
+        shown = None
+        if level_id:
+            lit = next((item for item in _home_entities(home) if item.get("entity_id") == level_id), {})
+            target = home_level_of(lit) if lit.get("state") == "on" else 0
+            shown = self.eased.get(level_id, target)
+            # Ease towards the real level a little every refresh: a soft fade, not a jump.
+            shown = target if abs(target - shown) < 3 else shown + (target - shown) * .45
+            self.eased[level_id] = shown
+            image = self.level_tint(image, shown)
         playpause = binding.get("action") == "playpause"
         if playpause and cover is not None:
             # Current album artwork behind the control, dimmed so the icon and time stay readable.
             image = Image.blend(cover, Image.new("RGB", (120, 120), "#000000"), .5)
         art = binding.get("image")
-        if art:
+        if shown is not None:
+            self.draw_sun(image, shown)
+        elif art:
             # Only operator-controlled artwork adjacent to listening.json.
             path = (self.art_dir / art).resolve()
             if path.is_relative_to(self.art_dir.resolve()) and path.is_file():

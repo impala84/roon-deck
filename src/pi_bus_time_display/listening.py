@@ -140,6 +140,8 @@ def validate_settings(data):
             for colour_name in ("color", "active_color", "text_color"):
                 if colour_name in binding and (not isinstance(binding[colour_name], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", binding[colour_name])):
                     raise ValueError("Button colours must look like #236650")
+            if "level_entity" in binding and (not isinstance(binding["level_entity"], str) or not re.fullmatch(r"(light|fan)\.[a-z0-9_]{1,100}", binding["level_entity"])):
+                raise ValueError("Choose a light or fan to show the level of")
             if "also" in binding:
                 also = binding["also"]
                 if not isinstance(also, dict) or set(also) - {"action", "entity_id"} or also.get("action", "none") not in {"none", "pause", "play", "home_script"}:
@@ -318,7 +320,7 @@ def referenced_entities(settings):
         if isinstance(value, str) and "." in value: found.add(value)
     for binding in [*(settings.get("buttons") or []), *(settings.get("dials") or [])]:
         if not isinstance(binding, dict): continue
-        add(binding.get("entity_id")); add(binding.get("entity_id_ccw"))
+        add(binding.get("entity_id")); add(binding.get("entity_id_ccw")); add(binding.get("level_entity"))
         if isinstance(binding.get("press"), dict): add(binding["press"].get("entity_id"))
         if isinstance(binding.get("also"), dict): add(binding["also"].get("entity_id"))
     if isinstance(settings.get("on_play"), dict): add(settings["on_play"].get("script"))

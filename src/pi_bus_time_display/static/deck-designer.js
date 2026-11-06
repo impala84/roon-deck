@@ -296,8 +296,13 @@
       field('Label', label), field('When pressed', action), target, binding.action === 'playpause' ? playFields() : null,
       binding.action && binding.action !== 'none' ? alsoFields(binding) : null,
       colourPicker(binding),
+      ['home_script', 'home_toggle', 'home_scene', 'home_level'].includes(binding.action) ? levelFields(binding) : null,
       ['home_toggle', 'mode', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
       imagePicker(binding));
+  }
+  function levelFields(binding) {
+    const picker = entityPicker(binding, () => { if (!binding.level_entity) delete binding.level_entity; markDirty(); drawStage(); }, item => item.domain === 'light' || item.domain === 'fan', 'Show the brightness of', 'level_entity');
+    return h('div', {class: 'dd-group'}, picker, h('small', {class: 'cd-muted'}, 'The key shows a sun whose rays grow, and a background that warms and brightens, as this light does. It follows the real level, even if you change it elsewhere.'));
   }
   function toggleFields(press) {
     const text = (name, placeholder) => { const input = h('input', {type: 'text', placeholder, autocomplete: 'off', spellcheck: 'false'}); input.value = press[name] ?? ''; input.oninput = () => { press[name] = input.value.trim(); markDirty(); }; return input; };
@@ -428,7 +433,7 @@
         settings.streamdeck_awake_seconds = Math.max(5, Math.min(3600, Math.round(Number(wake.awake.value) || 30)));
         settings.streamdeck_brightness = Number(deckBrightness.value);
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
-        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
+        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.level_entity) delete out.level_entity; if (!out.also || out.also.action === 'none') delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.action === 'remote_steps' ? {device: item.device || '', command: item.command || '', min: item.min, max: item.max, start: item.start, unit: item.unit || ''} : {}), ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {}), ...(item.press.action === 'remote_toggle' ? {entity_id: item.press.entity_id || '', device: item.press.device || '', command_on: item.press.command_on || '', command_off: item.press.command_off || '', initial_on: !!item.press.initial_on, off_only: !!item.press.off_only} : {})}}));
         await SHARED().save();
