@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.31 Alpine — 7 November 2026
+
+- Stream Deck: the designer and the new Wake & sleep settings are now two tabs; it opens on the designer.
+- Stream Deck designer: more space between the panels, and the Wake & sleep switch is laid out properly.
+- Stream Deck: new dial press action "IR remote on / off". Each press sends power_on and power_off in turn (names are yours to set), so an aircon whose power button sends different codes for on and off can be toggled from the dial. A temperature step counts as switching it on, and the strip shows On / Off beside the temperature.
+
 ## 1.2.0-beta.30 Alpine — 7 November 2026
 
 - Stream Deck: new "Wake & sleep" box with its own settings: sleep with the display, an optional own sleep-from and wake-at time, how long it stays fully awake after a touch, and its awake brightness.

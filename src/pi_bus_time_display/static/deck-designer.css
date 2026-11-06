@@ -75,3 +75,13 @@
 
 .dd-head-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .dd-head-actions .secondary{min-height:38px;padding:6px 14px}
+
+#deck-designer{display:grid;gap:24px}
+#deck-designer>*{margin:0}
+.dd-tabs{margin:0}
+.dd-wake{display:grid;gap:22px;padding:28px}
+.dd-wake h3,.dd-wake p{margin:0}
+.dd-check{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;margin:0}
+.dd-check input{width:auto;margin:0;flex:none}
+.dd-wake .cd-grid.two{gap:22px}
+.dd-group{display:grid;gap:14px;margin-top:6px}

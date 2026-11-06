@@ -38,6 +38,7 @@ def clock(seconds):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
+_toggles = {}  # (remote, device) -> is the aircon on (assumed: the deck cannot read it back)
 _steps = {}   # (remote, command pattern) -> current value of an IR "steps" dial (e.g. aircon temperature)
 
 
@@ -104,6 +105,13 @@ def _dispatch(base, binding, delta=None):
         return request(base, "/roon/api/control", {"action": action})
     if action == "home_toggle":
         return request(base, "/api/device/home-toggle", {"entity_id": binding.get("entity_id")})
+    if action == "remote_toggle":
+        key = (binding["entity_id"], binding["device"])
+        on = _toggles.get(key, bool(binding.get("initial_on")))
+        result = request(base, "/api/listening/command", {"action": "remote", "value": {
+            "entity_id": binding["entity_id"], "device": binding["device"], "command": binding["command_off"] if on else binding["command_on"]}})
+        _toggles[key] = not on
+        return result
     if action == "remote_steps":
         current = step_value(binding)
         value = max(binding["min"], min(binding["max"], current + (delta or 0) * int(binding.get("step", 1))))
@@ -111,6 +119,7 @@ def _dispatch(base, binding, delta=None):
         result = request(base, "/api/listening/command", {"action": "remote", "value": {
             "entity_id": binding["entity_id"], "device": binding["device"], "command": binding["command"].replace("{n}", str(value))}})
         _steps[(binding.get("entity_id"), binding.get("command"))] = value
+        _toggles[(binding["entity_id"], binding["device"])] = True   # a temperature command switches the unit on
         return result
     if action == "home_level":
         entity = next((item for item in _home_entities(request(base, "/api/device/controls").get("home", {}))
@@ -246,6 +255,10 @@ class Painter:
                 draw.text((left, 32), f"{value}{binding.get('unit', '')}", fill=text_colour or "#a4dcc7", font=self.load_font(30))
                 draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
                 draw.rounded_rectangle((left, 80, left + max(6, round(172 * (value - binding["min"]) / span)), 85), radius=3, fill="#6ef0be")
+                press = binding.get("press") or {}
+                if press.get("action") == "remote_toggle":
+                    is_on = _toggles.get((press.get("entity_id"), press.get("device")), bool(press.get("initial_on")))
+                    draw.text((left + 172, 36), "On" if is_on else "Off", fill="#6ef0be" if is_on else "#f2b991", font=self.load_font(16), anchor="ra")
                 continue
             elif action == "home_script_dial":
                 centre_x, centre_y, radius = left + 88, 60, 22
@@ -373,7 +386,7 @@ def run(controls, base, stop):
                 cover_key = track.get("image_key") or ""
                 elapsed = int(playing.get("seek_position") or 0) if track else None
                 fresh = {key: value[0] for key, value in _pending_levels.items() if time.monotonic() - value[1] < 4}
-                signature = json.dumps([state, home, error, cover_key, elapsed, fresh, sorted(map(str, _steps.items()))], sort_keys=True)
+                signature = json.dumps([state, home, error, cover_key, elapsed, fresh, sorted(map(str, _steps.items())), sorted(map(str, _toggles.items()))], sort_keys=True)
                 if signature == previous: continue
                 previous = signature
                 if cover_key != cover[0]:

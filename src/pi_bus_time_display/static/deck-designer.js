@@ -19,7 +19,7 @@
     ['previous', 'Previous track'], ['playpause', 'Play / pause'], ['next', 'Next track'], ['home_toggle', 'Home device on / off'], ['home_scene', 'Home scene'], ['home_script', 'Home script (e.g. IR remote)'],
   ];
   const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)'], ['remote_steps', 'IR remote steps (e.g. aircon temperature)']];
-  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script']];
+  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script'], ['remote_toggle', 'IR remote on / off (e.g. aircon power)']];
   // KEF-only actions disappear while the KEF speakers are switched off (a saved binding keeps showing its own action).
   const KEF_ACTIONS = new Set(['mode', 'power', 'input', 'mute', 'volume_delta']);
   const kefOn = () => !!SHARED().settings.enabled;
@@ -296,6 +296,15 @@
       ['home_toggle', 'mode', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
       imagePicker(binding));
   }
+  function toggleFields(press) {
+    const text = (name, placeholder) => { const input = h('input', {type: 'text', placeholder, autocomplete: 'off', spellcheck: 'false'}); input.value = press[name] ?? ''; input.oninput = () => { press[name] = input.value.trim(); markDirty(); }; return input; };
+    const initial = h('input', {type: 'checkbox'}); initial.checked = !!press.initial_on; initial.onchange = () => { press.initial_on = initial.checked; markDirty(); };
+    return h('div', {class: 'dd-group'}, h('h4', {}, 'On / off commands'),
+      field('Remote entity', text('entity_id', 'remote.wi_fi_universal_remote')), field('Device name', text('device', 'aircon')),
+      h('div', {class: 'cd-grid two'}, field('Command to switch on', text('command_on', 'power_on')), field('Command to switch off', text('command_off', 'power_off'))),
+      h('label', {class: 'dd-check'}, initial, h('span', {}, 'Assume it is on when the Pi starts')),
+      h('small', {class: 'cd-muted'}, 'Each press sends the opposite command to the last one. Sending a temperature step counts as switching it on.'));
+  }
   function remoteFields(dial) {
     const text = (name, placeholder) => { const input = h('input', {type: 'text', placeholder, autocomplete: 'off', spellcheck: 'false'}); input.value = dial[name] ?? ''; input.oninput = () => { dial[name] = input.value.trim(); markDirty(); drawStage(); }; return input; };
     const number = name => { const input = h('input', {type: 'number', min: -50, max: 200}); input.value = dial[name] ?? ''; input.oninput = () => { dial[name] = input.value === '' ? undefined : Number(input.value); markDirty(); drawStage(); }; return input; };
@@ -317,7 +326,7 @@
     const step = h('input', {type: 'range', min: 1, max: 10, step: 1, value: dial.step ?? 1}); const stepValue = h('output', {}, String(dial.step ?? 1));
     step.oninput = () => { dial.step = Number(step.value); stepValue.textContent = step.value; markDirty(); };
     const tap = selectOf(available(PRESS_ACTIONS, press.action), press.action || 'none');
-    tap.onchange = () => { press.action = tap.value; delete press.entity_id; markDirty(); render(); };
+    tap.onchange = () => { press.action = tap.value; delete press.entity_id; if (tap.value === 'remote_toggle') Object.assign(press, {entity_id: dial.entity_id?.startsWith('remote.') ? dial.entity_id : 'remote.wi_fi_universal_remote', device: dial.device || 'aircon', command_on: 'power_on', command_off: 'power_off', initial_on: false}); markDirty(); render(); };
     const clear = h('button', {type: 'button', class: 'cd-quiet'}, 'Clear this dial');
     clear.onclick = () => { dials[selection.index] = blankDial(); markDirty(); render(); };
     fill(inspector, h('div', {class: 'dd-title'}, h('h3', {}, `Dial ${selection.index + 1}`), clear),
@@ -330,6 +339,7 @@
       field('When pressed or tapped on the strip', tap),
       press.action === 'home_toggle' ? entityPicker(press, markDirty, item => item.domain !== 'scene' && item.domain !== 'script', 'Device to toggle') : null,
       press.action === 'home_script' ? entityPicker(press, markDirty, item => item.domain === 'script', 'Script to run') : null,
+      press.action === 'remote_toggle' ? toggleFields(press) : null,
       colourPicker(dial, 'The colour behind this dial\'s section of the touch strip.'),
       colourPicker(dial, 'The colour of the label and the percentage on the strip.', 'text_color', 'Text colour', TEXT_SWATCHES, '#ffffff'));
   }
@@ -363,9 +373,9 @@
     wake.brightness = h('input', {type: 'range', min: 10, max: 100, step: 5}); wake.brightnessValue = h('output', {}, '');
     for (const input of [wake.start, wake.end, wake.awake]) input.oninput = () => markDirty();
     wake.brightness.oninput = () => { wake.brightnessValue.textContent = `${wake.brightness.value}%`; markDirty(); };
-    const card = h('div', {class: 'cd-card'}, h('h3', {}, 'Wake & sleep'),
+    const card = h('div', {class: 'cd-card dd-wake'}, h('h3', {}, 'Wake & sleep'),
       h('p', {class: 'cd-muted'}, 'The deck can sleep along with the screen, on its own schedule, or both. While it sleeps the backlight is off; touch any key or dial to wake it, and the first touch only wakes it.'),
-      h('label', {class: 'cd-switch'}, sleepBox, h('span', {}, 'Sleep with the display (overnight schedule, or when Roon has been idle)')),
+      h('label', {class: 'dd-check'}, sleepBox, h('span', {}, 'Sleep with the display (overnight schedule, or when Roon has been idle)')),
       h('div', {class: 'cd-grid two'}, field('Sleep the deck from (optional)', wake.start), field('Wake it again at', wake.end)),
       h('div', {class: 'cd-grid two'}, field('Stay fully awake after a touch (seconds)', wake.awake),
         h('label', {class: 'cd-field'}, h('span', {}, 'Brightness when awake'), h('div', {class: 'dd-range'}, wake.brightness, wake.brightnessValue))));
@@ -407,7 +417,7 @@
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
         settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.action === 'remote_steps' ? {device: item.device || '', command: item.command || '', min: item.min, max: item.max, start: item.start, unit: item.unit || ''} : {}), ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
-          press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
+          press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {}), ...(item.press.action === 'remote_toggle' ? {entity_id: item.press.entity_id || '', device: item.press.device || '', command_on: item.press.command_on || '', command_off: item.press.command_off || '', initial_on: !!item.press.initial_on} : {})}}));
         await SHARED().save();
         dirty = false; notice.hidden = true; status.textContent = 'Stream Deck saved. It updates on the device within a few seconds.';
       } catch (error) { status.textContent = error.message; throw error; }
@@ -421,7 +431,14 @@
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('div', {class: 'dd-head-actions'}, notice, revertButton, h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled')))),
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
     const layout = h('div', {class: 'dd-layout'}, stage, inspector);
-    root.replaceChildren(head, layout, wakeCard(), status);
+    const wakePane = wakeCard(); wakePane.hidden = true;
+    const tabButtons = [['design', 'Designer', layout], ['wake', 'Wake & sleep', wakePane]].map(([id, name, pane]) => {
+      const button = h('button', {type: 'button', role: 'tab', 'aria-selected': id === 'design' ? 'true' : 'false'}, name);
+      button.onclick = () => { for (const [other, , otherPane] of [['design', '', layout], ['wake', '', wakePane]]) otherPane.hidden = other !== id; for (const item of tabButtons) item.setAttribute('aria-selected', String(item === button)); };
+      return button;
+    });
+    const tabs = h('nav', {class: 'system-tabs controls-tabs dd-tabs', role: 'tablist', 'aria-label': 'Stream Deck sections'}, tabButtons);
+    root.replaceChildren(head, tabs, layout, wakePane, status);
     built = true;
   }
 

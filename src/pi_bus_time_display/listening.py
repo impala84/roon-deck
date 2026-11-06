@@ -128,7 +128,7 @@ def validate_settings(data):
         if not isinstance(bindings, list) or len(bindings) > limit or any(not isinstance(item, dict) for item in bindings):
             raise ValueError(f"{name} must be a list of up to {limit} bindings")
         def validate_binding(binding, is_press=False):
-            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps"}
+            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps", "remote_toggle"}
             if not isinstance(binding.get("action", "none"), str) or binding.get("action", "none") not in allowed:
                 raise ValueError("Choose a supported control action")
             if not isinstance(binding.get("label", ""), str) or len(binding.get("label", "")) > 40:
@@ -153,6 +153,11 @@ def validate_settings(data):
                 raise ValueError("Power targets must be true or false")
             if binding.get("action") == "input" and binding.get("value") not in KefLSX.SOURCES:
                 raise ValueError("Choose a supported KEF input")
+            if binding.get("action") == "remote_toggle":
+                text = lambda name, pattern: isinstance(binding.get(name), str) and re.fullmatch(pattern, binding[name])
+                if not (text("entity_id", r"remote\.[a-z0-9_]{1,80}") and text("device", r"[A-Za-z0-9_ -]{1,40}") and text("command_on", r"[a-z0-9_]{1,40}") and text("command_off", r"[a-z0-9_]{1,40}")):
+                    raise ValueError("Choose a remote, a device name and the on and off commands")
+                if "initial_on" in binding and type(binding["initial_on"]) is not bool: raise ValueError("initial_on must be true or false")
             if binding.get("action") == "remote_steps":
                 if is_press: raise ValueError("Remote steps belong on a dial turn")
                 text = lambda name, pattern: isinstance(binding.get(name), str) and re.fullmatch(pattern, binding[name])
@@ -304,9 +309,11 @@ class ListeningControls:
 def remote_step_allowed(settings, value):
     """A remote command may only be one a saved "remote steps" dial can itself produce."""
     if not isinstance(value, dict): return False
-    for dial in settings.get("dials", []):
-        if dial.get("action") != "remote_steps": continue
-        if value.get("entity_id") != dial.get("entity_id") or value.get("device") != dial.get("device"): continue
-        if any(value.get("command") == dial["command"].replace("{n}", str(number)) for number in range(dial["min"], dial["max"] + 1)):
+    dials = settings.get("dials", [])
+    for binding in (*settings.get("buttons", []), *dials, *(dial.get("press") or {} for dial in dials)):
+        if value.get("entity_id") != binding.get("entity_id") or value.get("device") != binding.get("device"): continue
+        if binding.get("action") == "remote_steps" and any(value.get("command") == binding["command"].replace("{n}", str(number)) for number in range(binding["min"], binding["max"] + 1)):
+            return True
+        if binding.get("action") == "remote_toggle" and value.get("command") in {binding.get("command_on"), binding.get("command_off")}:
             return True
     return False

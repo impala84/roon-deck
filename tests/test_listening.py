@@ -348,3 +348,37 @@ class StreamDeckRemoteStepsAndSleepTests(unittest.TestCase):
         validate_settings({"streamdeck_sleep_start": "23:00", "streamdeck_sleep_end": "", "streamdeck_awake_seconds": 45, "streamdeck_brightness": 60})
         for bad in ({"streamdeck_sleep_start": "25:00"}, {"streamdeck_awake_seconds": 2}, {"streamdeck_brightness": 5}):
             with self.assertRaises(ValueError): validate_settings(bad)
+
+
+class StreamDeckRemoteToggleTests(unittest.TestCase):
+    PRESS = {"action": "remote_toggle", "entity_id": "remote.wi_fi_universal_remote", "device": "aircon", "command_on": "power_on", "command_off": "power_off", "initial_on": False}
+
+    def test_pressing_alternates_the_on_and_off_commands(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        streamdeck._toggles.clear()
+        sent = []
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: sent.append(payload["value"]["command"]) or {}):
+            for _ in range(3): streamdeck.dispatch("b", dict(self.PRESS))
+        self.assertEqual(sent, ["power_on", "power_off", "power_on"])
+
+    def test_a_temperature_step_counts_as_switching_on(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        streamdeck._toggles.clear(); streamdeck._steps.clear()
+        sent = []
+        dial = dict(StreamDeckRemoteStepsAndSleepTests.AIRCON)
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: sent.append(payload["value"]["command"]) or {}):
+            streamdeck.dispatch("b", dial, 1)
+            streamdeck.dispatch("b", dict(self.PRESS))
+        self.assertEqual(sent, ["cool_25", "power_off"])
+
+    def test_toggle_commands_are_validated_and_allowed(self):
+        from pi_bus_time_display.listening import validate_settings, remote_step_allowed
+        dial = {**StreamDeckRemoteStepsAndSleepTests.AIRCON, "press": dict(self.PRESS)}
+        validate_settings({"dials": [dial]})
+        with self.assertRaises(ValueError): validate_settings({"dials": [{**dial, "press": {**self.PRESS, "command_on": "bad command"}}]})
+        settings = {"dials": [dial]}
+        target = {"entity_id": self.PRESS["entity_id"], "device": "aircon"}
+        self.assertTrue(remote_step_allowed(settings, {**target, "command": "power_off"}))
+        self.assertFalse(remote_step_allowed(settings, {**target, "command": "reboot"}))
