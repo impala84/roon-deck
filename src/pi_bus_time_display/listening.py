@@ -96,7 +96,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     host = data.get("kef_host", "")
     if not isinstance(host, str) or len(host) > 253 or any(character.isspace() or character in "/\\@" for character in host):
@@ -106,7 +106,7 @@ def validate_settings(data):
     maximum = data.get("maximum_volume", 50)
     if type(maximum) is not int or not 0 <= maximum <= 100:
         raise ValueError("maximum_volume must be between 0 and 100")
-    for name in ("enabled", "streamdeck_enabled"):
+    for name in ("enabled", "streamdeck_enabled", "streamdeck_sleep_with_display"):
         if name in data and type(data[name]) is not bool:
             raise ValueError(f"{name} must be true or false")
     on_play = data.get("on_play", {})

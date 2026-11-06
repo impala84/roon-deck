@@ -288,6 +288,7 @@ def run(controls, base, stop):
             painter = Painter(controls.path.parent / "deck-art")
             shown = {}
             refreshed = 0.0
+            lit, deck_awake_until = True, 0.0
             error = ""
             settings_signature = json.dumps(settings, sort_keys=True)
             while deck.is_open() and not stop.is_set():
@@ -310,6 +311,10 @@ def run(controls, base, stop):
                     binding = bindings[index] if index < len(bindings) else {}
                     if kind == "press": binding = binding.get("press", {})
                     if not binding: continue
+                    if not lit:
+                        # First touch on a sleeping deck only wakes it, so nothing fires blind.
+                        deck_awake_until = time.monotonic() + 30; refreshed = 0.0
+                        continue
                     try:
                         dispatch(base, binding, amount if kind == "turn" else None)
                         error = ""
@@ -319,6 +324,13 @@ def run(controls, base, stop):
                 # Poll the Pi's services once a second (or straight after a press), not four times a second.
                 if not combined and time.monotonic() - refreshed < 1.0: continue
                 refreshed = time.monotonic()
+                sleeping = False
+                if settings.get("streamdeck_sleep_with_display", True) and time.monotonic() >= deck_awake_until:
+                    try: sleeping = request(base, "/api/display-target").get("target") == "/sleep.html"
+                    except (ValueError, OSError): sleeping = False
+                if sleeping == lit:
+                    lit = not sleeping
+                    deck.set_brightness(70 if lit else 0)
                 state = controls.snapshot()
                 try: home = request(base, "/api/device/controls").get("home", {})
                 except (ValueError, OSError): home = {}

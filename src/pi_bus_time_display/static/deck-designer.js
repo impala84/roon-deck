@@ -52,7 +52,7 @@
   const connection = h('span', {class: 'cd-muted'});
   const stage = h('div', {class: 'dd-stage'});
   const inspector = h('div', {class: 'dd-inspector'});
-  let enableBox, revertButton, supportRow, supportNote, supportButton, installTried = false;
+  let enableBox, sleepBox, revertButton, supportRow, supportNote, supportButton, installTried = false;
 
   const blankKey = () => ({label: '', action: 'none'});
   const blankDial = () => ({label: '', action: 'none', step: 1, press: {action: 'none'}});
@@ -350,6 +350,8 @@
   function build() {
     enableBox = h('input', {type: 'checkbox'}); enableBox.checked = !!SHARED().settings.streamdeck_enabled;
     enableBox.onchange = () => markDirty();
+    sleepBox = h('input', {type: 'checkbox'}); sleepBox.checked = SHARED().settings.streamdeck_sleep_with_display !== false;
+    sleepBox.onchange = () => markDirty();
     revertButton = h('button', {type: 'button', class: 'secondary'}, 'Discard changes');
     // Saved by the page-wide "Save changes" button, not a button of its own.
     window.RoonDeckSaves = window.RoonDeckSaves || {};
@@ -362,6 +364,7 @@
         const missing = buttons.findIndex(item => (item.action === 'home_toggle' || item.action === 'home_scene' || item.action === 'home_script') && !item.entity_id);
         if (missing >= 0) throw new Error(`Key ${missing + 1}: choose a Home device`);
         settings.streamdeck_enabled = enableBox.checked;
+        settings.streamdeck_sleep_with_display = sleepBox.checked;
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
         settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
@@ -377,6 +380,7 @@
     supportRow = h('div', {class: 'cd-actions', hidden: true}, supportButton, supportNote);
     const head = h('div', {class: 'cd-card'},
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled'))),
+      h('label', {class: 'cd-switch'}, sleepBox, h('span', {}, 'Sleep with the display (screen off overnight, or when Roon has been idle) — touch the deck to wake it for 30 seconds')),
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
     const layout = h('div', {class: 'dd-layout'}, stage, inspector);
     root.replaceChildren(head, layout, h('div', {class: 'cd-actions dd-bar'}, revertButton, notice), status);
@@ -416,6 +420,7 @@
     await loadLibrary(); adopt(); upgradeIcons();
     if (!built) { build(); status_(); setInterval(status_, 5000); }
     enableBox.checked = !!SHARED().settings.streamdeck_enabled;
+    sleepBox.checked = SHARED().settings.streamdeck_sleep_with_display !== false;
     render();
   }
   const wait = setInterval(() => { if (window.RoonDeckListening) { clearInterval(wait); window.RoonDeckListening.onChange(start); if (window.RoonDeckListening.settings) start(); } }, 100);

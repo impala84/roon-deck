@@ -295,3 +295,10 @@ class StreamDeckExtrasTests(unittest.TestCase):
         image = Image.open(io.BytesIO(data)).convert("RGB")
         self.assertLess(sum(image.getpixel((0, 0))), 40)
         self.assertGreater(sum(image.getpixel((60, 60))), 600)
+
+
+class StreamDeckSleepSettingTests(unittest.TestCase):
+    def test_sleep_with_display_must_be_a_boolean(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"streamdeck_sleep_with_display": False})
+        with self.assertRaises(ValueError): validate_settings({"streamdeck_sleep_with_display": "yes"})

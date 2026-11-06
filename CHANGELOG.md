@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.29 Alpine — 6 November 2026
+
+- Stream Deck now sleeps with the display. When RoonDeck's screen shows its sleep page (the overnight schedule, or Roon idle if that option is on) the deck's backlight goes off, and it comes back when the screen wakes. Touching a key or dial while it sleeps wakes it for 30 seconds without triggering anything. A "Sleep with the display" switch in the Stream Deck settings turns this off.
+
 ## 1.2.0-beta.28 Alpine — 6 November 2026
 
 - Stream Deck designer: each dial has a Text colour setting for its label and percentage on the strip.
