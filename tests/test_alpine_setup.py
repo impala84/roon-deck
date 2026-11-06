@@ -738,6 +738,35 @@ class AlpineSetupTests(unittest.TestCase):
             self.run.assert_called_with(["/sbin/reboot"])
         self.assertEqual((self.root / "etc/pi-home/display-profile").read_text(), "touch2-10\n")
 
+    def test_audio_hat_overlay_is_saved_in_its_own_block_and_survives_display_changes(self):
+        boot = self.root / "boot"; (boot / "overlays").mkdir(parents=True, exist_ok=True)
+        (boot / "config.txt").write_text("dtoverlay=vc4-kms-v3d\n[cm4]\ndtparam=foo=1\n")
+        (boot / "overlays/hifiberry-digi-pro.dtbo").write_bytes(b"x")
+        self.setup.save({"complete": True})
+        with self.assertRaisesRegex(ValueError, "supported audio HAT"):
+            self.setup.handle({"action": "set_audio_hat", "hat": "../evil"})
+        with self.assertRaisesRegex(ValueError, "missing from this image"):
+            self.setup.handle({"action": "set_audio_hat", "hat": "hifiberry-dac"})
+        result = self.setup.handle({"action": "set_audio_hat", "hat": "hifiberry-digi-pro"})
+        self.assertTrue(result["reboot_required"])
+        text = (boot / "config.txt").read_text()
+        self.assertIn("# BEGIN ROONDECK AUDIO HAT\n[all]\ndtoverlay=hifiberry-digi-pro\n# END ROONDECK AUDIO HAT", text)
+        self.assertEqual((self.root / "etc/pi-home/audio-hat").read_text(), "hifiberry-digi-pro\n")
+        # Choosing the same board again changes nothing and needs no restart.
+        self.assertFalse(self.setup.handle({"action": "set_audio_hat", "hat": "hifiberry-digi-pro"})["reboot_required"])
+        self.assertEqual((boot / "config.txt").read_text().count("hifiberry-digi-pro"), 1)
+        # A display change rewrites only its own block.
+        (boot / "overlays/vc4-kms-dsi-ili9881-7inch.dtbo").write_bytes(b"x")
+        with patch.object(module.threading, "Timer"):
+            self.setup.handle({"action": "set_display", "profile": "touch2-7", "orientation": "landscape"})
+        text = (boot / "config.txt").read_text()
+        self.assertIn("dtoverlay=hifiberry-digi-pro", text)
+        self.assertIn("dtoverlay=vc4-kms-dsi-ili9881-7inch", text)
+        self.setup.handle({"action": "set_audio_hat", "hat": "none"})
+        text = (boot / "config.txt").read_text()
+        self.assertNotIn("hifiberry", text)
+        self.assertIn("dtoverlay=vc4-kms-dsi-ili9881-7inch", text)
+
     def test_kernel_never_double_rotates_calibrated_touch(self):
         for rotation in ("normal", "90", "180", "270"):
             self.setup.handle({"action": "orientation", "profile": "touch2-7", "rotation": rotation})

@@ -29,6 +29,19 @@ from pi_bus_time_display.remote_access import AccessoryManager
 from pi_bus_time_display.network_control import NetworkControl
 
 SOCKET = "/run/pi-home-setup.sock"
+AUDIO_HATS = {
+    "none": ("", "None (built-in audio)"),
+    "hifiberry-digi": ("hifiberry-digi", "HiFiBerry Digi / Digi+"),
+    "hifiberry-digi-pro": ("hifiberry-digi-pro", "HiFiBerry Digi+ Pro"),
+    "hifiberry-dac": ("hifiberry-dac", "HiFiBerry DAC / DAC Zero / MiniAmp"),
+    "hifiberry-dacplus": ("hifiberry-dacplus", "HiFiBerry DAC+ / DAC+ Pro"),
+    "hifiberry-dacplushd": ("hifiberry-dacplushd", "HiFiBerry DAC2 HD"),
+    "hifiberry-amp": ("hifiberry-amp", "HiFiBerry Amp / Amp+"),
+    "hifiberry-amp3": ("hifiberry-amp3", "HiFiBerry Amp3"),
+    "hifiberry-amp100": ("hifiberry-amp100", "HiFiBerry Amp100"),
+}
+AUDIO_CONFIG_BEGIN = "# BEGIN ROONDECK AUDIO HAT"
+AUDIO_CONFIG_END = "# END ROONDECK AUDIO HAT"
 PROFILES = {"auto": "", "original": "vc4-kms-dsi-7inch", "touch2-5": "vc4-kms-dsi-ili9881-5inch", "touch2-7": "vc4-kms-dsi-ili9881-7inch", "touch2-10": "vc4-kms-dsi-ili79600-10-1inch"}
 ROON_BRIDGE_URL = "https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.tar.bz2"
 UPDATE_CHECK_CRON = "0 3 * * * /usr/bin/python3 /opt/pi-home/appliance/alpine/updater.py --check"
@@ -805,6 +818,28 @@ class Setup:
             # Delay until after the HTTP response reaches the touchscreen.
             threading.Timer(2, lambda: self.run(["/sbin/reboot"])).start()
             return {"ok": True, "orientation": orientation, "mounting": mounting, "rotation": rotation, "reboot_required": True}
+        if action == "set_audio_hat":
+            if not state.get("complete"): raise ValueError("Finish setup first.")
+            hat = str(data.get("hat", ""))
+            if hat not in AUDIO_HATS: raise ValueError("Choose a supported audio HAT.")
+            overlay = AUDIO_HATS[hat][0]
+            if overlay and not (self.root / f"boot/overlays/{overlay}.dtbo").is_file(): raise ValueError("The driver for this audio HAT is missing from this image.")
+            boot = self.root / "boot/config.txt"; text = read(boot) if boot.exists() else ""
+            text = re.sub(rf"\n?{re.escape(AUDIO_CONFIG_BEGIN)}.*?{re.escape(AUDIO_CONFIG_END)}\n?", "\n", text, flags=re.S).rstrip() + "\n"
+            if overlay:
+                # Always reset to [all] so a model-specific section earlier in the file cannot swallow the overlay.
+                text += f"{AUDIO_CONFIG_BEGIN}\n[all]\ndtoverlay={overlay}\n{AUDIO_CONFIG_END}\n"
+            if not Path(str(boot) + ".setup-backup").exists() and boot.exists(): atomic(Path(str(boot) + ".setup-backup"), read(boot))
+            previous = read(self.root / "etc/pi-home/audio-hat").strip() if (self.root / "etc/pi-home/audio-hat").exists() else "none"
+            atomic(boot, text)
+            atomic(self.root / "etc/pi-home/audio-hat", hat + "\n")
+            changed = previous != hat
+            if changed:
+                try:
+                    boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="ascii").strip()
+                    atomic(self.root / "var/lib/pi-home/reboot-required-boot-id", boot_id + "\n")
+                except OSError: pass
+            return {"ok": True, "audio_hat": hat, "reboot_required": changed}
         if action == "netdata_lightweight":
             if not state.get("complete"): raise ValueError("Finish setup first.")
             if not (self.root / "opt/netdata/bin/netdata").is_file() and not (self.root / "usr/sbin/netdata").is_file(): raise ValueError("Netdata is not installed.")

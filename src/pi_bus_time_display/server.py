@@ -38,7 +38,7 @@ ALPINE_SYSTEM_ACTIONS = {
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
     "device_credentials", "install_tools", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
-    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable",
+    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable", "set_audio_hat",
 }
 SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
     "leds_enable", "leds_disable",
@@ -887,6 +887,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "netdata_lightweight": (state_dir / "netdata-lightweight").is_file() and (state_dir / "netdata-lightweight").read_text().strip() == "yes",
         "device_username": device_username,
         "pi_leds": pi_led_state(state_dir),
+        "audio_hat": audio_hat_state(),
         "update_status": update_status,
         "display_rotation": display_rotation,
         "display_orientation": viewport_orientation,
@@ -902,6 +903,13 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
     if include_diagnostics:
         snapshot["diagnostics"] = diagnostics_snapshot(config) if config is not None else diagnostics_snapshot()
     return snapshot
+
+
+def audio_hat_state() -> str:
+    """The saved audio HAT choice (none when unset)."""
+    try: value = (Path(display_config_dir()) / "audio-hat").read_text(encoding="utf-8").strip()
+    except OSError: return "none"
+    return value or "none"
 
 
 def write_control_request(state_dir: Path, request: dict) -> bool:
@@ -932,6 +940,8 @@ def write_control_request(state_dir: Path, request: dict) -> bool:
                 payload["enabled"] = request["enabled"]
             if request["action"] == "airplay_configure":
                 payload["name"] = str(request.get("name", ""))
+            if request["action"] == "set_audio_hat":
+                payload["hat"] = str(request.get("hat", ""))
             if request["action"] == "device_credentials":
                 payload.update(username=str(request.get("username", "")), password=str(request.get("password", "")), confirmation=str(request.get("confirmation", "")))
             if request["action"] == "set_display":
@@ -1513,6 +1523,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         request["enabled"] = data["enabled"]
                     if action == "airplay_configure":
                         request["name"] = str(data.get("name", "")).strip()
+                    if action == "set_audio_hat":
+                        request["hat"] = str(data.get("hat", "")).strip()
                     if action == "device_credentials":
                         request.update(username=str(data.get("username", "")).strip(), password=str(data.get("password", "")), confirmation=str(data.get("confirmation", "")))
                     if action == "set_rotation":

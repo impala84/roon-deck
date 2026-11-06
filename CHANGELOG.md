@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.2 Alpine — 6 November 2026
+
+- Add an Audio HAT setting (web Settings → System) for HiFiBerry boards: Digi / Digi+, Digi+ Pro, DAC / DAC Zero / MiniAmp, DAC+ / DAC+ Pro, DAC2 HD, Amp / Amp+, Amp3 and Amp100. Choosing a board saves its driver overlay to the Pi's boot configuration; restart the Pi and it appears in Roon → Settings → Audio under the device name. Choose None to go back to built-in audio.
+- The audio overlay is kept in its own block, so changing the display or status lights never removes it. Choosing the board already saved changes nothing and asks for no restart.
+- Physical acceptance on a Raspberry Pi 4B with a HiFiBerry Digi+ Pro is outstanding.
+
 ## 1.2.0-beta.1 Alpine — 6 November 2026
 
 - Start the next feature beta from published stable 1.1.8. Existing installations keep the new controls off until enabled.
