@@ -54,6 +54,17 @@ def _home_entities(home):
 
 
 def dispatch(base, binding, delta=None):
+    """Run a binding, then its optional "also" follow-up (pause/play Roon or run a Home script)."""
+    result = _dispatch(base, binding, delta)
+    also = binding.get("also") or {}
+    if also.get("action") in {"pause", "play"}:
+        request(base, "/roon/api/control", {"action": also["action"]})
+    elif also.get("action") == "home_script" and also.get("entity_id"):
+        request(base, "/api/listening/command", {"action": "scene", "value": also["entity_id"]})
+    return result
+
+
+def _dispatch(base, binding, delta=None):
     """An allowlist of existing controls, never arbitrary URLs or shell commands."""
     action = binding.get("action")
     if action in {None, "none"}:
@@ -183,7 +194,12 @@ class Painter:
                 draw.text((60, top + number * (size + 3)), text, fill="white", font=face, anchor="ma", stroke_width=2 if art else 0, stroke_fill="#000000")
         if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
             draw.text((8, 8), "Unavailable", fill="#f2b991", font=self.load_font(14))
-        return image
+        # Rounded corners: the corners are always the darkest black, whatever the key colour.
+        mask = Image.new("L", (120, 120), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, 119, 119), radius=20, fill=255)
+        rounded = Image.new("RGB", (120, 120), "#000000")
+        rounded.paste(image, (0, 0), mask)
+        return rounded
 
     def _strip(self, dials, state, home, error):
         from PIL import Image, ImageDraw

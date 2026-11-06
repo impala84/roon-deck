@@ -523,7 +523,7 @@ http.createServer(async (request, response) => {
         return json(response,200,await openDiscovery(browser,data.session,discovery.find(data.key)));
       }
       if (url.pathname === '/api/control' && data.action === 'resume') resumeRoon(zone);
-      else if (url.pathname === '/api/control' && ['previous', 'playpause', 'next'].includes(data.action)) transport.control(zone, data.action);
+      else if (url.pathname === '/api/control' && ['previous', 'playpause', 'next', 'pause', 'play'].includes(data.action)) transport.control(zone, data.action);
       else if (url.pathname === '/api/queue/play') {
         const item = [...queueHistory, ...queueItems].find(candidate => String(candidate.queue_item_id) === String(data.queue_item_id));
         if (!item) return json(response, 409, {error: 'That queue item is no longer available'});

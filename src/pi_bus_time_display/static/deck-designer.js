@@ -290,6 +290,7 @@
     const target = targetEditor(binding, () => { markDirty(); drawStage(); });
     fill(inspector, h('div', {class: 'dd-title'}, h('h3', {}, `Key ${selection.index + 1}`), clear),
       field('Label', label), field('When pressed', action), target, binding.action === 'playpause' ? playFields() : null,
+      binding.action && binding.action !== 'none' ? alsoFields(binding) : null,
       colourPicker(binding),
       ['home_toggle', 'mode', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
       imagePicker(binding));
@@ -326,6 +327,13 @@
   }
 
   let onPlay = {};
+  function alsoFields(binding) {
+    const also = binding.also || (binding.also = {action: 'none'});
+    const choice = selectOf([['none', 'Nothing'], ['pause', 'Pause Roon'], ['play', 'Play Roon'], ['home_script', 'Run a Home script']], also.action || 'none');
+    choice.onchange = () => { also.action = choice.value; if (choice.value !== 'home_script') delete also.entity_id; markDirty(); render(); };
+    return h('div', {class: 'dd-group'}, field('Also do this when pressed', choice, 'For example pause Roon when you switch to the Mac.'),
+      also.action === 'home_script' ? entityPicker(also, markDirty, item => item.domain === 'script', 'Script to run') : null);
+  }
   function playFields() {
     const mark = () => markDirty();
     const picker = entityPicker(onPlay, mark, item => item.entity_id.startsWith('script.'), 'Run this script', 'script');
@@ -353,7 +361,7 @@
         if (missing >= 0) throw new Error(`Key ${missing + 1}: choose a Home device`);
         settings.streamdeck_enabled = enableBox.checked;
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
-        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; return out; });
+        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();

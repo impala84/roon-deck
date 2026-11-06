@@ -267,3 +267,31 @@ class StreamDeckHomeLevelTests(unittest.TestCase):
         fan = {"entity_id": "fan.study", "domain": "fan", "percentage": 66, "percentage_step": 33.33, "supports_level": True}
         up_then_down = self.run_turns(fan, [-1, -1], 2)
         self.assertEqual(up_then_down, [33, 0])
+
+
+class StreamDeckExtrasTests(unittest.TestCase):
+    def test_a_key_can_also_pause_roon_or_run_a_script(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        calls = []
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: calls.append((path, payload)) or {}):
+            streamdeck.dispatch("b", {"action": "home_script", "entity_id": "script.mac", "also": {"action": "pause"}})
+            streamdeck.dispatch("b", {"action": "home_script", "entity_id": "script.usb", "also": {"action": "home_script", "entity_id": "script.lamp"}})
+        self.assertEqual(calls[1], ("/roon/api/control", {"action": "pause"}))
+        self.assertEqual(calls[3], ("/api/listening/command", {"action": "scene", "value": "script.lamp"}))
+
+    def test_also_follow_up_is_validated(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "also": {"action": "pause"}}]})
+        with self.assertRaises(ValueError): validate_settings({"buttons": [{"action": "mute", "also": {"action": "reboot"}}]})
+        with self.assertRaises(ValueError): validate_settings({"buttons": [{"action": "mute", "also": {"action": "home_script", "entity_id": "light.x"}}]})
+
+    def test_key_corners_are_always_black(self):
+        try: from pi_bus_time_display.streamdeck import Painter
+        except ImportError: self.skipTest("no Pillow")
+        import io, tempfile
+        from PIL import Image
+        data = Painter(tempfile.mkdtemp()).key({"color": "#ffffff", "label": "X"}, {}, {}, None, None)
+        image = Image.open(io.BytesIO(data)).convert("RGB")
+        self.assertLess(sum(image.getpixel((0, 0))), 40)
+        self.assertGreater(sum(image.getpixel((60, 60))), 600)

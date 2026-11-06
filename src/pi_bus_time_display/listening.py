@@ -133,6 +133,12 @@ def validate_settings(data):
             for colour_name in ("color", "active_color"):
                 if colour_name in binding and (not isinstance(binding[colour_name], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", binding[colour_name])):
                     raise ValueError("Button colours must look like #236650")
+            if "also" in binding:
+                also = binding["also"]
+                if not isinstance(also, dict) or set(also) - {"action", "entity_id"} or also.get("action", "none") not in {"none", "pause", "play", "home_script"}:
+                    raise ValueError("Choose a supported follow-up action")
+                if also.get("action") == "home_script" and not (isinstance(also.get("entity_id"), str) and also["entity_id"].startswith("script.") and len(also["entity_id"]) <= 200):
+                    raise ValueError("Choose a Home Assistant script")
             if "press" in binding:
                 if is_press or not isinstance(binding["press"], dict): raise ValueError("Invalid dial press binding")
                 validate_binding(binding["press"], True)

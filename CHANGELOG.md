@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.24 Alpine — 6 November 2026
+
+- Stream Deck: keys now have rounded corners; the corners are always pure black whatever the key colour.
+- Stream Deck: every key has an "Also do this when pressed" option: pause Roon, play Roon, or run a Home script. For example, pause Roon when you switch to the Mac input.
+- Stream Deck designer: the deck picture now sits at the top of its column, level with the settings panel, instead of floating in the middle as that panel changes height.
+
 ## 1.2.0-beta.23 Alpine — 6 November 2026
 
 - Stream Deck: key labels are centred at the bottom of the key, on the device and in the designer.
