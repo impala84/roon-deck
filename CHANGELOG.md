@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.35 Alpine — 7 November 2026
+
+- Stream Deck designer: the key, dial and strip editor is now on the left and the deck picture on the right, matching Wake & sleep. On narrow screens the picture stays on top.
+
 ## 1.2.0-beta.34 Alpine — 7 November 2026
 
 - Stream Deck designer: the Home device, scene and script pickers now list everything in Home Assistant, so a script or device you have just created is selectable without first sharing it under Home settings. Devices a deck design uses are controllable and kept up to date automatically.

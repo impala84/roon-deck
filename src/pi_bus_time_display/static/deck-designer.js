@@ -444,7 +444,7 @@
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('div', {class: 'dd-head-actions'}, notice, revertButton, h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled')))),
       brightnessRow,
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
-    const layout = h('div', {class: 'dd-layout'}, stage, inspector); layout.classList.add('dd-pane');
+    const layout = h('div', {class: 'dd-layout'}, inspector, stage); layout.classList.add('dd-pane');
     const wakePane = wakeCard(); wakePane.hidden = true; wakePane.classList.add('dd-pane');
     const panes = {design: layout, wake: wakePane};
     const tabButtons = [['design', 'Designer'], ['wake', 'Wake & sleep']].map(([id, name]) => {
