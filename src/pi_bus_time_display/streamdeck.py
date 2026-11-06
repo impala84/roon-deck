@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import queue
+import urllib.parse
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -22,6 +23,16 @@ def request(base, path, payload=None):
         try: reason = json.load(error).get("error", str(error))
         except (ValueError, AttributeError): reason = str(error)
         raise ValueError(reason) from error
+
+
+def fetch_bytes(base, path):
+    with urllib.request.urlopen(base + path, timeout=6) as response:
+        return response.read(3 * 1024 * 1024)
+
+
+def clock(seconds):
+    seconds = max(0, int(seconds or 0))
+    return f"{seconds // 60}:{seconds % 60:02d}"
 
 
 def _home_entities(home):
@@ -137,6 +148,8 @@ def run(controls, base, stop):
                 output = io.BytesIO(); image.save(output, format="JPEG"); return output.getvalue()
 
             previous = None
+            cover = ["", None]
+            shown = {}
             error = ""
             settings_signature = json.dumps(settings, sort_keys=True)
             while deck.is_open() and not stop.is_set():
@@ -167,9 +180,21 @@ def run(controls, base, stop):
                     controls.state["streamdeck"] = {"enabled": True, "connected": True, "error": error}
                 state = controls.snapshot()
                 home = request(base, "/api/device/controls").get("home", {})
-                signature = json.dumps([state, home, error], sort_keys=True)
+                playing = {}
+                if any(item.get("action") == "playpause" for item in buttons):
+                    try: playing = request(base, "/roon/api/state").get("zone") or {}
+                    except (ValueError, OSError): playing = {}
+                track = playing.get("now_playing") or {}
+                cover_key = track.get("image_key") or ""
+                elapsed = int(playing.get("seek_position") or 0) if track else None
+                signature = json.dumps([state, home, error, cover_key, elapsed], sort_keys=True)
                 if signature == previous: continue
                 previous = signature
+                if cover_key != cover[0]:
+                    cover[0] = cover_key; cover[1] = None
+                    if cover_key:
+                        try: cover[1] = Image.open(io.BytesIO(fetch_bytes(base, "/roon/api/image?size=240&key=" + urllib.parse.quote(cover_key)))).convert("RGB").resize((120, 120))
+                        except Exception: cover[1] = None
                 speaker = state.get("kef", {})
                 for key in range(8):
                     binding = buttons[key] if key < len(buttons) else {}
@@ -178,6 +203,9 @@ def run(controls, base, stop):
                     active = selected or entity.get("state") == "on"
                     colour = binding.get("color") or ("#236650" if active else "#11201d")
                     image = Image.new("RGB", (120, 120), colour)
+                    if binding.get("action") == "playpause" and cover[1] is not None:
+                        # Current album artwork behind the control, dimmed so the icon and time stay readable.
+                        image = Image.blend(cover[1], Image.new("RGB", (120, 120), "#000000"), .5)
                     art = binding.get("image")
                     if art:
                         # Only operator-controlled artwork adjacent to listening.json.
@@ -188,6 +216,10 @@ def run(controls, base, stop):
                                 overlay = custom.convert("RGBA").resize((120, 120), getattr(Image, "Resampling", Image).LANCZOS)
                                 image.paste(overlay, (0, 0), overlay)
                     draw = ImageDraw.Draw(image)
+                    if binding.get("action") == "playpause" and elapsed is not None:
+                        face = load_font(24)
+                        text = clock(elapsed)
+                        draw.text((60, 12), text, fill="white", font=face, anchor="mt", stroke_width=2, stroke_fill="#000000")
                     if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
                     if binding.get("label"):
                         face, lines, size = fit_lines(draw, str(binding.get("label", ""))[:30], 104, (28, 24, 21, 18, 15), 3)
@@ -196,14 +228,18 @@ def run(controls, base, stop):
                             draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
                     if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
                         draw.text((8, 8), "Unavailable", fill="#f2b991", font=font)
-                    deck.set_key_image(key, jpeg(image))
+                    data = jpeg(image)
+                    if shown.get(key) != data:
+                        shown[key] = data; deck.set_key_image(key, data)
                 strip = Image.new("RGB", (800, 100), "#11201d"); draw = ImageDraw.Draw(strip)
                 for index, binding in enumerate(dials):
+                    if binding.get("action") in {None, "none"}: continue
                     detail = error or (f"{speaker.get('volume', '?')}%" if speaker.get("connected") else "Offline")
                     if speaker.get("muted"): detail += " · Muted"
                     if binding.get("action") == "home_level":
                         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
                         detail = str(entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))) + "%" if entity else "Unavailable"
+                    if binding.get("action") == "home_script_dial": detail = "\u2039 turn \u203a"
                     face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 180, (30, 26, 22, 18), 1)
                     draw.text((index * 200 + 10, 12), lines[0] if lines else "", fill="white", font=face)
                     face, lines, _ = fit_lines(draw, detail[:22], 180, (36, 30, 24, 18), 1)

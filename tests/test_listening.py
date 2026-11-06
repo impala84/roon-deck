@@ -190,3 +190,11 @@ class ListeningTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StreamDeckDisplayHelpersTests(unittest.TestCase):
+    def test_elapsed_time_is_minutes_and_seconds(self):
+        from pi_bus_time_display import streamdeck
+        self.assertEqual(streamdeck.clock(0), "0:00")
+        self.assertEqual(streamdeck.clock(75), "1:15")
+        self.assertEqual(streamdeck.clock(None), "0:00")

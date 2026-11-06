@@ -24,7 +24,9 @@
   const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: '', home_script: ''};
   const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', home_script: 'input', mode: 'speaker'};
   const ICONS = window.DeckIcons || {};
-  const ICON_STYLE = 'stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  // Solid shapes read as chunky on a small key, so every glyph is drawn as a fine outline.
+  const lineArt = body => body.replace(/fill="#fff"/g, 'fill="none"');
+  const ICON_STYLE = 'stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"';
   let iconCategory = "Playback";
 
   const h = (tag, props = {}, ...children) => {
@@ -186,11 +188,11 @@
       status.textContent = 'Image added.'; markDirty(); render();
     } catch (error) { status.textContent = error.message; }
   }
-  const iconFile = key => `icon-${key}-hd2.png`;
+  const iconFile = key => `icon-${key}-hd3.png`;
   async function ensureIcon(key) {
     const name = iconFile(key);
     if (art.includes(name)) return name;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)" ${ICON_STYLE}>${ICONS[key][1]}</g></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
     const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
     try {
       const image = await new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('Could not draw that icon')); node.src = url; });
@@ -230,7 +232,7 @@
     const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'});
     const fillIcons = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
       const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': binding.image === iconFile(key) ? 'true' : 'false'});
-      choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${body}</svg>`;
+      choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${lineArt(body)}</svg>`;
       choice.onclick = () => useIcon(key, binding); return choice;
     }));
     const chips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Icon categories'}, categories.map(category => {

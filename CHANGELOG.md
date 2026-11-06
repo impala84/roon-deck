@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.14 Alpine — 6 November 2026
+
+- Stream Deck: the Play / Pause key now shows the current album artwork behind the icon, dimmed, with the elapsed time (m:ss) across the top. It updates as the track plays and falls back to the plain key when nothing is playing.
+- Stream Deck: icons are redrawn as fine outlines instead of solid shapes, with a thinner stroke. Existing icons regenerate when you pick them again in the designer.
+- Stream Deck: dials with nothing assigned no longer show "Offline", and a dial that runs Home scripts (for example the Topping volume) shows "‹ turn ›" instead of the KEF speaker's status.
+
 ## 1.2.0-beta.13 Alpine — 6 November 2026
 
 - Stream Deck: text on the keys and strip is now large and bold like the designer preview. Labels wrap onto up to three lines and shrink only as far as needed to fit; the strip label and value are bigger too. The Pi image previously had no usable font, so it fell back to a tiny bitmap font; it now includes DejaVu (and the Stream Deck install adds it on existing Pis).
