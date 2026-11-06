@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.20 Alpine — 6 November 2026
+
+- Stream Deck designer: each dial now has a Colour setting for its section of the touch strip, shown in the designer and on the device.
+
 ## 1.2.0-beta.19 Alpine — 6 November 2026
 
 - Stream Deck designer: the deck picture is slightly smaller and centred in its column, and the selected strip section's highlight stays inside the strip instead of spilling over its edge.

@@ -111,7 +111,7 @@
   function segment(index) {
     const dial = dials[index];
     const detail = dial.action === 'volume_delta' ? '20%' : dial.action === 'home_level' ? (dial.entity_id ? '60%' : 'Choose device') : '';
-    const node = h('button', {type: 'button', class: 'dd-segment', 'aria-label': `Strip ${index + 1}: ${dial.label || 'unused'}`, 'aria-pressed': selection.type === 'dial' && selection.index === index ? 'true' : 'false'},
+    const node = h('button', {type: 'button', class: 'dd-segment', ...(dial.color ? {style: `background:${dial.color}`} : {}), 'aria-label': `Strip ${index + 1}: ${dial.label || 'unused'}`, 'aria-pressed': selection.type === 'dial' && selection.index === index ? 'true' : 'false'},
       h('strong', {}, dial.label || (dial.action === 'none' ? '' : 'Dial')), h('span', {}, detail));
     node.onclick = () => { selection = {type: 'dial', index}; render(); };
     return node;
@@ -258,7 +258,7 @@
       h('p', {class: 'cd-muted'}, `Built-in icons (${Object.keys(ICONS).length})`), chips, icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
       h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and resized automatically (kept at 240 × 240 so they stay sharp; the key shows 120 × 120).'));
   }
-  function colourPicker(binding) {
+  function colourPicker(binding, hint = 'Keys that are switched on (the current listening mode or a Home device that is on) get a green outline.') {
     const custom = h('input', {type: 'color', value: binding.color || KEY_DEFAULT, 'aria-label': 'Custom colour'});
     custom.oninput = () => { binding.color = custom.value; markDirty(); drawStage(); };
     custom.onchange = () => render();
@@ -267,7 +267,7 @@
       swatch.onclick = () => { if (colour === KEY_DEFAULT) delete binding.color; else binding.color = colour; markDirty(); render(); }; return swatch;
     });
     return h('div', {class: 'dd-group'}, h('h4', {}, 'Colour'), h('div', {class: 'dd-swatches'}, swatches, custom),
-      h('small', {class: 'cd-muted'}, 'Keys that are switched on (the current listening mode or a Home device that is on) get a green outline.'));
+      h('small', {class: 'cd-muted'}, hint));
   }
 
   const fill = (node, ...kids) => node.replaceChildren(...kids.filter(Boolean));
@@ -310,7 +310,8 @@
       dial.action !== 'none' && dial.action !== 'home_script_dial' ? h('label', {class: 'cd-field'}, h('span', {}, 'Step per click'), h('div', {class: 'dd-range'}, step, stepValue)) : null,
       field('When pressed or tapped on the strip', tap),
       press.action === 'home_toggle' ? entityPicker(press, markDirty, item => item.domain !== 'scene' && item.domain !== 'script', 'Device to toggle') : null,
-      press.action === 'home_script' ? entityPicker(press, markDirty, item => item.domain === 'script', 'Script to run') : null);
+      press.action === 'home_script' ? entityPicker(press, markDirty, item => item.domain === 'script', 'Script to run') : null,
+      colourPicker(dial, 'The colour behind this dial\'s section of the touch strip.'));
   }
 
   function render() {
@@ -350,7 +351,7 @@
         settings.streamdeck_enabled = enableBox.checked;
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
         settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; return out; });
-        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1,
+        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();
         dirty = false; notice.hidden = true; status.textContent = 'Stream Deck saved. It updates on the device within a few seconds.';

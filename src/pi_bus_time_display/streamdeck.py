@@ -234,6 +234,7 @@ def run(controls, base, stop):
                 strip = Image.new("RGB", (800, 100), "#11201d"); draw = ImageDraw.Draw(strip)
                 for index, binding in enumerate(dials):
                     action = binding.get("action")
+                    if binding.get("color"): draw.rectangle((index * 200, 0, index * 200 + 199, 99), fill=binding["color"])
                     if action in {None, "none"}: continue
                     left = index * 200 + 12
                     face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 176, (20, 18, 16, 14), 1)
