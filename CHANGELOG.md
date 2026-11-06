@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.4 Alpine — 6 November 2026
+
+- The Audio HAT setting moves from System to Services → Roon → Roon Bridge, beside the other audio-output settings, and is now called "Audio output board". It no longer depends on the Roon Bridge being installed.
+
 ## 1.2.0-beta.3 Alpine — 6 November 2026
 
 - Controls is now split into three sub-tabs: Listening & KEF, Stream Deck and Surface Dial. Listening modes are shown as cards, and you can add and remove modes.
