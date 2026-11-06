@@ -6,7 +6,9 @@ RUN apk add --no-cache alpine-base linux-rpi raspberrypi-bootloader \
     nodejs npm git ca-certificates curl openssl tzdata font-inter dbus avahi avahi-tools bash \
     networkmanager networkmanager-cli networkmanager-wifi networkmanager-openrc wpa_supplicant \
     e2fsprogs e2fsprogs-extra cloud-utils-growpart dosfstools openssh sudo adwaita-icon-theme librsvg grim procps chrony chrony-openrc \
-    gcompat libstdc++ icu-libs alsa-lib bzip2
+    gcompat libstdc++ icu-libs alsa-lib bzip2 libusb hidapi py3-pillow
+RUN python3 -m pip install --break-system-packages --no-deps --no-cache-dir \
+    --target "$(python3 -c 'import sysconfig; print(sysconfig.get_path("purelib"))')" 'streamdeck>=0.9.5,<1'
 WORKDIR /opt/pi-home
 COPY pyproject.toml ./
 COPY src ./src

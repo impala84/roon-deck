@@ -54,6 +54,8 @@ printf '%s\n' 'auto lo' 'iface lo inet loopback' > /etc/network/interfaces
 mkdir -p /etc/NetworkManager/conf.d
 printf '%s\n' '[main]' 'plugins=keyfile' '[connection]' 'wifi.powersave=2' '[device]' 'wifi.backend=wpa_supplicant' > /etc/NetworkManager/conf.d/pi-home.conf
 printf '%s\n' 'LABEL=PIROOT / ext4 defaults,noatime 0 1' 'LABEL=PIBOOT /boot vfat defaults 0 2' > /etc/fstab
+mkdir -p /etc/udev/rules.d
+printf '%s\n' 'SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", GROUP="morningbus", MODE="0660"' > /etc/udev/rules.d/70-roondeck-streamdeck.rules
 for service in devfs dmesg mdev; do rc-update add "$service" sysinit; done
 rc-update del mdev sysinit
 rc-update add udev sysinit

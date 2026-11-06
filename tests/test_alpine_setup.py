@@ -97,6 +97,24 @@ class AlpineSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "8–128"):
             module.validate_password("abcdefg")
 
+    def test_streamdeck_support_install_is_a_fixed_allowlist(self):
+        with self.assertRaises(ValueError): self.setup.handle({"action": "install_streamdeck"})
+        self.setup.save({"complete": True})
+        (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
+        with patch.object(module.threading, "Thread") as thread:
+            self.assertTrue(self.setup.handle({"action": "install_streamdeck", "packages": ["untrusted"]})["queued"])
+            self.assertFalse(self.setup.handle({"action": "install_streamdeck"})["queued"])
+            thread.assert_called_once()
+        # The queued call above already holds the lock (the thread was mocked); the real install releases it.
+        with patch.object(module.subprocess, "run", return_value=Mock(returncode=0)) as run:
+            self.setup.install_streamdeck()
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(commands[0], ["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip"])
+        self.assertEqual(commands[1][:6], ["python3", "-m", "pip", "install", "--break-system-packages", "--no-deps"])
+        self.assertEqual(commands[1][-1], "streamdeck>=0.9.5,<1")
+        self.assertIn("0fd9", (self.root / "etc/udev/rules.d/70-roondeck-streamdeck.rules").read_text())
+        self.assertIn("installed", (self.root / "var/lib/pi-home/streamdeck-install-status").read_text())
+
     def test_tools_install_is_fixed_and_requires_completed_setup(self):
         with self.assertRaises(ValueError): self.setup.handle({"action": "install_tools"})
         self.setup.save({"complete": True})

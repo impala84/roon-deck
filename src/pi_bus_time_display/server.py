@@ -37,7 +37,7 @@ DECK_ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ALPINE_SYSTEM_ACTIONS = {
     "update", "reboot", "shutdown", "netdata_enable", "netdata_disable", "netdata_claim",
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
-    "device_credentials", "install_tools", "display_on", "display_off",
+    "device_credentials", "install_tools", "install_streamdeck", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
     "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable", "set_audio_hat",
 }
@@ -901,6 +901,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "app_version": display_version(),
         "alpine_tools": os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype",
         "tools_status": (state_dir / "tools-status").read_text().strip() if (state_dir / "tools-status").is_file() else "",
+        "streamdeck_install_status": (state_dir / "streamdeck-install-status").read_text().strip() if (state_dir / "streamdeck-install-status").is_file() else "",
         "storage_status": (state_dir / "storage-status").read_text().strip() if (state_dir / "storage-status").is_file() else "Not yet checked",
         "netdata_operation_status": (state_dir / "netdata-operation-status").read_text().strip() if (state_dir / "netdata-operation-status").is_file() else "",
     }

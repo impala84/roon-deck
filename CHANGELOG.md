@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.12 Alpine — 6 November 2026
+
+- Stream Deck: the USB support packages and device permissions are now part of the image, and a Pi that lacks them installs them itself. Turning the deck on in Controls → Stream Deck sets everything up automatically (about a minute), with an "Install Stream Deck support" button if it needs retrying. No SSH step is needed any more.
+
 ## 1.2.0-beta.11 Alpine — 6 November 2026
 
 - Home Assistant: a new **Stream Deck controls** field (Services → Home Assistant). Entities listed there, such as the scripts that drive an IR blaster, can be used on Stream Deck keys and dials but are never shown on the touchscreen and do not count towards the eight touchscreen entities. Up to forty are allowed.

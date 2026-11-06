@@ -15,6 +15,7 @@ import shutil
 import socket
 import struct
 import subprocess
+import sysconfig
 import threading
 import time
 import tempfile
@@ -777,6 +778,13 @@ class Setup:
             atomic(self.root / "var/lib/pi-home/tools-status", "Installing system tools…\n")
             threading.Thread(target=self.install_tools, daemon=True).start()
             return {"ok": True, "queued": True}
+        if action == "install_streamdeck":
+            if not state.get("complete"): raise ValueError("Finish setup before installing Stream Deck support.")
+            if not self.tools_lock.acquire(blocking=False):
+                return {"ok": True, "queued": False}
+            atomic(self.root / "var/lib/pi-home/streamdeck-install-status", "Installing Stream Deck support…\n")
+            threading.Thread(target=self.install_streamdeck, daemon=True).start()
+            return {"ok": True, "queued": True}
         if action in {"display_on", "display_off", "set_brightness"}:
             if not state.get("complete"): raise ValueError("Finish setup before controlling the display.")
             display_power(self.root, action != "display_off", data.get("brightness", 100))
@@ -1102,6 +1110,27 @@ class Setup:
         self.save(state)
         return {"ok": True, "progress": state}
 
+
+    def install_streamdeck(self):
+        """Fixed allowlist, safe to repeat. The worker retries every few seconds, so it starts without a restart."""
+        path = self.root / "var/lib/pi-home/streamdeck-install-status"
+        try:
+            result = subprocess.run(["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip"], capture_output=True, text=True, timeout=240)
+            if result.returncode: raise ValueError("Installation failed. Check the network, clock and free disk space, then retry.")
+            purelib = sysconfig.get_path("purelib")
+            result = subprocess.run(["python3", "-m", "pip", "install", "--break-system-packages", "--no-deps", "--no-cache-dir",
+                                     "--target", purelib, "streamdeck>=0.9.5,<1"], capture_output=True, text=True, timeout=240)
+            if result.returncode: raise ValueError("Installation failed. Check the network, clock and free disk space, then retry.")
+            rule = self.root / "etc/udev/rules.d/70-roondeck-streamdeck.rules"
+            rule.parent.mkdir(parents=True, exist_ok=True)
+            atomic(rule, 'SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", GROUP="morningbus", MODE="0660"\n')
+            self.run(["udevadm", "control", "--reload-rules"])
+            self.run(["udevadm", "trigger", "--subsystem-match=usb", "--action=add"])
+            atomic(path, "Stream Deck support installed. If the deck stays dark, unplug it and plug it back in.\n")
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            atomic(path, "Installation failed. Check the network, clock and free disk space, then retry.\n")
+        finally:
+            self.tools_lock.release()
 
     def install_tools(self):
         path = self.root / "var/lib/pi-home/tools-status"

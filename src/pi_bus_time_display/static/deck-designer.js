@@ -45,7 +45,7 @@
   const connection = h('span', {class: 'cd-muted'});
   const stage = h('div', {class: 'dd-stage'});
   const inspector = h('div', {class: 'dd-inspector'});
-  let enableBox, saveButton, revertButton;
+  let enableBox, saveButton, revertButton, supportRow, supportNote, supportButton, installTried = false;
 
   const blankKey = () => ({label: '', action: 'none'});
   const blankDial = () => ({label: '', action: 'none', step: 1, press: {action: 'none'}});
@@ -338,19 +338,40 @@
       finally { saveButton.disabled = false; }
     };
     revertButton.onclick = () => { adopt(); notice.hidden = true; status.textContent = ''; enableBox.checked = !!SHARED().settings.streamdeck_enabled; render(); };
+    supportNote = h('span', {class: 'cd-muted', role: 'status'});
+    supportButton = h('button', {type: 'button', class: 'secondary'}, 'Install Stream Deck support');
+    supportButton.onclick = installSupport;
+    supportRow = h('div', {class: 'cd-actions', hidden: true}, supportButton, supportNote);
     const head = h('div', {class: 'cd-card'},
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled'))),
-      h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. USB support needs the optional Stream Deck packages and device permissions on the Pi.'), connection);
+      h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
     const layout = h('div', {class: 'dd-layout'}, stage, inspector);
     root.replaceChildren(head, layout, h('div', {class: 'cd-actions dd-bar'}, saveButton, revertButton, notice), status);
     built = true;
   }
 
+  async function installSupport() {
+    supportButton.disabled = true; supportNote.textContent = 'Installing… this takes a minute or two.';
+    try {
+      await SHARED().call('POST', {action: 'install_streamdeck'}, '/api/admin/system-action');
+      const started = Date.now();
+      while (Date.now() - started < 300000) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const response = await fetch('/api/admin/system', {cache: 'no-store'}); if (!response.ok) continue;
+        const text = (await response.json()).streamdeck_install_status || '';
+        if (text.startsWith('Stream Deck support installed') || text.startsWith('Installation failed')) { supportNote.textContent = text; break; }
+      }
+    } catch (error) { supportNote.textContent = error.message; }
+    finally { supportButton.disabled = false; }
+  }
   async function status_() {
     try {
       const response = await fetch('/api/listening/status', {cache: 'no-store'}); if (!response.ok) return;
       const state = await response.json(), deck = state.streamdeck || {};
       connection.textContent = `Device: ${deck.connected ? 'Connected' : deck.enabled ? deck.error || 'Waiting for the Stream Deck' : 'Disabled'}`;
+      const missing = !!deck.enabled && /install the optional/i.test(deck.error || '');
+      supportRow.hidden = !missing;
+      if (missing && !installTried) { installTried = true; installSupport(); }   // enabling the deck sets it up once, no SSH needed
     } catch (_) { connection.textContent = 'Controls service unavailable'; }
   }
   async function loadLibrary() {
