@@ -24,6 +24,7 @@
   const KEF_ACTIONS = new Set(['mode', 'power', 'input', 'mute', 'volume_delta']);
   const kefOn = () => !!SHARED().settings.enabled;
   const available = (list, current) => list.filter(([id]) => kefOn() || !KEF_ACTIONS.has(id) || id === current);
+  const TEXT_SWATCHES = ['#ffffff', '#a4dcc7', '#6ef0be', '#ffd166', '#f2b991', '#8ecbff', '#ff8fa3', '#000000'];
   const SOURCES = [['aux', 'Aux'], ['optical', 'Optical'], ['wifi', 'Wi‑Fi'], ['bluetooth', 'Bluetooth']];
   const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: '', home_script: ''};
   const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', home_script: 'input', mode: 'speaker'};
@@ -113,7 +114,7 @@
     const dial = dials[index];
     const detail = dial.action === 'volume_delta' ? '20%' : dial.action === 'home_level' ? (dial.entity_id ? '60%' : 'Choose device') : '';
     const node = h('button', {type: 'button', class: 'dd-segment', ...(dial.color ? {style: `background:${dial.color}`} : {}), 'aria-label': `Strip ${index + 1}: ${dial.label || 'unused'}`, 'aria-pressed': selection.type === 'dial' && selection.index === index ? 'true' : 'false'},
-      h('strong', {}, dial.label || (dial.action === 'none' ? '' : 'Dial')), h('span', {}, detail));
+      h('strong', dial.text_color ? {style: `color:${dial.text_color}`} : {}, dial.label || (dial.action === 'none' ? '' : 'Dial')), h('span', dial.text_color ? {style: `color:${dial.text_color}`} : {}, detail));
     node.onclick = () => { selection = {type: 'dial', index}; render(); };
     return node;
   }
@@ -259,13 +260,13 @@
       h('p', {class: 'cd-muted'}, `Built-in icons (${Object.keys(ICONS).length})`), chips, icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
       h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and resized automatically (kept at 240 × 240 so they stay sharp; the key shows 120 × 120).'));
   }
-  function colourPicker(binding, hint = '', key = 'color', title = 'Colour') {
-    const custom = h('input', {type: 'color', value: binding[key] || KEY_DEFAULT, 'aria-label': 'Custom colour'});
+  function colourPicker(binding, hint = '', key = 'color', title = 'Colour', palette = SWATCHES, unset = KEY_DEFAULT) {
+    const custom = h('input', {type: 'color', value: binding[key] || unset, 'aria-label': 'Custom colour'});
     custom.oninput = () => { binding[key] = custom.value; markDirty(); drawStage(); };
     custom.onchange = () => render();
-    const swatches = SWATCHES.map(colour => {
-      const swatch = h('button', {type: 'button', class: 'dd-swatch', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': (binding[key] || KEY_DEFAULT).toLowerCase() === colour ? 'true' : 'false'});
-      swatch.onclick = () => { if (colour === KEY_DEFAULT) delete binding[key]; else binding[key] = colour; markDirty(); render(); }; return swatch;
+    const swatches = palette.map(colour => {
+      const swatch = h('button', {type: 'button', class: 'dd-swatch', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': (binding[key] || unset).toLowerCase() === colour ? 'true' : 'false'});
+      swatch.onclick = () => { if (colour === unset) delete binding[key]; else binding[key] = colour; markDirty(); render(); }; return swatch;
     });
     return h('div', {class: 'dd-group'}, h('h4', {}, title), h('div', {class: 'dd-swatches'}, swatches, custom),
       hint ? h('small', {class: 'cd-muted'}, hint) : null);
@@ -316,7 +317,8 @@
       field('When pressed or tapped on the strip', tap),
       press.action === 'home_toggle' ? entityPicker(press, markDirty, item => item.domain !== 'scene' && item.domain !== 'script', 'Device to toggle') : null,
       press.action === 'home_script' ? entityPicker(press, markDirty, item => item.domain === 'script', 'Script to run') : null,
-      colourPicker(dial, 'The colour behind this dial\'s section of the touch strip.'));
+      colourPicker(dial, 'The colour behind this dial\'s section of the touch strip.'),
+      colourPicker(dial, 'The colour of the label and the percentage on the strip.', 'text_color', 'Text colour', TEXT_SWATCHES, '#ffffff'));
   }
 
   function render() {
@@ -362,7 +364,7 @@
         settings.streamdeck_enabled = enableBox.checked;
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
         settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
-        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}),
+        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();
         dirty = false; notice.hidden = true; status.textContent = 'Stream Deck saved. It updates on the device within a few seconds.';

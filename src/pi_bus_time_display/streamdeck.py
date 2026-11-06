@@ -210,8 +210,9 @@ class Painter:
             if binding.get("color"): draw.rectangle((index * 200, 0, index * 200 + 199, 99), fill=binding["color"])
             if action in {None, "none"}: continue
             left = index * 200 + 12
+            text_colour = binding.get("text_color")
             face, lines, _ = self.fit_lines(draw, str(binding.get("label", ""))[:20], 176, (20, 18, 16, 14), 1)
-            draw.text((left, 8), lines[0] if lines else "", fill="white", font=face)
+            draw.text((left, 8), lines[0] if lines else "", fill=text_colour or "white", font=face)
             level, detail = None, ""
             if action == "home_level":
                 entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
@@ -234,13 +235,13 @@ class Painter:
                 detail = error or "Offline"
             if level is not None:
                 level = max(0, min(100, int(level)))
-                draw.text((left, 32), f"{level}%", fill="#a4dcc7", font=self.load_font(30))
+                draw.text((left, 32), f"{level}%", fill=text_colour or "#a4dcc7", font=self.load_font(30))
                 draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
                 if level: draw.rounded_rectangle((left, 80, left + max(6, round(172 * level / 100)), 85), radius=3, fill="#6ef0be")
                 if detail: draw.text((left + 172, 36), detail, fill="#f2b991", font=self.load_font(14), anchor="ra")
             elif detail:
                 face, lines, _ = self.fit_lines(draw, detail[:22], 176, (22, 18, 14), 1)
-                draw.text((left, 40), lines[0] if lines else "", fill="#a4dcc7", font=face)
+                draw.text((left, 40), lines[0] if lines else "", fill=text_colour or "#a4dcc7", font=face)
         return strip
 
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.28 Alpine — 6 November 2026
+
+- Stream Deck designer: each dial has a Text colour setting for its label and percentage on the strip.
+
 ## 1.2.0-beta.27 Alpine — 6 November 2026
 
 - Stream Deck: key corner radius settled between beta 24 and 26 (a slight reduction only).
