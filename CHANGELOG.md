@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-beta.3 Alpine — 6 November 2026
+
+- Controls is now split into three sub-tabs: Listening & KEF, Stream Deck and Surface Dial. Listening modes are shown as cards, and you can add and remove modes.
+- New visual Stream Deck designer. The 8 keys, the touch strip and the 4 dials are drawn as on the device. Click one to edit it with pickers instead of free-text fields: listening mode, power on / standby, KEF input, and Home devices from a list. Drag keys to swap them.
+- Each key can have a colour and an image. Choose from built-in icons (play, pause, next, previous, mute, volume, power, speaker, light, fan, scene, home and more) or upload your own picture, which is cropped to a square and resized automatically. Uploaded images are kept for reuse and can be deleted.
+- Audio HAT: the HiFiBerry Digi+ Pro choice is now also named Digi2 Pro (the same driver). A "Restart to apply" button appears in orange at the top right, and next to the Audio HAT setting, whenever a change needs a restart.
+- Physical Stream Deck acceptance is still outstanding.
+
 ## 1.2.0-beta.2 Alpine — 6 November 2026
 
 - Add an Audio HAT setting (web Settings → System) for HiFiBerry boards: Digi / Digi+, Digi+ Pro, DAC / DAC Zero / MiniAmp, DAC+ / DAC+ Pro, DAC2 HD, Amp / Amp+, Amp3 and Amp100. Choosing a board saves its driver overlay to the Pi's boot configuration; restart the Pi and it appears in Roon → Settings → Audio under the device name. Choose None to go back to built-in audio.

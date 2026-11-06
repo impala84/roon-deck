@@ -136,16 +136,21 @@ def run(controls, base, stop):
                     binding = buttons[key] if key < len(buttons) else {}
                     selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
                     entity = next((item for item in home.get("entities", []) if item.get("entity_id") == binding.get("entity_id")), {})
-                    image = Image.new("RGB", (120, 120), "#236650" if selected or entity.get("state") == "on" else "#11201d")
+                    active = selected or entity.get("state") == "on"
+                    colour = binding.get("color") or ("#236650" if active else "#11201d")
+                    image = Image.new("RGB", (120, 120), colour)
                     art = binding.get("image")
                     if art:
                         # Only operator-controlled artwork adjacent to listening.json.
                         path = (controls.path.parent / "deck-art" / art).resolve()
                         root = (controls.path.parent / "deck-art").resolve()
                         if path.is_relative_to(root) and path.is_file():
-                            with Image.open(path) as custom: image = custom.convert("RGB").resize((120, 120))
+                            with Image.open(path) as custom:
+                                overlay = custom.convert("RGBA").resize((120, 120))
+                                image.paste(overlay, (0, 0), overlay)
                     draw = ImageDraw.Draw(image)
-                    draw.multiline_text((8, 80), str(binding.get("label", ""))[:30], fill="white", font=font)
+                    if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
+                    if binding.get("label"): draw.multiline_text((8, 96 if art else 80), str(binding.get("label", ""))[:30], fill="white", font=font)
                     if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
                         draw.text((8, 8), "Unavailable", fill="#f2b991", font=font)
                     deck.set_key_image(key, jpeg(image))

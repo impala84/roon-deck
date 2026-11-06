@@ -63,9 +63,14 @@ class ListeningTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.controls.save({**self.settings, "maximum_volume": 101})
         self.assertEqual(load_settings(self.path), self.settings)
         for extra in ({"buttons":[{"action":"shell"}]}, {"dials":[{"action":"volume_delta","step":0}]},
-                      {"buttons":[{"image":"../escape.png"}]}, {"enabled":"true"}):
+                      {"buttons":[{"image":"../escape.png"}]}, {"buttons":[{"color":"red"}]},
+                      {"buttons":[{"color":"#12345"}]}, {"enabled":"true"}):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 self.controls.save({**self.settings, **extra})
+
+    def test_button_colour_and_artwork_are_saved(self):
+        saved = self.controls.save({**self.settings, "buttons": [{"label": "A", "action": "mute", "color": "#236650", "image": "icon-mute.png"}]})
+        self.assertEqual(saved["buttons"][0]["color"], "#236650")
 
     def test_volume_limit_and_types_validate_before_hardware(self):
         self.settings["modes"][0]["volume"] = 41
@@ -117,6 +122,22 @@ class ListeningTests(unittest.TestCase):
         self.assertEqual(handler.send_json.call_args.args[0], 400)
         handler = self.handler({"action": "power", "value": True}, authorised=False); handler.do_POST()
         self.speaker.command.assert_not_called()
+
+    def art_request(self, path, body, content_type="image/png"):
+        handler = self.handler({}); handler.path = path
+        handler.headers = {"Content-Type": content_type, "Content-Length": str(len(body))}
+        handler.rfile = io.BytesIO(body); handler.do_POST()
+        return handler.send_json.call_args.args[0]
+
+    def test_stream_deck_artwork_upload_accepts_only_small_named_pngs(self):
+        png = b"\x89PNG\r\n\x1a\n" + b"0" * 40
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=icon-play.png", png), 200)
+        self.assertEqual((Path(self.directory.name) / "deck-art/icon-play.png").read_bytes(), png)
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=../evil.png", png), 400)
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=x.svg", png), 400)
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=a.png", b"<svg/>"), 400)
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=a.png", png, "text/html"), 400)
+        self.assertEqual(self.art_request("/api/admin/listening/art?name=big.png", b"\x89PNG\r\n\x1a\n" + b"0" * 300000), 400)
 
     def test_http_reports_device_failure(self):
         self.speaker.command.side_effect = OSError("unreachable")

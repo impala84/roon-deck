@@ -32,7 +32,7 @@ SOCKET = "/run/pi-home-setup.sock"
 AUDIO_HATS = {
     "none": ("", "None (built-in audio)"),
     "hifiberry-digi": ("hifiberry-digi", "HiFiBerry Digi / Digi+"),
-    "hifiberry-digi-pro": ("hifiberry-digi-pro", "HiFiBerry Digi+ Pro"),
+    "hifiberry-digi-pro": ("hifiberry-digi-pro", "HiFiBerry Digi+ Pro / Digi2 Pro"),
     "hifiberry-dac": ("hifiberry-dac", "HiFiBerry DAC / DAC Zero / MiniAmp"),
     "hifiberry-dacplus": ("hifiberry-dacplus", "HiFiBerry DAC+ / DAC+ Pro"),
     "hifiberry-dacplushd": ("hifiberry-dacplushd", "HiFiBerry DAC2 HD"),

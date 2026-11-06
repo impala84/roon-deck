@@ -1,6 +1,7 @@
 """Shared physical/touch listening controls. No speculative Topping writes."""
 from __future__ import annotations
 
+import re
 import json
 import socket
 import threading
@@ -122,6 +123,8 @@ def validate_settings(data):
                 raise ValueError("Dial steps must be between 1 and 10")
             if "image" in binding and (not isinstance(binding["image"], str) or len(binding["image"]) > 120 or Path(binding["image"]).name != binding["image"]):
                 raise ValueError("Artwork must be a filename in the deck-art folder")
+            if "color" in binding and (not isinstance(binding["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", binding["color"])):
+                raise ValueError("Button colours must look like #236650")
             if "press" in binding:
                 if is_press or not isinstance(binding["press"], dict): raise ValueError("Invalid dial press binding")
                 validate_binding(binding["press"], True)

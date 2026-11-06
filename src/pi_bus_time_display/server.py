@@ -17,7 +17,7 @@ from http.cookies import SimpleCookie
 from datetime import datetime, time as wall_time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 from .config import Config, HOME_ASSISTANT_DOMAINS, load_config, load_env
@@ -33,6 +33,7 @@ from .streamdeck import run as run_streamdeck
 
 
 CONTROL_REQUEST_LOCK = threading.Lock()
+DECK_ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ALPINE_SYSTEM_ACTIONS = {
     "update", "reboot", "shutdown", "netdata_enable", "netdata_disable", "netdata_claim",
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
@@ -1001,7 +1002,23 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_header("Cache-Control", "no-cache, must-revalidate")
             super().end_headers()
 
+        def deck_art_dir(self) -> Path:
+            return state.state_dir / "deck-art"
+
         def do_GET(self):
+            if self.path == "/api/admin/listening/art" or self.path.startswith("/api/admin/listening/art/"):
+                if not self.authorised(): return
+                folder = self.deck_art_dir()
+                if self.path == "/api/admin/listening/art":
+                    names = sorted(item.name for item in folder.glob("*.png") if item.is_file()) if folder.is_dir() else []
+                    self.send_json(200, json.dumps({"art": names}).encode()); return
+                name = self.path.rsplit("/", 1)[-1].split("?", 1)[0]
+                target = folder / name
+                if not DECK_ART_NAME.fullmatch(name) or not target.is_file():
+                    self.send_json(404, b'{"error":"Not found"}'); return
+                body = target.read_bytes()
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "no-cache")
+                self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/listening":
                 if not self.authorised(): return
                 try:
@@ -1205,13 +1222,39 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().do_GET()
 
         def do_POST(self):
+            if self.path.startswith("/api/admin/listening/art"):
+                if not self.authorised(): return
+                try:
+                    folder = self.deck_art_dir()
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if self.path == "/api/admin/listening/art/delete":
+                        if not 0 < length <= 1000: raise ValueError("Invalid request")
+                        name = str(json.loads(self.rfile.read(length)).get("name", ""))
+                        if not DECK_ART_NAME.fullmatch(name): raise ValueError("Invalid image name")
+                        (folder / name).unlink(missing_ok=True)
+                        self.send_json(200, b'{"ok":true}'); return
+                    name = parse_qs(urlsplit(self.path).query).get("name", [""])[0]
+                    if urlsplit(self.path).path != "/api/admin/listening/art" or not DECK_ART_NAME.fullmatch(name):
+                        raise ValueError("Use a short image name made of letters, numbers, dashes or dots, ending in .png")
+                    if self.headers.get("Content-Type", "").split(";")[0] != "image/png": raise ValueError("PNG image required")
+                    if not 0 < length <= 200000: raise ValueError("Image is too large")
+                    body = self.rfile.read(length)
+                    if not body.startswith(b"\x89PNG\r\n\x1a\n"): raise ValueError("Not a PNG image")
+                    folder.mkdir(parents=True, exist_ok=True)
+                    if not (folder / name).exists() and len(list(folder.glob("*.png"))) >= 80: raise ValueError("Too many images; delete some first")
+                    temporary = folder / f".{name}.tmp"
+                    temporary.write_bytes(body); os.replace(temporary, folder / name)
+                    self.send_json(200, json.dumps({"ok": True, "name": name}).encode())
+                except (ValueError, TypeError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path == "/api/admin/listening":
                 if not self.authorised(): return
                 try:
                     if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                         raise ValueError("JSON request required")
                     length = int(self.headers.get("Content-Length", "0"))
-                    if not 0 < length <= 30000: raise ValueError("Listening settings are too large")
+                    if not 0 < length <= 80000: raise ValueError("Listening settings are too large")
                     settings = state.listening.save(json.loads(self.rfile.read(length)))
                     self.send_json(200, json.dumps({"ok": True, "settings": settings}).encode())
                     threading.Thread(target=state.listening.refresh, daemon=True).start()
