@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.7 Alpine — 6 November 2026
+
+- Stream Deck designer: switching icon groups is now instant and only changes the icon grid, like tabs. Choosing an icon, colour or image no longer jumps the page back to the top.
+
 ## 1.2.0-beta.6 Alpine — 6 November 2026
 
 - Touchscreen Settings: tapping Keep (or Go back) on a connection switch no longer re-lays out the page. The result, such as "Connection saved.", now replaces the small Wi-Fi heading for a few seconds instead of adding a new line under the Join button, so nothing below it moves.

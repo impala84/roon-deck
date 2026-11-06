@@ -211,15 +211,19 @@
     const upload = h('button', {type: 'button', class: 'secondary'}, 'Upload image…'); upload.onclick = () => file.click();
     const clear = h('button', {type: 'button', class: 'cd-quiet'}, 'No image'); clear.onclick = () => { delete binding.image; markDirty(); render(); };
     const categories = window.DeckIconCategories || [];
-    const chips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Icon categories'}, categories.map(category => {
-      const chip = h('button', {type: 'button', class: 'dd-chip', 'aria-pressed': String(iconCategory === category)}, category);
-      chip.onclick = () => { iconCategory = category; render(); }; return chip;
-    }));
-    const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'}, Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
+    const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'});
+    const fillIcons = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
       const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': binding.image === `icon-${key}.png` ? 'true' : 'false'});
       choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${body}</svg>`;
       choice.onclick = () => useIcon(key, binding); return choice;
     }));
+    const chips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Icon categories'}, categories.map(category => {
+      const chip = h('button', {type: 'button', class: 'dd-chip', 'aria-pressed': String(iconCategory === category)}, category);
+      // Switching groups only swaps the icon grid, like tabs: nothing else on the page is rebuilt.
+      chip.onclick = () => { iconCategory = category; chips.querySelectorAll('.dd-chip').forEach(node => node.setAttribute('aria-pressed', String(node === chip))); fillIcons(); };
+      return chip;
+    }));
+    fillIcons();
     const library = art.filter(name => !/^icon-/.test(name));
     const mine = library.length ? h('div', {class: 'dd-library', role: 'group', 'aria-label': 'Your images'}, library.map(name => {
       const thumb = h('button', {type: 'button', class: 'dd-thumb', title: name, 'aria-label': name, 'aria-pressed': binding.image === name ? 'true' : 'false'}, h('img', {src: artUrl(name), alt: ''}));
@@ -285,9 +289,11 @@
   }
 
   function render() {
+    const x = window.scrollX, y = window.scrollY, top = inspector.scrollTop;
     drawStage();
     if (selection.type === 'dial') drawDialInspector(); else drawKeyInspector();
     saveButton.disabled = false;
+    inspector.scrollTop = top; window.scrollTo(x, y);
   }
 
   function build() {
