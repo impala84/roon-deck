@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.25 Alpine — 6 November 2026
+
+- Stream Deck designer: the deck picture now has the same space above it as to its left and right (48 px all round), and fills the width of its column.
+
 ## 1.2.0-beta.24 Alpine — 6 November 2026
 
 - Stream Deck: keys now have rounded corners; the corners are always pure black whatever the key colour.
