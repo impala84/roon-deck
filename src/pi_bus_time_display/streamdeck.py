@@ -92,8 +92,33 @@ def run(controls, base, stop):
             events = queue.Queue(maxsize=64)
             buttons = settings.get("buttons", [])[:8]
             dials = settings.get("dials", [])[:4]
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-            font = ImageFont.truetype(font_path, 16) if Path(font_path).exists() else ImageFont.load_default()
+            font_dir = "/usr/share/fonts/truetype/dejavu/"
+
+            def load_font(size, bold=True):
+                for name in (("DejaVuSans-Bold.ttf", "DejaVuSans.ttf") if bold else ("DejaVuSans.ttf",)):
+                    if Path(font_dir + name).exists():
+                        return ImageFont.truetype(font_dir + name, size)
+                for found in sorted(Path("/usr/share/fonts").glob("**/*.[ot]tf")):
+                    if "Bold" in found.name and "Italic" not in found.name:
+                        return ImageFont.truetype(str(found), size)
+                try: return ImageFont.load_default(size)  # scalable on Pillow >= 10.1
+                except TypeError: return ImageFont.load_default()
+
+            def fit_lines(draw, text, width, sizes, max_lines):
+                # Largest size whose word-wrapped text fits width and max_lines.
+                for size in sizes:
+                    face = load_font(size)
+                    lines, line = [], ""
+                    for word in text.split():
+                        trial = (line + " " + word).strip()
+                        if draw.textlength(trial, font=face) <= width or not line: line = trial
+                        else: lines.append(line); line = word
+                    if line: lines.append(line)
+                    if len(lines) <= max_lines and all(draw.textlength(item, font=face) <= width for item in lines):
+                        return face, lines, size
+                return face, lines[:max_lines], size
+
+            font = load_font(18)
 
             def enqueue(kind, index, amount=1):
                 try: events.put_nowait((kind, index, amount))
@@ -164,7 +189,11 @@ def run(controls, base, stop):
                                 image.paste(overlay, (0, 0), overlay)
                     draw = ImageDraw.Draw(image)
                     if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
-                    if binding.get("label"): draw.multiline_text((8, 96 if art else 80), str(binding.get("label", ""))[:30], fill="white", font=font)
+                    if binding.get("label"):
+                        face, lines, size = fit_lines(draw, str(binding.get("label", ""))[:30], 104, (28, 24, 21, 18, 15), 3)
+                        top = 114 - len(lines) * (size + 3)
+                        for number, text in enumerate(lines):
+                            draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
                     if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
                         draw.text((8, 8), "Unavailable", fill="#f2b991", font=font)
                     deck.set_key_image(key, jpeg(image))
@@ -175,8 +204,10 @@ def run(controls, base, stop):
                     if binding.get("action") == "home_level":
                         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
                         detail = str(entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))) + "%" if entity else "Unavailable"
-                    draw.text((index * 200 + 10, 15), str(binding.get("label", ""))[:20], fill="white", font=font)
-                    draw.text((index * 200 + 10, 50), detail[:22], fill="#a4dcc7", font=font)
+                    face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 180, (30, 26, 22, 18), 1)
+                    draw.text((index * 200 + 10, 12), lines[0] if lines else "", fill="white", font=face)
+                    face, lines, _ = fit_lines(draw, detail[:22], 180, (36, 30, 24, 18), 1)
+                    draw.text((index * 200 + 10, 52), lines[0] if lines else "", fill="#a4dcc7", font=face)
                 deck.set_touchscreen_image(jpeg(strip), 0, 0, 800, 100)
         except ImportError:
             controls.state["streamdeck"] = {"enabled": True, "connected": False, "error": "Install the optional Stream Deck support packages on the Pi"}

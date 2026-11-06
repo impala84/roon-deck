@@ -109,7 +109,7 @@ class AlpineSetupTests(unittest.TestCase):
         with patch.object(module.subprocess, "run", return_value=Mock(returncode=0)) as run:
             self.setup.install_streamdeck()
         commands = [call.args[0] for call in run.call_args_list]
-        self.assertEqual(commands[0], ["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip"])
+        self.assertEqual(commands[0], ["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip", "font-dejavu"])
         self.assertEqual(commands[1][:6], ["python3", "-m", "pip", "install", "--break-system-packages", "--no-deps"])
         self.assertEqual(commands[1][-1], "streamdeck>=0.9.5,<1")
         self.assertIn("0fd9", (self.root / "etc/udev/rules.d/70-roondeck-streamdeck.rules").read_text())

@@ -1115,7 +1115,7 @@ class Setup:
         """Fixed allowlist, safe to repeat. The worker retries every few seconds, so it starts without a restart."""
         path = self.root / "var/lib/pi-home/streamdeck-install-status"
         try:
-            result = subprocess.run(["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip"], capture_output=True, text=True, timeout=240)
+            result = subprocess.run(["apk", "add", "--no-cache", "libusb", "hidapi", "py3-pillow", "py3-pip", "font-dejavu"], capture_output=True, text=True, timeout=240)
             if result.returncode: raise ValueError("Installation failed. Check the network, clock and free disk space, then retry.")
             purelib = sysconfig.get_path("purelib")
             result = subprocess.run(["python3", "-m", "pip", "install", "--break-system-packages", "--no-deps", "--no-cache-dir",

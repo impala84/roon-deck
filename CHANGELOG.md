@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.13 Alpine — 6 November 2026
+
+- Stream Deck: text on the keys and strip is now large and bold like the designer preview. Labels wrap onto up to three lines and shrink only as far as needed to fit; the strip label and value are bigger too. The Pi image previously had no usable font, so it fell back to a tiny bitmap font; it now includes DejaVu (and the Stream Deck install adds it on existing Pis).
+
 ## 1.2.0-beta.12 Alpine — 6 November 2026
 
 - Stream Deck: the USB support packages and device permissions are now part of the image, and a Pi that lacks them installs them itself. Turning the deck on in Controls → Stream Deck sets everything up automatically (about a minute), with an "Install Stream Deck support" button if it needs retrying. No SSH step is needed any more.
