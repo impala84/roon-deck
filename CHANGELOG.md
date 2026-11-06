@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.39 Alpine — 7 November 2026
+
+- Touch settings: the Stream Deck brightness slider now also appears on the 7-inch sidebar layout and the standard layout (it was only added to the tabbed layout). It shows only while a deck is connected.
+
 ## 1.2.0-beta.38 Alpine — 7 November 2026
 
 - Stream Deck designer: a key that shows a light's brightness now previews the sun, rays and warm background in the designer too, instead of the old icon.

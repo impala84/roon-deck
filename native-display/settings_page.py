@@ -193,7 +193,8 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         row.set_hexpand(True); self.touch_bus_services.set_hexpand(True); self.touch_bus_pair.set_homogeneous(True)
         self.touch_bus_heading.set_text("BUS TIMES")
         self.touch_brightness.get_parent().add_css_class("brightness-card")
-        for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row): take(widget, overview)
+        for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_brightness_row, self.make_deck_brightness()): take(widget, overview)
+        self.deck_brightness_row.set_margin_top(0)
         self.settings_controls_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); take(self.settings_accessories_button, self.settings_controls_slot); overview.append(self.settings_controls_slot)
         # Display: how it looks. Installation options stay hidden on the seven-inch panel, as before.
         display = pane("display")
@@ -545,7 +546,8 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         # Appearance first, then the everyday brightness control, followed by
         # the rarely-used installation fields as one clearly labelled group.
         display_column.reorder_child_after(brightness_row, appearance)
-        display_column.reorder_child_after(self.display_settings_heading, brightness_row)
+        display_column.append(self.make_deck_brightness()); display_column.reorder_child_after(self.deck_brightness_row, brightness_row)
+        display_column.reorder_child_after(self.display_settings_heading, self.deck_brightness_row)
         display_column.reorder_child_after(self.touch_profile, self.display_settings_heading)
         display_column.reorder_child_after(self.touch_orientation, self.touch_profile)
         display_column.reorder_child_after(self.touch_mounting, self.touch_orientation)
