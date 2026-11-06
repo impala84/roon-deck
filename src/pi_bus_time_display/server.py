@@ -28,6 +28,8 @@ from . import __version__
 from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
+from .listening import ListeningControls
+from .streamdeck import run as run_streamdeck
 
 
 CONTROL_REQUEST_LOCK = threading.Lock()
@@ -98,6 +100,7 @@ class State:
             saved_services = set(config.services)
         self.enabled_services: set[str] = saved_services.intersection(config.services)
         self.home_data: dict = {"status": "disabled", "entities": []}
+        self.listening = ListeningControls(self.state_dir / "listening.json")
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -128,6 +131,7 @@ class State:
             "services": [{"name": service, "enabled": service in self.enabled_services} for service in self.config.services],
             "accessory_features": {name: load_json(self.state_dir / "accessory-features.json", {}).get(name) is True for name in ("vpn", "dial")},
             "home": self.home_data,
+            "listening": self.listening.snapshot(),
             "display_brightness": self.display_brightness,
             "capture_request": capture_id,
             "display_view_request": view_request,
@@ -988,6 +992,13 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().end_headers()
 
         def do_GET(self):
+            if self.path == "/api/admin/listening":
+                if not self.authorised(): return
+                try:
+                    self.send_json(200, json.dumps(state.listening.settings()).encode())
+                except (ValueError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path in {"/api/admin/accessories", "/api/admin/network"}:
                 if not self.authorised(): return
                 try:
@@ -1152,6 +1163,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = json.dumps(state.snapshot()).encode()
                 self.send_json(200, body)
                 return
+            if self.path == "/api/listening/status":
+                self.send_json(200, json.dumps(state.listening.snapshot()).encode())
+                return
             if self.path == "/api/home/status":
                 home_single = state.config.home_assistant_single_color if state.config.home_assistant_color_mode == "single" else None
                 self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
@@ -1181,6 +1195,19 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             super().do_GET()
 
         def do_POST(self):
+            if self.path == "/api/admin/listening":
+                if not self.authorised(): return
+                try:
+                    if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                        raise ValueError("JSON request required")
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 30000: raise ValueError("Listening settings are too large")
+                    settings = state.listening.save(json.loads(self.rfile.read(length)))
+                    self.send_json(200, json.dumps({"ok": True, "settings": settings}).encode())
+                    threading.Thread(target=state.listening.refresh, daemon=True).start()
+                except (ValueError, TypeError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
             if self.path in {"/api/admin/accessories", "/api/admin/network"}:
                 if not self.authorised(): return
                 try:
@@ -1191,6 +1218,31 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     self.send_json(200, json.dumps(accessory_request(data, helper_action="network_control" if self.path == "/api/admin/network" else "accessories")).encode())
                 except (ValueError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path == "/api/listening/command":
+                if any(self.headers.get(name) for name in ("X-Forwarded-For", "Forwarded", "X-Real-IP")) and self.client_address[0] in {"127.0.0.1", "::1"}:
+                    self.send_json(403, b'{"error":"Forwarded local control is forbidden"}'); return
+                if not self.authorised(): return
+                try:
+                    if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                        raise ValueError("JSON request required")
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 4096: raise ValueError("Invalid command size")
+                    data = json.loads(self.rfile.read(length))
+                    if not isinstance(data, dict): raise ValueError("Command must be an object")
+                    if data.get("action") == "scene":
+                        entity = data.get("value")
+                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in state.config.home_assistant_entities or not entity.startswith("scene."):
+                            raise ValueError("Choose a configured Home Assistant scene")
+                        home_assistant_request(state.config, "/api/services/scene/turn_on", {"entity_id": entity})
+                        result = {"ok": True}
+                    else:
+                        result = state.listening.command(data.get("action"), data.get("value"))
+                    self.send_json(200, json.dumps(result).encode())
+                except (ValueError, TypeError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                except OSError as error:
+                    self.send_json(502, json.dumps({"error": str(error)}).encode())
                 return
             if self.path == "/api/admin/preview-capture":
                 if not self.authorised(): return
@@ -1759,7 +1811,10 @@ def main() -> None:
     threading.Thread(target=state.performance.run, args=(stop,), daemon=True).start()
     threading.Thread(target=poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=home_assistant_poll, args=(state, stop, events), daemon=True).start()
+    threading.Thread(target=state.listening.poll, args=(stop,), daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(state, args.config, args.env, args.state_dir / "display-mode", events))
+    deck_host = "[::1]" if ":" in args.host else "127.0.0.1"
+    threading.Thread(target=run_streamdeck, args=(state.listening, f"http://{deck_host}:{server.server_port}", stop), daemon=True).start()
     events.emit("application.started", bind_host=args.host, bind_port=args.port)
     try:
         server.serve_forever()

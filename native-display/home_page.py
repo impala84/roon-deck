@@ -13,7 +13,7 @@ class HomePageMixin:
         self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
-        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); self.home_scroll.set_child(self.home_grid); page.append(self.home_scroll)
+        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); home_content.append(self.home_grid); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
         elastic_vertical_scroll(self.home_scroll)
         page.append(self.navigation("home")); return page
 
@@ -38,7 +38,7 @@ class HomePageMixin:
 
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
-        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait else Gtk.PolicyType.NEVER)
+        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
         signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape")}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
@@ -121,3 +121,45 @@ class HomePageMixin:
         self.home_value_timeouts.pop(entity_id, None)
         threading.Thread(target=post_json, args=(BUS + "/api/device/home-value", {"entity_id": entity_id, "value": value}), daemon=True).start()
         return False
+
+
+    def listening_command(self, action, value=None):
+        def work():
+            result = post_json(BUS + "/api/listening/command", {"action": action, "value": value}, timeout=15)
+            if result is None: result = {"error": "Listening command timed out or the service is unavailable"}
+            if isinstance(result, dict) and result.get("error"):
+                GLib.idle_add(self.listening_feedback.set_text, result["error"])
+        threading.Thread(target=work, daemon=True).start()
+
+    def render_listening(self, data):
+        self.listening_box.set_visible(bool(data.get("enabled")))
+        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if data.get("enabled") or self.window.has_css_class("portrait") else Gtk.PolicyType.NEVER)
+        if not data.get("enabled"): return
+        signature = json.dumps(data, sort_keys=True)
+        if signature == getattr(self, "listening_signature", None): return
+        self.listening_signature = signature
+        while child := self.listening_box.get_first_child(): self.listening_box.remove(child)
+        speaker = data.get("kef", {})
+        detail = "KEF LSX · Offline"
+        if speaker.get("connected"):
+            detail = f"KEF LSX · {'On' if speaker.get('powered') else 'Standby'} · {speaker.get('input', '')} · {speaker.get('volume', 0)}%"
+            if speaker.get("muted"): detail += " · Muted"
+        detail_label = self.label(detail, "home-name"); detail_label.set_wrap(True); self.listening_box.append(detail_label)
+        controls = Gtk.FlowBox(); controls.set_selection_mode(Gtk.SelectionMode.NONE); controls.set_min_children_per_line(1); controls.set_max_children_per_line(2 if self.window.has_css_class("portrait") else 4); controls.set_row_spacing(6); controls.set_column_spacing(6)
+        for label, action, value in [("Power on", "power", True), ("Standby", "power", False), ("− Volume", "volume_delta", -2), ("+ Volume", "volume_delta", 2), ("Mute", "mute", None)]:
+            button = self.button(label, lambda _button, a=action, v=value: self.listening_command(a, v), "")
+            button.set_sensitive(bool(speaker.get("connected"))); controls.append(button)
+        for source in ("wifi", "aux", "optical", "bluetooth"):
+            button = self.button(source.title(), lambda _button, v=source: self.listening_command("input", v), "")
+            button.set_sensitive(bool(speaker.get("connected")))
+            if speaker.get("input") == source: button.add_css_class("active")
+            controls.append(button)
+        for mode in data.get("modes", []):
+            button = self.button(mode.get("name", mode["id"]), lambda _button, value=mode["id"]: self.listening_command("mode", value), "")
+            button.set_sensitive(bool(mode.get("available") and speaker.get("connected"))); button.set_tooltip_text(mode.get("reason") or "")
+            if data.get("last_mode") == mode["id"]: button.add_css_class("active")
+            controls.append(button)
+        self.listening_box.append(controls)
+        pending = any(not mode.get("available") for mode in data.get("modes", []))
+        self.listening_feedback = self.label(data.get("error") or ("Topping input switching is not available yet." if pending else ""), "muted")
+        self.listening_feedback.set_wrap(True); self.listening_box.append(self.listening_feedback)

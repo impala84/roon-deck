@@ -235,7 +235,7 @@ def post_json(url: str, data: dict, timeout: float = 1.2):
     except urllib.error.HTTPError as error:
         # Preserve the controller's bounded error message instead of turning
         # a failed browse into an apparently empty music library.
-        if not url.rstrip("/").endswith("/api/browse"): return None
+        if not url.rstrip("/").endswith(("/api/browse", "/api/listening/command")): return None
         try:
             result = json.load(error)
             if isinstance(result, dict): return result

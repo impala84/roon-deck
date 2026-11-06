@@ -4,11 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roon-deck"
-version = "1.1.8"
+version = "1.2.0-beta.1"
 description = "RoonDeck, an independent Raspberry Pi touchscreen for Roon"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = []
+
+[project.optional-dependencies]
+streamdeck = ["streamdeck>=0.9.5,<1", "Pillow>=10,<13"]
+bluetooth = ["bleak>=0.22,<3"]
 
 [project.scripts]
 roon-deck = "pi_bus_time_display.server:main"

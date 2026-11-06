@@ -1,0 +1,23 @@
+{
+  "enabled": false,
+  "kef_host": "10.12.0.125",
+  "maximum_volume": 50,
+  "streamdeck_enabled": false,
+  "modes": [
+    {"id": "pi", "name": "Pi / Roon", "kef_input": "aux", "topping_input": "coaxial", "volume": 20},
+    {"id": "mac", "name": "Mac", "kef_input": "aux", "topping_input": "usb", "volume": 20}
+  ],
+  "buttons": [
+    {"label": "Pi / Roon", "action": "mode", "value": "pi"},
+    {"label": "Mac", "action": "mode", "value": "mac"},
+    {"label": "Power on", "action": "power", "value": true},
+    {"label": "Standby", "action": "power", "value": false},
+    {"label": "Previous", "action": "previous"},
+    {"label": "Play / Pause", "action": "playpause"},
+    {"label": "Next", "action": "next"},
+    {"label": "Mute", "action": "mute"}
+  ],
+  "dials": [
+    {"label": "KEF volume", "action": "volume_delta", "step": 1, "press": {"action": "mute"}}
+  ]
+}

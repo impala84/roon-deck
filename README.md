@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current development release is **1.1.8**, based on stable **1.1.7**. It adds optional Surface Dial controls, a WireGuard connectivity prototype and updated Home tile colours. Installable beta releases use the existing Beta updater channel. The latest complete stable image remains available from the [1.1.7 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.7-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
+The current development release is **1.2.0-beta.1**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
 
@@ -200,3 +200,9 @@ bash -n scripts/install-pi.sh scripts/install-roon-bridge.sh scripts/pi-bus-upda
 RoonDeck's own code is [MIT](LICENSE). The official Roon Node libraries are Apache-2.0; their MIT/BSD-style transitive dependencies retain separate notices in installed packages. System packages have their own licences. Roon Bridge is proprietary and installed separately. See [architecture and audit notes](docs/ARCHITECTURE.md); this repository is not yet a distributable OS image.
 
 [CHANGELOG.md](CHANGELOG.md) records releases. [ROADMAP.md](ROADMAP.md) defines the gated v1.1 Discover work and later public-appliance goals. No unsupported Roon protocol is part of the v1.0 baseline.
+
+## Physical controls and listening modes
+
+See [Stream Deck +, KEF LSX and Topping setup](docs/LISTENING.md).
+KEF and USB control code is available for hardware validation; Topping Bluetooth
+input switching remains unverified and dependent listening modes stay disabled.

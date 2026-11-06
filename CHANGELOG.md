@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0-beta.1 Alpine — 6 November 2026
+
+- Start the next feature beta from published stable 1.1.8. Existing installations keep the new controls off until enabled.
+- Add direct USB Stream Deck + support on the Pi for buttons, dials, strip taps, custom button artwork, music commands and configured Home controls. Optional support packages and USB permissions require setup on the Pi.
+- Add original KEF LSX power, input, volume and mute controls with a maximum volume setting and live status.
+- Add shared listening controls to native Home and web Home, and configure modes and mappings in web Settings → Controls.
+- Keep modes that require Topping E50 II input switching unavailable until its Bluetooth protocol is verified. Add a read-only Bluetooth service diagnostic for that investigation.
+- Verify listening layouts and actions locally at every supported screen size. Physical Stream Deck, KEF and Topping acceptance remains outstanding.
+- Validation note: the existing simulated Discover alignment assertion also fails on untouched 1.1.8; it remains advisory under the current release policy. Backend/controller tests, the full native review matrix and updater staging/rollback checks pass.
+
 ## 1.1.8 Alpine — 6 November 2026
 
 RoonDeck 1.1.8 Alpine is a full clean-install ARM64 image for Raspberry Pi, rolling up beta.1 to beta.81.

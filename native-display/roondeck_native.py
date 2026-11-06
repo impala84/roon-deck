@@ -757,6 +757,9 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
                 self.touch_profile.set_selected(profiles.get(system.get("display_profile"), 0)); self.touch_orientation.set_selected(orientations.get(system.get("display_orientation"), 0)); self.touch_mounting.set_selected(mountings.get(system.get("display_mounting"), 0)); self.display_controls_loaded = True
         self.render_touch_controls(device, self.system_data)
         self.render_home((device or {}).get("home") or {})
+        self.render_listening((device or {}).get("listening") or {})
+        if (device or {}).get("listening", {}).get("enabled"):
+            for button in self.home_nav_buttons: button.set_visible(True)
         brightness = int((device or {}).get("display_brightness", 100))
         if not self.brightness_updating and round(self.touch_brightness.get_value()) != brightness:
             self.brightness_updating = True; self.touch_brightness.set_value(brightness); self.brightness_updating = False

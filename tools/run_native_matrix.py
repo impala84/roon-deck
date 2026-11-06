@@ -55,7 +55,7 @@ def write_gallery(output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--screen", choices=("settings", "discover", "layout", "all"), default="all")
+    parser.add_argument("--screen", choices=("settings", "discover", "listening", "layout", "all"), default="all")
     parser.add_argument("--output", type=Path, default=ROOT / "dist" / "native-review")
     parser.add_argument("--viewport", action="append", help="Only this viewport id from tools/viewports.json (repeatable)")
     args = parser.parse_args()
@@ -86,6 +86,8 @@ def main() -> None:
         }
         if args.screen in ("discover", "all"):
             xvfb(size, "appliance/alpine/discover_visual_review.py", environment)
+        if args.screen in ("listening", "all"):
+            xvfb(size, "appliance/alpine/listening_smoke.py", environment)
         if args.screen == "layout":
             # Report-only by default; not part of "all" until its numbers are trusted.
             xvfb(size, "appliance/alpine/layout_alignment_smoke.py", environment)
