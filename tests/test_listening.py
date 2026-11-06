@@ -207,3 +207,39 @@ class PlayTriggerSettingsTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_settings({"on_play": {"script": "light.kitchen"}})
         with self.assertRaises(ValueError): validate_settings({"on_play": {"script": "script.a", "helper": "switch.x"}})
         with self.assertRaises(ValueError): validate_settings({"on_play": {"other": "x"}})
+
+
+class StreamDeckPainterTests(unittest.TestCase):
+    def setUp(self):
+        try: import PIL  # noqa: F401
+        except ImportError: self.skipTest("Pillow is not installed")
+        import tempfile
+        from pi_bus_time_display.streamdeck import Painter
+        self.folder = tempfile.mkdtemp()
+        self.painter = Painter(self.folder)
+
+    def test_every_kind_of_key_and_strip_draws(self):
+        from PIL import Image
+        import io
+        cover = Image.new("RGB", (120, 120), "#336699")
+        state = {"kef": {"connected": False}, "modes": [], "last_mode": None}
+        home = {"entities": [{"entity_id": "light.lamp", "state": "on", "percentage": 60}]}
+        for binding in ({}, {"label": "Mute", "action": "mute"}, {"label": "A very long label that wraps", "action": "mode", "value": "pi", "color": "#236650"},
+                        {"action": "playpause", "label": "Play / Pause"}, {"action": "home_toggle", "entity_id": "light.lamp", "label": "Lamp", "color": "#222222"}):
+            for elapsed, art in ((None, None), (75, cover)):
+                data = self.painter.key(binding, state, home, art, elapsed)
+                self.assertEqual(Image.open(io.BytesIO(data)).size, (120, 120))
+        dials = [{"action": "volume_delta", "label": "Volume", "color": "#6b2d7a"}, {"action": "home_level", "label": "Lights", "entity_id": "light.lamp"},
+                 {"action": "home_script_dial", "label": "Topping"}, {"action": "none"}]
+        for kef in ({"connected": True, "volume": 30, "muted": True}, {"connected": False}):
+            data = self.painter.strip(dials, {**state, "kef": kef}, home, "")
+            self.assertEqual(Image.open(io.BytesIO(data)).size, (800, 100))
+        self.assertFalse(self.painter.reported, "drawing raised an error that was swallowed")
+
+    def test_drawing_works_without_the_dejavu_fonts(self):
+        from pi_bus_time_display.streamdeck import Painter
+        class NoDejaVu(Painter): FONT_DIR = "/nonexistent/"
+        painter = NoDejaVu(self.folder)
+        painter.key({"action": "playpause", "label": "Play"}, {}, {}, None, 5)
+        painter.strip([{"action": "home_level", "label": "Lights", "entity_id": "x"}], {}, {}, "")
+        self.assertFalse(painter.reported, "drawing failed without DejaVu")

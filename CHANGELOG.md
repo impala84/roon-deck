@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.21 Alpine — 6 November 2026
+
+- Stream Deck reliability: the key and strip drawing moved into one tested routine, and a drawing problem now shows a plain key and logs the cause instead of dropping the USB connection. The deck also asks the Pi's services for status once a second instead of four times a second, and a failed status request no longer disconnects it.
+
 ## 1.2.0-beta.20 Alpine — 6 November 2026
 
 - Stream Deck designer: each dial now has a Colour setting for its section of the touch strip, shown in the designer and on the device.

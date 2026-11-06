@@ -6,6 +6,7 @@ import json
 import logging
 import math
 import queue
+import time
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -79,6 +80,141 @@ def dispatch(base, binding, delta=None):
     raise ValueError("Unsupported Stream Deck action")
 
 
+class Painter:
+    """Draws the key and strip pictures. Drawing problems never take the USB connection down."""
+
+    FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
+
+    def __init__(self, art_dir):
+        self.art_dir = Path(art_dir)
+        self.fonts = {}
+        self.reported = set()
+
+    def load_font(self, size):
+        from PIL import ImageFont
+        if size in self.fonts: return self.fonts[size]
+        face = None
+        for name in ("DejaVuSans-Bold.ttf", "DejaVuSans.ttf"):
+            if Path(self.FONT_DIR + name).exists():
+                face = ImageFont.truetype(self.FONT_DIR + name, size); break
+        if face is None:
+            for found in sorted(Path("/usr/share/fonts").glob("**/*.[ot]tf")):
+                if "Bold" in found.name and "Italic" not in found.name:
+                    try: face = ImageFont.truetype(str(found), size); break
+                    except OSError: continue
+        if face is None:
+            try: face = ImageFont.load_default(size)  # scalable on Pillow >= 10.1
+            except TypeError: face = ImageFont.load_default()
+        self.fonts[size] = face
+        return face
+
+    def fit_lines(self, draw, text, width, sizes, max_lines):
+        """Largest size whose word-wrapped text fits width and max_lines."""
+        for size in sizes:
+            face = self.load_font(size)
+            lines, line = [], ""
+            for word in text.split():
+                trial = (line + " " + word).strip()
+                if draw.textlength(trial, font=face) <= width or not line: line = trial
+                else: lines.append(line); line = word
+            if line: lines.append(line)
+            if len(lines) <= max_lines and all(draw.textlength(item, font=face) <= width for item in lines):
+                return face, lines, size
+        return face, lines[:max_lines], size
+
+    @staticmethod
+    def jpeg(image):
+        output = io.BytesIO(); image.save(output, format="JPEG"); return output.getvalue()
+
+    def safe(self, name, size, color, draw_function):
+        from PIL import Image
+        try: return self.jpeg(draw_function())
+        except Exception:
+            if name not in self.reported:
+                self.reported.add(name); LOG.exception("Stream Deck could not draw %s", name)
+            return self.jpeg(Image.new("RGB", size, color))
+
+    def key(self, binding, state, home, cover, elapsed):
+        return self.safe(f"key {binding.get('label', '')}", (120, 120), "#11201d", lambda: self._key(binding, state, home, cover, elapsed))
+
+    def strip(self, dials, state, home, error):
+        return self.safe("strip", (800, 100), "#11201d", lambda: self._strip(dials, state, home, error))
+
+    def _key(self, binding, state, home, cover, elapsed):
+        from PIL import Image, ImageDraw
+        selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
+        entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
+        active = selected or entity.get("state") == "on"
+        image = Image.new("RGB", (120, 120), binding.get("color") or ("#236650" if active else "#11201d"))
+        playpause = binding.get("action") == "playpause"
+        if playpause and cover is not None:
+            # Current album artwork behind the control, dimmed so the icon and time stay readable.
+            image = Image.blend(cover, Image.new("RGB", (120, 120), "#000000"), .5)
+        art = binding.get("image")
+        if art:
+            # Only operator-controlled artwork adjacent to listening.json.
+            path = (self.art_dir / art).resolve()
+            if path.is_relative_to(self.art_dir.resolve()) and path.is_file():
+                with Image.open(path) as custom:
+                    overlay = custom.convert("RGBA").resize((120, 120), getattr(Image, "Resampling", Image).LANCZOS)
+                    image.paste(overlay, (0, 0), overlay)
+        draw = ImageDraw.Draw(image)
+        timed = playpause and elapsed is not None
+        if timed:
+            draw.text((60, 113), clock(elapsed), fill="white", font=self.load_font(17), anchor="ms", stroke_width=2, stroke_fill="#000000")
+        if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
+        if binding.get("label") and not timed:
+            face, lines, size = self.fit_lines(draw, str(binding.get("label", ""))[:30], 104, (20, 18, 16, 14, 12), 3)
+            top = 116 - len(lines) * (size + 3)
+            for number, text in enumerate(lines):
+                draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
+        if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
+            draw.text((8, 8), "Unavailable", fill="#f2b991", font=self.load_font(14))
+        return image
+
+    def _strip(self, dials, state, home, error):
+        from PIL import Image, ImageDraw
+        speaker = state.get("kef", {})
+        strip = Image.new("RGB", (800, 100), "#11201d"); draw = ImageDraw.Draw(strip)
+        for index, binding in enumerate(dials):
+            action = binding.get("action")
+            if binding.get("color"): draw.rectangle((index * 200, 0, index * 200 + 199, 99), fill=binding["color"])
+            if action in {None, "none"}: continue
+            left = index * 200 + 12
+            face, lines, _ = self.fit_lines(draw, str(binding.get("label", ""))[:20], 176, (20, 18, 16, 14), 1)
+            draw.text((left, 8), lines[0] if lines else "", fill="white", font=face)
+            level, detail = None, ""
+            if action == "home_level":
+                entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
+                if entity: level = entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))
+                else: detail = "Unavailable"
+            elif action == "home_script_dial":
+                centre_x, centre_y, radius = left + 88, 60, 22
+                draw.arc((centre_x - radius, centre_y - radius, centre_x + radius, centre_y + radius), 40, 320, fill="#a4dcc7", width=2)
+                for end, direction in ((320, 1), (40, -1)):
+                    angle = math.radians(end)
+                    px, py = centre_x + radius * math.cos(angle), centre_y + radius * math.sin(angle)
+                    tx, ty = -math.sin(angle) * direction, math.cos(angle) * direction
+                    nx, ny = math.cos(angle), math.sin(angle)
+                    draw.polygon([(px + tx * 9, py + ty * 9), (px + nx * 5, py + ny * 5), (px - nx * 5, py - ny * 5)], fill="#a4dcc7")
+                continue
+            elif speaker.get("connected"):
+                level = speaker.get("volume")
+                if speaker.get("muted"): detail = "Muted"
+            else:
+                detail = error or "Offline"
+            if level is not None:
+                level = max(0, min(100, int(level)))
+                draw.text((left, 32), f"{level}%", fill="#a4dcc7", font=self.load_font(30))
+                draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
+                if level: draw.rounded_rectangle((left, 80, left + max(6, round(172 * level / 100)), 85), radius=3, fill="#6ef0be")
+                if detail: draw.text((left + 172, 36), detail, fill="#f2b991", font=self.load_font(14), anchor="ra")
+            elif detail:
+                face, lines, _ = self.fit_lines(draw, detail[:22], 176, (22, 18, 14), 1)
+                draw.text((left, 40), lines[0] if lines else "", fill="#a4dcc7", font=face)
+        return strip
+
+
 def run(controls, base, stop):
     """Reconnect after unplug/reboot; serialize commands and coalesce dial bursts."""
     while not stop.is_set():
@@ -92,7 +228,7 @@ def run(controls, base, stop):
             controls.state["streamdeck"] = {"enabled": True, "connected": False, "error": "Waiting for Stream Deck +"}
             from StreamDeck.DeviceManager import DeviceManager
             from StreamDeck.Devices.StreamDeck import DialEventType
-            from PIL import Image, ImageDraw, ImageFont
+            from PIL import Image
             decks = DeviceManager().enumerate()
             deck = next((item for item in decks if item.deck_type() == "Stream Deck +"), None)
             if deck is None:
@@ -104,34 +240,6 @@ def run(controls, base, stop):
             events = queue.Queue(maxsize=64)
             buttons = settings.get("buttons", [])[:8]
             dials = settings.get("dials", [])[:4]
-            font_dir = "/usr/share/fonts/truetype/dejavu/"
-
-            def load_font(size, bold=True):
-                for name in (("DejaVuSans-Bold.ttf", "DejaVuSans.ttf") if bold else ("DejaVuSans.ttf",)):
-                    if Path(font_dir + name).exists():
-                        return ImageFont.truetype(font_dir + name, size)
-                for found in sorted(Path("/usr/share/fonts").glob("**/*.[ot]tf")):
-                    if "Bold" in found.name and "Italic" not in found.name:
-                        return ImageFont.truetype(str(found), size)
-                try: return ImageFont.load_default(size)  # scalable on Pillow >= 10.1
-                except TypeError: return ImageFont.load_default()
-
-            def fit_lines(draw, text, width, sizes, max_lines):
-                # Largest size whose word-wrapped text fits width and max_lines.
-                for size in sizes:
-                    face = load_font(size)
-                    lines, line = [], ""
-                    for word in text.split():
-                        trial = (line + " " + word).strip()
-                        if draw.textlength(trial, font=face) <= width or not line: line = trial
-                        else: lines.append(line); line = word
-                    if line: lines.append(line)
-                    if len(lines) <= max_lines and all(draw.textlength(item, font=face) <= width for item in lines):
-                        return face, lines, size
-                return face, lines[:max_lines], size
-
-            font = load_font(18)
-
             def enqueue(kind, index, amount=1):
                 try: events.put_nowait((kind, index, amount))
                 except queue.Full: LOG.warning("Stream Deck input queue full")
@@ -145,12 +253,11 @@ def run(controls, base, stop):
                 if getattr(event, "name", "") == "SHORT": enqueue("press", min(3, value["x"] // 200))
             deck.set_touchscreen_callback(touch_event)
 
-            def jpeg(image):
-                output = io.BytesIO(); image.save(output, format="JPEG"); return output.getvalue()
-
             previous = None
             cover = ["", None]
+            painter = Painter(controls.path.parent / "deck-art")
             shown = {}
+            refreshed = 0.0
             error = ""
             settings_signature = json.dumps(settings, sort_keys=True)
             while deck.is_open() and not stop.is_set():
@@ -179,8 +286,12 @@ def run(controls, base, stop):
                     except (OSError, ValueError, TypeError) as exc:
                         error = str(exc)[:80]; LOG.warning("Stream Deck command failed: %s", exc)
                     controls.state["streamdeck"] = {"enabled": True, "connected": True, "error": error}
+                # Poll the Pi's services once a second (or straight after a press), not four times a second.
+                if not combined and time.monotonic() - refreshed < 1.0: continue
+                refreshed = time.monotonic()
                 state = controls.snapshot()
-                home = request(base, "/api/device/controls").get("home", {})
+                try: home = request(base, "/api/device/controls").get("home", {})
+                except (ValueError, OSError): home = {}
                 playing = {}
                 if any(item.get("action") == "playpause" for item in buttons):
                     try: playing = request(base, "/roon/api/state").get("zone") or {}
@@ -199,77 +310,10 @@ def run(controls, base, stop):
                 speaker = state.get("kef", {})
                 for key in range(8):
                     binding = buttons[key] if key < len(buttons) else {}
-                    selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
-                    entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
-                    active = selected or entity.get("state") == "on"
-                    colour = binding.get("color") or ("#236650" if active else "#11201d")
-                    image = Image.new("RGB", (120, 120), colour)
-                    if binding.get("action") == "playpause" and cover[1] is not None:
-                        # Current album artwork behind the control, dimmed so the icon and time stay readable.
-                        image = Image.blend(cover[1], Image.new("RGB", (120, 120), "#000000"), .5)
-                    art = binding.get("image")
-                    if art:
-                        # Only operator-controlled artwork adjacent to listening.json.
-                        path = (controls.path.parent / "deck-art" / art).resolve()
-                        root = (controls.path.parent / "deck-art").resolve()
-                        if path.is_relative_to(root) and path.is_file():
-                            with Image.open(path) as custom:
-                                overlay = custom.convert("RGBA").resize((120, 120), getattr(Image, "Resampling", Image).LANCZOS)
-                                image.paste(overlay, (0, 0), overlay)
-                    draw = ImageDraw.Draw(image)
-                    if binding.get("action") == "playpause" and elapsed is not None:
-                        draw.text((60, 113), clock(elapsed), fill="white", font=load_font(17), anchor="ms", stroke_width=2, stroke_fill="#000000")
-                    if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
-                    timed = binding.get("action") == "playpause" and elapsed is not None
-                    if binding.get("label") and not timed:
-                        face, lines, size = fit_lines(draw, str(binding.get("label", ""))[:30], 104, (20, 18, 16, 14, 12), 3)
-                        top = 116 - len(lines) * (size + 3)
-                        for number, text in enumerate(lines):
-                            draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
-                    if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
-                        draw.text((8, 8), "Unavailable", fill="#f2b991", font=font)
-                    data = jpeg(image)
+                    data = painter.key(binding, state, home, cover[1], elapsed)
                     if shown.get(key) != data:
                         shown[key] = data; deck.set_key_image(key, data)
-                strip = Image.new("RGB", (800, 100), "#11201d"); draw = ImageDraw.Draw(strip)
-                for index, binding in enumerate(dials):
-                    action = binding.get("action")
-                    if binding.get("color"): draw.rectangle((index * 200, 0, index * 200 + 199, 99), fill=binding["color"])
-                    if action in {None, "none"}: continue
-                    left = index * 200 + 12
-                    face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 176, (20, 18, 16, 14), 1)
-                    draw.text((left, 8), lines[0] if lines else "", fill="white", font=face)
-                    level, detail = None, ""
-                    if action == "home_level":
-                        entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
-                        if entity: level = entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))
-                        else: detail = "Unavailable"
-                    elif action == "home_script_dial":
-                        centre_x, centre_y, radius = left + 88, 60, 22
-                        box = (centre_x - radius, centre_y - radius, centre_x + radius, centre_y + radius)
-                        draw.arc(box, 40, 320, fill="#a4dcc7", width=2)
-                        for end, direction in ((320, 1), (40, -1)):
-                            angle = math.radians(end)
-                            px, py = centre_x + radius * math.cos(angle), centre_y + radius * math.sin(angle)
-                            tx, ty = -math.sin(angle) * direction, math.cos(angle) * direction
-                            nx, ny = math.cos(angle), math.sin(angle)
-                            draw.polygon([(px + tx * 9, py + ty * 9), (px + nx * 5, py + ny * 5), (px - nx * 5, py - ny * 5)], fill="#a4dcc7")
-                        continue
-                    elif speaker.get("connected"):
-                        level = speaker.get("volume")
-                        if speaker.get("muted"): detail = "Muted"
-                    else:
-                        detail = error or "Offline"
-                    if level is not None:
-                        level = max(0, min(100, int(level)))
-                        draw.text((left, 32), f"{level}%", fill="#a4dcc7", font=load_font(30))
-                        draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
-                        if level: draw.rounded_rectangle((left, 80, left + max(6, round(172 * level / 100)), 85), radius=3, fill="#6ef0be")
-                        if detail: draw.text((left + 172, 36), detail, fill="#f2b991", font=load_font(14), anchor="ra")
-                    elif detail:
-                        face, lines, _ = fit_lines(draw, detail[:22], 176, (22, 18, 14), 1)
-                        draw.text((left, 40), lines[0] if lines else "", fill="#a4dcc7", font=face)
-                strip_data = jpeg(strip)
+                strip_data = painter.strip(dials, state, home, error)
                 # The elapsed-time tick must not rewrite the strip: needless USB writes are what make the deck drop out.
                 if shown.get("strip") != strip_data:
                     shown["strip"] = strip_data; deck.set_touchscreen_image(strip_data, 0, 0, 800, 100)
