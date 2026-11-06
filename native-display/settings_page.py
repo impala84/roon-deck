@@ -208,7 +208,9 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         columns = Gtk.Box(spacing=28); columns.set_homogeneous(True); self.settings_network_columns = columns; network_page.append(columns)
         network = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(network)
         def info_row(heading, row):
-            network.append(self.label(heading, "eyebrow")); take(row, network)
+            title = self.label(heading, "eyebrow")
+            if network.get_first_child() is not None: title.set_margin_top(12)   # the same gap above every sub-heading
+            network.append(title); take(row, network)
         # Roon status and the zone choice are everyday controls: they head the Overview page, side by side.
         self.settings_zone_select = Gtk.DropDown.new_from_strings(["Follow the playing zone"]); self.settings_zone_select.add_css_class("settings-select"); self.settings_zone_names = []
         self.settings_zone_select.connect("notify::selected", self.zone_selected)

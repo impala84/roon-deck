@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.41 Alpine — 7 November 2026
+
+- Touch settings, Network (7-inch): back to the same look as every other settings page. "ACTIVE CONNECTIONS" is a standard purple heading over two ordinary rows (Ethernet with its address, Wi-Fi with its name and address); a purple tick marks the one in use. Every sub-heading now has the same gap above and below it.
+- Stream Deck: the brightness fade on a light key is faster again, with quicker refreshes while it fades.
+
 ## 1.2.0-beta.40 Alpine — 7 November 2026
 
 - Touch settings, Network (7-inch): "Using Ethernet" (or Wi-Fi) is now the first thing in the left column, with the wired address under it, then the Wi-Fi address and the Join Wi-Fi button. The duplicate small "Current connection" card is gone, and VPN, discovery and Netdata sit in the right column.

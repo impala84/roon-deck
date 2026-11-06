@@ -460,3 +460,6 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .settings-tabs-layout .brightness-card { padding: 4px 22px; }
 .settings-tabs-layout .brightness-card scale { min-height: 52px; padding: 10px 0; }
 .settings-tabs-layout .brightness-setting .eyebrow { margin-bottom: 0; }
+
+/* One rhythm for every sub-heading: no margin of its own, the column spacing sets the gap below it. */
+.settings-sidebar-layout .settings-pane .eyebrow { margin-bottom: 0; }

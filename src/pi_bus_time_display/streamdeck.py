@@ -241,7 +241,7 @@ class Painter:
             target = home_level_of(lit) if lit.get("state") == "on" else 0
             shown = self.eased.get(level_id, target)
             # Ease towards the real level a little every refresh: a soft fade, not a jump.
-            shown = target if abs(target - shown) < 2 else shown + (target - shown) * .4
+            shown = target if abs(target - shown) < 2 else shown + (target - shown) * .6
             self.eased[level_id] = shown; self.targets[level_id] = target
             image = self.level_tint(image, shown, binding.get("level_color") or "#c98a22")
         playpause = binding.get("action") == "playpause"
@@ -381,7 +381,7 @@ def run(controls, base, stop):
                 if json.dumps(controls.settings(), sort_keys=True) != settings_signature:
                     break
                 pending = []
-                try: pending.append(events.get(timeout=.06 if animating else .25))
+                try: pending.append(events.get(timeout=.03 if animating else .25))
                 except queue.Empty: pass
                 while not events.empty():
                     try: pending.append(events.get_nowait())
@@ -413,7 +413,7 @@ def run(controls, base, stop):
                     controls.brightness_preview = None
                     if lit: deck.set_brightness(preview)
                 # Smooth fades between data refreshes: redraw only the keys that show a light's level, a dozen times a second.
-                if animating and frame and lit and time.monotonic() - last_frame >= .07:
+                if animating and frame and lit and time.monotonic() - last_frame >= .045:
                     last_frame = time.monotonic()
                     for key in range(8):
                         binding = buttons[key] if key < len(buttons) else {}
@@ -422,7 +422,7 @@ def run(controls, base, stop):
                         if shown.get(key) != data: shown[key] = data; deck.set_key_image(key, data)
                     animating = painter.animating()
                 # Poll the Pi's services once a second (a few times a second just after a press), not four times a second.
-                if not combined and time.monotonic() - refreshed < (0.35 if time.monotonic() < fast_until else 1.0): continue
+                if not combined and time.monotonic() - refreshed < (0.25 if time.monotonic() < fast_until else 1.0): continue
                 refreshed = time.monotonic()
                 sleeping = False
                 if time.monotonic() >= deck_awake_until:

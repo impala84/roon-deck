@@ -34,15 +34,26 @@ class WifiPageMixin:
             GLib.idle_add(done, result, error)
         threading.Thread(target=work, daemon=True).start()
 
+    @staticmethod
+    def draw_tick(_area, cr, width, height):
+        """A purple stroke tick, drawn rather than an icon so it matches the accent exactly."""
+        cr.set_source_rgb(0.608, 0.420, 1.0); cr.set_line_width(3.2); cr.set_line_cap(1); cr.set_line_join(1)
+        cr.move_to(width * .16, height * .54); cr.line_to(width * .40, height * .76); cr.line_to(width * .84, height * .26); cr.stroke()
+
     def build_connection_block(self):
         block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); block.add_css_class("connection-block")
         # Ethernet is used automatically whenever it is plugged in and Wi-Fi is the fallback, so there is nothing to switch.
         # The headline names the connection in use; the addresses sit underneath, wired first.
-        self.connection_headline = self.label("Checking…", "connection-headline"); self.connection_headline.set_xalign(0); block.append(self.connection_headline)
-        self.connection_summary = self.label("", "settings-diagnostic"); self.connection_summary.set_wrap(True); self.connection_summary.set_xalign(0); block.append(self.connection_summary)
-        self.connection_secondary = self.label("", "settings-diagnostic"); self.connection_secondary.set_wrap(True); self.connection_secondary.set_xalign(0); block.append(self.connection_secondary)
+        # The same heading and rows as every other settings page; a purple tick marks the connection in use.
+        block.append(self.label("ACTIVE CONNECTIONS", "eyebrow"))
+        self.connection_rows = {}
+        for kind in ("ethernet", "wifi"):
+            row = Gtk.Box(spacing=8); row.add_css_class("setting-line"); row.set_hexpand(True)
+            text = self.label("—", "settings-info"); text.set_xalign(0); text.set_hexpand(True); text.set_ellipsize(Pango.EllipsizeMode.END); row.append(text)
+            tick = Gtk.DrawingArea(); tick.set_content_width(30); tick.set_content_height(30); tick.set_valign(Gtk.Align.CENTER); tick.set_draw_func(self.draw_tick); row.append(tick)
+            block.append(row); self.connection_rows[kind] = (row, text, tick)
         self.connection_buttons = {}
-        wifi_heading = self.label("WI-FI", "eyebrow"); block.append(wifi_heading)
+        wifi_heading = self.label("WI-FI", "eyebrow"); wifi_heading.set_margin_top(12); block.append(wifi_heading)
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
         self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(False); self.connection_message.set_ellipsize(3); self.connection_message.set_width_chars(1); self.connection_message.set_max_width_chars(1); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
         trial = Gtk.Box(spacing=12); trial.set_homogeneous(True); trial.set_visible(False); self.connection_trial = trial
@@ -85,13 +96,13 @@ class WifiPageMixin:
             name = item.get("name") if item.get("kind") == "wifi" and item.get("name") not in (None, "", "--") else ""
             address = (item.get("address") or "").split("/")[0]
             return " · ".join(part for part in ("Ethernet" if item.get("kind") == "ethernet" else "Wi-Fi", name, address) if part)
-        if chosen:
-            self.connection_headline.set_text("Using Ethernet" if chosen.get("kind") == "ethernet" else "Using Wi-Fi")
-            self.connection_summary.set_text(describe(chosen) if chosen is not wired else (chosen.get("address") or "").split("/")[0])
-            others = [item for item in connected if item is not chosen and item.get("kind") == "wifi"]
-            self.connection_secondary.set_text(describe(others[0]) if others else ""); self.connection_secondary.set_visible(bool(others))
-        else:
-            self.connection_headline.set_text("Not connected"); self.connection_summary.set_text(""); self.connection_secondary.set_visible(False)
+        wifi = next((item for item in connected if item.get("kind") == "wifi"), None)
+        for kind, item in (("ethernet", wired), ("wifi", wifi)):
+            row, text, tick = self.connection_rows[kind]
+            row.set_visible(item is not None); text.set_text(describe(item) if item else "")
+            tick.set_visible(item is not None and item is chosen)
+        if chosen is None:
+            row, text, tick = self.connection_rows["ethernet"]; row.set_visible(True); text.set_text("Not connected"); tick.set_visible(False)
         # Any unfinished trial can always be undone, so a half-finished switch can never leave the screen stuck.
         has_trial = bool(trial.get("token"))
         pending = has_trial and data.get("status") == "trial"
