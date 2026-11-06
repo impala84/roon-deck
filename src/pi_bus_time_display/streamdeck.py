@@ -232,6 +232,8 @@ class Painter:
         selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
         active = selected or entity.get("state") == "on"
+        # A key that shows a light's level never flashes the green "on" colour (a running script reports "on" while it works).
+        if binding.get("level_entity"): active = False
         # A switched-on key gets its own "on" colour (or a brighter green) instead of an outline.
         image = Image.new("RGB", (120, 120), (binding.get("active_color") or "#236650") if active else (binding.get("color") or "#11201d"))
         level_id = binding.get("level_entity")
@@ -241,7 +243,7 @@ class Painter:
             target = home_level_of(lit) if lit.get("state") == "on" else 0
             shown = self.eased.get(level_id, target)
             # Ease towards the real level a little every refresh: a soft fade, not a jump.
-            shown = target if abs(target - shown) < 2 else shown + (target - shown) * .6
+            shown = target if abs(target - shown) < 2 else shown + (target - shown) * .45
             self.eased[level_id] = shown; self.targets[level_id] = target
             image = self.level_tint(image, shown, binding.get("level_color") or "#c98a22")
         playpause = binding.get("action") == "playpause"
@@ -413,7 +415,7 @@ def run(controls, base, stop):
                     controls.brightness_preview = None
                     if lit: deck.set_brightness(preview)
                 # Smooth fades between data refreshes: redraw only the keys that show a light's level, a dozen times a second.
-                if animating and frame and lit and time.monotonic() - last_frame >= .045:
+                if animating and frame and lit and time.monotonic() - last_frame >= .06:
                     last_frame = time.monotonic()
                     for key in range(8):
                         binding = buttons[key] if key < len(buttons) else {}

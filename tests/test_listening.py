@@ -448,6 +448,14 @@ class LevelKeyTests(unittest.TestCase):
             self.draw(painter, "on", 255); frames += 1
         self.assertFalse(painter.animating()); self.assertLessEqual(frames, 12)
 
+    def test_a_running_script_never_flashes_the_green_on_colour(self):
+        from io import BytesIO
+        from PIL import Image
+        home = {"entities": [{"entity_id": "script.cycle", "state": "on"}, {"entity_id": "light.study_uplight", "state": "off", "brightness": 0}]}
+        raw = Painter(tempfile.mkdtemp()).key({"action": "home_script", "entity_id": "script.cycle", "level_entity": "light.study_uplight", "color": "#000000"}, {}, home, None, None)
+        red, green, blue = Image.open(BytesIO(raw)).convert("RGB").getpixel((12, 60))
+        self.assertLess(green, 20)
+
     def test_glow_colour_is_used_and_validated(self):
         from io import BytesIO
         from PIL import Image

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.43 Alpine — 7 November 2026
+
+- Stream Deck: a key that shows a light's brightness no longer flashes green while its script runs (a running script counts as "on"). The fade is also eased back to a speed between the last two releases.
+
 ## 1.2.0-beta.42 Alpine — 7 November 2026
 
 - Touch settings, Overview (7-inch): when a Stream Deck is connected, Display brightness and Stream Deck brightness share one row at half width each, so Overview fits without running off the page. With no deck connected, Display brightness stays full width.
