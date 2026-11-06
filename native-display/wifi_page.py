@@ -36,9 +36,11 @@ class WifiPageMixin:
 
     def build_connection_block(self):
         block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); block.add_css_class("connection-block")
-        block.append(self.label("CONNECTION", "eyebrow"))
         # Ethernet is used automatically whenever it is plugged in and Wi-Fi is the fallback, so there is nothing to switch.
-        self.connection_summary = self.label("Checking…", "settings-diagnostic"); self.connection_summary.set_wrap(True); self.connection_summary.set_xalign(0); block.append(self.connection_summary)
+        # The headline names the connection in use; the addresses sit underneath, wired first.
+        self.connection_headline = self.label("Checking…", "connection-headline"); self.connection_headline.set_xalign(0); block.append(self.connection_headline)
+        self.connection_summary = self.label("", "settings-diagnostic"); self.connection_summary.set_wrap(True); self.connection_summary.set_xalign(0); block.append(self.connection_summary)
+        self.connection_secondary = self.label("", "settings-diagnostic"); self.connection_secondary.set_wrap(True); self.connection_secondary.set_xalign(0); block.append(self.connection_secondary)
         self.connection_buttons = {}
         wifi_heading = self.label("WI-FI", "eyebrow"); block.append(wifi_heading)
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
@@ -79,11 +81,17 @@ class WifiPageMixin:
         connected = [item for item in data.get("devices", []) if item.get("connected")]
         wired = next((item for item in connected if item.get("kind") == "ethernet"), None)
         chosen = wired or (connected[0] if connected else None)
+        def describe(item):
+            name = item.get("name") if item.get("kind") == "wifi" and item.get("name") not in (None, "", "--") else ""
+            address = (item.get("address") or "").split("/")[0]
+            return " · ".join(part for part in ("Ethernet" if item.get("kind") == "ethernet" else "Wi-Fi", name, address) if part)
         if chosen:
-            kind = "Ethernet" if chosen.get("kind") == "ethernet" else "Wi-Fi"
-            name = chosen.get("name") if chosen.get("kind") == "wifi" and chosen.get("name") not in (None, "", "--") else ""
-            self.connection_summary.set_text(" · ".join(part for part in (f"Using {kind}", name, (chosen.get("address") or "").split("/")[0]) if part))
-        else: self.connection_summary.set_text("Not connected")
+            self.connection_headline.set_text("Using Ethernet" if chosen.get("kind") == "ethernet" else "Using Wi-Fi")
+            self.connection_summary.set_text(describe(chosen) if chosen is not wired else (chosen.get("address") or "").split("/")[0])
+            others = [item for item in connected if item is not chosen and item.get("kind") == "wifi"]
+            self.connection_secondary.set_text(describe(others[0]) if others else ""); self.connection_secondary.set_visible(bool(others))
+        else:
+            self.connection_headline.set_text("Not connected"); self.connection_summary.set_text(""); self.connection_secondary.set_visible(False)
         # Any unfinished trial can always be undone, so a half-finished switch can never leave the screen stuck.
         has_trial = bool(trial.get("token"))
         pending = has_trial and data.get("status") == "trial"

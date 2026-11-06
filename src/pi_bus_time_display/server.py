@@ -1323,6 +1323,11 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                             raise ValueError("Choose a configured Home Assistant scene or script")
                         home_assistant_request(state.config, f"/api/services/{entity.split('.', 1)[0]}/turn_on", {"entity_id": entity})
                         result = {"ok": True}
+                    elif data.get("action") == "deck_brightness":
+                        value = data.get("value")
+                        if type(value) is not int or not 10 <= value <= 100: raise ValueError("Deck brightness must be between 10 and 100")
+                        state.listening.brightness_preview = value
+                        result = {"ok": True}
                     elif data.get("action") == "remote":
                         value = data.get("value")
                         if not state.config.home_assistant_enabled or not remote_step_allowed(state.listening.settings(), value):

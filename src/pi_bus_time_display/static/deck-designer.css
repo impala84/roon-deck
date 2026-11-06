@@ -85,3 +85,9 @@
 .dd-check input{width:auto;margin:0;flex:none}
 .dd-wake .cd-grid.two{gap:22px}
 .dd-group{display:grid;gap:14px;margin-top:6px}
+
+.dd-brightness{display:flex;flex-direction:row;align-items:center;gap:16px;margin:0}
+.dd-brightness span{flex:none;font-weight:600}
+.dd-brightness input{flex:1;min-width:120px;max-width:420px;margin:0}
+.dd-brightness output{flex:none;min-width:3.2em}
+.dd-brightness[hidden]{display:none}

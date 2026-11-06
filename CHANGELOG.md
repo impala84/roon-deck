@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.32 Alpine — 7 November 2026
+
+- Stream Deck: the brightness slider moved out of Wake & sleep to the top of the Stream Deck panel (shown only while a deck is connected) and now changes the deck live as you drag it. Save to keep the level.
+- Stream Deck: the aircon On / Off text on the strip is larger, and the IR on / off press has an "Always send the off command" option (on for new ones), since turning the dial already switches the unit on.
+- Network (touch settings): "Using Ethernet" is now the headline of the Connection block with the IP address under it; a connected Wi-Fi network and its address are listed beneath the wired one.
+
 ## 1.2.0-beta.31 Alpine — 7 November 2026
 
 - Stream Deck: the designer and the new Wake & sleep settings are now two tabs; it opens on the designer.

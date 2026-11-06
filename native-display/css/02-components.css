@@ -280,3 +280,6 @@
 .settings-page.controls-page .eyebrow { font-size: 15px; }
 .touch-landscape .settings-page.controls-page .eyebrow, .portrait .settings-page.controls-page .eyebrow { font-size: 18px; }
 .settings-page.controls-page .settings-diagnostic { color: #a8aeab; }
+
+.settings-page .connection-headline { font-size: 22px; font-weight: 650; color: #f4f0e6; }
+.touch-landscape .settings-page .connection-headline { font-size: 28px; }

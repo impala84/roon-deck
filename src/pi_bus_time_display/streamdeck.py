@@ -107,7 +107,7 @@ def _dispatch(base, binding, delta=None):
         return request(base, "/api/device/home-toggle", {"entity_id": binding.get("entity_id")})
     if action == "remote_toggle":
         key = (binding["entity_id"], binding["device"])
-        on = _toggles.get(key, bool(binding.get("initial_on")))
+        on = True if binding.get("off_only") else _toggles.get(key, bool(binding.get("initial_on")))
         result = request(base, "/api/listening/command", {"action": "remote", "value": {
             "entity_id": binding["entity_id"], "device": binding["device"], "command": binding["command_off"] if on else binding["command_on"]}})
         _toggles[key] = not on
@@ -258,7 +258,7 @@ class Painter:
                 press = binding.get("press") or {}
                 if press.get("action") == "remote_toggle":
                     is_on = _toggles.get((press.get("entity_id"), press.get("device")), bool(press.get("initial_on")))
-                    draw.text((left + 172, 36), "On" if is_on else "Off", fill="#6ef0be" if is_on else "#f2b991", font=self.load_font(16), anchor="ra")
+                    draw.text((left + 172, 34), "On" if is_on else "Off", fill="#6ef0be" if is_on else "#f2b991", font=self.load_font(26), anchor="ra")
                 continue
             elif action == "home_script_dial":
                 centre_x, centre_y, radius = left + 88, 60, 22
@@ -363,6 +363,10 @@ def run(controls, base, stop):
                     except (OSError, ValueError, TypeError) as exc:
                         error = str(exc)[:80]; LOG.warning("Stream Deck command failed: %s", exc)
                     controls.state["streamdeck"] = {"enabled": True, "connected": True, "error": error}
+                preview = getattr(controls, "brightness_preview", None)
+                if preview is not None:
+                    controls.brightness_preview = None
+                    if lit: deck.set_brightness(preview)
                 # Poll the Pi's services once a second (or straight after a press), not four times a second.
                 if not combined and time.monotonic() - refreshed < 1.0: continue
                 refreshed = time.monotonic()

@@ -382,3 +382,20 @@ class StreamDeckRemoteToggleTests(unittest.TestCase):
         target = {"entity_id": self.PRESS["entity_id"], "device": "aircon"}
         self.assertTrue(remote_step_allowed(settings, {**target, "command": "power_off"}))
         self.assertFalse(remote_step_allowed(settings, {**target, "command": "reboot"}))
+
+
+class StreamDeckOffOnlyTests(unittest.TestCase):
+    def test_off_only_press_always_sends_the_off_command(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        streamdeck._toggles.clear()
+        press = {**StreamDeckRemoteToggleTests.PRESS, "off_only": True}
+        sent = []
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: sent.append(payload["value"]["command"]) or {}):
+            for _ in range(2): streamdeck.dispatch("b", dict(press))
+        self.assertEqual(sent, ["power_off", "power_off"])
+        self.assertFalse(streamdeck._toggles[("remote.wi_fi_universal_remote", "aircon")])
+
+    def test_deck_brightness_preview_accepts_only_sane_values(self):
+        from pi_bus_time_display.listening import validate_settings
+        with self.assertRaises(ValueError): validate_settings({"dials": [{"action": "remote_toggle", "off_only": "yes"}]})

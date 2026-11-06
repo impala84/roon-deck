@@ -157,7 +157,8 @@ def validate_settings(data):
                 text = lambda name, pattern: isinstance(binding.get(name), str) and re.fullmatch(pattern, binding[name])
                 if not (text("entity_id", r"remote\.[a-z0-9_]{1,80}") and text("device", r"[A-Za-z0-9_ -]{1,40}") and text("command_on", r"[a-z0-9_]{1,40}") and text("command_off", r"[a-z0-9_]{1,40}")):
                     raise ValueError("Choose a remote, a device name and the on and off commands")
-                if "initial_on" in binding and type(binding["initial_on"]) is not bool: raise ValueError("initial_on must be true or false")
+                for flag in ("initial_on", "off_only"):
+                    if flag in binding and type(binding[flag]) is not bool: raise ValueError(f"{flag} must be true or false")
             if binding.get("action") == "remote_steps":
                 if is_press: raise ValueError("Remote steps belong on a dial turn")
                 text = lambda name, pattern: isinstance(binding.get(name), str) and re.fullmatch(pattern, binding[name])
@@ -200,6 +201,7 @@ class ListeningControls:
         self.path = Path(settings_path)
         self.factory = kef_factory
         self.lock = threading.Lock()
+        self.brightness_preview = None   # a slider move waiting for the Stream Deck thread to show it
         self.state = {"enabled": False, "kef": {"connected": False}, "modes": [],
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
                       "topping": {"available": False, "reason": "Bluetooth commands have not been verified"},
