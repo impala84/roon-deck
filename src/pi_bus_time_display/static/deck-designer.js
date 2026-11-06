@@ -16,13 +16,13 @@
   const SWATCHES = ['#11201d', '#236650', '#1f3a6e', '#6b2d7a', '#8a2f2f', '#8a5a14', '#3a3a3a', '#000000'];
   const KEY_ACTIONS = [
     ['none', 'Unused'], ['mode', 'Listening mode'], ['power', 'KEF power'], ['input', 'KEF input'], ['mute', 'KEF mute'],
-    ['previous', 'Previous track'], ['playpause', 'Play / pause'], ['next', 'Next track'], ['home_toggle', 'Home device on / off'], ['home_scene', 'Home scene'],
+    ['previous', 'Previous track'], ['playpause', 'Play / pause'], ['next', 'Next track'], ['home_toggle', 'Home device on / off'], ['home_scene', 'Home scene'], ['home_script', 'Home script (e.g. IR remote)'],
   ];
-  const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['home_level', 'Home brightness / fan speed']];
-  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device']];
+  const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)']];
+  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script']];
   const SOURCES = [['aux', 'Aux'], ['optical', 'Optical'], ['wifi', 'Wi‑Fi'], ['bluetooth', 'Bluetooth']];
-  const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: ''};
-  const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', mode: 'speaker'};
+  const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: '', home_script: ''};
+  const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', home_script: 'input', mode: 'speaker'};
   const ICONS = window.DeckIcons || {};
   const ICON_STYLE = 'stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"';
   let iconCategory = "Playback";
@@ -75,6 +75,7 @@
       case 'power': return binding.value === false ? 'Standby' : 'Power on';
       case 'input': return `Input · ${binding.value || '—'}`;
       case 'home_toggle': case 'home_scene': return entityName(binding.entity_id) || 'Choose a device';
+      case 'home_script': return entityName(binding.entity_id) || 'Choose a script';
       default: return (KEY_ACTIONS.find(([id]) => id === binding.action) || [])[1] || '';
     }
   }
@@ -143,19 +144,20 @@
         select.onchange = () => { binding.value = select.value; change(); };
         return field('KEF input', select);
       }
-      case 'home_toggle': case 'home_scene': return entityPicker(binding, change, binding.action === 'home_scene' ? item => item.domain === 'scene' : item => item.domain !== 'scene', binding.action === 'home_scene' ? 'Scene' : 'Home device');
+      case 'home_toggle': case 'home_scene': return entityPicker(binding, change, binding.action === 'home_scene' ? item => item.domain === 'scene' : item => item.domain !== 'scene' && item.domain !== 'script', binding.action === 'home_scene' ? 'Scene' : 'Home device');
+      case 'home_script': return entityPicker(binding, change, item => item.domain === 'script', 'Script');
       default: return null;
     }
   }
-  function entityPicker(binding, onChange, filter = () => true, labelText = 'Home device') {
+  function entityPicker(binding, onChange, filter = () => true, labelText = 'Home device', key = 'entity_id') {
     const list = entities.filter(filter);
     if (!list.length) {
-      const input = h('input', {type: 'text', placeholder: 'light.living_room', autocomplete: 'off', spellcheck: 'false'}); input.value = binding.entity_id || '';
-      input.oninput = () => { binding.entity_id = input.value.trim(); onChange(); };
+      const input = h('input', {type: 'text', placeholder: 'light.living_room', autocomplete: 'off', spellcheck: 'false'}); input.value = binding[key] || '';
+      input.oninput = () => { binding[key] = input.value.trim(); onChange(); };
       return field(labelText, input, 'No Home devices are shared with RoonDeck yet, so enter the Home Assistant entity ID.');
     }
-    const select = selectOf([['', 'Choose…'], ...list.map(item => [item.entity_id, item.name])], binding.entity_id || '');
-    select.onchange = () => { binding.entity_id = select.value; onChange(); };
+    const select = selectOf([['', 'Choose…'], ...list.map(item => [item.entity_id, item.name])], binding[key] || '');
+    select.onchange = () => { binding[key] = select.value; onChange(); };
     return field(labelText, select);
   }
 
@@ -297,9 +299,12 @@
     fill(inspector, h('div', {class: 'dd-title'}, h('h3', {}, `Dial ${selection.index + 1}`), clear),
       field('Label', label), field('When turned', turn),
       dial.action === 'home_level' ? entityPicker(dial, () => { markDirty(); drawStage(); }, item => item.supports_level, 'Light or fan') : null,
-      dial.action !== 'none' ? h('label', {class: 'cd-field'}, h('span', {}, 'Step per click'), h('div', {class: 'dd-range'}, step, stepValue)) : null,
+      dial.action === 'home_script_dial' ? entityPicker(dial, () => { markDirty(); drawStage(); }, item => item.domain === 'script', 'Script when turned up (clockwise)') : null,
+      dial.action === 'home_script_dial' ? entityPicker(dial, () => { markDirty(); drawStage(); }, item => item.domain === 'script', 'Script when turned down', 'entity_id_ccw') : null,
+      dial.action !== 'none' && dial.action !== 'home_script_dial' ? h('label', {class: 'cd-field'}, h('span', {}, 'Step per click'), h('div', {class: 'dd-range'}, step, stepValue)) : null,
       field('When pressed or tapped on the strip', tap),
-      press.action === 'home_toggle' ? entityPicker(press, markDirty, item => item.domain !== 'scene', 'Device to toggle') : null);
+      press.action === 'home_toggle' ? entityPicker(press, markDirty, item => item.domain !== 'scene' && item.domain !== 'script', 'Device to toggle') : null,
+      press.action === 'home_script' ? entityPicker(press, markDirty, item => item.domain === 'script', 'Script to run') : null);
   }
 
   function render() {
@@ -321,12 +326,12 @@
         const settings = SHARED().settings;
         const invalid = buttons.findIndex(item => item.action === 'power' && typeof item.value !== 'boolean');
         if (invalid >= 0) throw new Error(`Key ${invalid + 1}: choose Power on or Standby`);
-        const missing = buttons.findIndex(item => (item.action === 'home_toggle' || item.action === 'home_scene') && !item.entity_id);
+        const missing = buttons.findIndex(item => (item.action === 'home_toggle' || item.action === 'home_scene' || item.action === 'home_script') && !item.entity_id);
         if (missing >= 0) throw new Error(`Key ${missing + 1}: choose a Home device`);
         settings.streamdeck_enabled = enableBox.checked;
         settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; return out; });
-        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', step: item.step || 1,
-          press: {action: item.press.action, ...(item.press.action === 'home_toggle' ? {entity_id: item.press.entity_id || ''} : {})}}));
+        settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1,
+          press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();
         dirty = false; notice.hidden = true; status.textContent = 'Stream Deck saved. It updates on the device within a few seconds.';
       } catch (error) { status.textContent = error.message; }

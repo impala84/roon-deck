@@ -4,7 +4,7 @@ import os
 import re
 import tomllib
 
-HOME_ASSISTANT_DOMAINS = {"fan", "light", "scene", "switch", "input_boolean"}
+HOME_ASSISTANT_DOMAINS = {"fan", "light", "scene", "script", "switch", "input_boolean"}
 from dataclasses import dataclass
 from pathlib import Path
 

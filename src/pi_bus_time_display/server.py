@@ -311,16 +311,17 @@ def home_assistant_set_state(config: Config, entity_id: str, enabled: bool) -> o
 
 
 def home_assistant_activate(config: Config, entity_id: str) -> object:
-    if entity_id.split(".", 1)[0] != "scene":
-        raise ValueError("This entity is not a scene")
-    return home_assistant_request(config, "/api/services/scene/turn_on", {"entity_id": entity_id})
+    domain = entity_id.split(".", 1)[0]
+    if domain not in {"scene", "script"}:
+        raise ValueError("This entity is not a scene or script")
+    return home_assistant_request(config, f"/api/services/{domain}/turn_on", {"entity_id": entity_id})
 
 
 def home_assistant_entity_available(domain: str, entity_state: object) -> bool:
     # A scene has no persistent on/off state. Home Assistant commonly reports
     # an unactivated scene as unknown until it has been run for the first time.
     # Only its explicit unavailable state should disable the action button.
-    if domain == "scene":
+    if domain in {"scene", "script"}:
         return entity_state != "unavailable"
     return entity_state not in {"unavailable", "unknown"}
 
@@ -350,7 +351,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
                     "percentage": attributes.get("percentage"), "brightness": attributes.get("brightness"),
-                    "action": domain == "scene", "available": home_assistant_entity_available(domain, item.get("state")),
+                    "action": domain in {"scene", "script"}, "available": home_assistant_entity_available(domain, item.get("state")),
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))
                         or (domain == "light" and attributes.get("supported_color_modes") not in (None, [], ["onoff"]))
@@ -1198,7 +1199,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
                     "tile_colors": {"light": home_single or state.config.home_assistant_light_color, "fan": home_single or state.config.home_assistant_fan_color,
                         "switch": home_single or state.config.home_assistant_switch_color, "input_boolean": home_single or state.config.home_assistant_switch_color,
-                        "scene": home_single or state.config.home_assistant_scene_color}}).encode())
+                        "scene": home_single or state.config.home_assistant_scene_color, "script": home_single or state.config.home_assistant_scene_color}}).encode())
                 return
             if self.path == "/api/device/controls":
                 if self.client_address[0] not in {"127.0.0.1", "::1"}:
@@ -1285,9 +1286,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if not isinstance(data, dict): raise ValueError("Command must be an object")
                     if data.get("action") == "scene":
                         entity = data.get("value")
-                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in state.config.home_assistant_entities or not entity.startswith("scene."):
-                            raise ValueError("Choose a configured Home Assistant scene")
-                        home_assistant_request(state.config, "/api/services/scene/turn_on", {"entity_id": entity})
+                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in state.config.home_assistant_entities or not entity.startswith(("scene.", "script.")):
+                            raise ValueError("Choose a configured Home Assistant scene or script")
+                        home_assistant_request(state.config, f"/api/services/{entity.split('.', 1)[0]}/turn_on", {"entity_id": entity})
                         result = {"ok": True}
                     else:
                         result = state.listening.command(data.get("action"), data.get("value"))
@@ -1470,7 +1471,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                             home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                         elif self.path == "/api/device/home-state":
                             home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
-                        elif domain == "scene":
+                        elif domain in {"scene", "script"}:
                             home_assistant_activate(state.config, entity_id)
                         else:
                             home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})
@@ -1493,7 +1494,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                     elif self.path == "/api/home/state":
                         home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
-                    elif domain == "scene":
+                    elif domain in {"scene", "script"}:
                         home_assistant_activate(state.config, entity_id)
                     else:
                         home_assistant_request(state.config, f"/api/services/{domain}/toggle", {"entity_id": entity_id})

@@ -114,7 +114,7 @@ def validate_settings(data):
         if not isinstance(bindings, list) or len(bindings) > limit or any(not isinstance(item, dict) for item in bindings):
             raise ValueError(f"{name} must be a list of up to {limit} bindings")
         def validate_binding(binding, is_press=False):
-            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene"}
+            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial"}
             if not isinstance(binding.get("action", "none"), str) or binding.get("action", "none") not in allowed:
                 raise ValueError("Choose a supported control action")
             if not isinstance(binding.get("label", ""), str) or len(binding.get("label", "")) > 40:
@@ -134,6 +134,11 @@ def validate_settings(data):
                 raise ValueError("Choose a supported KEF input")
             if binding.get("action", "").startswith("home_") and (not isinstance(binding.get("entity_id"), str) or len(binding["entity_id"]) > 200):
                 raise ValueError("Enter a Home Assistant entity ID")
+            if binding.get("action") in {"home_script", "home_script_dial"} and not binding["entity_id"].startswith("script."):
+                raise ValueError("Choose a Home Assistant script")
+            if "entity_id_ccw" in binding and (not isinstance(binding["entity_id_ccw"], str) or len(binding["entity_id_ccw"]) > 200
+                                               or (binding["entity_id_ccw"] and not binding["entity_id_ccw"].startswith("script."))):
+                raise ValueError("Choose a Home Assistant script")
         for binding in bindings: validate_binding(binding)
     modes = data.get("modes", [])
     if not isinstance(modes, list) or len(modes) > 8:

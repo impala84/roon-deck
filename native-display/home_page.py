@@ -56,6 +56,7 @@ class HomePageMixin:
             if state in {"on", "open", "playing"}: box.add_css_class("on")
             control_row = Gtk.Box(spacing=5); control_row.set_vexpand(True)
             domain = entity.get("domain", "switch")
+            if domain == "script": domain = "scene"  # a script is a tap-to-run action, shown like a scene
             box.add_css_class("home-domain-switch" if domain == "input_boolean" else f"home-domain-{domain}")
             scene = domain == "scene"
             if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"

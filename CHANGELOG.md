@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.10 Alpine — 6 November 2026
+
+- Stream Deck: new **Home script** actions. A key or a dial press can run a Home Assistant script, and a dial can run one script when turned up and another when turned down (once per click). This lets an IR blaster such as a Broadlink, learned in Home Assistant, switch inputs and change volume on a DAC like the Topping E50 II. Add the scripts to your shared Home devices first; scripts also show as tap-to-run tiles on the touchscreen Home page.
+
 ## 1.2.0-beta.9 Alpine — 6 November 2026
 
 - Network: the "switch connection" feature is gone. Ethernet is now always preferred automatically whenever it is plugged in, and Wi-Fi is the fallback. Joining a Wi-Fi network no longer turns Ethernet off, and the touchscreen and web admin simply show which connection is in use. A Pi left with Ethernet or Wi-Fi switched off by the old feature is restored on start-up.

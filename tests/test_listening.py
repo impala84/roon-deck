@@ -162,6 +162,31 @@ class ListeningTests(unittest.TestCase):
         request.assert_called_with("http://localhost", "/api/device/home-value", {"entity_id": "light.desk", "value": 100})
         with self.assertRaises(ValueError): dispatch("http://localhost", {"action": "https://example.com"})
 
+    @patch("pi_bus_time_display.streamdeck.request")
+    def test_home_scripts_run_once_per_click_and_dials_choose_a_script_by_direction(self, request):
+        dial = {"action": "home_script_dial", "entity_id": "script.topping_vol_up", "entity_id_ccw": "script.topping_vol_down"}
+        dispatch("http://localhost", dial, 3)
+        self.assertEqual(request.call_count, 3)
+        request.assert_called_with("http://localhost", "/api/listening/command", {"action": "scene", "value": "script.topping_vol_up"})
+        request.reset_mock()
+        dispatch("http://localhost", dial, -2)
+        self.assertEqual(request.call_count, 2)
+        request.assert_called_with("http://localhost", "/api/listening/command", {"action": "scene", "value": "script.topping_vol_down"})
+        request.reset_mock()
+        dispatch("http://localhost", {"action": "home_script_dial", "entity_id": "script.up"}, -1)
+        request.assert_not_called()
+        dispatch("http://localhost", {"action": "home_script", "entity_id": "script.topping_mute"})
+        request.assert_called_once_with("http://localhost", "/api/listening/command", {"action": "scene", "value": "script.topping_mute"})
+
+    def test_home_script_bindings_must_name_a_script(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.mute"}],
+                           "dials": [{"action": "home_script_dial", "entity_id": "script.up", "entity_id_ccw": "script.down"}]})
+        for bad in ({"action": "home_script", "entity_id": "light.desk"},):
+            with self.assertRaises(ValueError): validate_settings({"buttons": [bad]})
+        with self.assertRaises(ValueError):
+            validate_settings({"dials": [{"action": "home_script_dial", "entity_id": "script.up", "entity_id_ccw": "light.x"}]})
+
 
 if __name__ == "__main__":
     unittest.main()

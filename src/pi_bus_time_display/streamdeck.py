@@ -36,6 +36,15 @@ def dispatch(base, binding, delta=None):
         return request(base, "/api/listening/command", {"action": action, "value": value})
     if action == "home_scene":
         return request(base, "/api/listening/command", {"action": "scene", "value": binding.get("entity_id")})
+    if action in {"home_script", "home_script_dial"}:
+        # A dial turned up runs the first script, turned down the second; one run per click, up to 10 per burst.
+        entity = binding.get("entity_id") if not delta or delta > 0 else binding.get("entity_id_ccw")
+        if not entity:
+            return {}
+        result = {}
+        for _ in range(max(1, min(10, abs(delta or 1)))):
+            result = request(base, "/api/listening/command", {"action": "scene", "value": entity})
+        return result
     if action in {"previous", "playpause", "next"}:
         return request(base, "/roon/api/control", {"action": action})
     if action == "home_toggle":
