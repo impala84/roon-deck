@@ -198,3 +198,12 @@ class StreamDeckDisplayHelpersTests(unittest.TestCase):
         self.assertEqual(streamdeck.clock(0), "0:00")
         self.assertEqual(streamdeck.clock(75), "1:15")
         self.assertEqual(streamdeck.clock(None), "0:00")
+
+
+class PlayTriggerSettingsTests(unittest.TestCase):
+    def test_play_trigger_must_run_a_script(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"on_play": {"script": "script.topping_optical", "helper": "input_select.topping_input", "value": "Optical"}})
+        with self.assertRaises(ValueError): validate_settings({"on_play": {"script": "light.kitchen"}})
+        with self.assertRaises(ValueError): validate_settings({"on_play": {"script": "script.a", "helper": "switch.x"}})
+        with self.assertRaises(ValueError): validate_settings({"on_play": {"other": "x"}})

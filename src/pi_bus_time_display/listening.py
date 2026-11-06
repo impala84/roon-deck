@@ -96,7 +96,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     host = data.get("kef_host", "")
     if not isinstance(host, str) or len(host) > 253 or any(character.isspace() or character in "/\\@" for character in host):
@@ -109,6 +109,13 @@ def validate_settings(data):
     for name in ("enabled", "streamdeck_enabled"):
         if name in data and type(data[name]) is not bool:
             raise ValueError(f"{name} must be true or false")
+    on_play = data.get("on_play", {})
+    if not isinstance(on_play, dict) or set(on_play) - {"script", "helper", "value"} or any(not isinstance(item, str) or len(item) > 200 for item in on_play.values()):
+        raise ValueError("Invalid play trigger")
+    if on_play.get("script") and not on_play["script"].startswith("script."):
+        raise ValueError("The play trigger must run a Home Assistant script")
+    if on_play.get("helper") and not on_play["helper"].startswith(("input_select.", "sensor.", "input_text.")):
+        raise ValueError("The input helper must be an input_select, input_text or sensor")
     for name, limit in (("buttons", 8), ("dials", 4)):
         bindings = data.get(name, [])
         if not isinstance(bindings, list) or len(bindings) > limit or any(not isinstance(item, dict) for item in bindings):

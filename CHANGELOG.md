@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.15 Alpine — 6 November 2026
+
+- Stream Deck: icons are much finer (about half the previous stroke) and sit in the top two thirds of the key; on Play / Pause the elapsed time is small, in the bottom third, and no longer overlaps the icon. Existing icons are redrawn automatically when you open the designer and save.
+- Stream Deck: text is smaller than beta 13/14 (between the original and that size).
+- Stream Deck: the strip shows each dial as a label, a large percentage and a thin level bar; dials that run Home scripts show a rotation icon.
+- New: "When Roon starts playing" in the Stream Deck designer runs a Home script when playback starts (for example, selecting the Topping's optical input), skipping it when an input helper already has the wanted value.
+
 ## 1.2.0-beta.14 Alpine — 6 November 2026
 
 - Stream Deck: the Play / Pause key now shows the current album artwork behind the icon, dimmed, with the elapsed time (m:ss) across the top. It updates as the track plays and falls back to the plain key when nothing is playing.

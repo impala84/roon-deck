@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import math
 import queue
 import urllib.parse
 import urllib.request
@@ -217,13 +218,12 @@ def run(controls, base, stop):
                                 image.paste(overlay, (0, 0), overlay)
                     draw = ImageDraw.Draw(image)
                     if binding.get("action") == "playpause" and elapsed is not None:
-                        face = load_font(24)
-                        text = clock(elapsed)
-                        draw.text((60, 12), text, fill="white", font=face, anchor="mt", stroke_width=2, stroke_fill="#000000")
+                        draw.text((60, 113), clock(elapsed), fill="white", font=load_font(17), anchor="ms", stroke_width=2, stroke_fill="#000000")
                     if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
-                    if binding.get("label"):
-                        face, lines, size = fit_lines(draw, str(binding.get("label", ""))[:30], 104, (28, 24, 21, 18, 15), 3)
-                        top = 114 - len(lines) * (size + 3)
+                    timed = binding.get("action") == "playpause" and elapsed is not None
+                    if binding.get("label") and not timed:
+                        face, lines, size = fit_lines(draw, str(binding.get("label", ""))[:30], 104, (20, 18, 16, 14, 12), 3)
+                        top = 116 - len(lines) * (size + 3)
                         for number, text in enumerate(lines):
                             draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
                     if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
@@ -233,17 +233,41 @@ def run(controls, base, stop):
                         shown[key] = data; deck.set_key_image(key, data)
                 strip = Image.new("RGB", (800, 100), "#11201d"); draw = ImageDraw.Draw(strip)
                 for index, binding in enumerate(dials):
-                    if binding.get("action") in {None, "none"}: continue
-                    detail = error or (f"{speaker.get('volume', '?')}%" if speaker.get("connected") else "Offline")
-                    if speaker.get("muted"): detail += " · Muted"
-                    if binding.get("action") == "home_level":
+                    action = binding.get("action")
+                    if action in {None, "none"}: continue
+                    left = index * 200 + 12
+                    face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 176, (20, 18, 16, 14), 1)
+                    draw.text((left, 8), lines[0] if lines else "", fill="white", font=face)
+                    level, detail = None, ""
+                    if action == "home_level":
                         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
-                        detail = str(entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))) + "%" if entity else "Unavailable"
-                    if binding.get("action") == "home_script_dial": detail = "\u2039 turn \u203a"
-                    face, lines, _ = fit_lines(draw, str(binding.get("label", ""))[:20], 180, (30, 26, 22, 18), 1)
-                    draw.text((index * 200 + 10, 12), lines[0] if lines else "", fill="white", font=face)
-                    face, lines, _ = fit_lines(draw, detail[:22], 180, (36, 30, 24, 18), 1)
-                    draw.text((index * 200 + 10, 52), lines[0] if lines else "", fill="#a4dcc7", font=face)
+                        if entity: level = entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))
+                        else: detail = "Unavailable"
+                    elif action == "home_script_dial":
+                        centre_x, centre_y, radius = left + 88, 60, 22
+                        box = (centre_x - radius, centre_y - radius, centre_x + radius, centre_y + radius)
+                        draw.arc(box, 40, 320, fill="#a4dcc7", width=2)
+                        for end, direction in ((320, 1), (40, -1)):
+                            angle = math.radians(end)
+                            px, py = centre_x + radius * math.cos(angle), centre_y + radius * math.sin(angle)
+                            tx, ty = -math.sin(angle) * direction, math.cos(angle) * direction
+                            nx, ny = math.cos(angle), math.sin(angle)
+                            draw.polygon([(px + tx * 9, py + ty * 9), (px + nx * 5, py + ny * 5), (px - nx * 5, py - ny * 5)], fill="#a4dcc7")
+                        continue
+                    elif speaker.get("connected"):
+                        level = speaker.get("volume")
+                        if speaker.get("muted"): detail = "Muted"
+                    else:
+                        detail = error or "Offline"
+                    if level is not None:
+                        level = max(0, min(100, int(level)))
+                        draw.text((left, 32), f"{level}%", fill="#a4dcc7", font=load_font(30))
+                        draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
+                        if level: draw.rounded_rectangle((left, 80, left + max(6, round(172 * level / 100)), 85), radius=3, fill="#6ef0be")
+                        if detail: draw.text((left + 172, 36), detail, fill="#f2b991", font=load_font(14), anchor="ra")
+                    elif detail:
+                        face, lines, _ = fit_lines(draw, detail[:22], 176, (22, 18, 14), 1)
+                        draw.text((left, 40), lines[0] if lines else "", fill="#a4dcc7", font=face)
                 deck.set_touchscreen_image(jpeg(strip), 0, 0, 800, 100)
         except ImportError:
             controls.state["streamdeck"] = {"enabled": True, "connected": False, "error": "Install the optional Stream Deck support packages on the Pi"}

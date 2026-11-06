@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import argparse
 import base64
 import hmac
@@ -326,6 +327,32 @@ def home_assistant_entity_available(domain: str, entity_state: object) -> bool:
     return entity_state not in {"unavailable", "unknown"}
 
 
+def play_trigger_watch(state: State, stop: threading.Event) -> None:
+    """When Roon starts playing, run a Home Assistant script (e.g. select the DAC's optical input) unless a helper says it is already set."""
+    previous = None
+    while not stop.is_set():
+        stop.wait(2)
+        roon = roon_status()
+        playing = ((roon or {}).get("zone") or {}).get("state") == "playing" if roon else None
+        if playing is None:
+            continue
+        started = playing and previous is False
+        previous = playing
+        if not started:
+            continue
+        try:
+            trigger = state.listening.settings().get("on_play") or {}
+            if not trigger.get("script") or not state.config.home_assistant_enabled:
+                continue
+            if trigger.get("helper") and trigger.get("value"):
+                current = home_assistant_request(state.config, "/api/states/" + trigger["helper"])
+                if isinstance(current, dict) and str(current.get("state", "")).lower() == trigger["value"].lower():
+                    continue
+            home_assistant_activate(state.config, trigger["script"])
+        except Exception as error:
+            LOG.warning("Play trigger failed: %s", error)
+
+
 def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserveLogger | None = None) -> None:
     last_status: str | None = None
     while not stop.is_set():
@@ -492,6 +519,8 @@ def clear_sleep_mode_on_start(path: Path) -> None:
     temporary.write_text("auto\n", encoding="utf-8")
     temporary.replace(path)
 
+
+LOG = logging.getLogger(__name__)
 
 def roon_status() -> dict | None:
     try:
@@ -1876,6 +1905,7 @@ def main() -> None:
     threading.Thread(target=poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=home_assistant_poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=state.listening.poll, args=(stop,), daemon=True).start()
+    threading.Thread(target=play_trigger_watch, args=(state, stop), daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(state, args.config, args.env, args.state_dir / "display-mode", events))
     deck_host = "[::1]" if ":" in args.host else "127.0.0.1"
     threading.Thread(target=run_streamdeck, args=(state.listening, f"http://{deck_host}:{server.server_port}", stop), daemon=True).start()
