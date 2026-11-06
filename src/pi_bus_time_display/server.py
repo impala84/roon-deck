@@ -29,7 +29,7 @@ from . import __version__
 from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
-from .listening import ListeningControls
+from .listening import ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
 
 
@@ -1322,6 +1322,12 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities) or not entity.startswith(("scene.", "script.")):
                             raise ValueError("Choose a configured Home Assistant scene or script")
                         home_assistant_request(state.config, f"/api/services/{entity.split('.', 1)[0]}/turn_on", {"entity_id": entity})
+                        result = {"ok": True}
+                    elif data.get("action") == "remote":
+                        value = data.get("value")
+                        if not state.config.home_assistant_enabled or not remote_step_allowed(state.listening.settings(), value):
+                            raise ValueError("Choose a remote step saved on a Stream Deck dial")
+                        home_assistant_request(state.config, "/api/services/remote/send_command", {"entity_id": value["entity_id"], "device": value["device"], "command": value["command"]})
                         result = {"ok": True}
                     else:
                         result = state.listening.command(data.get("action"), data.get("value"))

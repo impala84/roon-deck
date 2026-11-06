@@ -302,3 +302,49 @@ class StreamDeckSleepSettingTests(unittest.TestCase):
         from pi_bus_time_display.listening import validate_settings
         validate_settings({"streamdeck_sleep_with_display": False})
         with self.assertRaises(ValueError): validate_settings({"streamdeck_sleep_with_display": "yes"})
+
+
+class StreamDeckRemoteStepsAndSleepTests(unittest.TestCase):
+    AIRCON = {"action": "remote_steps", "label": "Aircon", "entity_id": "remote.wi_fi_universal_remote", "device": "aircon",
+              "command": "cool_{n}", "min": 16, "max": 30, "start": 24, "unit": "°", "step": 1, "press": {"action": "none"}}
+
+    def test_remote_steps_validation(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"dials": [dict(self.AIRCON)]})
+        for change in ({"entity_id": "light.x"}, {"command": "cool_24"}, {"min": 30, "max": 16}, {"start": 40}, {"device": "a;b"}):
+            with self.assertRaises(ValueError): validate_settings({"dials": [{**self.AIRCON, **change}]})
+
+    def test_only_commands_a_saved_dial_can_produce_are_allowed(self):
+        from pi_bus_time_display.listening import remote_step_allowed
+        settings = {"dials": [dict(self.AIRCON)]}
+        good = {"entity_id": "remote.wi_fi_universal_remote", "device": "aircon", "command": "cool_22"}
+        self.assertTrue(remote_step_allowed(settings, good))
+        self.assertFalse(remote_step_allowed(settings, {**good, "command": "power_off"}))
+        self.assertFalse(remote_step_allowed(settings, {**good, "device": "topping"}))
+        self.assertFalse(remote_step_allowed({"dials": []}, good))
+
+    def test_turning_the_dial_sends_the_next_temperature(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        streamdeck._steps.clear()
+        sent = []
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: sent.append(payload["value"]["command"]) or {}):
+            streamdeck.dispatch("b", dict(self.AIRCON), 1)
+            streamdeck.dispatch("b", dict(self.AIRCON), 2)
+            streamdeck.dispatch("b", dict(self.AIRCON), -20)
+            streamdeck.dispatch("b", dict(self.AIRCON), -1)
+        self.assertEqual(sent, ["cool_25", "cool_27", "cool_16"])
+
+    def test_sleep_window_handles_midnight(self):
+        from datetime import datetime
+        from pi_bus_time_display.streamdeck import in_window
+        self.assertTrue(in_window("23:00", "06:00", datetime(2026, 1, 1, 23, 30)))
+        self.assertTrue(in_window("23:00", "06:00", datetime(2026, 1, 1, 2, 0)))
+        self.assertFalse(in_window("23:00", "06:00", datetime(2026, 1, 1, 12, 0)))
+        self.assertFalse(in_window("", "06:00", datetime(2026, 1, 1, 2, 0)))
+
+    def test_wake_settings_are_validated(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"streamdeck_sleep_start": "23:00", "streamdeck_sleep_end": "", "streamdeck_awake_seconds": 45, "streamdeck_brightness": 60})
+        for bad in ({"streamdeck_sleep_start": "25:00"}, {"streamdeck_awake_seconds": 2}, {"streamdeck_brightness": 5}):
+            with self.assertRaises(ValueError): validate_settings(bad)

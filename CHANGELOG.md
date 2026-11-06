@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.30 Alpine — 7 November 2026
+
+- Stream Deck: new "Wake & sleep" box with its own settings: sleep with the display, an optional own sleep-from and wake-at time, how long it stays fully awake after a touch, and its awake brightness.
+- Stream Deck designer: "Discard changes" now sits at the top beside "Enabled" instead of at the bottom of the page.
+- Stream Deck: new dial action "IR remote steps". It walks through learned commands such as cool_16 to cool_30 as you turn the dial, sends each one through your Home Assistant remote and shows the current value (for example 24°) on the strip. Only commands a saved dial can produce are accepted.
+
 ## 1.2.0-beta.29 Alpine — 6 November 2026
 
 - Stream Deck now sleeps with the display. When RoonDeck's screen shows its sleep page (the overnight schedule, or Roon idle if that option is on) the deck's backlight goes off, and it comes back when the screen wakes. Touching a key or dial while it sleeps wakes it for 30 seconds without triggering anything. A "Sleep with the display" switch in the Stream Deck settings turns this off.

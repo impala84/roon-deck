@@ -7,6 +7,7 @@ import logging
 import math
 import queue
 import time
+from datetime import datetime
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -35,6 +36,20 @@ def fetch_bytes(base, path):
 def clock(seconds):
     seconds = max(0, int(seconds or 0))
     return f"{seconds // 60}:{seconds % 60:02d}"
+
+
+_steps = {}   # (remote, command pattern) -> current value of an IR "steps" dial (e.g. aircon temperature)
+
+
+def step_value(binding):
+    return _steps.get((binding.get("entity_id"), binding.get("command")), binding.get("start", binding.get("min", 0)))
+
+
+def in_window(start, end, now):
+    """True when now (a datetime) falls inside start..end ("HH:MM"), including windows that cross midnight."""
+    if not start or not end or start == end: return False
+    moment = now.strftime("%H:%M")
+    return start <= moment < end if start < end else moment >= start or moment < end
 
 
 _pending_levels = {}   # entity_id -> (target percent, when): Home Assistant's reported level lags behind quick dial turns
@@ -89,6 +104,14 @@ def _dispatch(base, binding, delta=None):
         return request(base, "/roon/api/control", {"action": action})
     if action == "home_toggle":
         return request(base, "/api/device/home-toggle", {"entity_id": binding.get("entity_id")})
+    if action == "remote_steps":
+        current = step_value(binding)
+        value = max(binding["min"], min(binding["max"], current + (delta or 0) * int(binding.get("step", 1))))
+        if value == current: return {"ok": True}
+        result = request(base, "/api/listening/command", {"action": "remote", "value": {
+            "entity_id": binding["entity_id"], "device": binding["device"], "command": binding["command"].replace("{n}", str(value))}})
+        _steps[(binding.get("entity_id"), binding.get("command"))] = value
+        return result
     if action == "home_level":
         entity = next((item for item in _home_entities(request(base, "/api/device/controls").get("home", {}))
                        if item["entity_id"] == binding.get("entity_id")), None)
@@ -218,6 +241,12 @@ class Painter:
                 entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
                 if entity: level = home_level_of(entity)
                 else: detail = "Unavailable"
+            elif action == "remote_steps":
+                value = step_value(binding); span = max(1, binding["max"] - binding["min"])
+                draw.text((left, 32), f"{value}{binding.get('unit', '')}", fill=text_colour or "#a4dcc7", font=self.load_font(30))
+                draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
+                draw.rounded_rectangle((left, 80, left + max(6, round(172 * (value - binding["min"]) / span)), 85), radius=3, fill="#6ef0be")
+                continue
             elif action == "home_script_dial":
                 centre_x, centre_y, radius = left + 88, 60, 22
                 draw.arc((centre_x - radius, centre_y - radius, centre_x + radius, centre_y + radius), 40, 320, fill="#a4dcc7", width=2)
@@ -266,7 +295,7 @@ def run(controls, base, stop):
                 continue
             deck.open()
             controls.state["streamdeck"] = {"enabled": True, "connected": True, "error": ""}
-            deck.set_brightness(70)
+            deck.set_brightness(settings.get("streamdeck_brightness", 70))
             events = queue.Queue(maxsize=64)
             buttons = settings.get("buttons", [])[:8]
             dials = settings.get("dials", [])[:4]
@@ -313,7 +342,7 @@ def run(controls, base, stop):
                     if not binding: continue
                     if not lit:
                         # First touch on a sleeping deck only wakes it, so nothing fires blind.
-                        deck_awake_until = time.monotonic() + 30; refreshed = 0.0
+                        deck_awake_until = time.monotonic() + settings.get("streamdeck_awake_seconds", 30); refreshed = 0.0
                         continue
                     try:
                         dispatch(base, binding, amount if kind == "turn" else None)
@@ -325,12 +354,14 @@ def run(controls, base, stop):
                 if not combined and time.monotonic() - refreshed < 1.0: continue
                 refreshed = time.monotonic()
                 sleeping = False
-                if settings.get("streamdeck_sleep_with_display", True) and time.monotonic() >= deck_awake_until:
-                    try: sleeping = request(base, "/api/display-target").get("target") == "/sleep.html"
-                    except (ValueError, OSError): sleeping = False
+                if time.monotonic() >= deck_awake_until:
+                    sleeping = in_window(settings.get("streamdeck_sleep_start"), settings.get("streamdeck_sleep_end"), datetime.now())
+                    if not sleeping and settings.get("streamdeck_sleep_with_display", True):
+                        try: sleeping = request(base, "/api/display-target").get("target") == "/sleep.html"
+                        except (ValueError, OSError): sleeping = False
                 if sleeping == lit:
                     lit = not sleeping
-                    deck.set_brightness(70 if lit else 0)
+                    deck.set_brightness(settings.get("streamdeck_brightness", 70) if lit else 0)
                 state = controls.snapshot()
                 try: home = request(base, "/api/device/controls").get("home", {})
                 except (ValueError, OSError): home = {}
@@ -342,7 +373,7 @@ def run(controls, base, stop):
                 cover_key = track.get("image_key") or ""
                 elapsed = int(playing.get("seek_position") or 0) if track else None
                 fresh = {key: value[0] for key, value in _pending_levels.items() if time.monotonic() - value[1] < 4}
-                signature = json.dumps([state, home, error, cover_key, elapsed, fresh], sort_keys=True)
+                signature = json.dumps([state, home, error, cover_key, elapsed, fresh, sorted(map(str, _steps.items()))], sort_keys=True)
                 if signature == previous: continue
                 previous = signature
                 if cover_key != cover[0]:

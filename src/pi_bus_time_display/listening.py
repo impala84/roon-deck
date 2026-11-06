@@ -96,7 +96,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     host = data.get("kef_host", "")
     if not isinstance(host, str) or len(host) > 253 or any(character.isspace() or character in "/\\@" for character in host):
@@ -109,6 +109,13 @@ def validate_settings(data):
     for name in ("enabled", "streamdeck_enabled", "streamdeck_sleep_with_display"):
         if name in data and type(data[name]) is not bool:
             raise ValueError(f"{name} must be true or false")
+    for name in ("streamdeck_sleep_start", "streamdeck_sleep_end"):
+        if name in data and not (isinstance(data[name], str) and re.fullmatch(r"(|([01]\d|2[0-3]):[0-5]\d)", data[name])):
+            raise ValueError("Sleep times must look like 23:00, or be empty")
+    if "streamdeck_awake_seconds" in data and (type(data["streamdeck_awake_seconds"]) is not int or not 5 <= data["streamdeck_awake_seconds"] <= 3600):
+        raise ValueError("The awake period must be between 5 and 3600 seconds")
+    if "streamdeck_brightness" in data and (type(data["streamdeck_brightness"]) is not int or not 10 <= data["streamdeck_brightness"] <= 100):
+        raise ValueError("Deck brightness must be between 10 and 100")
     on_play = data.get("on_play", {})
     if not isinstance(on_play, dict) or set(on_play) - {"script", "helper", "value"} or any(not isinstance(item, str) or len(item) > 200 for item in on_play.values()):
         raise ValueError("Invalid play trigger")
@@ -121,7 +128,7 @@ def validate_settings(data):
         if not isinstance(bindings, list) or len(bindings) > limit or any(not isinstance(item, dict) for item in bindings):
             raise ValueError(f"{name} must be a list of up to {limit} bindings")
         def validate_binding(binding, is_press=False):
-            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial"}
+            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps"}
             if not isinstance(binding.get("action", "none"), str) or binding.get("action", "none") not in allowed:
                 raise ValueError("Choose a supported control action")
             if not isinstance(binding.get("label", ""), str) or len(binding.get("label", "")) > 40:
@@ -146,6 +153,16 @@ def validate_settings(data):
                 raise ValueError("Power targets must be true or false")
             if binding.get("action") == "input" and binding.get("value") not in KefLSX.SOURCES:
                 raise ValueError("Choose a supported KEF input")
+            if binding.get("action") == "remote_steps":
+                if is_press: raise ValueError("Remote steps belong on a dial turn")
+                text = lambda name, pattern: isinstance(binding.get(name), str) and re.fullmatch(pattern, binding[name])
+                if not (text("entity_id", r"remote\.[a-z0-9_]{1,80}") and text("device", r"[A-Za-z0-9_ -]{1,40}") and text("command", r"[a-z0-9_]{0,30}\{n\}[a-z0-9_]{0,10}")):
+                    raise ValueError("Choose a remote, a device name and a command like cool_{n}")
+                numbers = [binding.get(name) for name in ("min", "max", "start")]
+                if any(type(value) is not int or not -50 <= value <= 200 for value in numbers) or not binding["min"] < binding["max"] or not binding["min"] <= binding["start"] <= binding["max"]:
+                    raise ValueError("The lowest, highest and starting values must make sense")
+                if not isinstance(binding.get("unit", ""), str) or len(binding.get("unit", "")) > 4:
+                    raise ValueError("The unit must be at most 4 characters")
             if binding.get("action", "").startswith("home_") and (not isinstance(binding.get("entity_id"), str) or len(binding["entity_id"]) > 200):
                 raise ValueError("Enter a Home Assistant entity ID")
             if binding.get("action") in {"home_script", "home_script_dial"} and not binding["entity_id"].startswith("script."):
@@ -282,3 +299,14 @@ class ListeningControls:
         while not stop.is_set():
             self.refresh()
             stop.wait(3)
+
+
+def remote_step_allowed(settings, value):
+    """A remote command may only be one a saved "remote steps" dial can itself produce."""
+    if not isinstance(value, dict): return False
+    for dial in settings.get("dials", []):
+        if dial.get("action") != "remote_steps": continue
+        if value.get("entity_id") != dial.get("entity_id") or value.get("device") != dial.get("device"): continue
+        if any(value.get("command") == dial["command"].replace("{n}", str(number)) for number in range(dial["min"], dial["max"] + 1)):
+            return True
+    return False
