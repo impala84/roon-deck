@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.17 Alpine — 6 November 2026
+
+- Stream Deck: the touch strip is only rewritten when its picture actually changes. The per-second elapsed-time tick on Play / Pause was also resending the whole strip, which could make the deck drop out with "Failed to write feature report".
+
 ## 1.2.0-beta.16 Alpine — 6 November 2026
 
 - Stream Deck designer: while the KEF speakers are switched off, KEF actions (listening mode, power, input, mute, volume) no longer appear in the key, dial and press lists, and the default layout is just Previous / Play-Pause / Next. A binding that already uses a KEF action keeps showing it.

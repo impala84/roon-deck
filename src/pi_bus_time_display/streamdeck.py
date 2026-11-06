@@ -268,7 +268,10 @@ def run(controls, base, stop):
                     elif detail:
                         face, lines, _ = fit_lines(draw, detail[:22], 176, (22, 18, 14), 1)
                         draw.text((left, 40), lines[0] if lines else "", fill="#a4dcc7", font=face)
-                deck.set_touchscreen_image(jpeg(strip), 0, 0, 800, 100)
+                strip_data = jpeg(strip)
+                # The elapsed-time tick must not rewrite the strip: needless USB writes are what make the deck drop out.
+                if shown.get("strip") != strip_data:
+                    shown["strip"] = strip_data; deck.set_touchscreen_image(strip_data, 0, 0, 800, 100)
         except ImportError:
             controls.state["streamdeck"] = {"enabled": True, "connected": False, "error": "Install the optional Stream Deck support packages on the Pi"}
             stop.wait(30)
