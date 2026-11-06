@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.11 Alpine — 6 November 2026
+
+- Home Assistant: a new **Stream Deck controls** field (Services → Home Assistant). Entities listed there, such as the scripts that drive an IR blaster, can be used on Stream Deck keys and dials but are never shown on the touchscreen and do not count towards the eight touchscreen entities. Up to forty are allowed.
+
 ## 1.2.0-beta.10 Alpine — 6 November 2026
 
 - Stream Deck: new **Home script** actions. A key or a dial press can run a Home Assistant script, and a dial can run one script when turned up and another when turned down (once per click). This lets an IR blaster such as a Broadlink, learned in Home Assistant, switch inputs and change volume on a DAC like the Topping E50 II. Add the scripts to your shared Home devices first; scripts also show as tap-to-run tiles on the touchscreen Home page.

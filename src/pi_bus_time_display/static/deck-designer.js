@@ -355,7 +355,7 @@
   }
   async function loadLibrary() {
     try { art = (await SHARED().call('GET', undefined, '/api/admin/listening/art')).art || []; } catch (_) { art = []; }
-    try { const response = await fetch('/api/home/status', {cache: 'no-store'}); if (response.ok) entities = (await response.json()).entities || []; } catch (_) { entities = []; }
+    try { const response = await fetch('/api/home/status', {cache: 'no-store'}); if (response.ok) { const body = await response.json(); entities = [...(body.entities || []), ...(body.deck_entities || [])]; } } catch (_) { entities = []; }
   }
   async function start() {
     if (built && dirty) return;   // never overwrite unsaved edits when the shared settings reload

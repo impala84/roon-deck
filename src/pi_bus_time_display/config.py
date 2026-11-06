@@ -66,6 +66,8 @@ class Config:
     home_assistant_title: str = "Home Controls"
     home_assistant_url: str = ""
     home_assistant_entities: tuple[str, ...] = ()
+    # Controls for the Stream Deck only: never shown on the touchscreen and not limited to eight.
+    home_assistant_deck_entities: tuple[str, ...] = ()
     home_assistant_color_mode: str = "multi"
     home_assistant_single_color: str = "#9868f9"
     home_assistant_light_color: str = "#fb923c"
@@ -100,6 +102,8 @@ def load_config(path: Path) -> Config:
         raise ValueError(f"Unknown configuration: {', '.join(sorted(unknown))}")
     if "services" in data:
         data["services"] = tuple(str(item) for item in data["services"])
+    if "home_assistant_deck_entities" in data:
+        data["home_assistant_deck_entities"] = tuple(str(item) for item in data["home_assistant_deck_entities"])
     if "home_assistant_entities" in data:
         data["home_assistant_entities"] = tuple(str(item) for item in data["home_assistant_entities"])
     if "bluos_visible_inputs" in data:
@@ -153,7 +157,9 @@ def load_config(path: Path) -> Config:
     for value in (config.home_assistant_single_color, config.home_assistant_light_color, config.home_assistant_fan_color, config.home_assistant_switch_color, config.home_assistant_scene_color):
         if len(value) != 7 or value[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in value[1:]):
             raise ValueError("Home Assistant tile colours must use #RRGGBB")
-    unsupported = [item for item in config.home_assistant_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
+    if len(config.home_assistant_deck_entities) > 40:
+        raise ValueError("A maximum of forty Stream Deck Home Assistant entities can be used")
+    unsupported = [item for item in (*config.home_assistant_entities, *config.home_assistant_deck_entities) if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
     if unsupported:
         raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
     if config.bluos_player_address and any(char.isspace() for char in config.bluos_player_address):

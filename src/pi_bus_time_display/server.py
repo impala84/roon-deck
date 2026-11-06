@@ -330,8 +330,8 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
     last_status: str | None = None
     while not stop.is_set():
         config = state.config
-        if not config.home_assistant_enabled or not config.home_assistant_entities:
-            state.home_data = {"status": "disabled", "entities": []}
+        if not config.home_assistant_enabled or not (config.home_assistant_entities or config.home_assistant_deck_entities):
+            state.home_data = {"status": "disabled", "entities": [], "deck_entities": []}
             if last_status != "disabled" and events:
                 events.emit("home_assistant.status", status="disabled")
             last_status = "disabled"
@@ -339,7 +339,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
             continue
         try:
             raw = home_assistant_request(config, "/api/states")
-            selected = set(config.home_assistant_entities)
+            selected = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities)
             entities = []
             for item in raw if isinstance(raw, list) else []:
                 entity_id = str(item.get("entity_id", ""))
@@ -358,8 +358,9 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     ),
                 })
             order = {entity_id: index for index, entity_id in enumerate(config.home_assistant_entities)}
-            entities.sort(key=lambda item: order.get(item["entity_id"], 99))
-            state.home_data = {"status": "ok", "entities": entities, "updated_at": datetime.now(ZoneInfo(config.timezone)).isoformat()}
+            deck_only = [item for item in entities if item["entity_id"] not in order]
+            entities = sorted((item for item in entities if item["entity_id"] in order), key=lambda item: order[item["entity_id"]])
+            state.home_data = {"status": "ok", "entities": entities, "deck_entities": deck_only, "updated_at": datetime.now(ZoneInfo(config.timezone)).isoformat()}
             status = "ok"
         except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
             state.home_data = {"status": "offline", "entities": [], "error": str(exc)}
@@ -426,6 +427,7 @@ def write_config(path: Path, config: Config) -> None:
         f"home_assistant_title = {json.dumps(config.home_assistant_title)}",
         f"home_assistant_url = {json.dumps(config.home_assistant_url)}",
         "home_assistant_entities = [" + ", ".join(json.dumps(item) for item in config.home_assistant_entities) + "]",
+        "home_assistant_deck_entities = [" + ", ".join(json.dumps(item) for item in config.home_assistant_deck_entities) + "]",
         f"home_assistant_color_mode = {json.dumps(config.home_assistant_color_mode)}",
         f"home_assistant_single_color = {json.dumps(config.home_assistant_single_color)}",
         f"home_assistant_light_color = {json.dumps(config.home_assistant_light_color)}",
@@ -1122,6 +1124,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "home_assistant_title": config.home_assistant_title,
                     "home_assistant_url": config.home_assistant_url,
                     "home_assistant_entities": list(config.home_assistant_entities),
+                    "home_assistant_deck_entities": list(config.home_assistant_deck_entities),
                     "home_assistant_color_mode": config.home_assistant_color_mode,
                     "home_assistant_single_color": config.home_assistant_single_color,
                     "home_assistant_light_color": config.home_assistant_light_color,
@@ -1286,7 +1289,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if not isinstance(data, dict): raise ValueError("Command must be an object")
                     if data.get("action") == "scene":
                         entity = data.get("value")
-                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in state.config.home_assistant_entities or not entity.startswith(("scene.", "script.")):
+                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities) or not entity.startswith(("scene.", "script.")):
                             raise ValueError("Choose a configured Home Assistant scene or script")
                         home_assistant_request(state.config, f"/api/services/{entity.split('.', 1)[0]}/turn_on", {"entity_id": entity})
                         result = {"ok": True}
@@ -1459,7 +1462,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         return
                 else:
                     entity_id = str(data.get("entity_id", ""))
-                    if entity_id not in state.config.home_assistant_entities:
+                    if entity_id not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities):
                         self.send_json(400, b'{"error":"Entity is not available on this display"}')
                         return
                     domain = entity_id.split(".", 1)[0]
@@ -1487,7 +1490,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     length = min(int(self.headers.get("Content-Length", "0")), 4096)
                     data = json.loads(self.rfile.read(length) or b"{}")
                     entity_id = str(data.get("entity_id", ""))
-                    if entity_id not in state.config.home_assistant_entities:
+                    if entity_id not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities):
                         raise ValueError("Entity is not available on this dashboard")
                     domain = entity_id.split(".", 1)[0]
                     if self.path == "/api/home/value":
@@ -1622,7 +1625,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 requested_home_entities = values("home_assistant_entities", current.home_assistant_entities)
                 if len(requested_home_entities) > 8:
                     raise ValueError("Choose no more than eight Home Assistant entities")
-                unsupported = [item for item in requested_home_entities if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
+                requested_deck_entities = values("home_assistant_deck_entities", current.home_assistant_deck_entities)
+                if len(requested_deck_entities) > 40:
+                    raise ValueError("Choose no more than forty Stream Deck entities")
+                unsupported = [item for item in (*requested_home_entities, *requested_deck_entities) if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
                 if unsupported:
                     raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
                 home_url = str(data.get("home_assistant_url", current.home_assistant_url)).strip()
@@ -1679,6 +1685,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     home_assistant_title=str(data.get("home_assistant_title", current.home_assistant_title)).strip(),
                     home_assistant_url=home_url,
                     home_assistant_entities=requested_home_entities,
+                    home_assistant_deck_entities=requested_deck_entities,
                     home_assistant_color_mode=str(data.get("home_assistant_color_mode", current.home_assistant_color_mode)),
                     home_assistant_single_color=str(data.get("home_assistant_single_color", current.home_assistant_single_color)),
                     home_assistant_light_color=str(data.get("home_assistant_light_color", current.home_assistant_light_color)),

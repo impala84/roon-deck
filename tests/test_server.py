@@ -65,6 +65,11 @@ class DisplayModeTests(unittest.TestCase):
             path = Path(directory) / "config.toml"
             write_config(path, Config(home_assistant_entities=("scene.bedroom_energize", "scene.bedroom_ruby_romance")))
             self.assertEqual(load_config(path).home_assistant_entities, ("scene.bedroom_energize", "scene.bedroom_ruby_romance"))
+            write_config(path, Config(home_assistant_deck_entities=tuple(f"script.topping_{n}" for n in range(12))))
+            self.assertEqual(len(load_config(path).home_assistant_deck_entities), 12)
+            with self.assertRaises(ValueError):
+                write_config(path, Config(home_assistant_deck_entities=("lock.front_door",)))
+                load_config(path)
             write_config(path, Config(home_assistant_entities=("lock.front_door",)))
             with self.assertRaisesRegex(ValueError, "Unsupported Home Assistant entity"):
                 load_config(path)

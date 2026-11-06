@@ -24,6 +24,11 @@ def request(base, path, payload=None):
         raise ValueError(reason) from error
 
 
+def _home_entities(home):
+    """Entities shown on the touchscreen plus the ones that exist only for the Stream Deck."""
+    return [*home.get("entities", []), *home.get("deck_entities", [])]
+
+
 def dispatch(base, binding, delta=None):
     """An allowlist of existing controls, never arbitrary URLs or shell commands."""
     action = binding.get("action")
@@ -50,7 +55,7 @@ def dispatch(base, binding, delta=None):
     if action == "home_toggle":
         return request(base, "/api/device/home-toggle", {"entity_id": binding.get("entity_id")})
     if action == "home_level":
-        entity = next((item for item in request(base, "/api/device/controls").get("home", {}).get("entities", [])
+        entity = next((item for item in _home_entities(request(base, "/api/device/controls").get("home", {}))
                        if item["entity_id"] == binding.get("entity_id")), None)
         if not entity or not entity.get("supports_level"):
             raise ValueError("This home device has no level control")
@@ -144,7 +149,7 @@ def run(controls, base, stop):
                 for key in range(8):
                     binding = buttons[key] if key < len(buttons) else {}
                     selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
-                    entity = next((item for item in home.get("entities", []) if item.get("entity_id") == binding.get("entity_id")), {})
+                    entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
                     active = selected or entity.get("state") == "on"
                     colour = binding.get("color") or ("#236650" if active else "#11201d")
                     image = Image.new("RGB", (120, 120), colour)
@@ -168,7 +173,7 @@ def run(controls, base, stop):
                     detail = error or (f"{speaker.get('volume', '?')}%" if speaker.get("connected") else "Offline")
                     if speaker.get("muted"): detail += " · Muted"
                     if binding.get("action") == "home_level":
-                        entity = next((item for item in home.get("entities", []) if item.get("entity_id") == binding.get("entity_id")), {})
+                        entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
                         detail = str(entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))) + "%" if entity else "Unavailable"
                     draw.text((index * 200 + 10, 15), str(binding.get("label", ""))[:20], fill="white", font=font)
                     draw.text((index * 200 + 10, 50), detail[:22], fill="#a4dcc7", font=font)
