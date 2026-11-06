@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.19 Alpine — 6 November 2026
+
+- Stream Deck designer: the deck picture is slightly smaller and centred in its column, and the selected strip section's highlight stays inside the strip instead of spilling over its edge.
+
 ## 1.2.0-beta.18 Alpine — 6 November 2026
 
 - Settings: Stream Deck and Listening & KEF changes are now saved with the page-wide "Save changes" button and listed in its unsaved-changes summary. The separate "Save Stream Deck" and "Save listening controls" buttons are gone.
