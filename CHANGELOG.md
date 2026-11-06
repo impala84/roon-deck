@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.40 Alpine — 7 November 2026
+
+- Touch settings, Network (7-inch): "Using Ethernet" (or Wi-Fi) is now the first thing in the left column, with the wired address under it, then the Wi-Fi address and the Join Wi-Fi button. The duplicate small "Current connection" card is gone, and VPN, discovery and Netdata sit in the right column.
+
 ## 1.2.0-beta.39 Alpine — 7 November 2026
 
 - Touch settings: the Stream Deck brightness slider now also appears on the 7-inch sidebar layout and the standard layout (it was only added to the tabbed layout). It shows only while a deck is connected.

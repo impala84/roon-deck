@@ -218,16 +218,16 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         overview.prepend(roon_zone)
         # Order: brightness first, then Roon and zone, then services and bus times.
         overview.reorder_child_after(self.settings_brightness_row, None); overview.reorder_child_after(roon_zone, self.settings_brightness_row)
-        info_row("CURRENT CONNECTION", self.settings_net_connection_row)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
         self.settings_net_disc_row, self.settings_net_disc = self.info_cell(); self.build_discovery_switch(self.settings_net_disc_row)
         info_row("ROON DISCOVERY (EXPERIMENTAL)", self.settings_net_disc_row)
         self.settings_net_disc_heading = self.settings_net_disc_row.get_prev_sibling()
         self.settings_net_disc_row.set_visible(False); self.settings_net_disc_heading.set_visible(False)
-        # Right-hand column: the primary connection, joining Wi-Fi and the Netdata switch, in rows that line up with the left.
-        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.append(right)
-        if getattr(self, "connection_block", None) is not None: take(self.connection_block, right)
+        # Left-hand column: the connection in use is the first thing seen ("Using Ethernet"), with its addresses and joining Wi-Fi under it.
+        # VPN, discovery and Netdata follow in the right-hand column.
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); columns.prepend(left)
+        if getattr(self, "connection_block", None) is not None: take(self.connection_block, left)
         # Netdata sits under VPN in the left column.
         self.settings_netdata_slot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); network.append(self.settings_netdata_slot)
         self.settings_three_up = False
