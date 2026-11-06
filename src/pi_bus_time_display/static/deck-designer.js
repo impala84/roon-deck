@@ -20,6 +20,10 @@
   ];
   const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)']];
   const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script']];
+  // KEF-only actions disappear while the KEF speakers are switched off (a saved binding keeps showing its own action).
+  const KEF_ACTIONS = new Set(['mode', 'power', 'input', 'mute', 'volume_delta']);
+  const kefOn = () => !!SHARED().settings.enabled;
+  const available = (list, current) => list.filter(([id]) => kefOn() || !KEF_ACTIONS.has(id) || id === current);
   const SOURCES = [['aux', 'Aux'], ['optical', 'Optical'], ['wifi', 'Wi‑Fi'], ['bluetooth', 'Bluetooth']];
   const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: '', home_script: ''};
   const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', home_script: 'input', mode: 'speaker'};
@@ -59,9 +63,9 @@
 
   function adopt() {
     const settings = SHARED().settings;
-    const saved = settings.buttons?.length ? settings.buttons : defaultButtons;
+    const saved = settings.buttons?.length ? settings.buttons : (kefOn() ? defaultButtons : defaultButtons.filter(item => !KEF_ACTIONS.has(item.action)));
     buttons = Array.from({length: 8}, (_, i) => clone(saved[i] || blankKey()));
-    const savedDials = settings.dials?.length ? settings.dials : [{label: 'KEF volume', action: 'volume_delta', step: 1, press: {action: 'mute'}}];
+    const savedDials = settings.dials?.length ? settings.dials : (kefOn() ? [{label: 'KEF volume', action: 'volume_delta', step: 1, press: {action: 'mute'}}] : []);
     dials = Array.from({length: 4}, (_, i) => ({...blankDial(), ...clone(savedDials[i] || {})}));
     dials.forEach(dial => { dial.press = dial.press || {action: 'none'}; });
     dirty = false;
@@ -271,7 +275,7 @@
     const binding = buttons[selection.index];
     const label = h('input', {type: 'text', maxlength: 40, placeholder: 'Shown on the key'}); label.value = binding.label || '';
     label.oninput = () => { binding.label = label.value; markDirty(); drawStage(); };
-    const action = selectOf(KEY_ACTIONS, binding.action || 'none');
+    const action = selectOf(available(KEY_ACTIONS, binding.action), binding.action || 'none');
     action.onchange = () => {
       const previous = binding.action;
       binding.action = action.value; delete binding.entity_id; delete binding.value;
@@ -290,11 +294,11 @@
     const dial = dials[selection.index], press = dial.press;
     const label = h('input', {type: 'text', maxlength: 40, placeholder: 'Shown on the strip'}); label.value = dial.label || '';
     label.oninput = () => { dial.label = label.value; markDirty(); drawStage(); };
-    const turn = selectOf(DIAL_ACTIONS, dial.action || 'none');
+    const turn = selectOf(available(DIAL_ACTIONS, dial.action), dial.action || 'none');
     turn.onchange = () => { dial.action = turn.value; if (turn.value === 'volume_delta' && !dial.label) dial.label = 'KEF volume'; markDirty(); render(); };
     const step = h('input', {type: 'range', min: 1, max: 10, step: 1, value: dial.step ?? 1}); const stepValue = h('output', {}, String(dial.step ?? 1));
     step.oninput = () => { dial.step = Number(step.value); stepValue.textContent = step.value; markDirty(); };
-    const tap = selectOf(PRESS_ACTIONS, press.action || 'none');
+    const tap = selectOf(available(PRESS_ACTIONS, press.action), press.action || 'none');
     tap.onchange = () => { press.action = tap.value; delete press.entity_id; markDirty(); render(); };
     const clear = h('button', {type: 'button', class: 'cd-quiet'}, 'Clear this dial');
     clear.onclick = () => { dials[selection.index] = blankDial(); markDirty(); render(); };

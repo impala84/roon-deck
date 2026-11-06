@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.16 Alpine — 6 November 2026
+
+- Stream Deck designer: while the KEF speakers are switched off, KEF actions (listening mode, power, input, mute, volume) no longer appear in the key, dial and press lists, and the default layout is just Previous / Play-Pause / Next. A binding that already uses a KEF action keeps showing it.
+
 ## 1.2.0-beta.15 Alpine — 6 November 2026
 
 - Stream Deck: icons are much finer (about half the previous stroke) and sit in the top two thirds of the key; on Play / Pause the elapsed time is small, in the bottom third, and no longer overlaps the icon. Existing icons are redrawn automatically when you open the designer and save.
