@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.6 Alpine — 6 November 2026
+
+- Touchscreen Settings: tapping Keep (or Go back) on a connection switch no longer re-lays out the page. The result, such as "Connection saved.", now replaces the small Wi-Fi heading for a few seconds instead of adding a new line under the Join button, so nothing below it moves.
+
 ## 1.2.0-beta.5 Alpine — 6 November 2026
 
 - Stream Deck designer: a much larger icon library, 87 clean line icons in seven groups (Playback, Audio, Devices, Lights, Home, Climate, Rooms). Choose a group above the icon grid. It covers playback and volume, inputs and devices, lights and lamps, doors, locks and security, heating, cooling and weather, and rooms and appliances.

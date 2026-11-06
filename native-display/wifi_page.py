@@ -51,7 +51,8 @@ class WifiPageMixin:
         trial.append(self.button("Go back", self.connection_undo, "settings-action reboot-action")); block.append(trial)
         # Keep/Go back takes the place of the Join button while it shows, so the column never grows past the screen.
         # While it shows, the status text takes the heading's line above the buttons so they stay level with the VPN row.
-        self.connection_heading = wifi_heading; self.connection_last = ""
+        wifi_heading.set_wrap(True); wifi_heading.set_xalign(0)
+        self.connection_heading = wifi_heading; self.connection_last = ""; self.connection_reset = None
         trial.connect("notify::visible", lambda row, _p: (join.set_visible(not row.get_visible()), self.connection_say(self.connection_last)))
         self.connection_status = {}; self.connection_timer = None; self.connection_busy = False; self.vpn_trial_token = ""
         self.connection_block = block
@@ -106,7 +107,17 @@ class WifiPageMixin:
         if self.connection_trial.get_visible():
             self.connection_heading.set_text((text or "Keep this connection?").upper()); self.connection_message.set_visible(False)
         else:
-            self.connection_heading.set_text("WI-FI"); self.connection_message.set_text(text); self.connection_message.set_visible(bool(text))
+            # Status shows on the heading's own line, so a result such as "Connection saved." never adds a row below the
+            # Join button and pushes the settings column around.
+            self.connection_message.set_visible(False)
+            self.connection_heading.set_text((text or "Wi-Fi").upper() if text else "WI-FI")
+            if getattr(self, "connection_reset", None): GLib.source_remove(self.connection_reset); self.connection_reset = None
+            if text:
+                def clear():
+                    self.connection_reset = None
+                    if not self.connection_trial.get_visible() and self.connection_last == text: self.connection_last = ""; self.connection_heading.set_text("WI-FI")
+                    return False
+                self.connection_reset = GLib.timeout_add_seconds(6, clear)
 
     def connection_choose(self, target, ssid="", password=""):
         if self.connection_busy: return
