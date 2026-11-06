@@ -146,6 +146,10 @@ class Painter:
         self.fonts = {}
         self.reported = set()
         self.eased = {}   # level entity -> brightness shown so far, so the tint fades instead of jumping
+        self.targets = {}
+
+    def animating(self):
+        return any(abs(self.targets.get(name, value) - value) >= .5 for name, value in self.eased.items())
 
     def load_font(self, size):
         from PIL import ImageFont
@@ -237,8 +241,8 @@ class Painter:
             target = home_level_of(lit) if lit.get("state") == "on" else 0
             shown = self.eased.get(level_id, target)
             # Ease towards the real level a little every refresh: a soft fade, not a jump.
-            shown = target if abs(target - shown) < 3 else shown + (target - shown) * .45
-            self.eased[level_id] = shown
+            shown = target if abs(target - shown) < 2 else shown + (target - shown) * .4
+            self.eased[level_id] = shown; self.targets[level_id] = target
             image = self.level_tint(image, shown)
         playpause = binding.get("action") == "playpause"
         if playpause and cover is not None:
@@ -370,13 +374,14 @@ def run(controls, base, stop):
             shown = {}
             refreshed = 0.0
             lit, deck_awake_until = True, 0.0
+            frame = None; animating = False; last_frame = 0.0; fast_until = 0.0
             error = ""
             settings_signature = json.dumps(settings, sort_keys=True)
             while deck.is_open() and not stop.is_set():
                 if json.dumps(controls.settings(), sort_keys=True) != settings_signature:
                     break
                 pending = []
-                try: pending.append(events.get(timeout=.25))
+                try: pending.append(events.get(timeout=.06 if animating else .25))
                 except queue.Empty: pass
                 while not events.empty():
                     try: pending.append(events.get_nowait())
@@ -402,12 +407,22 @@ def run(controls, base, stop):
                     except (OSError, ValueError, TypeError) as exc:
                         error = str(exc)[:80]; LOG.warning("Stream Deck command failed: %s", exc)
                     controls.state["streamdeck"] = {"enabled": True, "connected": True, "error": error}
+                    fast_until = time.monotonic() + 6   # a press usually changes a light: watch it closely for a few seconds
                 preview = getattr(controls, "brightness_preview", None)
                 if preview is not None:
                     controls.brightness_preview = None
                     if lit: deck.set_brightness(preview)
-                # Poll the Pi's services once a second (or straight after a press), not four times a second.
-                if not combined and time.monotonic() - refreshed < 1.0: continue
+                # Smooth fades between data refreshes: redraw only the keys that show a light's level, a dozen times a second.
+                if animating and frame and lit and time.monotonic() - last_frame >= .07:
+                    last_frame = time.monotonic()
+                    for key in range(8):
+                        binding = buttons[key] if key < len(buttons) else {}
+                        if not binding.get("level_entity"): continue
+                        data = painter.key(binding, *frame)
+                        if shown.get(key) != data: shown[key] = data; deck.set_key_image(key, data)
+                    animating = painter.animating()
+                # Poll the Pi's services once a second (a few times a second just after a press), not four times a second.
+                if not combined and time.monotonic() - refreshed < (0.35 if time.monotonic() < fast_until else 1.0): continue
                 refreshed = time.monotonic()
                 sleeping = False
                 if time.monotonic() >= deck_awake_until:
@@ -438,11 +453,13 @@ def run(controls, base, stop):
                         try: cover[1] = Image.open(io.BytesIO(fetch_bytes(base, "/roon/api/image?size=240&key=" + urllib.parse.quote(cover_key)))).convert("RGB").resize((120, 120))
                         except Exception: cover[1] = None
                 speaker = state.get("kef", {})
+                frame = (state, home, cover[1], elapsed)
                 for key in range(8):
                     binding = buttons[key] if key < len(buttons) else {}
-                    data = painter.key(binding, state, home, cover[1], elapsed)
+                    data = painter.key(binding, *frame)
                     if shown.get(key) != data:
                         shown[key] = data; deck.set_key_image(key, data)
+                animating = painter.animating()
                 strip_data = painter.strip(dials, state, home, error)
                 # The elapsed-time tick must not rewrite the strip: needless USB writes are what make the deck drop out.
                 if shown.get("strip") != strip_data:

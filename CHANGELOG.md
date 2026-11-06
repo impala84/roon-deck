@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.37 Alpine — 7 November 2026
+
+- Stream Deck: the brightness fade on a key is much quicker and smoother. Only the keys showing a light's level are redrawn, about a dozen times a second while they fade, and the deck checks Home Assistant several times a second for a few seconds after any press so changes appear straight away.
+
 ## 1.2.0-beta.36 Alpine — 7 November 2026
 
 - Stream Deck: a key can now show the brightness of a light or fan ("Show the brightness of"). The key draws a sun whose rays lengthen and multiply as the light gets brighter, and its background warms and brightens with it, fading smoothly between levels. It follows the real level, so changes made in the Hue app show too.

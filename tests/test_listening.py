@@ -439,6 +439,15 @@ class LevelKeyTests(unittest.TestCase):
         for _ in range(12): settled = self.draw(painter, "on", 255).getpixel((12, 60))
         self.assertLess(sum(step), sum(settled))
 
+    def test_fade_finishes_within_a_second_of_frames(self):
+        painter = Painter(tempfile.mkdtemp())
+        self.draw(painter, "off", 0)
+        frames = 0
+        self.draw(painter, "on", 255); frames += 1
+        while painter.animating() and frames < 40:
+            self.draw(painter, "on", 255); frames += 1
+        self.assertFalse(painter.animating()); self.assertLessEqual(frames, 12)
+
     def test_only_lights_and_fans_can_show_a_level(self):
         from pi_bus_time_display.listening import validate_settings
         validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "level_entity": "light.study_uplight"}]})
