@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.5 Alpine — 6 November 2026
+
+- Stream Deck designer: a much larger icon library, 87 clean line icons in seven groups (Playback, Audio, Devices, Lights, Home, Climate, Rooms). Choose a group above the icon grid. It covers playback and volume, inputs and devices, lights and lamps, doors, locks and security, heating, cooling and weather, and rooms and appliances.
+
 ## 1.2.0-beta.4 Alpine — 6 November 2026
 
 - The Audio HAT setting moves from System to Services → Roon → Roon Bridge, beside the other audio-output settings, and is now called "Audio output board". It no longer depends on the Roon Bridge being installed.

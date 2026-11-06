@@ -23,26 +23,9 @@
   const SOURCES = [['aux', 'Aux'], ['optical', 'Optical'], ['wifi', 'Wi‑Fi'], ['bluetooth', 'Bluetooth']];
   const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: ''};
   const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', mode: 'speaker'};
-  // Built-in icons are drawn on a 24×24 grid in white and saved as transparent PNGs, so the key colour shows through.
-  const ICONS = {
-    play: ['Play', '<path d="M7 4.5v15l12-7.5z" fill="#fff"/>'],
-    pause: ['Pause', '<rect x="6" y="4.5" width="4.2" height="15" rx="1" fill="#fff"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1" fill="#fff"/>'],
-    playpause: ['Play / pause', '<path d="M3 5v14l9-7z" fill="#fff"/><rect x="14" y="5" width="3" height="14" rx="1" fill="#fff"/><rect x="19" y="5" width="3" height="14" rx="1" fill="#fff"/>'],
-    next: ['Next', '<path d="M5 5v14l10-7z" fill="#fff"/><rect x="16.5" y="5" width="3" height="14" rx="1" fill="#fff"/>'],
-    previous: ['Previous', '<path d="M19 5v14L9 12z" fill="#fff"/><rect x="4.5" y="5" width="3" height="14" rx="1" fill="#fff"/>'],
-    mute: ['Mute', '<path d="M3 9h4l5-4v14l-5-4H3z" fill="#fff"/><path d="M15.5 9.5l5 5m0-5l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>'],
-    volume: ['Volume', '<path d="M3 9h4l5-4v14l-5-4H3z" fill="#fff"/><path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>'],
-    power: ['Power', '<path d="M12 3v9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M7 6.5a8 8 0 1010 0" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/>'],
-    speaker: ['Speaker', '<rect x="6" y="2.5" width="12" height="19" rx="2.5" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="15" r="3.6" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="7.5" r="1.4" fill="#fff"/>'],
-    input: ['Input', '<path d="M3 12h12M10.5 7l5 5-5 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15 4.5h4.5v15H15" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'],
-    bulb: ['Light', '<path d="M9 17.5h6M10 21h4" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M12 2.8a6.2 6.2 0 00-3.4 11.4c.6.5.9 1.1.9 1.8h5c0-.7.3-1.3.9-1.8A6.2 6.2 0 0012 2.8z" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/>'],
-    fan: ['Fan', '<circle cx="12" cy="12" r="1.8" fill="#fff"/><path d="M12 10.2C12 5 14 3 16.5 3.5 18.8 4 17 8.5 13.6 10.6zM13.8 12c5.2 0 7.2 2 6.7 4.5-.5 2.3-5 .5-7.1-2.9zM12 13.8c0 5.2-2 7.2-4.5 6.7-2.3-.5-.5-5 2.9-7.1zM10.2 12C5 12 3 10 3.5 7.5 4 5.2 8.5 7 10.6 10.4z" fill="#fff"/>'],
-    scene: ['Scene', '<path d="M12 3l2.2 5.6 5.8.5-4.4 3.9 1.4 5.8L12 15.8 7 18.8l1.4-5.8L4 9.1l5.8-.5z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" fill="none"/>'],
-    home: ['Home', '<path d="M4 11l8-7 8 7v9H4z" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/><path d="M10 20v-6h4v6" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/>'],
-    music: ['Music', '<path d="M9 18V6l10-2v12" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/><circle cx="6.5" cy="18" r="2.8" fill="#fff"/><circle cx="16.5" cy="16" r="2.8" fill="#fff"/>'],
-    tv: ['TV', '<rect x="3" y="5" width="18" height="12.5" rx="2" stroke="#fff" stroke-width="2" fill="none"/><path d="M8.5 21h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'],
-    computer: ['Computer', '<rect x="3" y="4" width="18" height="12" rx="1.8" stroke="#fff" stroke-width="2" fill="none"/><path d="M2 20h20" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'],
-  };
+  const ICONS = window.DeckIcons || {};
+  const ICON_STYLE = 'stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  let iconCategory = "Playback";
 
   const h = (tag, props = {}, ...children) => {
     const node = document.createElement(tag);
@@ -205,7 +188,7 @@
     const name = `icon-${key}.png`;
     try {
       if (!art.includes(name)) {
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)">${ICONS[key][1]}</g></svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)" ${ICON_STYLE}>${ICONS[key][1]}</g></svg>`;
         const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
         const image = await new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('Could not draw that icon')); node.src = url; });
         const blob = await toPng(image); URL.revokeObjectURL(url);
@@ -227,9 +210,14 @@
     file.onchange = () => pickFile(file.files[0], binding);
     const upload = h('button', {type: 'button', class: 'secondary'}, 'Upload image…'); upload.onclick = () => file.click();
     const clear = h('button', {type: 'button', class: 'cd-quiet'}, 'No image'); clear.onclick = () => { delete binding.image; markDirty(); render(); };
-    const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'}, Object.entries(ICONS).map(([key, [name, body]]) => {
+    const categories = window.DeckIconCategories || [];
+    const chips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Icon categories'}, categories.map(category => {
+      const chip = h('button', {type: 'button', class: 'dd-chip', 'aria-pressed': String(iconCategory === category)}, category);
+      chip.onclick = () => { iconCategory = category; render(); }; return chip;
+    }));
+    const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'}, Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
       const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': binding.image === `icon-${key}.png` ? 'true' : 'false'});
-      choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">${body}</svg>`;
+      choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${body}</svg>`;
       choice.onclick = () => useIcon(key, binding); return choice;
     }));
     const library = art.filter(name => !/^icon-/.test(name));
@@ -241,7 +229,7 @@
       thumb.append(del); return thumb;
     })) : h('p', {class: 'cd-muted'}, 'Images you upload appear here, ready to reuse.');
     return h('div', {class: 'dd-group'}, h('h4', {}, 'Image'), h('div', {class: 'cd-actions'}, upload, clear, file),
-      h('p', {class: 'cd-muted'}, 'Built-in icons'), icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
+      h('p', {class: 'cd-muted'}, `Built-in icons (${Object.keys(ICONS).length})`), chips, icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
       h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and shrunk to 120 × 120 automatically.'));
   }
   function colourPicker(binding) {
