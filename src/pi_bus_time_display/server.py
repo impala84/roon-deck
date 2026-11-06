@@ -29,7 +29,7 @@ from . import __version__
 from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
-from .listening import ListeningControls, remote_step_allowed
+from .listening import referenced_entities, ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
 
 
@@ -76,6 +76,12 @@ def accessory_request(data, *, helper_action="accessories"):
 
 
 class State:
+    def home_entity_ids(self):
+        """Entities RoonDeck may control: those shared on Home plus any a Stream Deck design uses."""
+        try: extra = referenced_entities(self.listening.settings())
+        except Exception: extra = set()
+        return (*self.config.home_assistant_entities, *self.config.home_assistant_deck_entities, *sorted(extra))
+
     def __init__(self, config: Config, state_dir: Path | None = None):
         self.config = config
         self.performance = PerformanceHistory()
@@ -357,7 +363,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
     last_status: str | None = None
     while not stop.is_set():
         config = state.config
-        if not config.home_assistant_enabled or not (config.home_assistant_entities or config.home_assistant_deck_entities):
+        if not config.home_assistant_enabled or not (config.home_assistant_entities or config.home_assistant_deck_entities or referenced_entities(state.listening.settings())):
             state.home_data = {"status": "disabled", "entities": [], "deck_entities": []}
             if last_status != "disabled" and events:
                 events.emit("home_assistant.status", status="disabled")
@@ -366,7 +372,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
             continue
         try:
             raw = home_assistant_request(config, "/api/states")
-            selected = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities)
+            selected = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities) | referenced_entities(state.listening.settings())
             entities = []
             for item in raw if isinstance(raw, list) else []:
                 entity_id = str(item.get("entity_id", ""))
@@ -1224,6 +1230,20 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = json.dumps(state.snapshot()).encode()
                 self.send_json(200, body)
                 return
+            if self.path == "/api/admin/home-catalog":
+                if not state.config.home_assistant_enabled:
+                    self.send_json(200, b'{"entities":[]}')
+                    return
+                try:
+                    raw = home_assistant_request(state.config, "/api/states")
+                    catalog = sorted(({"entity_id": item["entity_id"], "domain": item["entity_id"].split(".", 1)[0],
+                                       "name": (item.get("attributes") or {}).get("friendly_name") or item["entity_id"]}
+                                      for item in (raw if isinstance(raw, list) else []) if str(item.get("entity_id", "")).split(".", 1)[0] in HOME_ASSISTANT_DOMAINS),
+                                     key=lambda item: item["name"].lower())
+                    self.send_json(200, json.dumps({"entities": catalog}).encode())
+                except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
+                    self.send_json(502, json.dumps({"error": str(exc)[:160]}).encode())
+                return
             if self.path == "/api/listening/status":
                 self.send_json(200, json.dumps(state.listening.snapshot()).encode())
                 return
@@ -1319,7 +1339,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if not isinstance(data, dict): raise ValueError("Command must be an object")
                     if data.get("action") == "scene":
                         entity = data.get("value")
-                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities) or not entity.startswith(("scene.", "script.")):
+                        if not state.config.home_assistant_enabled or not isinstance(entity, str) or entity not in state.home_entity_ids() or not entity.startswith(("scene.", "script.")):
                             raise ValueError("Choose a configured Home Assistant scene or script")
                         home_assistant_request(state.config, f"/api/services/{entity.split('.', 1)[0]}/turn_on", {"entity_id": entity})
                         result = {"ok": True}
@@ -1506,7 +1526,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         return
                 else:
                     entity_id = str(data.get("entity_id", ""))
-                    if entity_id not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities):
+                    if entity_id not in state.home_entity_ids():
                         self.send_json(400, b'{"error":"Entity is not available on this display"}')
                         return
                     domain = entity_id.split(".", 1)[0]
@@ -1534,7 +1554,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     length = min(int(self.headers.get("Content-Length", "0")), 4096)
                     data = json.loads(self.rfile.read(length) or b"{}")
                     entity_id = str(data.get("entity_id", ""))
-                    if entity_id not in (*state.config.home_assistant_entities, *state.config.home_assistant_deck_entities):
+                    if entity_id not in state.home_entity_ids():
                         raise ValueError("Entity is not available on this dashboard")
                     domain = entity_id.split(".", 1)[0]
                     if self.path == "/api/home/value":

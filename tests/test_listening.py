@@ -399,3 +399,13 @@ class StreamDeckOffOnlyTests(unittest.TestCase):
     def test_deck_brightness_preview_accepts_only_sane_values(self):
         from pi_bus_time_display.listening import validate_settings
         with self.assertRaises(ValueError): validate_settings({"dials": [{"action": "remote_toggle", "off_only": "yes"}]})
+
+
+class ReferencedEntitiesTests(unittest.TestCase):
+    def test_collects_every_entity_a_design_uses(self):
+        from pi_bus_time_display.listening import referenced_entities
+        found = referenced_entities({
+            "buttons": [{"action": "home_script", "entity_id": "script.study_desk_cycle", "also": {"action": "home_script", "entity_id": "script.b"}}],
+            "dials": [{"action": "home_level", "entity_id": "light.study_uplight", "press": {"action": "home_toggle", "entity_id": "switch.desk_lamp_none"}}],
+            "on_play": {"script": "script.topping_input_optical"}})
+        self.assertEqual(found, {"script.study_desk_cycle", "script.b", "light.study_uplight", "switch.desk_lamp_none", "script.topping_input_optical"})

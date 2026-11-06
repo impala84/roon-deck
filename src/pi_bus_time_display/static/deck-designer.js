@@ -46,7 +46,7 @@
   const selectOf = (options, value) => { const select = h('select'); for (const [id, name] of options) select.add(new Option(name, id)); select.value = options.some(([id]) => id === value) ? value : options[0][0]; return select; };
   const field = (text, control, hint) => h('label', {class: 'cd-field'}, h('span', {}, text), control, hint ? h('small', {}, hint) : null);
 
-  let buttons = [], dials = [], art = [], entities = [], selection = {type: 'key', index: 0}, dirty = false, built = false, dragFrom = null;
+  let buttons = [], dials = [], art = [], entities = [], catalog = [], selection = {type: 'key', index: 0}, dirty = false, built = false, dragFrom = null;
   const status = h('p', {role: 'status', class: 'cd-message'});
   const notice = h('span', {class: 'dd-dirty', hidden: true}, 'Unsaved changes');
   const connection = h('span', {class: 'cd-muted'});
@@ -73,7 +73,7 @@
     dirty = false;
   }
   const markDirty = () => { dirty = true; notice.hidden = false; window.RoonDeckDirty?.('streamdeck', 'Stream Deck'); };
-  const entityName = id => entities.find(item => item.entity_id === id)?.name || id || '';
+  const entityName = id => entities.find(item => item.entity_id === id)?.name || catalog.find(item => item.entity_id === id)?.name || id || '';
   const artUrl = name => `/api/admin/listening/art/${encodeURIComponent(name)}`;
 
   function describe(binding) {
@@ -158,7 +158,10 @@
     }
   }
   function entityPicker(binding, onChange, filter = () => true, labelText = 'Home device', key = 'entity_id') {
-    const list = entities.filter(filter);
+    // Everything shared on Home, plus every other device Home Assistant knows about, so a new script appears without extra setup.
+    const known = new Set(entities.map(item => item.entity_id));
+    const list = [...entities, ...catalog.filter(item => !known.has(item.entity_id))].filter(filter);
+    if (binding[key] && !list.some(item => item.entity_id === binding[key])) list.push({entity_id: binding[key], name: entityName(binding[key])});
     if (!list.length) {
       const input = h('input', {type: 'text', placeholder: 'light.living_room', autocomplete: 'off', spellcheck: 'false'}); input.value = binding[key] || '';
       input.oninput = () => { binding[key] = input.value.trim(); onChange(); };
@@ -483,6 +486,7 @@
   async function loadLibrary() {
     try { art = (await SHARED().call('GET', undefined, '/api/admin/listening/art')).art || []; } catch (_) { art = []; }
     try { const response = await fetch('/api/home/status', {cache: 'no-store'}); if (response.ok) { const body = await response.json(); entities = [...(body.entities || []), ...(body.deck_entities || [])]; } } catch (_) { entities = []; }
+    try { const response = await fetch('/api/admin/home-catalog', {cache: 'no-store'}); if (response.ok) catalog = (await response.json()).entities || []; } catch (_) { catalog = []; }
   }
   async function start() {
     if (built && dirty) return;   // never overwrite unsaved edits when the shared settings reload

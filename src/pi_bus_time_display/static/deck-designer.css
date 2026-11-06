@@ -100,3 +100,6 @@
 .dd-brightness input{flex:1;min-width:120px;max-width:420px;margin:0}
 .dd-brightness output{flex:none;min-width:3.2em}
 .dd-brightness[hidden]{display:none}
+
+.dd-brightness input:focus,.dd-brightness input:focus-visible{outline:none;box-shadow:none}
+.dd-brightness input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(144,104,244,.28)}

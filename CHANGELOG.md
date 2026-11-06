@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.34 Alpine — 7 November 2026
+
+- Stream Deck designer: the Home device, scene and script pickers now list everything in Home Assistant, so a script or device you have just created is selectable without first sharing it under Home settings. Devices a deck design uses are controllable and kept up to date automatically.
+- Stream Deck designer: removed the purple outline from the brightness slider.
+
 ## 1.2.0-beta.33 Alpine — 7 November 2026
 
 - Stream Deck (web): Designer and Wake & sleep are now real tabs. The tab strip is the header of one card and the selected tab is underlined, with the Wake & sleep text on the left and an illustration on the right.

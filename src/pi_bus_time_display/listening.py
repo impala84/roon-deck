@@ -311,6 +311,20 @@ class ListeningControls:
             stop.wait(3)
 
 
+def referenced_entities(settings):
+    """Home Assistant entities a saved Stream Deck design uses, so they work without also being listed under Home settings."""
+    found = set()
+    def add(value):
+        if isinstance(value, str) and "." in value: found.add(value)
+    for binding in [*(settings.get("buttons") or []), *(settings.get("dials") or [])]:
+        if not isinstance(binding, dict): continue
+        add(binding.get("entity_id")); add(binding.get("entity_id_ccw"))
+        if isinstance(binding.get("press"), dict): add(binding["press"].get("entity_id"))
+        if isinstance(binding.get("also"), dict): add(binding["also"].get("entity_id"))
+    if isinstance(settings.get("on_play"), dict): add(settings["on_play"].get("script"))
+    return found
+
+
 def remote_step_allowed(settings, value):
     """A remote command may only be one a saved "remote steps" dial can itself produce."""
     if not isinstance(value, dict): return False
