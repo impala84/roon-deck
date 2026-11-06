@@ -146,7 +146,7 @@ def run(controls, base, stop):
                         root = (controls.path.parent / "deck-art").resolve()
                         if path.is_relative_to(root) and path.is_file():
                             with Image.open(path) as custom:
-                                overlay = custom.convert("RGBA").resize((120, 120))
+                                overlay = custom.convert("RGBA").resize((120, 120), getattr(Image, "Resampling", Image).LANCZOS)
                                 image.paste(overlay, (0, 0), overlay)
                     draw = ImageDraw.Draw(image)
                     if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)

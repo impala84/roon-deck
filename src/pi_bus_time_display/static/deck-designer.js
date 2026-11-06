@@ -160,7 +160,7 @@
   }
 
   // Square-crop and shrink to a 120×120 PNG in the browser, so only small safe images reach the Pi.
-  async function toPng(source, size = 120) {
+  async function toPng(source, size = 240) {
     const canvas = h('canvas', {width: size, height: size}), context = canvas.getContext('2d');
     const width = source.naturalWidth || source.width, height = source.naturalHeight || source.height, side = Math.min(width, height);
     context.drawImage(source, (width - side) / 2, (height - side) / 2, side, side, 0, 0, size, size);
@@ -184,18 +184,32 @@
       status.textContent = 'Image added.'; markDirty(); render();
     } catch (error) { status.textContent = error.message; }
   }
-  async function useIcon(key, binding) {
-    const name = `icon-${key}.png`;
+  const iconFile = key => `icon-${key}-hd.png`;
+  async function ensureIcon(key) {
+    const name = iconFile(key);
+    if (art.includes(name)) return name;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)" ${ICON_STYLE}>${ICONS[key][1]}</g></svg>`;
+    const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
     try {
-      if (!art.includes(name)) {
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g transform="translate(30,12) scale(2.5)" ${ICON_STYLE}>${ICONS[key][1]}</g></svg>`;
-        const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
-        const image = await new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('Could not draw that icon')); node.src = url; });
-        const blob = await toPng(image); URL.revokeObjectURL(url);
-        await upload(name, blob);
+      const image = await new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('Could not draw that icon')); node.src = url; });
+      await upload(name, await toPng(image));
+    } finally { URL.revokeObjectURL(url); }
+    return name;
+  }
+  async function useIcon(key, binding) {
+    try { binding.image = await ensureIcon(key); markDirty(); render(); }
+    catch (error) { status.textContent = error.message; }
+  }
+  // Icons saved by earlier betas were 120 px and looked soft on screen: redraw them at 240 px.
+  async function upgradeIcons() {
+    let changed = false;
+    for (const binding of buttons) {
+      const match = /^icon-([a-z0-9]+)\.png$/.exec(binding.image || '');
+      if (match && ICONS[match[1]]) {
+        try { binding.image = await ensureIcon(match[1]); changed = true; } catch (_) { /* keep the old image */ }
       }
-      binding.image = name; markDirty(); render();
-    } catch (error) { status.textContent = error.message; }
+    }
+    if (changed) { markDirty(); render(); }
   }
   async function deleteArt(name) {
     if (!confirm(`Delete ${name}? Keys using it will show no image.`)) return;
@@ -213,7 +227,7 @@
     const categories = window.DeckIconCategories || [];
     const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Built-in icons'});
     const fillIcons = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
-      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': binding.image === `icon-${key}.png` ? 'true' : 'false'});
+      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': binding.image === iconFile(key) ? 'true' : 'false'});
       choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${body}</svg>`;
       choice.onclick = () => useIcon(key, binding); return choice;
     }));
@@ -234,7 +248,7 @@
     })) : h('p', {class: 'cd-muted'}, 'Images you upload appear here, ready to reuse.');
     return h('div', {class: 'dd-group'}, h('h4', {}, 'Image'), h('div', {class: 'cd-actions'}, upload, clear, file),
       h('p', {class: 'cd-muted'}, `Built-in icons (${Object.keys(ICONS).length})`), chips, icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
-      h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and shrunk to 120 × 120 automatically.'));
+      h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and resized automatically (kept at 240 × 240 so they stay sharp; the key shows 120 × 120).'));
   }
   function colourPicker(binding) {
     const custom = h('input', {type: 'color', value: binding.color || KEY_DEFAULT, 'aria-label': 'Custom colour'});
@@ -340,7 +354,7 @@
   }
   async function start() {
     if (built && dirty) return;   // never overwrite unsaved edits when the shared settings reload
-    await loadLibrary(); adopt();
+    await loadLibrary(); adopt(); upgradeIcons();
     if (!built) { build(); status_(); setInterval(status_, 5000); }
     enableBox.checked = !!SHARED().settings.streamdeck_enabled;
     render();

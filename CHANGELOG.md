@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.8 Alpine — 6 November 2026
+
+- Stream Deck designer: icons and uploaded images are now stored at 240 × 240 instead of 120 × 120, so the preview is sharp on high-resolution screens; the Pi scales them down to the 120 × 120 key with a higher-quality filter. Icons you already used are redrawn automatically the next time you open the designer; save to keep the sharper versions.
+
 ## 1.2.0-beta.7 Alpine — 6 November 2026
 
 - Stream Deck designer: switching icon groups is now instant and only changes the icon grid, like tabs. Choosing an icon, colour or image no longer jumps the page back to the top.
