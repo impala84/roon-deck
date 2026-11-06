@@ -382,11 +382,13 @@
     wake.start = h('input', {type: 'time'}); wake.end = h('input', {type: 'time'});
     wake.awake = h('input', {type: 'number', min: 5, max: 3600, step: 5});
     for (const input of [wake.start, wake.end, wake.awake]) input.oninput = () => markDirty();
-    const card = h('div', {class: 'cd-card dd-wake'}, h('h3', {}, 'Wake & sleep'),
+    const art = h('div', {class: 'dd-wake-art', 'aria-hidden': 'true'}); art.innerHTML = '<svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M78 24a38 38 0 1 0 22 62A32 32 0 0 1 78 24z"/><circle cx="92" cy="30" r="1.6" fill="currentColor"/><path d="M26 30v6M23 33h6"/></svg>';
+    const text = h('div', {class: 'dd-wake-text'}, h('h3', {}, 'Wake & sleep'),
       h('p', {class: 'cd-muted'}, 'The deck can sleep along with the screen, on its own schedule, or both. While it sleeps the backlight is off; touch any key or dial to wake it, and the first touch only wakes it.'),
       h('label', {class: 'dd-check'}, sleepBox, h('span', {}, 'Sleep with the display (overnight schedule, or when Roon has been idle)')),
       h('div', {class: 'cd-grid two'}, field('Sleep the deck from (optional)', wake.start), field('Wake it again at', wake.end)),
       h('div', {class: 'cd-grid two'}, field('Stay fully awake after a touch (seconds)', wake.awake)));
+    const card = h('div', {class: 'dd-wake'}, text, art);
     syncWake();
     return card;
   }
@@ -439,15 +441,17 @@
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('div', {class: 'dd-head-actions'}, notice, revertButton, h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled')))),
       brightnessRow,
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
-    const layout = h('div', {class: 'dd-layout'}, stage, inspector);
-    const wakePane = wakeCard(); wakePane.hidden = true;
-    const tabButtons = [['design', 'Designer', layout], ['wake', 'Wake & sleep', wakePane]].map(([id, name, pane]) => {
+    const layout = h('div', {class: 'dd-layout'}, stage, inspector); layout.classList.add('dd-pane');
+    const wakePane = wakeCard(); wakePane.hidden = true; wakePane.classList.add('dd-pane');
+    const panes = {design: layout, wake: wakePane};
+    const tabButtons = [['design', 'Designer'], ['wake', 'Wake & sleep']].map(([id, name]) => {
       const button = h('button', {type: 'button', role: 'tab', 'aria-selected': id === 'design' ? 'true' : 'false'}, name);
-      button.onclick = () => { for (const [other, , otherPane] of [['design', '', layout], ['wake', '', wakePane]]) otherPane.hidden = other !== id; for (const item of tabButtons) item.setAttribute('aria-selected', String(item === button)); };
+      button.onclick = () => { for (const key of Object.keys(panes)) panes[key].hidden = key !== id; for (const item of tabButtons) item.setAttribute('aria-selected', String(item === button)); };
       return button;
     });
-    const tabs = h('nav', {class: 'system-tabs controls-tabs dd-tabs', role: 'tablist', 'aria-label': 'Stream Deck sections'}, tabButtons);
-    root.replaceChildren(head, tabs, layout, wakePane, status);
+    const tabs = h('nav', {class: 'dd-tabs', role: 'tablist', 'aria-label': 'Stream Deck sections'}, tabButtons);
+    const card = h('div', {class: 'cd-card dd-card'}, tabs, h('div', {class: 'dd-body'}, layout, wakePane));
+    root.replaceChildren(head, card, status);
     built = true;
   }
 

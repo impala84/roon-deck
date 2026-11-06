@@ -264,7 +264,10 @@ class ListeningControls:
         # Poll/command serialization must never stall the native display's
         # short HTTP timeout when an unreachable speaker takes seconds to fail.
         # Values are replaced, never mutated in place; take a shallow copy first.
-        return json.loads(json.dumps(dict(self.state)))
+        snap = json.loads(json.dumps(dict(self.state)))
+        try: snap["streamdeck_brightness"] = int(self.settings().get("streamdeck_brightness", 70))
+        except Exception: snap["streamdeck_brightness"] = 70
+        return snap
 
     def command(self, action, value=None):
         with self.lock:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.33 Alpine — 7 November 2026
+
+- Stream Deck (web): Designer and Wake & sleep are now real tabs. The tab strip is the header of one card and the selected tab is underlined, with the Wake & sleep text on the left and an illustration on the right.
+- Stream Deck (touch settings): the Overview tab has a Stream Deck brightness slider, shown only while a deck is connected. It changes the deck live and is saved.
+- Touch settings: tighter spacing on Overview so the extra slider does not push the page past the screen.
+
 ## 1.2.0-beta.32 Alpine — 7 November 2026
 
 - Stream Deck: the brightness slider moved out of Wake & sleep to the top of the Stream Deck panel (shown only while a deck is connected) and now changes the deck live as you drag it. Save to keep the level.

@@ -454,3 +454,9 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .listening-controls button.active { border-color: #6ed9ae; background: #25483b; }
 .theme-roon .listening-controls button.active { border-color: #9868f9; background: #483462; }
 .listening-controls flowboxchild { padding: 2px; }
+
+/* Tighter Overview so the extra Stream Deck brightness row never pushes the tab past the screen. */
+.settings-tabs-layout .settings-pane { padding-top: 8px; }
+.settings-tabs-layout .brightness-card { padding: 4px 22px; }
+.settings-tabs-layout .brightness-card scale { min-height: 52px; padding: 10px 0; }
+.settings-tabs-layout .brightness-setting .eyebrow { margin-bottom: 0; }

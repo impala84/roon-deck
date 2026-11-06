@@ -758,6 +758,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         self.render_touch_controls(device, self.system_data)
         self.render_home((device or {}).get("home") or {})
         self.render_listening((device or {}).get("listening") or {})
+        self.render_deck_brightness((device or {}).get("listening") or {})
         if (device or {}).get("listening", {}).get("enabled"):
             for button in self.home_nav_buttons: button.set_visible(True)
         brightness = int((device or {}).get("display_brightness", 100))

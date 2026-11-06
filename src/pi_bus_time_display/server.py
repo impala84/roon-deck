@@ -1327,6 +1327,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         value = data.get("value")
                         if type(value) is not int or not 10 <= value <= 100: raise ValueError("Deck brightness must be between 10 and 100")
                         state.listening.brightness_preview = value
+                        if data.get("save") is True:
+                            saved = state.listening.settings(); saved["streamdeck_brightness"] = value
+                            state.listening.save(saved)
                         result = {"ok": True}
                     elif data.get("action") == "remote":
                         value = data.get("value")

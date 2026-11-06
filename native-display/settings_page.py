@@ -182,7 +182,7 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         self.settings_action_stack.set_visible(False)
         self.settings_panes = Gtk.Stack(transition_type=Gtk.StackTransitionType.NONE); self.settings_panes.set_hhomogeneous(False); self.settings_panes.set_vhomogeneous(False)
         def pane(name):
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16); box.add_css_class("settings-pane"); box.set_valign(Gtk.Align.START)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); box.add_css_class("settings-pane"); box.set_valign(Gtk.Align.START)
             self.settings_panes.add_named(box, name); return box
         # Overview: the controls used every day. Network controls are the Roon Bridge / AirPlay / Netdata switches.
         overview = pane("overview")
@@ -275,6 +275,39 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         scale.connect("value-changed", mirror_to_main); self.touch_brightness.connect("value-changed", mirror_from_main)
         return row
 
+    def make_deck_brightness(self):
+        """Stream Deck brightness for the Overview tab; only shown while a deck is connected."""
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); row.add_css_class("brightness-setting"); row.set_visible(False)
+        row.append(self.label("STREAM DECK BRIGHTNESS", "eyebrow"))
+        control = Gtk.Box(spacing=12); control.add_css_class("brightness-control"); control.add_css_class("brightness-card")
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1); scale.set_draw_value(False); scale.set_hexpand(True)
+        value = self.label("70%", "brightness-value", 1)
+        control.append(scale); control.append(value); row.append(control)
+        self.deck_brightness_row, self.deck_brightness_scale, self.deck_brightness_value = row, scale, value
+        self.deck_brightness_updating = False; self.deck_brightness_timeout = None
+        def changed(source):
+            value.set_text(f"{round(source.get_value())}%")
+            if self.deck_brightness_updating: return
+            if self.deck_brightness_timeout is not None: GLib.source_remove(self.deck_brightness_timeout)
+            self.deck_brightness_timeout = GLib.timeout_add(250, self.send_deck_brightness, round(source.get_value()))
+        scale.connect("value-changed", changed)
+        return row
+
+    def send_deck_brightness(self, level):
+        self.deck_brightness_timeout = None
+        threading.Thread(target=post_json, args=(BUS + "/api/listening/command", {"action": "deck_brightness", "value": level, "save": True}), daemon=True).start()
+        return False
+
+    def render_deck_brightness(self, listening):
+        row = getattr(self, "deck_brightness_row", None)
+        if row is None: return
+        connected = bool((listening.get("streamdeck") or {}).get("connected"))
+        if row.get_visible() != connected: row.set_visible(connected)
+        level = int(listening.get("streamdeck_brightness") or 70)
+        if connected and self.deck_brightness_timeout is None and round(self.deck_brightness_scale.get_value()) != level:
+            self.deck_brightness_updating = True; self.deck_brightness_scale.set_value(level); self.deck_brightness_updating = False
+            self.deck_brightness_value.set_text(f"{level}%")
+
     def build_settings_tabs(self):
         """Re-home the Settings controls into tabs: Overview, Display, Controls and Performance, with Update and Reboot always below."""
         def take(widget, target):
@@ -297,11 +330,12 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         overview = pane("overview")
         self.touch_bus_heading.set_visible(True); self.settings_brightness_row.set_margin_top(0)
         self.settings_bus_spacer.set_visible(False)
-        for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_network_block, self.settings_brightness_row): take(widget, overview)
+        for widget in (self.network_controls_heading, self.touch_daily, self.touch_bus_heading, self.touch_bus_pair, self.settings_network_block, self.settings_brightness_row, self.make_deck_brightness()): take(widget, overview)
         self.network_controls_heading.set_text("SERVICES")
         self.touch_brightness.get_parent().add_css_class("brightness-card")
         # Room between sections: each later section starts a little lower than the gap inside it.
-        for section in (self.touch_bus_heading, self.settings_network_block, self.settings_brightness_row, self.display_settings_heading): section.set_margin_top(20)
+        for section in (self.touch_bus_heading, self.settings_network_block, self.settings_brightness_row, self.display_settings_heading): section.set_margin_top(12)
+        self.deck_brightness_row.set_margin_top(0)
         # Display: appearance and the installation settings, with Apply display under them.
         display = pane("display")
         for widget in (self.settings_appearance, self.settings_scaling_heading, self.touch_interface_size): widget.set_visible(False)
