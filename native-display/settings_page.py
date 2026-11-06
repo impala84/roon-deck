@@ -219,7 +219,12 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
             cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); cell.append(self.label(heading, "eyebrow")); take(widget, cell); roon_zone.append(cell)
         overview.prepend(roon_zone)
         # Order: brightness first, then Roon and zone, then services and bus times.
-        overview.reorder_child_after(self.settings_brightness_row, None); overview.reorder_child_after(roon_zone, self.settings_brightness_row)
+        # Screen brightness and, when a deck is connected, Stream Deck brightness share one row at half width each.
+        brightness_pair = Gtk.Box(spacing=16); brightness_pair.set_homogeneous(True); brightness_pair.set_hexpand(True)
+        for row in (self.settings_brightness_row, self.deck_brightness_row):
+            row.set_hexpand(True); take(row, brightness_pair)
+        overview.append(brightness_pair)
+        overview.reorder_child_after(brightness_pair, None); overview.reorder_child_after(roon_zone, brightness_pair)
         info_row("VPN", self.settings_net_vpn_row)
         self.settings_net_vpn_heading = self.settings_net_vpn_row.get_prev_sibling()
         self.settings_net_disc_row, self.settings_net_disc = self.info_cell(); self.build_discovery_switch(self.settings_net_disc_row)

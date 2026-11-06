@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.42 Alpine — 7 November 2026
+
+- Touch settings, Overview (7-inch): when a Stream Deck is connected, Display brightness and Stream Deck brightness share one row at half width each, so Overview fits without running off the page. With no deck connected, Display brightness stays full width.
+
 ## 1.2.0-beta.41 Alpine — 7 November 2026
 
 - Touch settings, Network (7-inch): back to the same look as every other settings page. "ACTIVE CONNECTIONS" is a standard purple heading over two ordinary rows (Ethernet with its address, Wi-Fi with its name and address); a purple tick marks the one in use. Every sub-heading now has the same gap above and below it.
