@@ -68,6 +68,7 @@
     const savedDials = settings.dials?.length ? settings.dials : (kefOn() ? [{label: 'KEF volume', action: 'volume_delta', step: 1, press: {action: 'mute'}}] : []);
     dials = Array.from({length: 4}, (_, i) => ({...blankDial(), ...clone(savedDials[i] || {})}));
     dials.forEach(dial => { dial.press = dial.press || {action: 'none'}; });
+    onPlay = {...(settings.on_play || {})};
     dirty = false;
   }
   const markDirty = () => { dirty = true; notice.hidden = false; window.RoonDeckDirty?.('streamdeck', 'Stream Deck'); };
@@ -192,11 +193,11 @@
       status.textContent = 'Image added.'; markDirty(); render();
     } catch (error) { status.textContent = error.message; }
   }
-  const iconFile = key => `icon-${key}-hd4.png`;
+  const iconFile = key => `icon-${key}-hd5.png`;
   async function ensureIcon(key) {
     const name = iconFile(key);
     if (art.includes(name)) return name;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(34,12) scale(2.2)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(34,20) scale(2.2)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
     const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
     try {
       const image = await new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('Could not draw that icon')); node.src = url; });
@@ -258,16 +259,16 @@
       h('p', {class: 'cd-muted'}, `Built-in icons (${Object.keys(ICONS).length})`), chips, icons, h('p', {class: 'cd-muted'}, 'Your images'), mine,
       h('small', {class: 'cd-muted'}, 'Uploads are cropped to a square and resized automatically (kept at 240 × 240 so they stay sharp; the key shows 120 × 120).'));
   }
-  function colourPicker(binding, hint = 'Keys that are switched on (the current listening mode or a Home device that is on) get a green outline.') {
-    const custom = h('input', {type: 'color', value: binding.color || KEY_DEFAULT, 'aria-label': 'Custom colour'});
-    custom.oninput = () => { binding.color = custom.value; markDirty(); drawStage(); };
+  function colourPicker(binding, hint = '', key = 'color', title = 'Colour') {
+    const custom = h('input', {type: 'color', value: binding[key] || KEY_DEFAULT, 'aria-label': 'Custom colour'});
+    custom.oninput = () => { binding[key] = custom.value; markDirty(); drawStage(); };
     custom.onchange = () => render();
     const swatches = SWATCHES.map(colour => {
-      const swatch = h('button', {type: 'button', class: 'dd-swatch', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': (binding.color || KEY_DEFAULT).toLowerCase() === colour ? 'true' : 'false'});
-      swatch.onclick = () => { if (colour === KEY_DEFAULT) delete binding.color; else binding.color = colour; markDirty(); render(); }; return swatch;
+      const swatch = h('button', {type: 'button', class: 'dd-swatch', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': (binding[key] || KEY_DEFAULT).toLowerCase() === colour ? 'true' : 'false'});
+      swatch.onclick = () => { if (colour === KEY_DEFAULT) delete binding[key]; else binding[key] = colour; markDirty(); render(); }; return swatch;
     });
-    return h('div', {class: 'dd-group'}, h('h4', {}, 'Colour'), h('div', {class: 'dd-swatches'}, swatches, custom),
-      h('small', {class: 'cd-muted'}, hint));
+    return h('div', {class: 'dd-group'}, h('h4', {}, title), h('div', {class: 'dd-swatches'}, swatches, custom),
+      hint ? h('small', {class: 'cd-muted'}, hint) : null);
   }
 
   const fill = (node, ...kids) => node.replaceChildren(...kids.filter(Boolean));
@@ -288,7 +289,10 @@
     clear.onclick = () => { buttons[selection.index] = blankKey(); markDirty(); render(); };
     const target = targetEditor(binding, () => { markDirty(); drawStage(); });
     fill(inspector, h('div', {class: 'dd-title'}, h('h3', {}, `Key ${selection.index + 1}`), clear),
-      field('Label', label), field('When pressed', action), target, colourPicker(binding), imagePicker(binding));
+      field('Label', label), field('When pressed', action), target, binding.action === 'playpause' ? playFields() : null,
+      colourPicker(binding),
+      ['home_toggle', 'mode', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
+      imagePicker(binding));
   }
   function drawDialInspector() {
     const dial = dials[selection.index], press = dial.press;
@@ -322,15 +326,14 @@
   }
 
   let onPlay = {};
-  function playCard() {
-    onPlay = {...(SHARED().settings.on_play || {})};
+  function playFields() {
     const mark = () => markDirty();
     const picker = entityPicker(onPlay, mark, item => item.entity_id.startsWith('script.'), 'Run this script', 'script');
     const helper = h('input', {type: 'text', placeholder: 'input_select.topping_input', autocomplete: 'off', spellcheck: 'false'}); helper.value = onPlay.helper || '';
     helper.oninput = () => { onPlay.helper = helper.value.trim(); mark(); };
     const value = h('input', {type: 'text', placeholder: 'Optical', autocomplete: 'off'}); value.value = onPlay.value || '';
     value.oninput = () => { onPlay.value = value.value.trim(); mark(); };
-    return h('div', {class: 'cd-card'}, h('h3', {}, 'When Roon starts playing'),
+    return h('div', {class: 'dd-group'}, h('h4', {}, 'When Roon starts playing'),
       h('p', {class: 'cd-muted'}, 'Run a Home script as soon as playback starts, for example to switch the DAC to its optical input. Add the input helper and its wanted value to skip the script when the input is already right.'),
       picker, field('Input helper (optional)', helper), field('Skip when the helper already equals', value));
   }
@@ -350,7 +353,7 @@
         if (missing >= 0) throw new Error(`Key ${missing + 1}: choose a Home device`);
         settings.streamdeck_enabled = enableBox.checked;
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
-        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; return out; });
+        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.color ? {color: item.color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();
@@ -366,7 +369,7 @@
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled'))),
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
     const layout = h('div', {class: 'dd-layout'}, stage, inspector);
-    root.replaceChildren(head, layout, playCard(), h('div', {class: 'cd-actions dd-bar'}, revertButton, notice), status);
+    root.replaceChildren(head, layout, h('div', {class: 'cd-actions dd-bar'}, revertButton, notice), status);
     built = true;
   }
 

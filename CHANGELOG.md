@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-beta.22 Alpine — 6 November 2026
+
+- Stream Deck: icons sit lower in the key, labels and the Play / Pause elapsed time sit higher so they are easier to read. Icons are redrawn automatically the next time you open the designer; save to keep them.
+- Stream Deck: the bright green outline on switched-on keys is gone. A key that is on now changes its background instead, and a new "Colour when on" setting lets you choose that colour.
+- Stream Deck: turning a Home brightness/fan dial quickly no longer jumps back. The deck remembers the level it just set instead of trusting Home Assistant's slightly delayed reading.
+- Stream Deck: a fan dial now steps by at least the fan's own speed increment, so turning it down works on fans with a few fixed speeds.
+- Stream Deck designer: "When Roon starts playing" now appears only inside a Play / Pause key's settings.
+
 ## 1.2.0-beta.21 Alpine — 6 November 2026
 
 - Stream Deck reliability: the key and strip drawing moved into one tested routine, and a drawing problem now shows a plain key and logs the cause instead of dropping the USB connection. The deck also asks the Pi's services for status once a second instead of four times a second, and a failed status request no longer disconnects it.

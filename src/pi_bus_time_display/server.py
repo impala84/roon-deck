@@ -377,7 +377,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                 entities.append({
                     "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
-                    "percentage": attributes.get("percentage"), "brightness": attributes.get("brightness"),
+                    "percentage": attributes.get("percentage"), "percentage_step": attributes.get("percentage_step"), "brightness": attributes.get("brightness"),
                     "action": domain in {"scene", "script"}, "available": home_assistant_entity_available(domain, item.get("state")),
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))

@@ -37,6 +37,17 @@ def clock(seconds):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
+_pending_levels = {}   # entity_id -> (target percent, when): Home Assistant's reported level lags behind quick dial turns
+
+
+def home_level_of(entity):
+    pending = _pending_levels.get(entity.get("entity_id"))
+    if pending and time.monotonic() - pending[1] < 4: return pending[0]
+    level = entity.get("percentage")
+    if level is None: level = round((entity.get("brightness") or 0) / 2.55)
+    return level
+
+
 def _home_entities(home):
     """Entities shown on the touchscreen plus the ones that exist only for the Stream Deck."""
     return [*home.get("entities", []), *home.get("deck_entities", [])]
@@ -72,11 +83,13 @@ def dispatch(base, binding, delta=None):
                        if item["entity_id"] == binding.get("entity_id")), None)
         if not entity or not entity.get("supports_level"):
             raise ValueError("This home device has no level control")
-        level = entity.get("percentage")
-        if level is None:
-            level = round((entity.get("brightness") or 0) / 2.55)
-        value = max(0, min(100, level + (delta or 0) * int(binding.get("step", 2))))
-        return request(base, "/api/device/home-value", {"entity_id": entity["entity_id"], "value": value})
+        level = home_level_of(entity)
+        # A fan with three speeds ignores a 2% nudge (Home Assistant rounds back up), so never step by less than the fan's own step.
+        step = max(int(binding.get("step", 2)), int(round(entity.get("percentage_step") or 0)) if entity.get("domain") == "fan" else 0)
+        value = max(0, min(100, level + (delta or 0) * step))
+        result = request(base, "/api/device/home-value", {"entity_id": entity["entity_id"], "value": value})
+        _pending_levels[entity["entity_id"]] = (value, time.monotonic())
+        return result
     raise ValueError("Unsupported Stream Deck action")
 
 
@@ -145,7 +158,8 @@ class Painter:
         selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
         active = selected or entity.get("state") == "on"
-        image = Image.new("RGB", (120, 120), binding.get("color") or ("#236650" if active else "#11201d"))
+        # A switched-on key gets its own "on" colour (or a brighter green) instead of an outline.
+        image = Image.new("RGB", (120, 120), (binding.get("active_color") or "#236650") if active else (binding.get("color") or "#11201d"))
         playpause = binding.get("action") == "playpause"
         if playpause and cover is not None:
             # Current album artwork behind the control, dimmed so the icon and time stay readable.
@@ -161,11 +175,10 @@ class Painter:
         draw = ImageDraw.Draw(image)
         timed = playpause and elapsed is not None
         if timed:
-            draw.text((60, 113), clock(elapsed), fill="white", font=self.load_font(17), anchor="ms", stroke_width=2, stroke_fill="#000000")
-        if active and (binding.get("color") or art): draw.rectangle((0, 0, 119, 119), outline="#6ef0be", width=4)
+            draw.text((60, 100), clock(elapsed), fill="white", font=self.load_font(17), anchor="ms", stroke_width=2, stroke_fill="#000000")
         if binding.get("label") and not timed:
             face, lines, size = self.fit_lines(draw, str(binding.get("label", ""))[:30], 104, (20, 18, 16, 14, 12), 3)
-            top = 116 - len(lines) * (size + 3)
+            top = 106 - len(lines) * (size + 3)
             for number, text in enumerate(lines):
                 draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
         if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
@@ -186,7 +199,7 @@ class Painter:
             level, detail = None, ""
             if action == "home_level":
                 entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
-                if entity: level = entity.get("percentage", round((entity.get("brightness") or 0) / 2.55))
+                if entity: level = home_level_of(entity)
                 else: detail = "Unavailable"
             elif action == "home_script_dial":
                 centre_x, centre_y, radius = left + 88, 60, 22
@@ -299,7 +312,8 @@ def run(controls, base, stop):
                 track = playing.get("now_playing") or {}
                 cover_key = track.get("image_key") or ""
                 elapsed = int(playing.get("seek_position") or 0) if track else None
-                signature = json.dumps([state, home, error, cover_key, elapsed], sort_keys=True)
+                fresh = {key: value[0] for key, value in _pending_levels.items() if time.monotonic() - value[1] < 4}
+                signature = json.dumps([state, home, error, cover_key, elapsed, fresh], sort_keys=True)
                 if signature == previous: continue
                 previous = signature
                 if cover_key != cover[0]:

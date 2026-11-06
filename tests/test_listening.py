@@ -243,3 +243,27 @@ class StreamDeckPainterTests(unittest.TestCase):
         painter.key({"action": "playpause", "label": "Play"}, {}, {}, None, 5)
         painter.strip([{"action": "home_level", "label": "Lights", "entity_id": "x"}], {}, {}, "")
         self.assertFalse(painter.reported, "drawing failed without DejaVu")
+
+
+class StreamDeckHomeLevelTests(unittest.TestCase):
+    def run_turns(self, entity, deltas, step):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        streamdeck._pending_levels.clear()
+        sent = []
+        def fake(base, path, payload=None):
+            if path == "/api/device/controls": return {"home": {"entities": [entity]}}
+            sent.append(payload["value"]); return {}
+        with mock.patch.object(streamdeck, "request", fake):
+            for delta in deltas:
+                streamdeck.dispatch("http://x", {"action": "home_level", "entity_id": entity["entity_id"], "step": step}, delta)
+        return sent
+
+    def test_quick_turns_build_on_the_last_target_not_stale_state(self):
+        light = {"entity_id": "light.desk", "domain": "light", "brightness": 128, "supports_level": True}
+        self.assertEqual(self.run_turns(light, [1, 1, 1], 10), [60, 70, 80])
+
+    def test_a_fan_steps_by_its_own_speed_increment_both_ways(self):
+        fan = {"entity_id": "fan.study", "domain": "fan", "percentage": 66, "percentage_step": 33.33, "supports_level": True}
+        up_then_down = self.run_turns(fan, [-1, -1], 2)
+        self.assertEqual(up_then_down, [33, 0])
