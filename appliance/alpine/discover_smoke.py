@@ -46,13 +46,10 @@ assert display.render_discover(1, {"status": "ready", "items": items, "groups": 
 for _ in range(20):
     while context.pending(): context.iteration(False)
     time.sleep(.01)
-scroller = display.discovery_list.get_first_child()
-assert isinstance(scroller, Gtk.ScrolledWindow)
-track = scroller.get_child()
-if not isinstance(track, Gtk.Box): track = track.get_child()
-assert isinstance(track, Gtk.Box)
-cards=[]; child=track.get_first_child()
-while child: cards.append(child); child=child.get_next_sibling()
+grid = display.discovery_list.get_first_child()
+assert isinstance(grid, Gtk.Grid)
+cards = []; child = grid.get_first_child()
+while child: cards.append(child); child = child.get_next_sibling()
 assert len(cards) == 5
 first = cards[0]
 assert first.has_css_class("daily-card")
@@ -67,19 +64,15 @@ art = body.get_first_child()
 assert isinstance(art, Gtk.ScrolledWindow)
 assert art.get_min_content_width() == art.get_max_content_width()
 assert art.get_min_content_height() == art.get_max_content_height()
-horizontal, vertical = scroller.get_policy()
-assert horizontal == Gtk.PolicyType.AUTOMATIC and vertical == Gtk.PolicyType.NEVER
-heading = scroller.get_next_sibling()
-assert heading.get_text() == "BECAUSE YOU LISTENED TO…"
+heading = grid.get_next_sibling()
+assert heading.get_text() == "BECAUSE YOU LISTENED TO\u2026"
 seed_title = heading.get_next_sibling()
 assert isinstance(seed_title, Gtk.Label)
 assert seed_title.get_text() == groups[0]["seed"]["title"].upper()
 assert seed_title.has_css_class("recommendation-album")
 recommendations = seed_title.get_next_sibling()
-assert isinstance(recommendations, Gtk.ScrolledWindow)
-recommendation_track = recommendations.get_child()
-if not isinstance(recommendation_track, Gtk.Box): recommendation_track = recommendation_track.get_child()
-recommendation_cards = []; child = recommendation_track.get_first_child()
+assert isinstance(recommendations, Gtk.Grid)
+recommendation_cards = []; child = recommendations.get_first_child()
 while child: recommendation_cards.append(child); child = child.get_next_sibling()
 assert len(recommendation_cards) == len(items)
 assert all(not card.has_css_class("recommendation-seed-card") for card in recommendation_cards)
@@ -88,13 +81,11 @@ for label in (heading, seed_title):
     label_bounds = label.compute_bounds(window)[1]
     card_bounds = recommendation_cards[0].compute_bounds(window)[1]
     assert abs(label_bounds.get_x() - card_bounds.get_x()) <= 1
-for row in (track, recommendation_track):
-    assert row.get_margin_end() == native.CAROUSEL_END_SPACE == 30
 assert display.discovery_daily_sections.keys() == {"mixes", "recommendations"}
-assert display.discovery_daily_sections["mixes"] is scroller
-for swipe in (scroller, recommendations):
-    valid, bounds = swipe.compute_bounds(window)
-    assert valid and bounds.get_x() + bounds.get_width() >= window.get_width() - 1, (bounds, window.get_width())
+assert display.discovery_daily_sections["mixes"] is grid
+for section in (grid, recommendations):
+    valid, bounds = section.compute_bounds(window)
+    assert valid and bounds.get_x() + bounds.get_width() <= window.get_width() + 1, (bounds, window.get_width())
 display.browser_sidebar.set_visible(True)
 display.browser_list.append(display.label("Stale Browse content"))
 requests = []
@@ -118,4 +109,4 @@ shade = display.reboot_confirmation
 assert isinstance(shade, Gtk.Overlay)
 card = shade.get_last_child()
 assert card.get_halign() == Gtk.Align.CENTER and card.get_valign() == Gtk.Align.CENTER
-print("Native Alpine GTK Discover has working touch scrollers, fixed cards, a clean Surprise transition and a centred restart panel.")
+print("Native Alpine GTK Discover has a working touch scroller, fixed-size grid cards, a clean Surprise transition and a centred restart panel.")
