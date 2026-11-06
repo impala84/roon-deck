@@ -48,7 +48,7 @@ window.DeckIcons = {
   outlet: ["Socket", "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"4\" /><path d=\"M9 9v3\"/><path d=\"M15 9v3\"/><path d=\"M10 16h4\"/>", "Devices"],
   bolt: ["Energy", "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\" fill=\"#fff\"/>", "Devices"],
   refresh: ["Refresh", "<path d=\"M20 12a8 8 0 11-2.3-5.7\"/><path d=\"M20 4v5h-5\"/>", "Devices"],
-  bulb: ["Light", "<path d=\"M9 17.5h6\"/><path d=\"M10 21h4\"/><path d=\"M12 2.8a6.2 6.2 0 00-3.4 11.4c.6.5.9 1.1.9 1.8h5c0-.7.3-1.3.9-1.8A6.2 6.2 0 0012 2.8z\"/>", "Lights"],
+  bulb: ["Light", "<path d=\"M9 17.5h6\"/><path d=\"M10 21h4\"/><path d=\"M12 4.5a5 5 0 00-2.7 9.2c.5.4.7.9.7 1.3h4c0-.4.2-.9.7-1.3A5 5 0 0012 4.5z\"/><path d=\"M12 .6v1.4\"/><path d=\"M3.6 4l1 1\"/><path d=\"M20.4 4l-1 1\"/><path d=\"M1.2 11h1.6\"/><path d=\"M21.2 11h1.6\"/>", "Lights"],
   bulbon: ["Light on", "<path d=\"M9.5 18h5\"/><path d=\"M10.5 21h3\"/><path d=\"M12 4.5a5 5 0 00-2.7 9.2c.5.4.7.9.7 1.3h4c0-.4.2-.9.7-1.3A5 5 0 0012 4.5z\"/><path d=\"M12 .8v1.2\"/><path d=\"M4 5l1 1\"/><path d=\"M20 5l-1 1\"/><path d=\"M1.5 11h1.5\"/><path d=\"M21 11h1.5\"/>", "Lights"],
   lamp: ["Floor lamp", "<path d=\"M8 3h8l3 8H5z\"/><path d=\"M12 11v10\"/><path d=\"M8 21h8\"/>", "Lights"],
   ceiling: ["Ceiling light", "<path d=\"M12 2v4\"/><path d=\"M6 6h12l3 8H3z\"/><path d=\"M9 18h6\"/>", "Lights"],

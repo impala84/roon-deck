@@ -24,7 +24,7 @@
   const DEFAULT_LABEL = {mode: '', power: '', input: '', mute: 'Mute', previous: 'Previous', playpause: 'Play / Pause', next: 'Next', home_toggle: '', home_scene: ''};
   const DEFAULT_ICON = {mute: 'mute', previous: 'previous', playpause: 'playpause', next: 'next', power: 'power', input: 'input', home_toggle: 'bulb', home_scene: 'scene', mode: 'speaker'};
   const ICONS = window.DeckIcons || {};
-  const ICON_STYLE = 'stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  const ICON_STYLE = 'stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"';
   let iconCategory = "Playback";
 
   const h = (tag, props = {}, ...children) => {
@@ -184,7 +184,7 @@
       status.textContent = 'Image added.'; markDirty(); render();
     } catch (error) { status.textContent = error.message; }
   }
-  const iconFile = key => `icon-${key}-hd.png`;
+  const iconFile = key => `icon-${key}-hd2.png`;
   async function ensureIcon(key) {
     const name = iconFile(key);
     if (art.includes(name)) return name;
@@ -204,7 +204,7 @@
   async function upgradeIcons() {
     let changed = false;
     for (const binding of buttons) {
-      const match = /^icon-([a-z0-9]+)\.png$/.exec(binding.image || '');
+      const match = /^icon-([a-z0-9]+)(?:-hd)?\.png$/.exec(binding.image || '');
       if (match && ICONS[match[1]]) {
         try { binding.image = await ensureIcon(match[1]); changed = true; } catch (_) { /* keep the old image */ }
       }

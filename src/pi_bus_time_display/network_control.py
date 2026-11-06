@@ -1,14 +1,14 @@
-"""Exclusive Ethernet/Wi-Fi selection with a root-owned rollback journal.
+"""Network helper: Ethernet is always preferred, Wi-Fi is the fallback.
 
-Only the authenticated appliance helper calls this module. No profiles or
-credentials are read. A detached watchdog restores the previous links unless
-an administrator confirms the trial from the new connection.
+NetworkManager already gives wired links a better route than Wi-Fi, so both can stay up
+and nothing needs switching. This module only joins Wi-Fi networks (without touching
+Ethernet), scans, reports status, and tidies up after older versions that used to turn
+the other connection off. Only the authenticated appliance helper calls it.
 """
 import fcntl
 import os
 from pathlib import Path
 import re
-import secrets
 import socket
 import subprocess
 import threading
@@ -44,18 +44,8 @@ def join_reason(error):
     return text.splitlines()[0][:120] if text else 'The connection could not be made.'
 
 
-def ethernet_reason(error):
-    """Plain-words reason an Ethernet switch failed."""
-    text = str(getattr(error, 'detail', '') or error); low = text.lower()
-    if 'carrier' in low or 'not ready' in low or 'unavailable' in low or 'disconnected' in low: return 'No cable signal. Check the Ethernet cable is plugged in at both ends.'
-    if 'no suitable connection' in low or 'no connection' in low: return 'No wired connection profile was available.'
-    if 'timeout' in low or 'timed out' in low: return 'The network did not answer in time.'
-    if 'ip configuration' in low or 'dhcp' in low: return 'Connected, but the router gave no address.'
-    return text.splitlines()[0][:120] if text else 'The connection could not be made.'
-
-
 class NetworkControl:
-    def __init__(self, root=Path('/'), run=run_command, arm=None):
+    def __init__(self, root=Path('/'), run=run_command):
         self.root, self.run = Path(root), run
         self.private = self.root / 'var/lib/roondeck-network'
         self.private.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -66,7 +56,6 @@ class NetworkControl:
         self.config = self.root / 'etc/NetworkManager/conf.d/90-roondeck-selection.conf'
         self.lock = threading.RLock()
         self.retry_delay = 3
-        self.arm = arm or self.arm_watchdog
 
     def safe(self, args):
         try: return self.run(args)
@@ -103,9 +92,10 @@ class NetworkControl:
 
     def status(self):
         pending = load_json(self.pending, {})
-        saved = load_json(self.policy, {})
         result = load_json(self.result, {})
-        return {'ok': True, 'hostname': socket.gethostname(), 'devices': self.devices(), 'selected': saved.get('selected', ''),
+        devices = self.devices()
+        primary = next((item['kind'] for item in devices if item['kind'] == 'ethernet' and item['connected']), '') or next((item['kind'] for item in devices if item['connected']), '')
+        return {'ok': True, 'hostname': socket.gethostname(), 'devices': devices, 'selected': primary, 'primary': primary,
                 'saved_wifi': sum(1 for line in self.safe(['nmcli', '-t', '-f', 'TYPE', 'connection', 'show']).splitlines() if line.strip() in ('802-11-wireless', 'wifi')),
                 'wifi_enabled': self.run(['nmcli', 'radio', 'wifi']) == 'enabled',
                 'trial': {'token': pending.get('token', ''), 'target': pending.get('target', ''),
@@ -139,121 +129,61 @@ class NetworkControl:
             if ssid not in seen or entry['signal'] > seen[ssid]['signal'] or entry['in_use']: seen[ssid] = entry
         return {'ok': True, 'networks': sorted(seen.values(), key=lambda item: (not item['in_use'], -item['signal']))[:20], 'message': ''}
 
-    def arm_watchdog(self, token):
-        process = subprocess.Popen(['/usr/bin/python3', '/opt/pi-home/appliance/alpine/network_rollback.py', token],
-                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True, close_fds=True)
-        deadline = time.monotonic() + 3
-        while time.monotonic() < deadline:
-            if process.poll() is not None: break
-            if load_json(self.watchdog, {}).get('token') == token: return
-            time.sleep(.05)
-        process.terminate()
-        process.wait(timeout=2)
-        raise ValueError('Network recovery did not become ready.')
-
-    def prepare(self, target, ssid='', password=''):
+    def join_wifi(self, ssid, password=''):
+        """Join a Wi-Fi network. Ethernet is left alone; a failed join puts the previous Wi-Fi connection back."""
+        if not isinstance(ssid, str) or not isinstance(password, str) or not ssid or len(ssid.encode()) > 32 or len(password) > 128 or any(char in ssid + password for char in ('\x00', '\n', '\r')):
+            raise ValueError('Enter a valid network name and password.')
         with self.lock, (self.private / 'transaction.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            if not isinstance(target, str) or target not in KINDS: raise ValueError('Choose Ethernet or Wi-Fi.')
-            if not isinstance(ssid, str) or not isinstance(password, str) or len(ssid.encode()) > 32 or len(password) > 128 or any(char in ssid + password for char in ('\x00', '\n', '\r')):
-                raise ValueError('Enter a valid network name and password.')
-            if target != 'wifi' and (ssid or password): raise ValueError('Wi-Fi credentials can only be used with Wi-Fi.')
-            if self.pending.exists(): raise ValueError('Confirm or restore the current network trial first.')
             devices = self.devices()
-            choices = [item for item in devices if item['kind'] == target]
-            if not choices: raise ValueError('No Ethernet adapter found.' if target == 'ethernet' else 'No Wi-Fi adapter found.')
-            chosen = next((item for item in choices if item['connected']), choices[0])
-            active = []
-            for item in devices:
-                if item['connected']:
-                    value = self.run(['nmcli', '-g', 'GENERAL.CON-UUID', 'device', 'show', item['interface']])
-                    if not UUID.fullmatch(value): raise ValueError('Could not record the current connection safely.')
-                    active.append({'interface': item['interface'], 'uuid': value})
-            token = secrets.token_hex(16)
-            record = {'token': token, 'target': target, 'interface': chosen['interface'], 'deadline': time.time() + 90,
-                      'devices': devices, 'active': active, 'wifi_enabled': self.run(['nmcli', 'radio', 'wifi']) == 'enabled',
-                      'previous_config': self.config.read_text() if self.config.exists() else None,
-                      'previous_policy': load_json(self.policy, {})}
-            atomic_json(self.pending, record)
-            try: self.arm(token)
-            except Exception:
-                self.pending.unlink(missing_ok=True)
-                raise ValueError('Could not start network recovery. No connection was changed.')
-            atomic_json(self.result, {'status': 'switching', 'message': 'Switching connection. Reopen this page using the device name or new IP address, then confirm within 90 seconds.'})
+            radios = [item for item in devices if item['kind'] == 'wifi']
+            if not radios: raise ValueError('No Wi-Fi adapter found.')
+            radio = next((item for item in radios if item['connected']), radios[0])
+            interface = radio['interface']
+            previous = ''
+            if radio['connected']:
+                value = self.safe(['nmcli', '-g', 'GENERAL.CON-UUID', 'device', 'show', interface])
+                if UUID.fullmatch(value): previous = value
+            self.run(['nmcli', 'radio', 'wifi', 'on'])
+            self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
             try:
-                threading.Thread(target=self.apply, args=(token, ssid, password), daemon=True).start()
-            except Exception:
-                self.pending.unlink(missing_ok=True)
-                raise ValueError('Could not start the network switch. No connection was changed.')
-            return {'ok': True, 'queued': True, 'token': token}
+                # The radio may have just been switched on, so give it a fresh scan before asking for the network.
+                self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(3)
+                args = ['nmcli', '--wait', '20', 'device', 'wifi', 'connect', ssid, 'ifname', interface]
+                if password: args += ['password', password]
+                try: self.run(args)
+                except ValueError as error:
+                    if 'no network with ssid' not in str(getattr(error, 'detail', '')).lower(): raise
+                    self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(self.retry_delay + 1)
+                    self.run(args)
+                if not self.run(['nmcli', '-g', 'GENERAL.STATE', 'device', 'show', interface]).startswith('100'):
+                    raise ValueError('The network did not become ready.')
+            except Exception as error:
+                reason = join_reason(error)
+                # A failed join leaves a half-made saved profile (often with the wrong password); remove it.
+                self.safe(['nmcli', 'connection', 'delete', 'id', ssid])
+                if previous: self.safe(['nmcli', '--wait', '20', 'connection', 'up', 'uuid', previous, 'ifname', interface])
+                atomic_json(self.result, {'status': 'error', 'message': 'Could not join ' + ssid + ': ' + reason})
+                raise ValueError('Could not join ' + ssid + ': ' + reason) from None
+            atomic_json(self.result, {'status': 'ready', 'message': 'Connected to ' + ssid + '.'})
+            return {'ok': True, 'message': 'Connected to ' + ssid + '.'}
 
-    def apply(self, token, ssid='', password=''):
-        # Give the HTTP response time to leave the old interface.
-        time.sleep(1)
+    def tidy(self):
+        """Undo what the old Ethernet/Wi-Fi switch did, so both links come back and Ethernet is simply preferred."""
         with self.lock, (self.private / 'transaction.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            record = load_json(self.pending, {})
-            if record.get('token') != token: return
-            try:
-                target, interface = record['target'], record['interface']
-                wired = [item['interface'] for item in record['devices'] if item['kind'] == 'ethernet']
-                if target == 'ethernet':
-                    self.config.unlink(missing_ok=True)
-                    self.run(['nmcli', 'general', 'reload', 'conf'])
-                    self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
-                    self.run(['ip', 'link', 'set', 'dev', interface, 'up'])
-                    # A link that was held down takes a few seconds to see the cable again; connecting before that fails.
-                    for _ in range(10):
-                        try:
-                            if (self.root / 'sys/class/net' / interface / 'carrier').read_text().strip() == '1': break
-                        except OSError: break
-                        time.sleep(1)
-                else:
-                    self.run(['nmcli', 'radio', 'wifi', 'on'])
-                    self.run(['nmcli', 'device', 'set', interface, 'managed', 'yes'])
-                if target == 'wifi' and ssid:
-                    # The radio may have just been switched on, so give it a fresh scan before asking for the network.
-                    self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(3)
-                    args = ['nmcli', '--wait', '20', 'device', 'wifi', 'connect', ssid, 'ifname', interface]
-                    if password: args += ['password', password]
-                    try: self.run(args)
-                    except ValueError as error:
-                        if 'no network with ssid' not in str(getattr(error, 'detail', '')).lower(): raise
-                        self.safe(['nmcli', 'device', 'wifi', 'rescan', 'ifname', interface]); time.sleep(4)
-                        self.run(args)
-                elif target == 'ethernet':
-                    try: self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
-                    except ValueError:
-                        # Retry once after a pause, then make a plain DHCP wired profile if this Pi has none.
-                        time.sleep(self.retry_delay)
-                        try: self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
-                        except ValueError:
-                            if 'ethernet' not in self.safe(['nmcli', '-t', '-f', 'TYPE', 'connection', 'show']).split():
-                                self.run(['nmcli', 'connection', 'add', 'type', 'ethernet', 'ifname', interface, 'con-name', 'RoonDeck Ethernet', 'ipv4.method', 'auto'])
-                            self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
-                else:
-                    self.run(['nmcli', '--wait', '20', 'device', 'connect', interface])
-                state = self.run(['nmcli', '-g', 'GENERAL.STATE', 'device', 'show', interface])
-                if not state.startswith('100'): raise ValueError('The selected connection did not become ready.')
-                if target == 'ethernet':
-                    self.run(['nmcli', 'radio', 'wifi', 'off'])
-                else:
-                    # NetworkManager 1.52 has no persistent `device managed`
-                    # CLI option. Its device config persists this explicit choice.
-                    content = '[device-roondeck-ethernet]\nmatch-device=type:ethernet\nmanaged=0\n'
-                    atomic_text(self.config, content, 0o644)
-                    self.run(['nmcli', 'general', 'reload', 'conf'])
-                    for name in wired:
-                        self.run(['nmcli', 'device', 'set', name, 'managed', 'no'])
-                        self.run(['ip', 'link', 'set', 'dev', name, 'down'])
-                atomic_json(self.result, {'status': 'trial', 'message': 'Confirm this connection within 90 seconds. The other connection is off.'})
-            except Exception as error:
-                reason = join_reason(error) if target == 'wifi' and ssid else ethernet_reason(error) if target == 'ethernet' else ''
-                if reason and target == 'wifi':
-                    # A failed join leaves a half-made saved profile (often with the wrong password); remove it.
-                    self.safe(['nmcli', 'connection', 'delete', 'id', ssid])
-                self._restore(record, reason)
+            legacy = self.config.exists() or bool(load_json(self.policy, {}).get('selected'))
+            if not legacy: return False
+            self.config.unlink(missing_ok=True)
+            self.safe(['nmcli', 'general', 'reload', 'conf'])
+            self.safe(['nmcli', 'radio', 'wifi', 'on'])
+            for item in self.devices():
+                self.safe(['nmcli', 'device', 'set', item['interface'], 'managed', 'yes'])
+                self.safe(['ip', 'link', 'set', 'dev', item['interface'], 'up'])
+                if item['kind'] == 'ethernet' and not item['connected']:
+                    self.safe(['nmcli', '--wait', '20', 'device', 'connect', item['interface']])
+            self.policy.unlink(missing_ok=True)
+            return True
 
     def _restore(self, record, reason=''):
         errors = []
@@ -291,36 +221,23 @@ class NetworkControl:
             if record.get('token') == token: self._restore(record)
 
     def recover(self):
+        """At startup: finish an interrupted switch from an older version, then undo its leftovers."""
         record = load_json(self.pending, {})
         if record: self.rollback(record.get('token'))
+        self.tidy()
 
     def handle(self, data):
         operation = data.get('operation', 'status')
         if operation == 'status': return self.status()
         if operation == 'scan': return self.scan()
-        if operation == 'select': return self.prepare(data.get('target'), data.get('ssid', ''), data.get('password', ''))
-        if operation == 'restore':
+        if operation in ('select', 'join'):
+            ssid = data.get('ssid', '')
+            if ssid: return self.join_wifi(ssid, data.get('password', ''))
+            # Choosing Ethernet or Wi-Fi without a network name has nothing left to switch: Ethernet is used whenever it is plugged in.
+            self.tidy(); return {'ok': True}
+        # Old screens may still send these; there is no longer a trial to keep or undo.
+        if operation in ('restore', 'confirm'):
             record = load_json(self.pending, {})
-            if not record: raise ValueError('There is no connection trial to restore.')
-            self.rollback(record['token']); return {'ok': True}
-        if operation == 'confirm':
-            with self.lock, (self.private / 'transaction.lock').open('a') as lock:
-                fcntl.flock(lock, fcntl.LOCK_EX)
-                record = load_json(self.pending, {})
-                if not record or not secrets.compare_digest(str(data.get('token', '')), record['token']) or time.time() >= record['deadline']:
-                    raise ValueError('This connection trial has expired. Wait for the previous connection to return.')
-                if load_json(self.result, {}).get('status') != 'trial': raise ValueError('Wait for the connection switch to finish.')
-                if not self.run(['nmcli', '-g', 'GENERAL.STATE', 'device', 'show', record['interface']]).startswith('100'):
-                    raise ValueError('The selected connection is no longer connected.')
-                devices = self.devices()
-                if record['target'] == 'ethernet' and self.run(['nmcli', 'radio', 'wifi']) != 'disabled':
-                    raise ValueError('Wi-Fi is still enabled. Restore the previous connection and retry.')
-                if record['target'] == 'wifi' and any(item['kind'] == 'ethernet' and (item['managed'] or item['connected']) for item in devices):
-                    raise ValueError('Ethernet is still enabled. Restore the previous connection and retry.')
-                if time.time() >= record['deadline']:
-                    raise ValueError('This connection trial expired while checking. The previous connection will return.')
-                atomic_json(self.policy, {'selected': record['target']})
-                self.pending.unlink(missing_ok=True)
-                atomic_json(self.result, {'status': 'ready', 'message': 'Connection saved. The other connection remains off, including after restart.'})
-                return {'ok': True}
+            if record: self.rollback(record['token'])
+            self.tidy(); return {'ok': True}
         raise ValueError('Unknown network operation.')

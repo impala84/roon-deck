@@ -36,13 +36,10 @@ class WifiPageMixin:
 
     def build_connection_block(self):
         block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); block.add_css_class("connection-block")
-        block.append(self.label("PRIMARY CONNECTION", "eyebrow"))
-        choice = Gtk.Box(spacing=12); choice.set_homogeneous(True); block.append(choice)
+        block.append(self.label("CONNECTION", "eyebrow"))
+        # Ethernet is used automatically whenever it is plugged in and Wi-Fi is the fallback, so there is nothing to switch.
+        self.connection_summary = self.label("Checking…", "settings-diagnostic"); self.connection_summary.set_wrap(True); self.connection_summary.set_xalign(0); block.append(self.connection_summary)
         self.connection_buttons = {}
-        for target, title in (("ethernet", "Ethernet"), ("wifi", "Wi-Fi")):
-            button = self.button(title, lambda _button, value=target: self.connection_choose(value), "settings-action connection-choice")
-            self.connection_buttons[target] = button; choice.append(button)
-        self.connection_buttons["wifi"].set_tooltip_text("Use Wi-Fi as the primary connection")
         wifi_heading = self.label("WI-FI", "eyebrow"); block.append(wifi_heading)
         join = self.button("Join Wi-Fi network…", self.open_wifi_page, "settings-action connection-join"); block.append(join)
         self.connection_message = self.label("", "settings-diagnostic"); self.connection_message.set_wrap(False); self.connection_message.set_ellipsize(3); self.connection_message.set_width_chars(1); self.connection_message.set_max_width_chars(1); self.connection_message.set_xalign(0); self.connection_message.set_visible(False); block.append(self.connection_message)
@@ -79,15 +76,14 @@ class WifiPageMixin:
         self.connection_status = data
         trial = data.get("trial") or {}
         active = trial.get("target") or data.get("selected") or next((item["kind"] for item in data.get("devices", []) if item.get("connected")), "")
-        if getattr(self, "connection_expect_result", False) and data.get("status") in ("restored", "error", "ready") and not trial.get("token"):
-            self.connection_expect_result = False
-            self.connection_say({"restored": data.get("message") if str(data.get("message", "")).startswith("Could not") else "That connection did not come up, so the previous one was restored.",
-                                 "error": data.get("message") or "The connection could not be changed.",
-                                 "ready": "Connection saved."}[data["status"]])
-        for target, button in self.connection_buttons.items():
-            (button.add_css_class if target == active else button.remove_css_class)("active")
-            kinds = [item for item in data.get("devices", []) if item.get("kind") == target]
-            button.set_sensitive(bool(kinds))
+        connected = [item for item in data.get("devices", []) if item.get("connected")]
+        wired = next((item for item in connected if item.get("kind") == "ethernet"), None)
+        chosen = wired or (connected[0] if connected else None)
+        if chosen:
+            kind = "Ethernet" if chosen.get("kind") == "ethernet" else "Wi-Fi"
+            name = chosen.get("name") if chosen.get("kind") == "wifi" and chosen.get("name") not in (None, "", "--") else ""
+            self.connection_summary.set_text(" · ".join(part for part in (f"Using {kind}", name, (chosen.get("address") or "").split("/")[0]) if part))
+        else: self.connection_summary.set_text("Not connected")
         # Any unfinished trial can always be undone, so a half-finished switch can never leave the screen stuck.
         has_trial = bool(trial.get("token"))
         pending = has_trial and data.get("status") == "trial"
@@ -120,26 +116,16 @@ class WifiPageMixin:
                 self.connection_reset = GLib.timeout_add_seconds(6, clear)
 
     def connection_choose(self, target, ssid="", password=""):
+        """Join a Wi-Fi network. Ethernet is never switched off; it is simply preferred whenever it is plugged in."""
         if self.connection_busy: return
-        # Wi-Fi with no saved network has nothing to connect to: ask for one on the Join page instead of switching and failing.
-        if target == "wifi" and not ssid and not self.connection_status.get("saved_wifi") and not any(item.get("kind") == "wifi" and item.get("connected") for item in self.connection_status.get("devices", [])):
-            self.open_wifi_page(); return
-        self.connection_expect_result = True
-        if (self.connection_status.get("trial") or {}).get("token"):
-            # An earlier switch was never kept or undone; undo it first, then make this one.
-            self.connection_busy = True; self.connection_say("Going back to the previous connection first…")
-            def restored(result, error):
-                self.connection_busy = False
-                if error: self.connection_say(error); self.connection_refresh(); return False
-                self.connection_status["trial"] = {}; self.connection_choose(target, ssid, password); return False
-            self.network_request({"operation": "restore"}, restored); return
-        self.connection_busy = True; self.connection_say("Switching… this takes up to 30 seconds.")
+        if not ssid: self.open_wifi_page(); return
+        self.connection_busy = True; self.connection_say("Joining Wi-Fi… this takes up to 30 seconds.")
         def done(result, error):
             self.connection_busy = False
-            if error: self.connection_say(error)
+            self.connection_say(error or (result or {}).get("message") or "Connected.")
             self.connection_refresh()
             return False
-        self.network_request({"operation": "select", "target": target, "ssid": ssid, "password": password}, done)
+        self.network_request({"operation": "select", "target": "wifi", "ssid": ssid, "password": password}, done, timeout=70)
 
     def connection_keep(self, *_):
         if self.vpn_trial_token:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.9 Alpine — 6 November 2026
+
+- Network: the "switch connection" feature is gone. Ethernet is now always preferred automatically whenever it is plugged in, and Wi-Fi is the fallback. Joining a Wi-Fi network no longer turns Ethernet off, and the touchscreen and web admin simply show which connection is in use. A Pi left with Ethernet or Wi-Fi switched off by the old feature is restored on start-up.
+- Stream Deck icons: finer strokes (1.4 instead of 2), and the light bulb now has rays. Existing icons are redrawn automatically.
+
 ## 1.2.0-beta.8 Alpine — 6 November 2026
 
 - Stream Deck designer: icons and uploaded images are now stored at 240 × 240 instead of 120 × 120, so the preview is sharp on high-resolution screens; the Pi scales them down to the 120 × 120 key with a higher-quality filter. Icons you already used are redrawn automatically the next time you open the designer; save to keep the sharper versions.

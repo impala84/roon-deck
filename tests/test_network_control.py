@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pi_bus_time_display.network_control import NetworkControl, ethernet_reason, join_reason
+from pi_bus_time_display.network_control import NetworkControl, join_reason
 from pi_bus_time_display.remote_access import atomic_json
 from pi_bus_time_display.server import Config, State, make_handler
 
@@ -16,11 +16,11 @@ WIFI_UUID = '22222222-2222-4222-8222-222222222222'
 class NetworkControlTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
-        self.calls, self.armed = [], []
+        self.calls = []
         self.links = {'eth0': {'kind':'ethernet','state':'connected','managed':True,'uuid':ETH_UUID},
                       'wlan0': {'kind':'wifi','state':'disconnected','managed':True,'uuid':WIFI_UUID}}
         self.radio = True
-        self.manager = NetworkControl(Path(self.temp.name), self.run_system, self.armed.append); self.manager.retry_delay = 0
+        self.manager = NetworkControl(Path(self.temp.name), self.run_system); self.manager.retry_delay = 0
 
     def run_system(self, args):
         self.calls.append(args)
@@ -48,17 +48,6 @@ class NetworkControlTests(unittest.TestCase):
             self.links[args[-1]]['state']='connected'
         return ''
 
-    def prepare(self, target, **values):
-        with patch('pi_bus_time_display.network_control.threading.Thread') as thread:
-            result = self.manager.handle({'operation':'select','target':target,**values})
-        self.assertTrue(result['queued']); self.assertEqual(self.armed,[result['token']])
-        self.assertFalse(any(args[:3] == ['nmcli','radio','wifi'] and len(args)>3 for args in self.calls))
-        return result['token']
-
-    def apply(self, token, **values):
-        with patch('pi_bus_time_display.network_control.time.sleep'):
-            self.manager.apply(token, **values)
-
     def test_scan_lists_networks_strongest_first_without_duplicates(self):
         output='*:61:WPA2:Home: 5G\n :88:WPA2:Cafe\n :40:--:Open\n :30:WPA2:Cafe\n :70:WPA2:\n'
         with patch('pi_bus_time_display.network_control.subprocess.run') as run:
@@ -77,146 +66,75 @@ class NetworkControlTests(unittest.TestCase):
         self.assertIn(['nmcli','radio','wifi','on'],self.calls); self.assertIn(['nmcli','radio','wifi','off'],self.calls)
         self.assertFalse(self.radio)
 
-    def test_wifi_switch_persists_ethernet_off_and_only_confirm_commits(self):
-        token=self.prepare('wifi'); self.apply(token)
-        self.assertTrue(self.manager.pending.exists()); self.assertFalse(self.manager.policy.exists())
-        self.assertFalse(self.links['eth0']['managed'])
-        self.assertIn(['ip','link','set','dev','eth0','down'],self.calls)
-        self.assertIn('match-device=type:ethernet\nmanaged=0', self.manager.config.read_text())
-        self.manager.handle({'operation':'confirm','token':token})
-        self.assertFalse(self.manager.pending.exists())
-        self.assertEqual(self.manager.status()['selected'],'wifi')
-        self.manager.rollback(token)
-        self.assertFalse(self.links['eth0']['managed'])
+    def test_joining_wifi_never_touches_ethernet(self):
+        with patch('pi_bus_time_display.network_control.time.sleep'):
+            result = self.manager.handle({'operation': 'select', 'target': 'wifi', 'ssid': 'Home', 'password': 'secret-pass'})
+        self.assertTrue(result['ok'])
+        self.assertEqual(self.links['eth0']['state'], 'connected')
+        self.assertFalse(any(args[:3] == ['nmcli', 'radio', 'wifi'] and args[3:] == ['off'] for args in self.calls))
+        self.assertFalse(any(args[:2] == ['ip', 'link'] and 'down' in args for args in self.calls))
+        self.assertFalse(any(args[:3] == ['nmcli', 'device', 'set'] and args[-2:] == ['managed', 'no'] for args in self.calls))
+        connect = next(args for args in self.calls if args[:5] == ['nmcli', '--wait', '20', 'device', 'wifi'])
+        self.assertIn('Home', connect)
 
-    def test_ethernet_switch_turns_wifi_radio_off(self):
-        self.links['wlan0']['state']='connected'
-        token=self.prepare('ethernet'); self.apply(token)
-        self.assertFalse(self.radio)
-        self.manager.handle({'operation':'confirm','token':token})
-        self.assertEqual(self.manager.status()['selected'],'ethernet')
+    def test_failed_join_removes_the_half_made_profile_and_restores_the_previous_wifi(self):
+        self.links['wlan0']['state'] = 'connected'
+        base = self.run_system
+        def failing(args):
+            if args[:5] == ['nmcli', '--wait', '20', 'device', 'wifi']:
+                self.calls.append(args); error = ValueError('x'); error.detail = 'Error: Secrets were required, but not provided.'; raise error
+            return base(args)
+        self.manager.run = failing
+        with patch('pi_bus_time_display.network_control.time.sleep'), self.assertRaisesRegex(ValueError, 'password was not accepted'):
+            self.manager.handle({'operation': 'select', 'target': 'wifi', 'ssid': 'Cafe', 'password': 'wrong'})
+        self.assertIn(['nmcli', 'connection', 'delete', 'id', 'Cafe'], self.calls)
+        self.assertIn(['nmcli', '--wait', '20', 'connection', 'up', 'uuid', WIFI_UUID, 'ifname', 'wlan0'], self.calls)
+        self.assertEqual(self.links['eth0']['state'], 'connected')
+        self.assertNotIn('wrong', json.dumps(self.manager.status()))
 
-    def test_unconfirmed_trial_restores_original_links_and_policy(self):
-        token=self.prepare('wifi'); self.apply(token); self.manager.rollback(token)
-        self.assertTrue(self.links['eth0']['managed']); self.assertEqual(self.links['eth0']['state'],'connected')
-        self.assertEqual(self.links['wlan0']['state'],'disconnected')
-        self.assertTrue(self.radio); self.assertFalse(self.manager.config.exists())
-        self.assertFalse(self.manager.pending.exists()); self.assertEqual(self.manager.status()['status'],'restored')
+    def test_invalid_names_and_missing_adapter_change_nothing(self):
+        for values in ({'ssid': 'x' * 40}, {'ssid': 'a\nb'}, {'ssid': 'ok', 'password': 'p' * 200}):
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                self.manager.handle({'operation': 'select', 'target': 'wifi', **values})
+        del self.links['wlan0']
+        with self.assertRaisesRegex(ValueError, 'No Wi-Fi adapter'):
+            self.manager.handle({'operation': 'select', 'target': 'wifi', 'ssid': 'Home'})
+        self.assertFalse(any(args[:3] == ['nmcli', 'radio', 'wifi'] and len(args) > 3 for args in self.calls))
 
-    def test_startup_recovery_restores_an_interrupted_switch(self):
-        token=self.prepare('wifi'); self.apply(token)
-        recovered=NetworkControl(self.manager.root,self.run_system,self.armed.append); recovered.recover()
-        self.assertEqual(self.links['eth0']['state'],'connected'); self.assertFalse(recovered.pending.exists())
+    def test_choosing_a_connection_without_a_network_name_is_a_harmless_no_op(self):
+        for target in ('ethernet', 'wifi'):
+            self.assertTrue(self.manager.handle({'operation': 'select', 'target': target})['ok'])
+        self.assertFalse(any(args[:2] == ['nmcli', 'device'] and args[2] in {'set', 'connect', 'disconnect'} for args in self.calls))
 
-    def test_failed_target_is_restored_before_old_link_is_disabled(self):
-        token=self.prepare('wifi'); original=self.manager.run
-        def fail(args):
-            if args[:5]==['nmcli','--wait','20','device','connect']: raise ValueError('private system output')
-            return original(args)
-        self.manager.run=fail; self.apply(token)
-        self.assertTrue(self.links['eth0']['managed']); self.assertEqual(self.links['eth0']['state'],'connected')
-        self.assertNotIn(['ip','link','set','dev','eth0','down'],self.calls)
-        self.assertNotIn('private system output',json.dumps(self.manager.status()))
+    def test_tidy_undoes_the_old_switch_so_ethernet_and_wifi_are_both_back(self):
+        self.links['eth0'].update(state='unmanaged', managed=False); self.radio = False
+        self.manager.config.parent.mkdir(parents=True, exist_ok=True)
+        self.manager.config.write_text('[device-roondeck-ethernet]\nmanaged=0\n')
+        atomic_json(self.manager.policy, {'selected': 'wifi'})
+        self.manager.recover()
+        self.assertFalse(self.manager.config.exists())
+        self.assertTrue(self.radio); self.assertTrue(self.links['eth0']['managed'])
+        self.assertEqual(self.links['eth0']['state'], 'connected')
+        self.assertNotIn('selected', json.loads(self.manager.policy.read_text()) if self.manager.policy.exists() else {})
+        calls = len(self.calls); self.manager.recover()
+        self.assertFalse(any(args[:3] == ['nmcli', 'radio', 'wifi'] and len(args) > 3 for args in self.calls[calls:]))
 
-    def test_ethernet_failure_reasons_are_in_plain_words(self):
-        error = ValueError('generic'); error.detail = 'Error: Connection activation failed: Carrier/link changed'
-        self.assertIn('cable', ethernet_reason(error))
-        error.detail = 'Error: Device is not ready'; self.assertIn('cable', ethernet_reason(error))
-
-    def test_ethernet_switch_retries_and_creates_a_profile_when_none_exists(self):
+    def test_status_reports_ethernet_as_primary_when_connected(self):
+        self.links['wlan0']['state'] = 'connected'
+        status = self.manager.status()
+        self.assertEqual(status['primary'], 'ethernet')
         self.links['eth0']['state'] = 'disconnected'
-        token = self.prepare('ethernet'); original = self.manager.run; attempts = []
-        def flaky(args):
-            if args[:5] == ['nmcli','--wait','20','device','connect'] and args[-1] == 'eth0':
-                attempts.append(1)
-                if len(attempts) < 3: raise ValueError('no suitable connection')
-                self.links['eth0']['state'] = 'connected'; return ''
-            return original(args)
-        self.manager.run = flaky; self.apply(token)
-        self.assertEqual(len(attempts), 3)
-        self.assertTrue(any(call[:4] == ['nmcli','connection','add','type'] for call in self.calls))
+        self.assertEqual(self.manager.status()['primary'], 'wifi')
+
+    def test_old_screens_confirming_or_restoring_are_harmless(self):
+        for operation in ('confirm', 'restore'):
+            self.assertTrue(self.manager.handle({'operation': operation, 'token': 'stale'})['ok'])
 
     def test_join_failure_reasons_are_in_plain_words(self):
-        def failed(detail):
-            error = ValueError('generic'); error.detail = detail; return join_reason(error)
-        self.assertIn('not found', failed('Error: No network with SSID \'Phone\' found.'))
-        self.assertIn('password', failed('Error: Connection activation failed: Secrets were required, but not provided.'))
-        self.assertIn('in time', failed('Error: Timeout expired (20 seconds)'))
-
-    def test_invalid_or_missing_adapters_never_change_network(self):
-        for target in ('vpn',';reboot',None,{},'wifi'):
-            with self.subTest(target=target):
-                if target=='wifi': del self.links['wlan0']
-                with self.assertRaises(ValueError): self.manager.handle({'operation':'select','target':target})
-        self.assertEqual(self.armed,[]); self.assertFalse(self.manager.pending.exists())
-
-    def test_unavailable_watchdog_prevents_all_mutations(self):
-        self.manager.arm=lambda token: (_ for _ in ()).throw(OSError('not ready'))
-        with self.assertRaisesRegex(ValueError,'recovery'): self.manager.prepare('wifi')
-        self.assertFalse(self.manager.pending.exists()); self.assertTrue(self.links['eth0']['managed'])
-
-    def test_password_never_enters_journal_or_public_status(self):
-        token=self.prepare('wifi',ssid='Test network',password='private-test-password')
-        self.assertNotIn('private-test-password',self.manager.pending.read_text())
-        self.apply(token,ssid='Test network',password='private-test-password')
-        self.assertNotIn('private-test-password',json.dumps(self.manager.status()))
-        self.assertEqual(self.manager.private.stat().st_mode & 0o777,0o700)
-        self.assertEqual(self.manager.pending.stat().st_mode & 0o777,0o600)
-
-    def test_recovery_does_not_raise_wifi_link_while_radio_is_off(self):
-        self.radio=False
-        token=self.prepare('wifi'); self.apply(token)
-        original=self.manager.run
-        def check(args):
-            if args==['ip','link','set','dev','wlan0','up'] and not self.radio:
-                raise ValueError('RF-kill prevents link up')
-            return original(args)
-        self.manager.run=check; self.manager.rollback(token)
-        self.assertFalse(self.radio); self.assertFalse(self.manager.pending.exists())
-        self.assertEqual(self.links['eth0']['state'],'connected')
-
-    def test_failed_recovery_keeps_journal_for_retry(self):
-        token=self.prepare('wifi'); self.apply(token)
-        original=self.manager.run
-        self.manager.run=lambda args: (_ for _ in ()).throw(ValueError('unavailable'))
-        self.manager.rollback(token)
-        self.assertTrue(self.manager.pending.exists())
-        self.manager.run=original; self.manager.rollback(token)
-        self.assertFalse(self.manager.pending.exists())
-
-    def test_existing_ethernet_off_policy_is_restored_after_ethernet_trial(self):
-        self.links['eth0'].update(managed=False,state='unmanaged')
-        self.links['wlan0']['state']='connected'
-        self.manager.config.parent.mkdir(parents=True,exist_ok=True)
-        original_config='[device-roondeck-ethernet]\nmatch-device=type:ethernet\nmanaged=0\n'
-        self.manager.config.write_text(original_config)
-        atomic_json(self.manager.policy,{'selected':'wifi'})
-        token=self.prepare('ethernet'); self.apply(token); self.manager.rollback(token)
-        self.assertEqual(self.manager.config.read_text(),original_config)
-        self.assertEqual(self.manager.status()['selected'],'wifi')
-        self.assertFalse(self.links['eth0']['managed']); self.assertTrue(self.radio)
-
-    def test_stale_or_expired_confirmation_cannot_commit(self):
-        token=self.prepare('wifi'); self.apply(token)
-        with self.assertRaises(ValueError): self.manager.handle({'operation':'confirm','token':'wrong'})
-        record=json.loads(self.manager.pending.read_text()); record['deadline']=0; atomic_json(self.manager.pending,record)
-        with self.assertRaises(ValueError): self.manager.handle({'operation':'confirm','token':token})
-        self.assertFalse(self.manager.policy.exists())
-
-    def test_stale_watchdog_cannot_revert_new_trial(self):
-        token=self.prepare('wifi'); self.apply(token)
-        self.manager.rollback('old-token'); self.assertTrue(self.manager.pending.exists())
-        self.assertFalse(self.links['eth0']['managed'])
-
-    def test_confirmation_checks_the_other_connection_really_is_off(self):
-        token=self.prepare('wifi'); self.apply(token); self.links['eth0']['managed']=True
-        with self.assertRaisesRegex(ValueError,'Ethernet is still enabled'):
-            self.manager.handle({'operation':'confirm','token':token})
-        self.assertFalse(self.manager.policy.exists())
-
-    def test_bridges_vlans_and_vpn_profiles_are_never_selected_or_disabled(self):
-        token=self.prepare('wifi'); self.apply(token)
-        self.assertFalse(any('rdremote' in args or 'lo' in args for args in self.calls))
+        error = ValueError('x'); error.detail = 'Error: No network with SSID Home found.'
+        self.assertIn('not found', join_reason(error))
+        error.detail = 'Connection activation failed: IP configuration could not be reserved'
+        self.assertIn('no address', join_reason(error))
 
 
 class NetworkHTTPTests(unittest.TestCase):

@@ -67,11 +67,11 @@ async function refresh() {
 async function perform(data) {
   if (busy) return;
   busy = true; selectors.forEach(button => { button.disabled = true; });
-  reportAdminActivity(data.operation === 'select' ? 'Starting a 90-second connection trial…' : 'Applying network setting…',{source:'Network'});
+  reportAdminActivity(data.operation === 'select' ? 'Joining Wi-Fi… this can take up to 30 seconds.' : 'Applying network setting…',{source:'Network'});
   try {
     const result = await request(data);
     if (result.token) snapshot = {...snapshot,trial:{token:result.token}};
-    if (data.operation === 'select') { showNetworkTab('current'); byId('network-trial-link').hidden = false; }
+    if (data.operation === 'select') { showNetworkTab('current'); reportAdminActivity(result.message || 'Wi-Fi connected.',{source:'Network'}); }
     await refresh();
   } catch (error) { reportAdminActivity(error.message,{source:'Network',error:true}); }
   finally { busy = false; if(snapshot) selectors.forEach(button => {const kind=button.dataset.connectionSelect||'wifi';button.disabled=Boolean(snapshot.trial.token)||!snapshot.devices.some(item=>item.kind===kind);}); }
@@ -79,6 +79,7 @@ async function perform(data) {
 document.querySelectorAll('[data-connection-select]').forEach(button => button.addEventListener('click',()=>perform({operation:'select',target:button.dataset.connectionSelect})));
 byId('save-wifi').addEventListener('click',()=>{
   const ssid=byId('wifi-ssid').value.trim(),password=byId('wifi-password').value;
+  if(!ssid){reportAdminActivity('Enter the Wi-Fi network name.',{source:'Network',error:true});return;}
   byId('wifi-password').value='';
   perform({operation:'select',target:'wifi',ssid,password});
 });

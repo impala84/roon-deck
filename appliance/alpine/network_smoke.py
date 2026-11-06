@@ -43,14 +43,10 @@ def main():
             nm.terminate(); nm.wait(timeout=5); processes.remove(nm)
             start_nm()
             assert manager.run(['nmcli','radio','wifi']) == 'disabled', 'Wi-Fi off did not persist across NetworkManager restart'
-            token='network-smoke-watchdog'
-            atomic_json(manager.pending,{'token':token,'target':'ethernet','interface':'unused','deadline':time.time()+2,
+            atomic_json(manager.pending,{'token':'network-smoke-stale','target':'ethernet','interface':'unused','deadline':time.time()-1,
                         'devices':[],'active':[],'wifi_enabled':True,'previous_config':None,'previous_policy':{}})
-            manager.arm_watchdog(token)
-            for _ in range(100):
-                if not manager.pending.exists(): break
-                time.sleep(.05)
-            assert not manager.pending.exists(), 'Detached watchdog did not roll back the expired journal'
+            manager.recover()
+            assert not manager.pending.exists(), 'Startup recovery did not clear a stale journal from an older version'
             assert manager.run(['nmcli','radio','wifi']) == 'enabled'
             progress=Path('/var/lib/pi-home-setup/progress.json');progress.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
             atomic_json(progress,{'complete':True})
@@ -73,14 +69,14 @@ def main():
                     if attempt == 99: raise
                     time.sleep(.05)
             assert status['ok'] and status['devices'] == []
-            request=urllib.request.Request(url,data=b'{"operation":"select","target":"ethernet"}',headers={'Content-Type':'application/json'})
+            request=urllib.request.Request(url,data=b'{"operation":"select","target":"wifi","ssid":"Nowhere"}',headers={'Content-Type':'application/json'})
             try:
                 urllib.request.urlopen(request,timeout=4)
-                raise AssertionError('Selecting a missing adapter should fail')
+                raise AssertionError('Joining Wi-Fi with no adapter should fail')
             except urllib.error.HTTPError as error:
-                assert error.code == 400 and 'No Ethernet adapter' in json.load(error)['error']
-            assert not manager.pending.exists(), 'Invalid selection created a trial'
-            print('Network smoke: real configuration parser, persisted Wi-Fi radio off, detached watchdog recovery and unprivileged HTTP/root socket passed in an isolated container; no physical links tested.')
+                assert error.code == 400 and 'No Wi-Fi adapter' in json.load(error)['error']
+            assert not manager.pending.exists(), 'A failed join created a trial'
+            print('Network smoke: real configuration parser, persisted Wi-Fi radio off, stale-journal recovery and unprivileged HTTP/root socket passed in an isolated container; no physical links tested.')
         except Exception:
             log.seek(0); print(log.read()[-4000:]); raise
         finally:
