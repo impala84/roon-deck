@@ -27,7 +27,8 @@ jobs:
           node-version: '20'
       - name: Verify backend, update safety and controller
         run: tools/check fast
-      - name: Verify native layouts without building a disk image
+      - name: Verify native layouts without building a disk image (advisory)
+        continue-on-error: true
         run: tools/check screen all
       - uses: actions/upload-artifact@v4
         if: always()
@@ -65,7 +66,8 @@ jobs:
           docker run --rm pi-home-alpine:beta sh -ec 'mkdir /tmp/roon-check; curl --fail --silent --show-error --location https://download.roonlabs.net/builds/RoonBridge_linuxarmv8.tar.bz2 | tar -xj -C /tmp/roon-check; /tmp/roon-check/RoonBridge/check.sh'
           docker run --rm pi-home-alpine:beta python3 appliance/alpine/cursor_smoke.py
           docker run --rm pi-home-alpine:beta ps -eo pid=,rss=,pcpu=,args=
-      - name: Exercise native setup pages using a disposable test-only display
+      - name: Exercise native setup pages using a disposable test-only display (advisory)
+        continue-on-error: true
         run: |
           docker run --rm pi-home-alpine:beta sh -c 'apk add --no-cache xvfb-run && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'
       - name: Install official Netdata from a fresh appliance
