@@ -100,14 +100,15 @@
       });
     });
 
-    const save = h('button', {type: 'button'}, 'Save listening controls');
-    save.onclick = async () => {
-      save.disabled = true; message.textContent = 'Saving…';
+    // Saved by the page-wide "Save changes" button.
+    window.RoonDeckSaves = window.RoonDeckSaves || {};
+    window.RoonDeckSaves.listening = async () => {
       try { await api.save(); message.textContent = 'Listening controls saved.'; api.notify(); }
-      catch (error) { message.textContent = error.message; }
-      finally { save.disabled = false; }
+      catch (error) { message.textContent = error.message; throw error; }
     };
-    root.replaceChildren(speakers, modes, h('div', {class: 'cd-actions'}, save, message));
+    const touched = () => window.RoonDeckDirty?.('listening', 'Listening & KEF');
+    root.replaceChildren(speakers, modes, h('div', {class: 'cd-actions'}, message));
+    root.addEventListener('input', touched); root.addEventListener('change', touched);
 
     async function status() {
       try {

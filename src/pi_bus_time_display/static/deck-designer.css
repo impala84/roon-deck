@@ -69,3 +69,6 @@
 .dd-chip{min-height:0;padding:7px 12px;border-radius:999px;font-size:12px;background:transparent;border:1px solid var(--line);color:var(--muted)}
 .dd-chip[aria-pressed="true"]{background:var(--mint);border-color:var(--mint);color:#151515}
 .dd-icons{max-height:none}
+
+.sidebar-reboot{width:100%;margin-top:8px;min-height:44px;border-radius:8px;font-weight:700;background:transparent;color:inherit;border:1px solid #575164}
+.sidebar-reboot.needed{background:#e0792a;color:#1b0e03;border:0}

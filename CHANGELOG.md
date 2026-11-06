@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.18 Alpine — 6 November 2026
+
+- Settings: Stream Deck and Listening & KEF changes are now saved with the page-wide "Save changes" button and listed in its unsaved-changes summary. The separate "Save Stream Deck" and "Save listening controls" buttons are gone.
+- Settings: a "Reboot" button now sits under "Save changes" in the sidebar on every page (orange when a restart is needed), replacing the header button that said "Restart to apply".
+
 ## 1.2.0-beta.17 Alpine — 6 November 2026
 
 - Stream Deck: the touch strip is only rewritten when its picture actually changes. The per-second elapsed-time tick on Play / Pause was also resending the whole strip, which could make the deck drop out with "Failed to write feature report".

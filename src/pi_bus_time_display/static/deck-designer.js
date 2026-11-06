@@ -51,7 +51,7 @@
   const connection = h('span', {class: 'cd-muted'});
   const stage = h('div', {class: 'dd-stage'});
   const inspector = h('div', {class: 'dd-inspector'});
-  let enableBox, saveButton, revertButton, supportRow, supportNote, supportButton, installTried = false;
+  let enableBox, revertButton, supportRow, supportNote, supportButton, installTried = false;
 
   const blankKey = () => ({label: '', action: 'none'});
   const blankDial = () => ({label: '', action: 'none', step: 1, press: {action: 'none'}});
@@ -70,7 +70,7 @@
     dials.forEach(dial => { dial.press = dial.press || {action: 'none'}; });
     dirty = false;
   }
-  const markDirty = () => { dirty = true; notice.hidden = false; };
+  const markDirty = () => { dirty = true; notice.hidden = false; window.RoonDeckDirty?.('streamdeck', 'Stream Deck'); };
   const entityName = id => entities.find(item => item.entity_id === id)?.name || id || '';
   const artUrl = name => `/api/admin/listening/art/${encodeURIComponent(name)}`;
 
@@ -317,7 +317,6 @@
     const x = window.scrollX, y = window.scrollY, top = inspector.scrollTop;
     drawStage();
     if (selection.type === 'dial') drawDialInspector(); else drawKeyInspector();
-    saveButton.disabled = false;
     inspector.scrollTop = top; window.scrollTo(x, y);
   }
 
@@ -337,10 +336,11 @@
   function build() {
     enableBox = h('input', {type: 'checkbox'}); enableBox.checked = !!SHARED().settings.streamdeck_enabled;
     enableBox.onchange = () => markDirty();
-    saveButton = h('button', {type: 'button'}, 'Save Stream Deck');
     revertButton = h('button', {type: 'button', class: 'secondary'}, 'Discard changes');
-    saveButton.onclick = async () => {
-      saveButton.disabled = true; status.textContent = 'Saving…';
+    // Saved by the page-wide "Save changes" button, not a button of its own.
+    window.RoonDeckSaves = window.RoonDeckSaves || {};
+    window.RoonDeckSaves.streamdeck = async () => {
+      status.textContent = 'Saving…';
       try {
         const settings = SHARED().settings;
         const invalid = buttons.findIndex(item => item.action === 'power' && typeof item.value !== 'boolean');
@@ -354,10 +354,9 @@
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {})}}));
         await SHARED().save();
         dirty = false; notice.hidden = true; status.textContent = 'Stream Deck saved. It updates on the device within a few seconds.';
-      } catch (error) { status.textContent = error.message; }
-      finally { saveButton.disabled = false; }
+      } catch (error) { status.textContent = error.message; throw error; }
     };
-    revertButton.onclick = () => { adopt(); notice.hidden = true; status.textContent = ''; enableBox.checked = !!SHARED().settings.streamdeck_enabled; render(); };
+    revertButton.onclick = () => { window.RoonDeckClean?.('streamdeck'); adopt(); notice.hidden = true; status.textContent = ''; enableBox.checked = !!SHARED().settings.streamdeck_enabled; render(); };
     supportNote = h('span', {class: 'cd-muted', role: 'status'});
     supportButton = h('button', {type: 'button', class: 'secondary'}, 'Install Stream Deck support');
     supportButton.onclick = installSupport;
@@ -366,7 +365,7 @@
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'Stream Deck +'), h('label', {class: 'cd-switch'}, enableBox, h('span', {}, 'Enabled'))),
       h('p', {class: 'cd-muted'}, 'Design what each key, dial and the touch strip does and shows. The Pi installs the USB support it needs the first time you enable the deck.'), connection, supportRow);
     const layout = h('div', {class: 'dd-layout'}, stage, inspector);
-    root.replaceChildren(head, layout, playCard(), h('div', {class: 'cd-actions dd-bar'}, saveButton, revertButton, notice), status);
+    root.replaceChildren(head, layout, playCard(), h('div', {class: 'cd-actions dd-bar'}, revertButton, notice), status);
     built = true;
   }
 
