@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.27 Alpine — 6 November 2026
+
+- Stream Deck: key corner radius settled between beta 24 and 26 (a slight reduction only).
+
 ## 1.2.0-beta.26 Alpine — 6 November 2026
 
-- Stream Deck: the rounded key corners are tighter (smaller radius).
+- Stream Deck: the rounded key corners are slightly tighter than in beta 24.
 
 ## 1.2.0-beta.25 Alpine — 6 November 2026
 

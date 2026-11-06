@@ -196,7 +196,7 @@ class Painter:
             draw.text((8, 8), "Unavailable", fill="#f2b991", font=self.load_font(14))
         # Rounded corners: the corners are always the darkest black, whatever the key colour.
         mask = Image.new("L", (120, 120), 0)
-        ImageDraw.Draw(mask).rounded_rectangle((0, 0, 119, 119), radius=12, fill=255)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, 119, 119), radius=16, fill=255)
         rounded = Image.new("RGB", (120, 120), "#000000")
         rounded.paste(image, (0, 0), mask)
         return rounded
