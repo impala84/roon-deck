@@ -180,7 +180,7 @@ class Painter:
             face, lines, size = self.fit_lines(draw, str(binding.get("label", ""))[:30], 104, (20, 18, 16, 14, 12), 3)
             top = 106 - len(lines) * (size + 3)
             for number, text in enumerate(lines):
-                draw.text((8, top + number * (size + 3)), text, fill="white", font=face, stroke_width=2 if art else 0, stroke_fill="#000000")
+                draw.text((60, top + number * (size + 3)), text, fill="white", font=face, anchor="ma", stroke_width=2 if art else 0, stroke_fill="#000000")
         if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
             draw.text((8, 8), "Unavailable", fill="#f2b991", font=self.load_font(14))
         return image

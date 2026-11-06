@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.23 Alpine — 6 November 2026
+
+- Stream Deck: key labels are centred at the bottom of the key, on the device and in the designer.
+
 ## 1.2.0-beta.22 Alpine — 6 November 2026
 
 - Stream Deck: icons sit lower in the key, labels and the Play / Pause elapsed time sit higher so they are easier to read. Icons are redrawn automatically the next time you open the designer; save to keep them.
