@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.26 Alpine — 6 November 2026
+
+- Stream Deck: the rounded key corners are tighter (smaller radius).
+
 ## 1.2.0-beta.25 Alpine — 6 November 2026
 
 - Stream Deck designer: the deck picture now has the same space above it as to its left and right (48 px all round), and fills the width of its column.
