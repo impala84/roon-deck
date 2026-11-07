@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.62 Alpine — 7 November 2026
+
+- Software › Backup Server: fixed a stray "null" under the status card. Saving a recovery password now takes a backup straight away when credential backups are on, which clears the "Set a recovery password" message.
+
 ## 1.2.0-beta.61 Alpine — 7 November 2026
 
 - Home: a tile's chosen icon is now drawn in the tile's colour, like the built-in icons, both on the touchscreen and in the designer preview, and dims when the device is off. Icons chosen before the larger-icon release are enlarged automatically on the touchscreen.

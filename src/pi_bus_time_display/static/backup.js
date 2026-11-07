@@ -53,7 +53,7 @@
   const cloudIcon = '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M34 90a22 22 0 0 1-2-44 28 28 0 0 1 54 6 19 19 0 0 1-2 38z"/><path d="M58 40v34M44 54l14-14 14 14"/></svg>';
   function artCard(target, icon, title, lines, good) {
     const picture = el('div', 'hd-status-icon'); picture.innerHTML = icon;
-    target.replaceChildren(picture, el('div', 'hd-status-title', title), ...lines.map(line => el('div', 'hd-status-note', line)), good ? el('div', 'hd-status-good', '● ' + good) : null);
+    target.replaceChildren(picture, el('div', 'hd-status-title', title), ...lines.filter(Boolean).map(line => el('div', 'hd-status-note', line)), ...(good ? [el('div', 'hd-status-good', '● ' + good)] : []));
   }
 
   /* ---- Tabs ---- */
@@ -126,8 +126,14 @@
     await serverLoad();
   };
   $('bs-password-save').onclick = async () => {
-    try { await post('/api/admin/backup-server/password', {password: $('bs-password').value}); $('bs-password').value = ''; await serverLoad(); }
-    catch (error) { $('bs-password-note').textContent = error.message; }
+    const button = $('bs-password-save'), note = $('bs-password-note'); button.disabled = true;
+    try {
+      await post('/api/admin/backup-server/password', {password: $('bs-password').value}); $('bs-password').value = '';
+      // The earlier failure was waiting for this password, so take a backup now and clear it.
+      if (server.policy && server.policy.include_secrets) { note.textContent = 'Saved. Taking a backup with credentials…'; await post('/api/admin/backup-server/run', {}); }
+      await serverLoad(); note.textContent = 'A recovery password is saved on this Pi, so encrypted recovery points restore without asking.';
+    } catch (error) { note.textContent = error.message; await serverLoad().catch(() => {}); }
+    finally { button.disabled = false; }
   };
 
   /* ---- Cloud backups (saved with Save changes) ---- */
