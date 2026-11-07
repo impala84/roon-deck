@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.61 Alpine — 7 November 2026
+
+- Home: a tile's chosen icon is now drawn in the tile's colour, like the built-in icons, both on the touchscreen and in the designer preview, and dims when the device is off. Icons chosen before the larger-icon release are enlarged automatically on the touchscreen.
+
 ## 1.2.0-beta.60 Alpine — 7 November 2026
 
 - Software: the Backup Server and Cloud backups tabs no longer let buttons run into the status card at narrower widths; the card moves below the text when space is tight, and the buttons wrap.

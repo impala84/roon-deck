@@ -29,6 +29,27 @@ class HomeLayoutTests(unittest.TestCase):
         for tile in ({"col": 4}, {"row": 8}, {"col": -1}, {"col": "1"}, {"row": True}):
             with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": tile}})
 
+    def test_icons_are_tinted_in_the_tile_colour(self):
+        from io import BytesIO
+        from PIL import Image
+        from pi_bus_time_display.home_layout import tint_icon
+        source = Image.new("RGBA", (4, 4), (255, 255, 255, 0)); source.putpixel((1, 1), (255, 255, 255, 200)); buffer = BytesIO(); source.save(buffer, "PNG")
+        out = Image.open(BytesIO(tint_icon(buffer.getvalue(), "#fb923c"))).convert("RGBA")
+        self.assertEqual(out.getpixel((1, 1)), (251, 146, 60, 200)); self.assertEqual(out.getpixel((0, 0))[3], 0)
+        self.assertEqual(tint_icon(b"not a png", "#fb923c"), b"not a png"); self.assertEqual(tint_icon(buffer.getvalue(), "orange"), buffer.getvalue())
+
+    def test_small_icons_are_enlarged_when_tinted(self):
+        from io import BytesIO
+        from PIL import Image
+        from pi_bus_time_display.home_layout import tint_icon
+        source = Image.new("RGBA", (240, 240), (255, 255, 255, 0))
+        for x in range(100, 140):
+            for y in range(100, 140): source.putpixel((x, y), (255, 255, 255, 255))
+        buffer = BytesIO(); source.save(buffer, "PNG")
+        out = Image.open(BytesIO(tint_icon(buffer.getvalue(), "#60a5fa"))).convert("RGBA")
+        box = out.getchannel("A").getbbox()
+        self.assertGreater(box[2] - box[0], 190); self.assertEqual(out.getpixel((120, 120))[:3], (96, 165, 250))
+
     def test_missing_or_broken_file_means_no_custom_tiles(self):
         folder = Path(tempfile.mkdtemp())
         self.assertEqual(load_layout(folder / "none.json"), {"tiles": {}})

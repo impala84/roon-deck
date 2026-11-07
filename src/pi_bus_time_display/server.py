@@ -29,7 +29,7 @@ from . import __version__
 from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
-from .home_layout import load_layout, save_layout, with_layout
+from .home_layout import load_layout, save_layout, tint_icon, with_layout
 from . import remote_backup, backup_server_client, backup_crypto
 from .backup import SECRET_KEYS, build_backup, check_backup, restore_backup
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
@@ -1093,6 +1093,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 if not DECK_ART_NAME.fullmatch(name) or not target.is_file():
                     self.send_json(404, b'{"error":"Not found"}'); return
                 body = target.read_bytes()
+                query = parse_qs(self.path.partition("?")[2])
+                if query.get("color"): body = tint_icon(body, query["color"][0])
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "max-age=300")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/listening":

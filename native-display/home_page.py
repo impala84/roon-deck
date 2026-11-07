@@ -23,19 +23,20 @@ def tile_colour_rules(selector_domains, name, accent):
 
 
 class HomePageMixin:
-    def home_art(self, name):
-        """A saved icon or image as a texture; fetched once from the Pi's own web service, then kept."""
+    def home_art(self, name, colour=None):
+        """A saved icon or image as a texture; fetched once from the Pi's own web service, then kept. An icon can be asked for in one colour."""
         cache = getattr(self, "home_art_cache", None)
         if cache is None: cache = self.home_art_cache = {}
-        if name not in cache:
-            data = get_bytes(BUS + "/api/device/home-art/" + name, timeout=1.5)
+        key = (name, colour)
+        if key not in cache:
+            data = get_bytes(BUS + "/api/device/home-art/" + name + (("?color=%23" + colour.lstrip("#")) if colour else ""), timeout=1.5)
             texture = None
             if data:
                 try: texture = Gdk.Texture.new_from_bytes(GLib.Bytes.new(data))
                 except GLib.Error: texture = None
-            if texture is not None or len(cache) > 60: cache[name] = texture
+            if texture is not None or len(cache) > 60: cache[key] = texture
             else: return None
-        return cache[name]
+        return cache[key]
 
     def build_home(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
@@ -48,6 +49,7 @@ class HomePageMixin:
 
     def apply_home_colors(self, config):
         defaults = {"light": "#fb923c", "fan": "#60a5fa", "switch": "#9868f9", "scene": "#a3e635"}
+        self.home_domain_colours = {}
         def colour(domain):
             key = "home_assistant_single_color" if config.get("home_assistant_color_mode") == "single" else f"home_assistant_{domain}_color"
             value = str(config.get(key, defaults[domain]))
@@ -57,13 +59,14 @@ class HomePageMixin:
             return "#" + "".join(f"{round(base + (accent - base) * amount):02x}" for accent, base in zip(front, back))
         rules = []
         for domain in defaults:
-            accent = colour(domain); idle = blend(accent, "#232228", .18); active = blend(accent, "#232228", .34); border = blend(accent, "#44414c", .58)
+            accent = colour(domain); self.home_domain_colours[domain] = accent; idle = blend(accent, "#232228", .18); active = blend(accent, "#232228", .34); border = blend(accent, "#44414c", .58)
             rules.append(f".home-tile.home-domain-{domain} {{ background: {idle}; border-color: {border}; }}")
             rules.append(f".home-tile.home-domain-{domain}.on {{ background: {active}; border-color: {accent}; }}")
             rules.append(f".home-tile.home-domain-{domain} .home-icon, .home-tile.home-domain-{domain}.on .home-device-button {{ color: {accent}; }}")
             rules.append(f".home-tile.home-domain-{domain} .home-level highlight {{ background: {accent}; }}")
             rules.append(f".home-tile.home-domain-{domain}.activated {{ background: {active}; border-color: {accent}; box-shadow: 0 0 18px {accent}; }}")
         self.home_color_provider.load_from_data("\n".join(rules))
+        self.home_signature = None   # icons are drawn in these colours, so redraw them
 
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
@@ -139,7 +142,8 @@ class HomePageMixin:
             if original: icon_size = 82 if (len(entities) == 6 and index < 2) else 50
             if row_mode: icon_size = max(64, min(240, round((self.window.get_height() - 190) / max(4, len(entities)) * .7)))
             icon_slot = icon_size; icon_size = round(icon_size * .75)
-            icon_texture = self.home_art(tile["icon"]) if tile.get("icon") else None
+            accent = tile.get("color") or getattr(self, "home_domain_colours", {}).get("switch" if domain == "input_boolean" else domain)
+            icon_texture = self.home_art(tile["icon"], accent) if tile.get("icon") else None
             if tile.get("icon") and icon_texture is None: self.home_signature = None
             if icon_texture is not None:
                 icon = Gtk.Image.new_from_paintable(icon_texture); icon.set_pixel_size(icon_size); icon.set_opacity(1 if (state in {"on", "open", "playing"} or scene) else .5)

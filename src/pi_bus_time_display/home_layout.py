@@ -76,3 +76,25 @@ def with_layout(home, layout):
     if not isinstance(home, dict): return home
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
     return {**home, "entities": entities}
+
+
+def tint_icon(data, colour):
+    """A white-on-transparent icon redrawn in one colour, so a chosen icon matches the built-in ones. The original bytes come back if it cannot be done."""
+    if not isinstance(colour, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", colour): return data
+    try:
+        from io import BytesIO
+        from PIL import Image
+        icon = Image.open(BytesIO(data)).convert("RGBA")
+        alpha = icon.getchannel("A"); side = max(icon.size)
+        box = alpha.getbbox()
+        if box and side >= 64 and max(box[2] - box[0], box[3] - box[1]) < side * .7:
+            # Icons saved by earlier versions sit small in the middle of their square: fill it.
+            glyph = alpha.crop(box); scale = side * .86 / max(glyph.size)
+            glyph = glyph.resize((max(1, round(glyph.width * scale)), max(1, round(glyph.height * scale))), Image.LANCZOS)
+            alpha = Image.new("L", icon.size, 0); alpha.paste(glyph, ((icon.width - glyph.width) // 2, (icon.height - glyph.height) // 2))
+        out = Image.new("RGBA", icon.size, tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5)) + (0,))
+        out.putalpha(alpha)
+        buffer = BytesIO(); out.save(buffer, "PNG")
+        return buffer.getvalue()
+    except Exception:
+        return data
