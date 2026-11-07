@@ -4,6 +4,7 @@ services:
       context: ..
       dockerfile: backup-server/Dockerfile
     image: roondeck-backup-server:local
+    pull_policy: build
     container_name: roondeck-backup-server
     restart: unless-stopped
     environment:

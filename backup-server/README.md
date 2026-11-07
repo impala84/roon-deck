@@ -31,8 +31,21 @@ available as its build context. In Portainer, build the image on the NAS first:
 docker build -f backup-server/Dockerfile -t roondeck-backup-server:local .
 ```
 
-Then deploy the Compose service as a stack using the same environment values,
-omitting the `build:` section. There is no Docker socket mount, privileged mode,
+For a Git-managed Portainer stack, use repository URL
+`https://github.com/impala84/roon-deck`, reference `refs/heads/main` and Compose
+path `backup-server/compose.yaml`. Enter the environment variables above in
+Portainer. `pull_policy: build` rebuilds the application from the checked-out
+source when the stack is deployed, even if a local image already exists.
+
+To update, open the stack and choose **Pull and redeploy**. Leave **Re-pull
+image** / **Re-pull image and redeploy** OFF: this application image is built
+locally and is not published on Docker Hub. Portainer fetches Git, Compose
+rebuilds the image and replaces the container while preserving `/data`.
+Do not delete the container, stack or mapped data folder before updating.
+For a manually prebuilt image without `build:`, use `pull_policy: never` and
+rebuild the image yourself before updating the stack.
+
+There is no Docker socket mount, privileged mode,
 host network or requirement to enable SSH on DSM. Port 2222 belongs to the
 container. The image builds natively for amd64 or arm64; the RS1221+ uses amd64.
 
