@@ -57,3 +57,32 @@ class GoogleTests(unittest.TestCase):
     def test_google_needs_client_id(self):
         with self.assertRaises(ValueError): rb.validate_target({"google_enabled": True, "google_client_id": "nope"})
         self.assertTrue(rb.validate_target({"google_enabled": True, "google_client_id": "1-x.apps.googleusercontent.com"})["google_enabled"])
+
+
+class RsyncTests(unittest.TestCase):
+    def test_validation(self):
+        good = {"rsync_enabled": True, "rsync_host": "synology.local", "rsync_user": "backup", "rsync_path": "/volume1/backups/roondeck"}
+        self.assertEqual(rb.validate_target(good)["rsync_port"], 22)
+        for bad in ({"rsync_host": "-oProxyCommand=x"}, {"rsync_path": "relative"}, {"rsync_path": "/a/../b"}, {"rsync_path": "/a b"}, {"rsync_port": 0}, {**good, "rsync_user": ""}, {"rsync_user": "a b"}):
+            with self.assertRaises(ValueError): rb.validate_target({**{"rsync_host": "h"}, **bad} if "rsync_enabled" not in bad else bad)
+
+    def test_run_builds_a_filtered_mirror_command(self):
+        import shutil as sh, subprocess as sp
+        seen = []
+        original = (sh.which, sp.run)
+        class Done: returncode = 0; stderr = ""
+        rb.shutil.which = lambda name: "/usr/bin/" + name
+        rb.subprocess.run = lambda command, **kw: seen.append(command) or Done()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder); (root / "state" / "backup-ssh").mkdir(parents=True); (root / "state" / "backup-ssh" / "id_ed25519").write_text("k")
+                config = root / "c.toml"; config.write_text('bus_stop_code = "12345"\n')
+                target = rb.validate_target({"rsync_enabled": True, "rsync_host": "nas", "rsync_user": "u", "rsync_path": "/volume1/b/r", "keep": 2})
+                for day in range(1, 4):
+                    rb.run_rsync(target, config, root / "state", root / "env", "1", __import__("time").strptime(f"2026-11-0{day} 03:30", "%Y-%m-%d %H:%M"))
+                kept = sorted(p.name for p in (root / "state" / "backup-staging").iterdir())
+        finally:
+            rb.shutil.which, rb.subprocess.run = original
+        self.assertEqual(len(kept), 2)
+        command = seen[-1]
+        self.assertIn("--delete", command); self.assertIn("--exclude=*", command); self.assertEqual(command[-1], "u@nas:/volume1/b/r/")

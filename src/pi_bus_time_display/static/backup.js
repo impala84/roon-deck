@@ -41,18 +41,21 @@
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Something went wrong'); return result;
   }
   const form = () => ({enabled: $('nas-enabled').checked, url: $('nas-url').value.trim(), folder: $('nas-folder').value.trim() || 'RoonDeck', username: $('nas-user').value.trim(), verify_tls: $('nas-verify').checked, password: $('nas-pass').value,
-    google_enabled: $('g-enabled').checked, google_client_id: $('g-id').value.trim(), google_folder: $('g-folder').value.trim() || 'RoonDeck', google_secret: $('g-secret').value});
+    google_enabled: $('g-enabled').checked, google_client_id: $('g-id').value.trim(), google_folder: $('g-folder').value.trim() || 'RoonDeck', google_secret: $('g-secret').value,
+    rsync_enabled: $('rs-enabled').checked, rsync_host: $('rs-host').value.trim(), rsync_port: Number($('rs-port').value) || 22, rsync_user: $('rs-user').value.trim(), rsync_path: $('rs-path').value.trim()});
   const save = async () => { await post('/api/admin/backup-target', form()); $('nas-pass').value = ''; $('g-secret').value = ''; };
   async function load() {
     try {
       const data = await (await fetch('/api/admin/backup-target', {cache: 'no-store'})).json(), t = data.target;
       $('nas-enabled').checked = t.enabled; $('nas-url').value = t.url; $('nas-folder').value = t.folder; $('nas-user').value = t.username; $('nas-verify').checked = t.verify_tls;
       $('nas-pass').placeholder = data.password_set ? 'Saved — leave blank to keep' : 'Password';
+      $('rs-enabled').checked = t.rsync_enabled; $('rs-host').value = t.rsync_host; $('rs-port').value = t.rsync_port; $('rs-user').value = t.rsync_user; $('rs-path').value = t.rsync_path;
+      $('rs-key').hidden = !data.ssh_key; $('rs-key').value = data.ssh_key || ''; $('rs-keybtn').textContent = data.ssh_key ? 'Show key' : 'Create key';
       $('g-enabled').checked = t.google_enabled; $('g-id').value = t.google_client_id; $('g-folder').value = t.google_folder;
       $('g-secret').placeholder = data.google_secret_set ? 'Saved — leave blank to keep' : 'Client secret';
       $('g-status').textContent = data.google_connected ? 'Connected' : 'Not connected';
       $('g-connect').textContent = data.google_connected ? 'Reconnect…' : 'Connect…';
-      const s = data.status || {}; $('auto-status').textContent = s.time ? `${s.ok ? 'Last backup' : 'Last attempt failed'} ${s.time}: ${s.message}` : (t.enabled || t.google_enabled ? 'Waiting for the first backup' : 'Not set up');
+      const s = data.status || {}; $('auto-status').textContent = s.time ? `${s.ok ? 'Last backup' : 'Last attempt failed'} ${s.time}: ${s.message}` : (t.enabled || t.google_enabled || t.rsync_enabled ? 'Waiting for the first backup' : 'Not set up');
     } catch (_) { $('auto-status').textContent = 'Could not load the backup settings'; }
   }
   const run = (which, label) => async () => {
@@ -62,6 +65,11 @@
   };
   $('auto-save').onclick = async () => { try { await save(); await load(); $('auto-status').textContent = 'Saved. ' + $('auto-status').textContent; } catch (error) { $('auto-status').textContent = error.message; } };
   $('nas-run').onclick = run('synology', $('nas-status'));
+  $('rs-run').onclick = run('rsync', $('rs-status'));
+  $('rs-keybtn').onclick = async () => {
+    try { const result = await post('/api/admin/backup-rsync-key', {}); $('rs-key').hidden = false; $('rs-key').value = result.public_key; $('rs-keybtn').textContent = 'Show key'; $('rs-status').textContent = 'Add this key to the NAS user\u2019s authorized_keys, then press Back up now.'; $('rs-key').select(); }
+    catch (error) { $('rs-status').textContent = error.message; }
+  };
   $('g-run').onclick = run('google', $('g-status'));
   $('g-connect').onclick = async () => {
     const box = $('g-code'), status = $('g-status');

@@ -1063,7 +1063,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/backup-target":
                 if not self.authorised(): return
-                self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)), "google_secret_set": bool(os.getenv(remote_backup.GOOGLE_SECRET)), "google_connected": bool(os.getenv(remote_backup.GOOGLE_TOKEN)),
+                self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)), "google_secret_set": bool(os.getenv(remote_backup.GOOGLE_SECRET)), "google_connected": bool(os.getenv(remote_backup.GOOGLE_TOKEN)), "ssh_key": remote_backup.ssh_key_path(state.state_dir).with_suffix(".pub").read_text().strip() if remote_backup.ssh_key_path(state.state_dir).with_suffix(".pub").is_file() else "",
                     "status": load_json(state.state_dir / "backup-status.json", {})}).encode()); return
             if self.path.split("?", 1)[0] == "/api/admin/backup":
                 if not self.authorised(): return
@@ -1343,7 +1343,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return
-            if self.path in {"/api/admin/backup-target", "/api/admin/backup-run", "/api/admin/backup-google-start", "/api/admin/backup-google-poll"}:
+            if self.path in {"/api/admin/backup-target", "/api/admin/backup-run", "/api/admin/backup-google-start", "/api/admin/backup-google-poll", "/api/admin/backup-rsync-key"}:
                 if not self.authorised(): return
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
@@ -1360,6 +1360,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                                 update_secret(env_path, key, value)
                         self.send_json(200, json.dumps({"ok": True, "target": target}).encode()); return
                     target = remote_backup.load_target(path)
+                    if self.path == "/api/admin/backup-rsync-key":
+                        self.send_json(200, json.dumps({"public_key": remote_backup.ensure_ssh_key(state.state_dir)}).encode()); return
                     if self.path == "/api/admin/backup-google-start":
                         if not target["google_client_id"] or not os.getenv(remote_backup.GOOGLE_SECRET): raise ValueError("Save the Google client ID and secret first")
                         flow = remote_backup.google_start(target["google_client_id"])
@@ -1372,7 +1374,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if token:
                             update_secret(env_path, remote_backup.GOOGLE_TOKEN, token); state.google_device = ""
                         self.send_json(200, json.dumps({"connected": bool(token)}).encode()); return
-                    which = data.get("which") if data.get("which") in {"synology", "google"} else None
+                    which = data.get("which") if data.get("which") in {"synology", "google", "rsync"} else None
                     saved, errors = remote_backup.run_all(remote_backup.validate_target(target), state.state_dir, config_path, env_path, __version__, which)
                     remote_backup.write_status(state.state_dir / "backup-status.json", not errors, "; ".join(saved + errors))
                     if errors: raise ValueError("; ".join(errors))

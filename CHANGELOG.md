@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.49 Alpine — 7 November 2026
+
+- Automatic backups can use rsync over SSH to your Synology, with no WebDAV package. RoonDeck creates its own SSH key (shown on the page) for you to add on the NAS, keeps the newest 14 backups on the Pi and mirrors them to a folder on the NAS. Only RoonDeck backup files in that folder are ever replaced or removed.
+
 ## 1.2.0-beta.48 Alpine — 7 November 2026
 
 - Automatic backups can now go to Google Drive as well as your Synology. Switch on either or both; each keeps the newest 14 files. Google Drive uses a one-time sign-in code, and RoonDeck can only see the backup files it creates.

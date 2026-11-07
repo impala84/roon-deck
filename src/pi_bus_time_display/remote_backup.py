@@ -5,7 +5,9 @@ import base64
 import json
 import os
 import re
+import shutil
 import ssl
+import subprocess
 import tempfile
 import time
 import urllib.error
@@ -21,7 +23,8 @@ GOOGLE_SECRET = "GOOGLE_BACKUP_CLIENT_SECRET"
 GOOGLE_TOKEN = "GOOGLE_BACKUP_REFRESH_TOKEN"
 GOOGLE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 NAME = re.compile(r"roondeck-backup-\d{4}-\d{2}-\d{2}(?:-\d{4})?\.json")
-DEFAULT = {"google_enabled": False, "google_client_id": "", "google_folder": "RoonDeck", "enabled": False, "url": "", "folder": "RoonDeck", "username": "", "verify_tls": True, "keep": 14, "time": "03:30"}
+DEFAULT = {"rsync_enabled": False, "rsync_host": "", "rsync_user": "", "rsync_port": 22, "rsync_path": "",
+           "google_enabled": False, "google_client_id": "", "google_folder": "RoonDeck", "enabled": False, "url": "", "folder": "RoonDeck", "username": "", "verify_tls": True, "keep": 14, "time": "03:30"}
 
 
 def load_target(path: Path) -> dict:
@@ -37,6 +40,13 @@ def validate_target(data) -> dict:
     target = {**DEFAULT, **{key: data[key] for key in DEFAULT if key in data}}
     target["enabled"] = target["enabled"] is True
     target["google_enabled"] = target["google_enabled"] is True
+    target["rsync_enabled"] = target["rsync_enabled"] is True
+    target["rsync_host"] = str(target["rsync_host"]).strip(); target["rsync_user"] = str(target["rsync_user"]).strip(); target["rsync_path"] = str(target["rsync_path"]).strip().rstrip("/")
+    if type(target["rsync_port"]) is not int or not 1 <= target["rsync_port"] <= 65535: raise ValueError("Enter a port between 1 and 65535")
+    if target["rsync_host"] and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,120}", target["rsync_host"]): raise ValueError("Enter the NAS name or IP address, for example synology.local")
+    if target["rsync_user"] and not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,60}", target["rsync_user"]): raise ValueError("Enter the NAS username")
+    if target["rsync_path"] and (not re.fullmatch(r"/[A-Za-z0-9/_.-]{1,200}", target["rsync_path"]) or ".." in target["rsync_path"].split("/")): raise ValueError("Enter the full folder path on the NAS, such as /volume1/backups/roondeck, without spaces")
+    if target["rsync_enabled"] and not (target["rsync_host"] and target["rsync_user"] and target["rsync_path"]): raise ValueError("Enter the NAS name, username and folder path for rsync")
     target["google_client_id"] = str(target["google_client_id"]).strip()[:200]
     target["google_folder"] = str(target["google_folder"]).strip() or "RoonDeck"
     if not re.fullmatch(r"[A-Za-z0-9 ._-]{1,60}", target["google_folder"]): raise ValueError("Use letters, numbers, spaces, dots and dashes for the Google Drive folder")
@@ -144,7 +154,7 @@ def schedule(state_dir: Path, config_path: Path, env_path: Path, version: str, s
     last_day, retry_after = "", 0.0
     while not stop.wait(30):
         target = load_target(state_dir / "backup-target.json")
-        if not (target["enabled"] or target["google_enabled"]): continue
+        if not (target["enabled"] or target["google_enabled"] or target["rsync_enabled"]): continue
         now = time.localtime()
         today = time.strftime("%Y-%m-%d", now)
         if today == last_day or time.strftime("%H:%M", now) < target["time"] or time.time() < retry_after: continue
@@ -239,7 +249,49 @@ def run_all(target: dict, state_dir: Path, config_path: Path, env_path: Path, ve
     if which in (None, "synology") and (target["enabled"] or which == "synology"):
         try: saved.append("Synology: " + run_backup(target, os.getenv(SECRET, ""), config_path, state_dir, env_path, version))
         except ValueError as error: errors.append(f"Synology: {error}")
+    if which in (None, "rsync") and (target["rsync_enabled"] or which == "rsync"):
+        try: saved.append("Synology (rsync): " + run_rsync(target, config_path, state_dir, env_path, version))
+        except ValueError as error: errors.append(f"Synology (rsync): {error}")
     if which in (None, "google") and (target["google_enabled"] or which == "google"):
         try: saved.append("Google Drive: " + run_google(target, os.getenv(GOOGLE_SECRET, ""), os.getenv(GOOGLE_TOKEN, ""), config_path, state_dir, env_path, version))
         except ValueError as error: errors.append(f"Google Drive: {error}")
     return saved, errors
+
+
+def ssh_key_path(state_dir: Path) -> Path:
+    return state_dir / "backup-ssh" / "id_ed25519"
+
+
+def ensure_ssh_key(state_dir: Path) -> str:
+    """Create the backup key pair on first use and return the public key to add on the NAS."""
+    key = ssh_key_path(state_dir)
+    if not key.is_file():
+        if not shutil.which("ssh-keygen"): raise ValueError("ssh-keygen is not installed. Run: sudo apt install openssh-client")
+        key.parent.mkdir(parents=True, exist_ok=True); key.parent.chmod(0o700)
+        done = subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "roondeck-backup", "-f", str(key)], capture_output=True, timeout=30)
+        if done.returncode != 0: raise ValueError("Could not create the SSH key")
+    return key.with_suffix(".pub").read_text(encoding="utf-8").strip()
+
+
+def run_rsync(target: dict, config_path: Path, state_dir: Path, env_path: Path, version: str, now=None) -> str:
+    """Keep a small local folder of the newest backups and mirror it to the NAS with rsync over SSH."""
+    if not shutil.which("rsync"): raise ValueError("rsync is not installed on the Pi. Run: sudo apt install rsync")
+    key = ssh_key_path(state_dir)
+    if not key.is_file(): raise ValueError("Create the SSH key and add it on the NAS first")
+    name = f"roondeck-backup-{time.strftime('%Y-%m-%d-%H%M', now or time.localtime())}.json"
+    staging = state_dir / "backup-staging"; staging.mkdir(parents=True, exist_ok=True)
+    (staging / name).write_text(json.dumps(build_backup(config_path, state_dir, env_path, version, False)), encoding="utf-8")
+    for old in sorted(item.name for item in staging.iterdir() if NAME.fullmatch(item.name))[:-target["keep"]]:
+        (staging / old).unlink()
+    ssh = " ".join(["ssh", "-i", str(key), "-p", str(target["rsync_port"]), "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "-o", "StrictHostKeyChecking=accept-new",
+                    "-o", f"UserKnownHostsFile={state_dir / 'backup-ssh' / 'known_hosts'}"])
+    command = ["rsync", "-a", "--delete", "--include=roondeck-backup-*.json", "--exclude=*", "-e", ssh, f"{staging}/", f"{target['rsync_user']}@{target['rsync_host']}:{target['rsync_path']}/"]
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise ValueError("The NAS did not answer in time") from None
+    if done.returncode != 0:
+        detail = (done.stderr or "").strip().splitlines()[-1:] or ["unknown error"]
+        hint = " Check the key is in the NAS user's authorized_keys and the folder exists." if "Permission denied" in detail[0] or "No such file" in detail[0] else ""
+        raise ValueError(f"rsync failed: {detail[0][:140]}.{hint}")
+    return name
