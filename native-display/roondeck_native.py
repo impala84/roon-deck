@@ -37,6 +37,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         self.seek_updating = False
         self.seek_timeout = None
         self.screen_powered = None
+        GLib.timeout_add_seconds(20, self.report_screen_power)
         self.system_data = {}
         self.last_config_fetch = 0.0
         self.last_system_fetch = 0.0

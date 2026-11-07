@@ -53,6 +53,24 @@ def in_window(start, end, now):
     return start <= moment < end if start < end else moment >= start or moment < end
 
 
+def sleep_mode(settings):
+    """"match" (follow RoonDeck's screen) or "schedule" (own times). Older saves only have the checkbox."""
+    return settings.get("streamdeck_sleep_mode") or ("schedule" if settings.get("streamdeck_sleep_with_display") is False else "match")
+
+
+def deck_should_sleep(settings, now, target_info):
+    """Whether the deck's backlight should be off.
+
+    "match" follows RoonDeck's real screen (the controller's sleep target, or the panel reporting it has
+    powered down, which is how the touchscreen's own idle timeout is seen). "schedule" uses only the deck's
+    own start/end times; leave them empty and the deck never sleeps by itself.
+    """
+    if sleep_mode(settings) == "schedule":
+        return in_window(settings.get("streamdeck_sleep_start"), settings.get("streamdeck_sleep_end"), now)
+    info = target_info or {}
+    return info.get("target") == "/sleep.html" or info.get("screen_powered") is False
+
+
 _pending_levels = {}   # entity_id -> (target percent, when): Home Assistant's reported level lags behind quick dial turns
 
 
@@ -428,10 +446,12 @@ def run(controls, base, stop):
                 refreshed = time.monotonic()
                 sleeping = False
                 if time.monotonic() >= deck_awake_until:
-                    sleeping = in_window(settings.get("streamdeck_sleep_start"), settings.get("streamdeck_sleep_end"), datetime.now())
-                    if not sleeping and settings.get("streamdeck_sleep_with_display", True):
-                        try: sleeping = request(base, "/api/display-target").get("target") == "/sleep.html"
-                        except (ValueError, OSError): sleeping = False
+                    info = None
+                    if sleep_mode(settings) == "match":
+                        try: info = request(base, "/api/display-target")
+                        except (ValueError, OSError): sleeping = not lit   # controller briefly unreachable: leave the deck as it is
+                    if info is not None or sleep_mode(settings) == "schedule":
+                        sleeping = deck_should_sleep(settings, datetime.now(), info)
                 if sleeping == lit:
                     lit = not sleeping
                     deck.set_brightness(settings.get("streamdeck_brightness", 70) if lit else 0)

@@ -298,6 +298,30 @@ class StreamDeckExtrasTests(unittest.TestCase):
 
 
 class StreamDeckSleepSettingTests(unittest.TestCase):
+    def test_deck_sleep_mode_follows_screen_or_own_schedule(self):
+        from datetime import datetime
+        from pi_bus_time_display.streamdeck import deck_should_sleep
+        noon, night = datetime(2026, 1, 1, 12, 0), datetime(2026, 1, 1, 23, 30)
+        awake = {"target": "/", "screen_powered": True}
+        match = {"streamdeck_sleep_mode": "match", "streamdeck_sleep_start": "23:00", "streamdeck_sleep_end": "06:00"}
+        self.assertTrue(deck_should_sleep(match, noon, {"target": "/sleep.html", "screen_powered": False}))
+        # The panel's own idle timeout never changes the controller's target, only the reported power.
+        self.assertTrue(deck_should_sleep(match, noon, {"target": "http://127.0.0.1:8766/", "screen_powered": False}))
+        self.assertFalse(deck_should_sleep(match, noon, awake))
+        self.assertFalse(deck_should_sleep(match, noon, {"target": "/"}))   # state not reported yet
+        self.assertFalse(deck_should_sleep(match, night, awake))            # match ignores the deck's own times
+        own = {"streamdeck_sleep_mode": "schedule", "streamdeck_sleep_start": "23:00", "streamdeck_sleep_end": "06:00"}
+        self.assertTrue(deck_should_sleep(own, night, awake))
+        self.assertFalse(deck_should_sleep(own, noon, {"target": "/sleep.html", "screen_powered": False}))
+        self.assertFalse(deck_should_sleep({"streamdeck_sleep_mode": "schedule"}, night, awake))   # no times: never sleeps
+        self.assertFalse(deck_should_sleep({"streamdeck_sleep_with_display": False}, night, awake))  # older save, no times
+        self.assertTrue(deck_should_sleep({}, noon, {"target": "/sleep.html"}))                      # older default follows the screen
+
+    def test_sleep_mode_is_validated(self):
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"streamdeck_sleep_mode": "match"}); validate_settings({"streamdeck_sleep_mode": "schedule"})
+        with self.assertRaises(ValueError): validate_settings({"streamdeck_sleep_mode": "both"})
+
     def test_sleep_with_display_must_be_a_boolean(self):
         from pi_bus_time_display.listening import validate_settings
         validate_settings({"streamdeck_sleep_with_display": False})

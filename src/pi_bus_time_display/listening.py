@@ -96,7 +96,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     host = data.get("kef_host", "")
     if not isinstance(host, str) or len(host) > 253 or any(character.isspace() or character in "/\\@" for character in host):
@@ -109,6 +109,8 @@ def validate_settings(data):
     for name in ("enabled", "streamdeck_enabled", "streamdeck_sleep_with_display"):
         if name in data and type(data[name]) is not bool:
             raise ValueError(f"{name} must be true or false")
+    if "streamdeck_sleep_mode" in data and data["streamdeck_sleep_mode"] not in ("match", "schedule"):
+        raise ValueError("Deck sleep must follow RoonDeck (match) or its own schedule")
     for name in ("streamdeck_sleep_start", "streamdeck_sleep_end"):
         if name in data and not (isinstance(data[name], str) and re.fullmatch(r"(|([01]\d|2[0-3]):[0-5]\d)", data[name])):
             raise ValueError("Sleep times must look like 23:00, or be empty")

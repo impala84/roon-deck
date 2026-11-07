@@ -408,9 +408,12 @@
     brightnessTimer = setTimeout(() => SHARED().call('POST', {action: 'deck_brightness', value: Number(deckBrightness.value)}, '/api/listening/command').catch(() => {}), 120);
   };
   const wake = {};
+  const deckSleepMode = settings => settings.streamdeck_sleep_mode || (settings.streamdeck_sleep_with_display === false ? 'schedule' : 'match');
+  function syncWakeFields() { if (wake.times) wake.times.hidden = sleepBox.value !== 'schedule'; }
   function syncWake() {
     const settings = SHARED().settings;
-    sleepBox.checked = settings.streamdeck_sleep_with_display !== false;
+    sleepBox.value = deckSleepMode(settings);
+    syncWakeFields();
     wake.start.value = settings.streamdeck_sleep_start || ''; wake.end.value = settings.streamdeck_sleep_end || '';
     wake.awake.value = settings.streamdeck_awake_seconds ?? 30;
     deckBrightness.value = settings.streamdeck_brightness ?? 70; deckBrightnessValue.textContent = `${deckBrightness.value}%`;
@@ -421,9 +424,9 @@
     for (const input of [wake.start, wake.end, wake.awake]) input.oninput = () => markDirty();
     const art = h('div', {class: 'dd-wake-art', 'aria-hidden': 'true'}); art.innerHTML = '<svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M78 24a38 38 0 1 0 22 62A32 32 0 0 1 78 24z"/><circle cx="92" cy="30" r="1.6" fill="currentColor"/><path d="M26 30v6M23 33h6"/></svg>';
     const text = h('div', {class: 'dd-wake-text'}, h('h3', {}, 'Wake & sleep'),
-      h('p', {class: 'cd-muted'}, 'The deck can sleep along with the screen, on its own schedule, or both. While it sleeps the backlight is off; touch any key or dial to wake it, and the first touch only wakes it.'),
-      h('label', {class: 'dd-check'}, sleepBox, h('span', {}, 'Sleep with the display (overnight schedule, or when Roon has been idle)')),
-      h('div', {class: 'cd-grid two'}, field('Sleep the deck from (optional)', wake.start), field('Wake it again at', wake.end)),
+      h('p', {class: 'cd-muted'}, 'Match RoonDeck to sleep and wake exactly when the touchscreen does, including its idle timeout, or set your own times. While the deck sleeps its backlight is off; touch any key or dial to wake it, and the first touch only wakes it.'),
+      h('label', {class: 'cd-field'}, h('span', {}, 'Sleep and wake'), sleepBox),
+      wake.times = h('div', {class: 'cd-grid two'}, field('Sleep the deck from', wake.start), field('Wake it again at', wake.end)),
       h('div', {class: 'cd-grid two'}, field('Stay fully awake after a touch (seconds)', wake.awake)));
     const card = h('div', {class: 'dd-wake'}, text, art);
     syncWake();
@@ -443,8 +446,9 @@
   function build() {
     enableBox = h('input', {type: 'checkbox'}); enableBox.checked = !!SHARED().settings.streamdeck_enabled;
     enableBox.onchange = () => markDirty();
-    sleepBox = h('input', {type: 'checkbox'}); sleepBox.checked = SHARED().settings.streamdeck_sleep_with_display !== false;
-    sleepBox.onchange = () => markDirty();
+    sleepBox = h('select', {'aria-label': 'Stream Deck sleep'}, h('option', {value: 'match'}, 'Match RoonDeck (sleeps and wakes with the screen)'), h('option', {value: 'schedule'}, 'My own schedule'));
+    sleepBox.value = deckSleepMode(SHARED().settings);
+    sleepBox.onchange = () => { syncWakeFields(); markDirty(); };
     revertButton = h('button', {type: 'button', class: 'secondary'}, 'Discard changes');
     // Saved by the page-wide "Save changes" button, not a button of its own.
     window.RoonDeckSaves = window.RoonDeckSaves || {};
@@ -457,7 +461,7 @@
         const missing = buttons.findIndex(item => (item.action === 'home_toggle' || item.action === 'home_scene' || item.action === 'home_script') && !item.entity_id);
         if (missing >= 0) throw new Error(`Key ${missing + 1}: choose a Home device`);
         settings.streamdeck_enabled = enableBox.checked;
-        settings.streamdeck_sleep_with_display = sleepBox.checked;
+        settings.streamdeck_sleep_mode = sleepBox.value; settings.streamdeck_sleep_with_display = sleepBox.value === 'match';
         settings.streamdeck_sleep_start = wake.start.value; settings.streamdeck_sleep_end = wake.end.value;
         settings.streamdeck_awake_seconds = Math.max(5, Math.min(3600, Math.round(Number(wake.awake.value) || 30)));
         settings.streamdeck_brightness = Number(deckBrightness.value);

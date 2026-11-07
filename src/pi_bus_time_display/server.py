@@ -98,6 +98,7 @@ class State:
         self.last_roon_playing = 0.0
         self.awake_until = 0.0
         self.awake_view = "bus"
+        self.screen_powered: bool | None = None   # the touchscreen's own report: lets the Stream Deck follow its idle sleep
         self.manual_mode_signature: tuple[int, str] | None = None
         self.manual_mode_period: str | None = None
         self.state_dir = state_dir or Path(".state")
@@ -1129,7 +1130,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             if self.path.startswith("/login.html?"):
                 self.path = "/login.html"
             if self.path == "/api/display-target":
-                self.send_json(200, json.dumps({"target": automatic_display_target(state, mode_path, roon_status())}).encode())
+                self.send_json(200, json.dumps({"target": automatic_display_target(state, mode_path, roon_status()), "screen_powered": state.screen_powered}).encode())
                 return
             if self.path == "/display":
                 self.send_response(302)
@@ -1595,6 +1596,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     return
                 length = min(int(self.headers.get("Content-Length", "0")), 4096)
                 data = json.loads(self.rfile.read(length) or b"{}")
+                state.screen_powered = bool(data.get("powered"))
+                if data.get("report_only"):   # the panel's periodic reminder, so a restarted controller relearns the state
+                    self.send_json(202, b'{"ok":true}')
+                    return
                 request = {"action": "display_on" if data.get("powered") else "display_off"}
                 if data.get("powered"):
                     request["brightness"] = state.display_brightness

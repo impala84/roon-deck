@@ -802,6 +802,12 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         threading.Thread(target=post_json, args=(BUS + "/api/device/screen-power", {"powered": powered}), daemon=True).start()
         GLib.timeout_add_seconds(1 if powered else 2, self.confirm_screen_power, powered)
 
+    def report_screen_power(self):
+        # Tell the controller (and so the Stream Deck) what the panel is really doing, now and again every 20s.
+        if self.screen_powered is not None:
+            threading.Thread(target=post_json, args=(BUS + "/api/device/screen-power", {"powered": self.screen_powered, "report_only": True}), daemon=True).start()
+        return True
+
     def confirm_screen_power(self, powered):
         if self.screen_powered is powered:
             threading.Thread(target=post_json, args=(BUS + "/api/device/screen-power", {"powered": powered}), daemon=True).start()
