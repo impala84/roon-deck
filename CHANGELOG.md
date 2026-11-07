@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.65 Alpine — 8 November 2026
+
+- Stream Deck: it can now match RoonDeck's wake and sleep exactly, or follow your own schedule. Settings › Stream Deck › Wake & sleep has a new choice: Match RoonDeck (the deck sleeps and wakes with the touchscreen, including its idle timeout) or My own schedule (set the times yourself; leave them empty and the deck never sleeps). Before, the deck missed the touchscreen's own idle sleep, so it could stay lit while RoonDeck was asleep. Upgrading keeps your choice: unticking "sleep with display" becomes My own schedule, and everything else becomes Match RoonDeck. A touch still wakes a sleeping deck for your chosen stay-awake time.
+
 ## 1.2.0-beta.64 Alpine — 7 November 2026
 
 - Touchscreen: fixed Now Playing (and every other page) freezing out of sync while the Stream Deck and web settings kept working. One unexpected response could stop the display's refresh loop for good; it now recovers on the next refresh, restarts a stalled refresh after 20 seconds, and writes the cause to the display log.
