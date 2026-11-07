@@ -539,6 +539,25 @@ class AlpineSetupTests(unittest.TestCase):
         self.setup.handle({"action": "roon_restart"})
         self.run.assert_any_call(["rc-service", "roonbridge", "restart"])
 
+    def test_playback_priority_favours_the_bridge_and_is_idempotent(self):
+        start = self.root / "opt/RoonBridge/start.sh"; start.parent.mkdir(parents=True); start.touch()
+        gov = self.root / "sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"; gov.parent.mkdir(parents=True); gov.write_text("ondemand\n")
+        run = Mock(side_effect=lambda cmd: "123\n" if cmd[0] == "pgrep" else "")
+        module.ensure_playback_priority(self.root, run)
+        bridge = (self.root / "etc/conf.d/roonbridge").read_text()
+        self.assertIn("nice=-10", bridge); self.assertIn("oom_score_adjust=-800", bridge)
+        self.assertIn("nice=5", (self.root / "etc/conf.d/pi-home-display").read_text())
+        self.assertEqual(gov.read_text().strip(), "performance")
+        run.assert_any_call(["renice", "-n", "-10", "-p", "123"])
+        before = (self.root / "etc/conf.d/pi-home-api").stat().st_mtime_ns
+        module.ensure_playback_priority(self.root, run)
+        self.assertEqual((self.root / "etc/conf.d/pi-home-api").stat().st_mtime_ns, before)
+
+    def test_playback_priority_skips_the_bridge_when_it_is_not_installed(self):
+        module.ensure_playback_priority(self.root)
+        self.assertFalse((self.root / "etc/conf.d/roonbridge").exists())
+        self.assertTrue((self.root / "etc/conf.d/pi-home-display").exists())
+
     def test_roon_bridge_start_reports_when_the_official_files_are_absent(self):
         self.setup.save({"complete": True})
         with self.assertRaisesRegex(ValueError, "not installed"):

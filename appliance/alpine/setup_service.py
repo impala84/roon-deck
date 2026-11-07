@@ -340,6 +340,55 @@ depend() { need localmount; after networkmanager; }
 """, 0o755)
     return service
 
+# Playback comes first on this appliance. A 192 kHz / 24-bit stream is ~9 Mbit/s of steady network
+# and needs its audio threads scheduled on time, so Roon Bridge gets the best CPU and disk
+# priority and is the last thing the kernel will kill for memory, while the touchscreen, API and
+# Roon controller yield to it. OpenRC reads these per-service overrides from /etc/conf.d.
+PLAYBACK_PRIORITY = {
+    "roonbridge": ("-10", "2:0", "-800"),
+    "pi-home-display": ("5", "2:5", "300"),
+    "pi-home-api": ("8", "2:7", "500"),
+    "pi-home-roon": ("8", "2:7", "500"),
+}
+
+
+def ensure_playback_priority(root, run=None):
+    """Write managed priority overrides, lift a running bridge now and pin the CPU to full speed.
+
+    Safe to repeat on every start: files are rewritten only when they differ, and nothing here
+    restarts a service, so music is never interrupted. New settings reach the display, API and
+    controller at their next restart (the updater restarts them) and the bridge at its next start.
+    """
+    root = Path(root)
+    bridge = (root / "opt/RoonBridge/start.sh").is_file()
+    for name, (nice, ionice, oom) in PLAYBACK_PRIORITY.items():
+        if name == "roonbridge" and not bridge: continue
+        conf = root / "etc/conf.d" / name
+        text = ("# Managed by RoonDeck: playback is prioritised over the touchscreen and web services.\n"
+                f'nice={nice}\nionice="{ionice}"\noom_score_adjust={oom}\n')
+        try:
+            if conf.is_file() and conf.read_text() == text: continue
+            conf.parent.mkdir(parents=True, exist_ok=True)
+            atomic(conf, text, 0o644)
+        except OSError:
+            continue
+    if not bridge: return
+    # A governor that ramps up late is a common cause of dropouts on hi-res streams.
+    for governor in sorted(root.glob("sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor")):
+        try:
+            if governor.read_text().strip() != "performance": governor.write_text("performance\n")
+        except OSError:
+            pass
+    if run is None: return
+    try:
+        pids = run(["pgrep", "-f", "/opt/RoonBridge"]).split()
+    except Exception:
+        return
+    for pid in (p for p in pids if p.isdigit()):
+        for command_line in (["renice", "-n", "-10", "-p", pid], ["ionice", "-c", "2", "-n", "0", "-p", pid]):
+            try: run(command_line)
+            except Exception: pass
+
 
 def configure_airplay(root, name="RoonDeck"):
     """Write the small, owned Shairport Sync configuration used by RoonDeck."""
@@ -670,7 +719,7 @@ class Setup:
             self.run([str(extracted / "check.sh")])
             destination.parent.mkdir(parents=True, exist_ok=True)
             extracted.replace(destination)
-            ensure_roon_bridge_service(self.root)
+            ensure_roon_bridge_service(self.root); ensure_playback_priority(self.root)
             self.run(["rc-update", "add", "roonbridge", "default"])
             self.run(["rc-service", "roonbridge", "start"])
             atomic(status, "Roon Bridge installed and running. Enable this endpoint in Roon → Settings → Audio.\n")
@@ -894,7 +943,7 @@ class Setup:
             return {"ok": True}
         if action in {"roon_start", "roon_stop", "roon_restart"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing services.")
-            ensure_roon_bridge_service(self.root)
+            ensure_roon_bridge_service(self.root); ensure_playback_priority(self.root)
             if action == "roon_start":
                 self.run(["rc-update", "add", "roonbridge", "default"])
                 self.run(["rc-service", "roonbridge", "start"])
@@ -1164,6 +1213,8 @@ def serve():
     install_clock_support()
     ensure_daily_update_check()
     app = Setup()
+    try: ensure_playback_priority(Path("/"), app.run)
+    except Exception: pass
     app.network_control = NetworkControl()
     app.network_control.recover()
     if Path("/opt/netdata/bin/netdata").is_file():

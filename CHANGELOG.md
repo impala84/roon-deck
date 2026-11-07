@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.67 Alpine — 8 November 2026
+
+- Playback first: Roon Bridge now runs at the highest CPU and disk priority and is the last process the system will stop if memory runs short, while the touchscreen, web admin and Roon controller yield to it. The CPU is held at full speed while the bridge is installed, so 192 kHz / 24-bit streams are not starved by a slow clock ramp. Nothing restarts, so music is never interrupted: the bridge is lifted immediately, and the other services pick the change up at their next restart.
+
 ## 1.2.0-beta.66 Alpine — 8 November 2026
 
 - Home (7-inch and larger landscape displays): a new dashboard layout. A player card (cover art behind the track, fading to the bottom) and the next bus sit beside a grid of device cards, with one even gap between everything; three columns by default, or two. Lights, fans and the air conditioner have a full-width slider; switches show a toggle; scenes are square buttons, two to a cell. Icons are larger and sit slightly above centre, with room between the name and the slider. The original 800x480 and portrait displays keep the classic tiles.
