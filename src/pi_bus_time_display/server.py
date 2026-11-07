@@ -29,6 +29,7 @@ from . import __version__
 from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
+from .home_layout import load_layout, save_layout, with_layout
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
 
@@ -138,7 +139,7 @@ class State:
         return {
             "services": [{"name": service, "enabled": service in self.enabled_services} for service in self.config.services],
             "accessory_features": {name: load_json(self.state_dir / "accessory-features.json", {}).get(name) is True for name in ("vpn", "dial")},
-            "home": self.home_data,
+            "home": with_layout(self.home_data, load_layout(self.state_dir / "home-layout.json")),
             "listening": self.listening.snapshot(),
             "display_brightness": self.display_brightness,
             "capture_request": capture_id,
@@ -1058,6 +1059,19 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = target.read_bytes()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "no-cache")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if self.path == "/api/admin/home-layout":
+                if not self.authorised(): return
+                self.send_json(200, json.dumps(load_layout(state.state_dir / "home-layout.json")).encode()); return
+            if self.path.startswith("/api/device/home-art/"):
+                if self.client_address[0] not in {"127.0.0.1", "::1"}:
+                    self.send_json(403, b'{"error":"Touchscreen only"}'); return
+                name = self.path.rsplit("/", 1)[-1].split("?", 1)[0]
+                target = self.deck_art_dir() / name
+                if not DECK_ART_NAME.fullmatch(name) or not target.is_file():
+                    self.send_json(404, b'{"error":"Not found"}'); return
+                body = target.read_bytes()
+                self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "max-age=300")
+                self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/listening":
                 if not self.authorised(): return
                 try:
@@ -1312,6 +1326,18 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     settings = state.listening.save(json.loads(self.rfile.read(length)))
                     self.send_json(200, json.dumps({"ok": True, "settings": settings}).encode())
                     threading.Thread(target=state.listening.refresh, daemon=True).start()
+                except (ValueError, TypeError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path == "/api/admin/home-layout":
+                if not self.authorised(): return
+                try:
+                    if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                        raise ValueError("JSON request required")
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 30000: raise ValueError("Home layout is too large")
+                    saved = save_layout(state.state_dir / "home-layout.json", json.loads(self.rfile.read(length)))
+                    self.send_json(200, json.dumps({"ok": True, "layout": saved}).encode())
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return

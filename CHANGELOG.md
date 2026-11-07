@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.45 Alpine — 7 November 2026
+
+- Home Assistant settings now use tabs like the Stream Deck designer: Settings (address, token and connection status), Layout and Colours.
+- New Layout screen designer: search your Home Assistant devices, drag them onto a preview of your touchscreen, drag tiles to reorder, and give each tile its own size (quarter, half or full width), label, icon, image and colour. The preview follows your screen's size and orientation.
+- Colours tab: a standard colour per kind of device (or one colour for everything), with a live preview. Any tile can override it in Layout.
+- The touchscreen Home page draws tile sizes, icons, images, labels and colours. Layouts with no sizes chosen look as before. Not yet tried on a Pi touchscreen.
+
 ## 1.2.0-beta.44 Alpine — 7 November 2026
 
 - Home Assistant settings: "Entities shown" is now a browser. Search everything in Home Assistant, add up to eight devices, and reorder or remove them, instead of typing entity IDs. With no address or token saved yet, the plain text box stays.

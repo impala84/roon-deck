@@ -249,6 +249,8 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.home_color_provider = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.home_color_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.home_tile_provider = Gtk.CssProvider()
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.home_tile_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)
         self.window = create_display_window(application=self); self.window.set_decorated(False); self.window.set_default_size(800, 480); self.window.fullscreen()
         # Apply saved theme before the first frame, not after an API poll.
         initial_config = {}

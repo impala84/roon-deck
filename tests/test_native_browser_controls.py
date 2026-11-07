@@ -100,12 +100,12 @@ class PortraitRefinementTests(unittest.TestCase):
 
     def test_home_scene_feedback_centres_labels_and_pulses_the_whole_tile(self):
         code = native_text()
-        self.assertIn('name.set_justify(Gtk.Justification.LEFT if portrait else Gtk.Justification.CENTER)', code)
-        self.assertIn('button.scene_tile = box', code)
+        self.assertIn('name.set_justify(Gtk.Justification.LEFT if row_mode else Gtk.Justification.CENTER)', code)
+        self.assertIn('button.scene_tile = tile_widget', code)
         self.assertIn('button.scene_tile.add_css_class("activated")', code)
         self.assertIn('button.scene_tile.remove_css_class("activated")', code)
         self.assertIn('.theme-roon .home-tile.activated', code)
-        self.assertIn('box.add_css_class("home-domain-switch" if domain == "input_boolean" else f"home-domain-{domain}")', code)
+        self.assertIn('tile_widget.add_css_class(domain_class)', code)
         self.assertIn('def apply_home_colors(self, config):', code)
 
     def test_decoded_thumbnail_only_updates_widgets_on_ui_thread(self):
@@ -1365,8 +1365,8 @@ class NativeBrowserControlsTests(unittest.TestCase):
     def test_six_home_controls_fill_landscape_with_two_tall_tiles_and_a_two_by_two_group(self):
         code = native_text()
         self.assertIn('if not portrait and len(entities) == 6:', code)
-        self.assertIn('self.home_grid.attach(box, index, 0, 1, 2)', code)
-        self.assertIn('self.home_grid.attach(box, 2 + (index - 2) % 2, (index - 2) // 2, 1, 1)', code)
+        self.assertIn('self.home_grid.attach(tile_widget, index, 0, 1, 2)', code)
+        self.assertIn('self.home_grid.attach(tile_widget, 2 + (index - 2) % 2, (index - 2) // 2, 1, 1)', code)
 
     def test_missing_configured_zone_has_an_explicit_quiet_state(self):
         code = native_text()
