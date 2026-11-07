@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.60 Alpine — 7 November 2026
+
+- Software: the Backup Server and Cloud backups tabs no longer let buttons run into the status card at narrower widths; the card moves below the text when space is tight, and the buttons wrap.
+
 ## 1.2.0-beta.59 Alpine — 7 November 2026
 
 - Backup Server: a copy button beside the pairing code copies it in one click.
