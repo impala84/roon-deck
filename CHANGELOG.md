@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.52 Alpine — 7 November 2026
+
+- Fix RoonDeck Backup Server deployment in Portainer: configure Debian’s existing backup account instead of attempting to create a duplicate user, which failed the image build with exit code 9.
+
 ## 1.2.0-beta.51 Alpine — 7 November 2026
 
 - RoonDeck Backup Server: preserve executable permissions on the Pi installation and update scripts in the published source package. Includes all backup-server features from beta.50.

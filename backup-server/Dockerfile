@@ -1,8 +1,10 @@
 FROM python:3.12-slim-bookworm
+# Debian already provides backup (UID 34); configure it instead of creating it.
 RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync openssl tini util-linux tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -u 10001 -m -s /bin/sh backup \
-    && usermod -p '*' backup && mkdir -p /run/sshd
+    && usermod -u 10001 -d /home/backup -s /bin/sh -p '*' backup \
+    && mkdir -p /home/backup /run/sshd \
+    && chown backup:backup /home/backup
 WORKDIR /app
 COPY src/pi_bus_time_display /app/pi_bus_time_display
 COPY backup-server /app/backup-server
