@@ -62,7 +62,7 @@
     return {portrait, width: portrait ? tall : wide, height: portrait ? wide : tall, label};
   }
   // Landscape displays 1000px wide or more use the card dashboard, which has a choice of 2 or 3 columns.
-  const dashColumns = () => { const shape = screen(); return !shape.portrait && shape.width >= 1000 ? (layout.columns === 3 ? 3 : 2) : 0; };
+  const dashColumns = () => { const shape = screen(); return !shape.portrait && shape.width >= 1000 ? (layout.columns === 2 ? 2 : 3) : 0; };
   const isScene = id => domainOf(id) === 'scene';
   const plainTile = id => (!tileOf(id).size || tileOf(id).size === 'auto') && tileOf(id).rows !== 2;
   // The same placement rules as the touchscreen. Tiles the owner placed (col/row) keep their cell; the rest take the first free space.
@@ -80,7 +80,7 @@
     const taken = new Set(), at = new Map();
     // Neighbouring scenes share one cell as two square buttons: both unplaced, or both given the same cell.
     const pairOf = new Map();
-    if (dash) for (let i = 0; i + 1 < list.length; i += 1) {
+    if (dash === 2) for (let i = 0; i + 1 < list.length; i += 1) {
       const a = list[i], b = list[i + 1];
       if (pairOf.has(a) || !isScene(a) || !isScene(b) || !plainTile(a) || !plainTile(b)) continue;
       if ((!hasPlace(a) && !hasPlace(b)) || (hasPlace(a) && hasPlace(b) && tileOf(a).col === tileOf(b).col && tileOf(a).row === tileOf(b).row)) { pairOf.set(a, 'a'); pairOf.set(b, 'b'); i += 1; }
@@ -326,7 +326,7 @@
     alsoPick.onchange = () => { if (alsoPick.value) linkSet([...also, alsoPick.value]); };
     const linkField = isScene(id) ? null : field('Switch together with', h('div', {class: 'hd-stack'}, alsoChips, alsoPick), 'One tap switches this device and the ones added here on or off together, for example two Pi-holes. The tile shows how many are on.');
     const list2 = ids(), next = list2[list2.indexOf(id) + 1];
-    const canPair = dashColumns() > 0 && isScene(id) && next && isScene(next) && plainTile(id) && plainTile(next);
+    const canPair = dashColumns() === 2 && isScene(id) && next && isScene(next) && plainTile(id) && plainTile(next);
     const paired = canPair && ((!hasPlace(id) && !hasPlace(next)) || (hasPlace(id) && hasPlace(next) && tile.col === tileOf(next).col && tile.row === tileOf(next).row));
     const pairBox = h('input', {type: 'checkbox'}); pairBox.checked = !!paired;
     pairBox.onchange = () => {

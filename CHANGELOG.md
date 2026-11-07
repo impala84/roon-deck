@@ -2,8 +2,8 @@
 
 ## 1.2.0-beta.66 Alpine — 8 November 2026
 
-- Home (7-inch and larger landscape displays): a new dashboard layout. A player card (cover art behind the track, fading to the bottom) and the next bus sit beside a grid of device cards, with one even gap between everything. Lights, fans and the air conditioner have a full-width slider; switches show a toggle; scenes are square buttons, two to a cell. Icons are larger and sit slightly above centre, with room between the name and the slider. The original 800x480 and portrait displays keep the classic tiles.
-- Home builder: choose 2 or 3 columns, and keep dragging tiles to reshuffle or stretch them. A tile can now switch other devices together with it (for example two Pi-holes behind one toggle; it shows "1 of 2 on" when they disagree), and neighbouring scenes can share a cell.
+- Home (7-inch and larger landscape displays): a new dashboard layout. A player card (cover art behind the track, fading to the bottom) and the next bus sit beside a grid of device cards, with one even gap between everything; three columns by default, or two. Lights, fans and the air conditioner have a full-width slider; switches show a toggle; scenes are square buttons, two to a cell. Icons are larger and sit slightly above centre, with room between the name and the slider. The original 800x480 and portrait displays keep the classic tiles.
+- Home builder: choose 3 (the default) or 2 columns, and keep dragging tiles to reshuffle or stretch them. A tile can now switch other devices together with it (for example two Pi-holes behind one toggle; it shows "1 of 2 on" when they disagree), and in two columns neighbouring scenes can share a cell.
 - Home Assistant: air conditioners (climate) can be added to Home; the slider sets the target temperature across the unit's own range.
 
 ## 1.2.0-beta.65 Alpine — 8 November 2026

@@ -89,7 +89,7 @@ class HomeDashboardMixin:
 
     # ---- right: the grid of device cards ----
     def render_home_dashboard(self, home, entities):
-        columns = home.get("columns") if home.get("columns") in (2, 3) else 2
+        columns = home.get("columns") if home.get("columns") in (2, 3) else 3   # 3 unless the owner chose 2
         scale = self.home_scale()
         self.home_grid.set_row_spacing(GAP); self.home_grid.set_column_spacing(GAP); self.home_grid.set_hexpand(True)
         rules = []
@@ -105,7 +105,7 @@ class HomeDashboardMixin:
             entity = entities[index]
             other = entities[index + 1] if index + 1 < len(entities) else None
             same_cell = other is not None and has_place(entity) and has_place(other) and (tile_of(entity)["col"], tile_of(entity)["row"]) == (tile_of(other)["col"], tile_of(other)["row"])
-            if other is not None and is_scene(entity) and is_scene(other) and plain(entity) and plain(other) and ((not has_place(entity) and not has_place(other)) or same_cell):
+            if columns == 2 and other is not None and is_scene(entity) and is_scene(other) and plain(entity) and plain(other) and ((not has_place(entity) and not has_place(other)) or same_cell):
                 units.append([entity, other]); index += 2
             else: units.append([entity]); index += 1
         spans = {"quarter": 1, "half": min(2, columns), "full": columns}
@@ -136,7 +136,7 @@ class HomeDashboardMixin:
                 cell = Gtk.Box(spacing=GAP); cell.set_homogeneous(True); cell.set_hexpand(True); cell.set_vexpand(True)
                 for entity in unit: cell.append(self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale))
                 widget = cell
-            else: widget = self.home_card(unit[0], number, rules, scale)
+            else: widget = self.home_card(unit[0], number, rules, scale, columns == 3)
             self.home_grid.attach(widget, column, row, width, height)
         self.home_tile_provider.load_from_data("\n".join(rules))
 
@@ -184,7 +184,7 @@ class HomeDashboardMixin:
             return f"{round(level)}%" if on and level is not None else ("ON" if on else "OFF")
         return "ON" if on else "OFF" if state in {"on", "off"} else state.upper()
 
-    def home_card(self, entity, number, rules, scale):
+    def home_card(self, entity, number, rules, scale, compact=False):
         domain = entity.get("domain", "switch"); state = str(entity.get("state", "unknown"))
         on = bool(entity.get("on", state in {"on", "open", "playing"})); accent = self.home_accent(entity, domain); entity_id = entity.get("entity_id", "")
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); card.set_hexpand(True); card.set_vexpand(True)
@@ -197,13 +197,24 @@ class HomeDashboardMixin:
         button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)
-        text.append(name); text.append(self.label(self.home_detail(entity, on), "home-state", 0)); top.append(text)
+        if compact: name.set_wrap(True); name.set_lines(2); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        text.append(name); text.append(self.label(self.home_detail(entity, on), "home-state", 0))
         has_level = bool(entity.get("supports_level"))
+        switch = None
         if not has_level:
             switch = Gtk.Box(); switch.add_css_class("home-switch"); switch.set_valign(Gtk.Align.CENTER)
             if on: switch.add_css_class("on")
-            knob = Gtk.Box(); knob.add_css_class("home-switch-knob"); knob.set_hexpand(True); knob.set_halign(Gtk.Align.END if on else Gtk.Align.START); switch.append(knob); top.append(switch)
+            knob = Gtk.Box(); knob.add_css_class("home-switch-knob"); knob.set_hexpand(True); knob.set_halign(Gtk.Align.END if on else Gtk.Align.START); switch.append(knob)
+        if compact:
+            # Three columns leave a narrow card: icon and toggle on top, name and state under them.
+            filler = Gtk.Box(); filler.set_hexpand(True); top.append(filler)
+            if switch is not None: top.append(switch)
+            inner.set_spacing(round(16 * scale))
+        else:
+            top.append(text)
+            if switch is not None: top.append(switch)
         inner.append(top)
+        if compact: inner.append(text)
         if has_level:
             level = entity.get("percentage")
             if level is None and entity.get("brightness") is not None: level = round(float(entity["brightness"]) * 100 / 255)
