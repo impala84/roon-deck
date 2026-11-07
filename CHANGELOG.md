@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.64 Alpine — 7 November 2026
+
+- Touchscreen: fixed Now Playing (and every other page) freezing out of sync while the Stream Deck and web settings kept working. One unexpected response could stop the display's refresh loop for good; it now recovers on the next refresh, restarts a stalled refresh after 20 seconds, and writes the cause to the display log.
+
 ## 1.2.0-beta.63 Alpine — 7 November 2026
 
 - Settings › System › Device: the About section now tells the RoonDeck story, what it does, how to get involved (website, feedback, issues, source) and a collapsible licences and acknowledgements panel, styled to match the rest of Settings.

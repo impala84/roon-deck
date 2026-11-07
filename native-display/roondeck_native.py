@@ -633,11 +633,30 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         return False
 
     def start_poll(self):
+        # Watchdog: a poll that has run for far longer than its request
+        # timeouts is stuck. Let a fresh one start rather than freezing the
+        # screen until the display service is restarted.
+        if self.polling and time.monotonic() - getattr(self, "poll_started_at", 0) > 20:
+            print("RoonDeck poll stalled for 20s; starting a new one", flush=True)
+            self.polling = False
         if not self.polling:
-            self.polling = True; threading.Thread(target=self.poll, daemon=True).start()
+            self.polling = True; self.poll_started_at = time.monotonic()
+            threading.Thread(target=self.poll, daemon=True).start()
         return True
 
     def poll(self):
+        # Any unexpected response shape used to kill this thread before it
+        # cleared self.polling, so the screen silently stopped updating while
+        # the web UI and Stream Deck carried on. Always log and always clear.
+        try:
+            self._poll()
+        except Exception:
+            import traceback
+            print("RoonDeck poll failed:\n" + traceback.format_exc(), flush=True)
+        finally:
+            self.polling = False
+
+    def _poll(self):
         started = time.monotonic()
         target_response = get_json(BUS + "/api/display-target"); status = get_json(BUS + "/api/status"); roon = get_json(ROON + "/api/state"); device = get_json(BUS + "/api/device/controls") or {}
         capture_id = device.get("capture_request")
