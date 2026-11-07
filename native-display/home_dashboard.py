@@ -1,4 +1,4 @@
-"""Landscape Home page: a player card and the next bus beside a grid of device cards (2 or 3 columns).
+"""Landscape Home page: one grid (2 or 3 columns) holding the player card, the next bus and the device cards.
 
 Used on the 7-inch and larger landscape displays. The original 800x480 panel and portrait displays keep the
 classic tile grid in home_page.py.
@@ -23,10 +23,10 @@ class HomeDashboardMixin:
     def home_scale(self):
         return max(1.0, getattr(self, "viewport_width", 1280) / 1280)
 
-    # ---- left column: player and next bus ----
+    # ---- the player and next-bus cards: built once, then placed on the grid like any other tile ----
     def build_home_side(self):
-        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=GAP); side.add_css_class("home-side"); side.set_visible(False); side.set_vexpand(True); side.set_valign(Gtk.Align.FILL)
-        player = Gtk.Overlay(); player.add_css_class("hs-card"); player.set_overflow(Gtk.Overflow.HIDDEN); player.set_vexpand(True)
+        side = Gtk.Box(); side.add_css_class("home-side"); side.set_visible(False)   # an empty, hidden holder: the cards live in the grid
+        player = Gtk.Overlay(); player.add_css_class("hs-card"); player.set_overflow(Gtk.Overflow.HIDDEN); player.set_hexpand(True); player.set_vexpand(True); self.hs_player = player; self.hs_short = False
         self.hs_art = Gtk.Picture(); self.hs_art.set_content_fit(Gtk.ContentFit.COVER); self.hs_art.set_can_shrink(True); self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL)
         player.set_child(self.hs_art)
         fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade)
@@ -48,22 +48,19 @@ class HomeDashboardMixin:
         self.hs_volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.hs_volume.add_css_class("home-slider"); self.hs_volume.add_css_class("hs-volume")
         self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
         self.hs_volume_row = volume; content.append(volume)
-        player.add_overlay(content); side.append(player)
-        bus = Gtk.Box(spacing=22); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_vexpand(False); self.hs_bus = bus
+        player.add_overlay(content)
+        bus = Gtk.Box(spacing=22); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); self.hs_bus = bus
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
         self.hs_bus_icon = FamilyIcon("bus", 44); self.hs_bus_icon.set_halign(Gtk.Align.CENTER); self.hs_bus_icon.set_valign(Gtk.Align.CENTER); self.hs_bus_icon.set_hexpand(True); chip.append(self.hs_bus_icon); bus.append(chip)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         self.hs_route = self.label("", "hs-route"); self.hs_then = self.label("", "hs-then"); text.append(self.hs_route); text.append(self.hs_then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         self.hs_minutes = self.label("", "hs-minutes"); self.hs_unit = self.label("min", "hs-unit"); self.hs_unit.set_valign(Gtk.Align.END); arrival.append(self.hs_minutes); arrival.append(self.hs_unit); bus.append(arrival)
-        side.append(bus)
         return side
 
     def render_home_side(self, roon, status):
-        if not self.home_side.get_visible(): return
+        if not self.home_dashboard_active(): return
         scale = self.home_scale()
-        self.home_side.set_size_request(round(390 * scale), -1)
-        self.hs_bus.set_size_request(-1, round(168 * scale))
         # The Now Playing page already works out the zone, track, controls and volume each refresh; mirror its widgets.
         self.hs_zone.set_text((self.zone.get_text() or "ROON").upper()); self.hs_title.set_text(self.title.get_text()); self.hs_artist.set_text(self.artist.get_text())
         paintable = self.artwork.get_paintable()
@@ -75,7 +72,8 @@ class HomeDashboardMixin:
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
         self.volume_updating = True
-        self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible())
+        self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible() and not self.hs_short)
+        self.hs_zone.set_visible(not self.hs_short); self.hs_title.set_lines(1 if self.hs_short else 2)
         self.volume_updating = False
         services = (status or {}).get("services") or []
         chosen = next((item for item in services if str(item.get("service")) == HOME_BUS_ROUTE), services[0] if services else None)
@@ -92,6 +90,13 @@ class HomeDashboardMixin:
         columns = home.get("columns") if home.get("columns") in (2, 3) else 3   # 3 unless the owner chose 2
         scale = self.home_scale()
         self.home_grid.set_row_spacing(GAP); self.home_grid.set_column_spacing(GAP); self.home_grid.set_hexpand(True)
+        # The player and the next bus are tiles too: placed, sized and moved like the devices, with the player two rows tall unless the owner shortens it.
+        cards = home.get("cards") or {}
+        virtual = []
+        for key, widget, rows in (("roondeck.player", self.hs_player, 2), ("roondeck.bus", self.hs_bus, 1)):
+            tile = dict(cards.get(key) or {}); tile.setdefault("rows", rows)
+            virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
+        entities = virtual + list(entities)
         rules = []
         for domain, accent in (getattr(self, "home_domain_colours", None) or {}).items():
             rules.append(f".home-card.home-domain-{domain} .home-switch.on {{ background: {accent}; }}")
@@ -125,14 +130,17 @@ class HomeDashboardMixin:
         for number, unit in enumerate(units):
             if number in placed: continue
             width, height = size_of(unit); column, row = free_slot(width, height); placed[number] = (column, row); taken |= spots(column, row, width, height)
-        grid_rows = max(max((row + size_of(units[number])[1] for number, (_, row) in placed.items()), default=1), 3 if columns == 2 else 2)
+        grid_rows = max(max((row + size_of(units[number])[1] for number, (_, row) in placed.items()), default=1), 3)
         for column in range(columns):
             for row in range(grid_rows):
                 if (column, row) not in taken:
                     spacer = Gtk.Box(); spacer.set_hexpand(True); spacer.set_vexpand(True); self.home_grid.attach(spacer, column, row, 1, 1)
         for number, unit in enumerate(units):
             width, height = size_of(unit); column, row = placed[number]
-            if is_scene(unit[0]):
+            if unit[0].get("widget") is not None:
+                widget = unit[0]["widget"]
+                if unit[0]["entity_id"] == "roondeck.player": self.hs_short = height == 1
+            elif is_scene(unit[0]):
                 cell = Gtk.Box(spacing=GAP); cell.set_homogeneous(True); cell.set_hexpand(True); cell.set_vexpand(True)
                 for entity in unit: cell.append(self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale))
                 widget = cell

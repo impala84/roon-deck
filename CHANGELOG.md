@@ -2,6 +2,8 @@
 
 ## 1.2.0-beta.67 Alpine — 8 November 2026
 
+- Home: the player and the next bus are now tiles on the same 2- or 3-column grid as your devices. In the Home builder you can see them, drag them anywhere, and stretch them wider or taller (the player is two rows tall until you shorten it; a one-row player drops the volume row to fit).
+- Home builder: a Desk lamp icon joins the icon picker (select a tile, then Icon).
 - Playback first: Roon Bridge now runs at the highest CPU and disk priority and is the last process the system will stop if memory runs short, while the touchscreen, web admin and Roon controller yield to it. The CPU is held at full speed while the bridge is installed, so 192 kHz / 24-bit streams are not starved by a slow clock ramp. Nothing restarts, so music is never interrupted: the bridge is lifted immediately, and the other services pick the change up at their next restart.
 
 ## 1.2.0-beta.66 Alpine — 8 November 2026

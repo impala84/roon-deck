@@ -51,6 +51,7 @@ window.DeckIcons = {
   bulb: ["Light", "<path d=\"M9 17.5h6\"/><path d=\"M10 21h4\"/><path d=\"M12 4.5a5 5 0 00-2.7 9.2c.5.4.7.9.7 1.3h4c0-.4.2-.9.7-1.3A5 5 0 0012 4.5z\"/><path d=\"M12 .6v1.4\"/><path d=\"M3.6 4l1 1\"/><path d=\"M20.4 4l-1 1\"/><path d=\"M1.2 11h1.6\"/><path d=\"M21.2 11h1.6\"/>", "Lights"],
   bulbon: ["Light on", "<path d=\"M9.5 18h5\"/><path d=\"M10.5 21h3\"/><path d=\"M12 4.5a5 5 0 00-2.7 9.2c.5.4.7.9.7 1.3h4c0-.4.2-.9.7-1.3A5 5 0 0012 4.5z\"/><path d=\"M12 .8v1.2\"/><path d=\"M4 5l1 1\"/><path d=\"M20 5l-1 1\"/><path d=\"M1.5 11h1.5\"/><path d=\"M21 11h1.5\"/>", "Lights"],
   lamp: ["Floor lamp", "<path d=\"M8 3h8l3 8H5z\"/><path d=\"M12 11v10\"/><path d=\"M8 21h8\"/>", "Lights"],
+  desklamp: ["Desk lamp", "<path d=\"M6 21h9\"/><path d=\"M10.5 21v-4\"/><path d=\"M10.5 17l-3.5-6.5\"/><path d=\"M7 10.5L15 5l3.5 5.5-7.5 3z\"/>", "Lights"],
   ceiling: ["Ceiling light", "<path d=\"M12 2v4\"/><path d=\"M6 6h12l3 8H3z\"/><path d=\"M9 18h6\"/>", "Lights"],
   sun: ["Bright", "<circle cx=\"12\" cy=\"12\" r=\"4\" /><path d=\"M12 2v2\"/><path d=\"M12 20v2\"/><path d=\"M4.9 4.9l1.4 1.4\"/><path d=\"M17.7 17.7l1.4 1.4\"/><path d=\"M2 12h2\"/><path d=\"M20 12h2\"/><path d=\"M4.9 19.1l1.4-1.4\"/><path d=\"M17.7 6.3l1.4-1.4\"/>", "Lights"],
   moon: ["Night", "<path d=\"M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z\"/>", "Lights"],

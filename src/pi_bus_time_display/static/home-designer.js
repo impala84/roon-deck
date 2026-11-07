@@ -31,12 +31,16 @@
 
   /* ------------------------------------------------------------ state */
   let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
-  const ids = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
-  const nameOf = id => catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
+  // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
+  const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
+  const isCard = id => id in CARDS;
+  const deviceIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
+  const ids = () => dashColumns() ? [...Object.keys(CARDS), ...deviceIds()] : deviceIds();
+  const nameOf = id => CARDS[id] || catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
   const tileOf = id => layout.tiles[id] || {};
   const markDirty = () => { dirty = true; window.RoonDeckDirty?.('homelayout', 'Home layout'); };
   function setIds(list) {
-    textarea.value = list.join(', ');
+    textarea.value = list.filter(id => !isCard(id)).join(', ');
     textarea.dispatchEvent(new Event('input', {bubbles: true}));
     render();
   }
@@ -46,6 +50,7 @@
     if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
     markDirty(); render();
   }
+  const rowsPatch = (id, rows) => id === 'roondeck.player' ? {rows} : {rows: rows === 2 ? 2 : ''};
   const domainOf = id => { const d = id.split('.')[0]; return d === 'script' || d === 'scene' ? 'scene' : d === 'input_boolean' ? 'switch' : d; };
   const accent = id => {
     if (tileOf(id).color) return tileOf(id).color;
@@ -87,7 +92,7 @@
     }
     const lead = id => pairOf.get(id) === 'b' ? list[list.indexOf(id) - 1] : id;
     const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
-    const dims = id => ({span: Math.min(columns, spans[tileOf(id).size] || 1), height: tileOf(id).rows === 2 ? 2 : 1});
+    const dims = id => ({span: Math.min(columns, spans[tileOf(id).size] || 1), height: (tileOf(id).rows || (id === 'roondeck.player' ? 2 : 1)) === 2 ? 2 : 1});
     for (const id of list) {
       if (pairOf.get(id) === 'b') continue;
       const {span, height} = dims(id), tile = tileOf(id);
@@ -103,7 +108,7 @@
     }
     const cells = list.map(id => ({...at.get(lead(id)), id, ...(pairOf.has(id) ? {pair: pairOf.get(id)} : {})}));
     const used = Math.max(1, ...cells.map(cell => cell.row + cell.height));
-    return {columns, rows: Math.max(used, dash ? (columns === 2 ? 3 : 2) : Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
+    return {columns, rows: Math.max(used, dash ? 3 : Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
   }
   // Would the owner's tiles all keep their cells if this tile took on these settings?
   function fitsAfter(id, patch) {
@@ -113,7 +118,7 @@
     return before.cells.every(cell => { const now = after.cells.find(item => item.id === cell.id); return now && now.column === cell.column && now.row === cell.row && now.row + now.height <= after.rows; });
   }
   // Give every tile an explicit cell, so moving one never shuffles the others.
-  function pin(cells) { for (const cell of cells) layout.tiles[cell.id] = {...tileOf(cell.id), col: cell.column, row: cell.row, ...(cell.height === 2 ? {rows: 2} : {})}; }
+  function pin(cells) { for (const cell of cells) layout.tiles[cell.id] = {...tileOf(cell.id), col: cell.column, row: cell.row, ...(cell.height === 2 ? {rows: 2} : cell.id === 'roondeck.player' ? {rows: 1} : {})}; }
 
   /* ------------------------------------------------------------ preview */
   function tileView(cell, rowMode) {
@@ -125,6 +130,11 @@
     if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
+    if (isCard(id)) {
+      node.style.background = '#2b2a31'; node.style.borderColor = '#5b5766';
+      node.querySelector('.hd-dot')?.remove();
+      node.append(h('span', {style: 'font-size:12px;opacity:.65'}, id === 'roondeck.player' ? 'Cover, play controls, volume' : 'Minutes to your bus'));
+    }
     for (const axis of ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
@@ -152,7 +162,7 @@
     const move = moveEvent => {
       let patch = null;
       if (axis === 'x') { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + (moveEvent.clientX - startX) / unitX)))); if (size !== current()) patch = {size}; }
-      else { const rows = Math.max(1, Math.min(2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== (tileOf(id).rows === 2 ? 2 : 1)) patch = {rows: rows === 2 ? 2 : ''}; }
+      else { const rows = Math.max(1, Math.min(2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== cell.height) patch = rowsPatch(id, rows); }
       if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
       selected = ids().indexOf(id); patchTile(id, patch);
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
@@ -193,17 +203,17 @@
   }
   // A device dragged in from the list, dropped on a cell (cellAt) or on a tile (index to go before).
   function dropDevice(cellAt, index) {
-    const list = ids(); const id = dragId; dragId = null;
+    const list = deviceIds(), off = ids().length - list.length; const id = dragId; dragId = null;
     if (!id || list.includes(id) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
     snapshot = null;
-    const info = place(list, screen().portrait); if (info.positioned || cellAt) pin(info.cells);
-    if (cellAt) { list.push(id); const span = Math.min(info.columns, ({half: info.columns > 2 ? 2 : 1, full: info.columns}[tileOf(id).size]) || 1); layout.tiles[id] = {...tileOf(id), col: Math.min(cellAt.column, info.columns - span), row: cellAt.row}; selected = list.length - 1; }
-    else { list.splice(index, 0, id); selected = index; }
+    const info = place(ids(), screen().portrait); if (info.positioned || cellAt) pin(info.cells);
+    if (cellAt) { list.push(id); const span = Math.min(info.columns, ({half: info.columns > 2 ? 2 : 1, full: info.columns}[tileOf(id).size]) || 1); layout.tiles[id] = {...tileOf(id), col: Math.min(cellAt.column, info.columns - span), row: cellAt.row}; selected = list.length - 1 + off; }
+    else { const at = Math.max(0, index - off); list.splice(at, 0, id); selected = at + off; }
     devicesOpen = false; markDirty(); setIds(list);
   }
   function emptySlot(spot) {
     const slot = h('div', {class: 'hd-empty', 'data-col': spot.column, 'data-row': spot.row, style: `grid-column:${spot.column + 1};grid-row:${spot.row + 1}`}, 'Drop here');
-    slot.ondragover = event => { if (dragTile) { event.preventDefault(); liveTo(spot, null); } else if (dragId && ids().length < LIMIT) { event.preventDefault(); slot.classList.add('over'); } };
+    slot.ondragover = event => { if (dragTile) { event.preventDefault(); liveTo(spot, null); } else if (dragId && deviceIds().length < LIMIT) { event.preventDefault(); slot.classList.add('over'); } };
     slot.ondragleave = () => slot.classList.remove('over');
     slot.ondrop = event => { event.preventDefault(); slot.classList.remove('over'); if (dragTile) commitLive(); else dropDevice(spot, null); };
     return slot;
@@ -335,6 +345,8 @@
       else { const free = (() => { for (let row = 0; row < info.rows + 1; row += 1) for (let column = 0; column < info.columns; column += 1) if (!info.taken.has(`${column},${row}`)) return {column, row}; return null; })(); if (!free) { message.textContent = 'There is no free cell for it.'; pairBox.checked = true; return; } pin(info.cells); layout.tiles[next] = {...tileOf(next), col: free.column, row: free.row}; markDirty(); render(); }
     };
     const pairField = canPair ? h('label', {class: 'dd-check'}, pairBox, h('span', {}, `Share a cell with ${nameOf(next)} (two square buttons side by side)`)) : null;
+    if (isCard(id)) return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`),
+      field('Width', segmented, 'Drag the tile to move it, its right edge to change the width, or its bottom edge to change the height.'), message);
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
       field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'),
@@ -346,7 +358,7 @@
 
   /* ------------------------------------------------------------ device list */
   function devices() {
-    const list = ids();
+    const list = deviceIds();
     const search = h('input', {type: 'search', placeholder: 'Search your Home Assistant devices', autocomplete: 'off', 'aria-label': 'Search Home Assistant'}); search.value = query;
     const results = h('ul', {class: 'hd-results'});
     const filters = {All: () => true, Lights: item => item.domain === 'light', Fans: item => item.domain === 'fan', Switches: item => ['switch', 'input_boolean'].includes(item.domain), Scenes: item => item.domain === 'scene', Scripts: item => item.domain === 'script'};
@@ -355,11 +367,11 @@
       chip.onclick = () => { kind = name; chips.querySelectorAll('.dd-chip').forEach(node => node.setAttribute('aria-pressed', String(node === chip))); fillResults(); }; return chip;
     }));
     function fillResults() {
-      const needle = query.trim().toLowerCase(), current = ids();
+      const needle = query.trim().toLowerCase(), current = deviceIds();
       const matches = catalog.filter(item => !current.includes(item.entity_id) && filters[kind](item) && (!needle || item.name.toLowerCase().includes(needle) || item.entity_id.includes(needle))).slice(0, 40);
       results.replaceChildren(...(matches.length ? matches.map(item => {
         const add = h('button', {type: 'button', class: 'secondary hd-add', 'aria-label': `Add ${item.name}`}, 'Add'); add.disabled = current.length >= LIMIT;
-        add.onclick = () => { selected = current.length; devicesOpen = false; setIds([...ids(), item.entity_id]); };
+        add.onclick = () => { selected = ids().length; devicesOpen = false; setIds([...deviceIds(), item.entity_id]); };
         const row = h('li', {draggable: 'true'}, h('span', {class: 'hd-grip', 'aria-hidden': 'true'}, '⋮⋮'), h('span', {class: 'hd-label'}, item.name, h('small', {}, item.entity_id)), add);
         row.ondragstart = event => { dragId = item.entity_id; dragIndex = null; event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('text/plain', item.entity_id); setTimeout(openGrid, 0); };
         row.ondragend = () => { dragId = null; if (closeGrid()) render(); };
@@ -444,7 +456,7 @@
 
   window.RoonDeckSaves = window.RoonDeckSaves || {};
   window.RoonDeckSaves.homelayout = async () => {
-    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => ids().includes(id))), ...(layout.columns ? {columns: layout.columns} : {})})});
+    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => isCard(id) || ids().includes(id))), ...(layout.columns ? {columns: layout.columns} : {})})});
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the Home layout');
     layout = result.layout; dirty = false;
   };

@@ -12,6 +12,7 @@ ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
 TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also"}
 COLUMNS = (2, 3)
+PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
 
 
 def validate_layout(data):
@@ -32,7 +33,8 @@ def validate_layout(data):
             out["size"] = tile["size"]
         if "rows" in tile:
             if tile["rows"] not in (1, 2) or isinstance(tile["rows"], bool): raise ValueError("Tiles can be one or two rows tall")
-            if tile["rows"] == 2: out["rows"] = 2
+            # The player is two rows tall unless the owner makes it one; every other tile is one row unless it is two.
+            if tile["rows"] == 2 or (tile["rows"] == 1 and entity_id == PLAYER): out["rows"] = tile["rows"]
         for name, top in (("col", 3), ("row", 7)):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
@@ -83,7 +85,7 @@ def with_layout(home, layout):
     tiles = (layout or {}).get("tiles", {})
     if not isinstance(home, dict): return home
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
-    out = {**home, "entities": entities}
+    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS) if key in tiles}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     return out
 

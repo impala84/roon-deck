@@ -74,6 +74,14 @@ class HomeDashboardLayoutTests(unittest.TestCase):
                     {"tiles": {"switch.a": {"also": ["not an entity"]}}}, {"tiles": {"switch.a": {"also": ["switch.b"] * 1 + ["switch.c", "switch.d", "switch.e", "switch.f"]}}}):
             with self.assertRaises(ValueError): validate_layout(bad)
 
+    def test_player_and_bus_are_tiles_on_the_grid(self):
+        layout = validate_layout({"columns": 3, "tiles": {"roondeck.player": {"col": 2, "row": 0, "rows": 1, "size": "half"}, "roondeck.bus": {"col": 0, "row": 2, "rows": 1}}})
+        self.assertEqual(layout["tiles"]["roondeck.player"]["rows"], 1)    # a short player is remembered; for other tiles one row is the default
+        self.assertNotIn("rows", layout["tiles"]["roondeck.bus"])
+        home = with_layout({"entities": [{"entity_id": "light.a"}]}, layout)
+        self.assertEqual(home["cards"]["roondeck.player"]["col"], 2)
+        self.assertEqual(home["cards"]["roondeck.bus"]["row"], 2)
+
     def test_air_conditioner_slider_maps_to_its_own_temperature_range(self):
         from pi_bus_time_display.server import climate_percent, climate_target
         attributes = {"min_temp": 16, "max_temp": 30, "target_temp_step": 1, "temperature": 23}
