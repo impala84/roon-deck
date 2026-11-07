@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.59 Alpine — 7 November 2026
+
+- Backup Server: a copy button beside the pairing code copies it in one click.
+
 ## 1.2.0-beta.58 Alpine — 7 November 2026
 
 - Home: tile icons are drawn about twice as large and with a heavier line, in the designer and on the touchscreen. Icons chosen before this release are redrawn at the new size when the Home tab opens; press Save changes to keep them.
