@@ -730,14 +730,14 @@ class Setup:
             if self.network_control is None: self.network_control = NetworkControl(self.root)
             return self.network_control.handle(data)
         pending_network = self.root / "var/lib/roondeck-network/pending.json"
-        if pending_network.exists() and action in {"update", "reboot", "shutdown", "set_wifi", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install"}:
+        if pending_network.exists() and action in {"update", "reboot", "shutdown", "set_wifi", "software", "install_tools", "install_backup_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install"}:
             raise ValueError("Confirm or restore the network connection before changing software or connections.")
         if action == "accessories":
             if (self.software_lock.locked() or update_locked(self.root)) and data.get("operation", "status") not in {"status", "vpn_disconnect"}:
                 raise ValueError("Wait for the current software operation to finish.")
             if self.accessories is None: self.accessories = AccessoryManager(self.root)
             return self.accessories.handle(data)
-        if self.accessories is not None and self.accessories.install_lock.locked() and action in {"update", "software", "install_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install", "reboot"}:
+        if self.accessories is not None and self.accessories.install_lock.locked() and action in {"update", "software", "install_tools", "install_backup_tools", "roon_install", "airplay_install", "netdata_install", "netdata_official_install", "reboot"}:
             raise ValueError("Wait for optional support installation to finish.")
         if action == "status":
             if state.get("software_status", "").startswith("Installing") and not self.software_lock.locked():
@@ -771,6 +771,16 @@ class Setup:
             atomic(self.root / "var/lib/pi-home/update-status", "Update · Queued…\n")
             self.update_process = subprocess.Popen(["/usr/bin/python3", "/opt/pi-home/appliance/alpine/updater.py"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
             return {"ok": True, "queued": True}
+        if action == "install_backup_tools":
+            if not state.get("complete"): raise ValueError("Finish basic setup before pairing a backup server.")
+            if update_locked(self.root): raise ValueError("Wait for the update to finish.")
+            if not self.software_lock.acquire(blocking=False): raise ValueError("Wait for software installation to finish.")
+            try:
+                if not all((self.root / "usr/bin" / name).is_file() for name in ("rsync", "ssh", "ssh-keygen", "openssl")):
+                    self.run(["apk", "add", "--no-cache", "rsync", "openssh-client", "openssl"])
+            finally:
+                self.software_lock.release()
+            return {"ok": True}
         if action == "install_tools":
             if not state.get("complete"): raise ValueError("Finish setup before installing tools.")
             if not self.tools_lock.acquire(blocking=False):

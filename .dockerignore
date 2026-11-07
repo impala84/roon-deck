@@ -14,3 +14,9 @@ roon-controller/config.json
 dist
 build
 artifacts
+
+# Backup Server runtime credentials and data never enter a build context.
+backup-server/.env
+backup-server/.env.*
+backup-server/data
+.roondeck-source.*

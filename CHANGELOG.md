@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.50 Alpine — 7 November 2026
+
+- Add RoonDeck Backup Server, an optional Docker companion for Synology or another Docker host, with a device dashboard, pairing codes and isolated rsync uploads.
+- Manage automatic schedules, backups after changes, retention, backup requests, downloads, deletion and device access on the server. The Pi has connection, status, manual backup and direct restore controls.
+- Recover an existing device's backup history onto a replacement Pi without mirroring or deleting server recovery points. Optional credential backups are encrypted on the Pi with a separate recovery password.
+- Include Docker Compose and installation instructions in `backup-server/README.md`. This is an initial beta: automated lifecycle, real rsync receiver and browser checks passed; Docker/Synology startup and physical SD-card recovery still need hardware testing.
+
 ## 1.2.0-beta.49 Alpine — 7 November 2026
 
 - Automatic backups can use rsync over SSH to your Synology, with no WebDAV package. RoonDeck creates its own SSH key (shown on the page) for you to add on the NAS, keeps the newest 14 backups on the Pi and mirrors them to a folder on the NAS. Only RoonDeck backup files in that folder are ever replaced or removed.

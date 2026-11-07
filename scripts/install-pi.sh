@@ -13,7 +13,7 @@ if [[ -z ${desktop_user} || ${desktop_user} == root ]]; then
   exit 1
 fi
 apt-get update
-apt-get install -y git nodejs npm python3-venv python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-graphene-1.0 fonts-inter avahi-utils wlr-randr grim curl openssl
+apt-get install -y git nodejs npm python3-venv python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-graphene-1.0 fonts-inter avahi-utils wlr-randr grim curl openssl rsync openssh-client
 id morningbus >/dev/null 2>&1 || useradd --create-home --shell /bin/bash morningbus
 # Keep existing settings and Roon pairing in place; never merge two installs.
 for parent in /opt /etc /var/lib; do

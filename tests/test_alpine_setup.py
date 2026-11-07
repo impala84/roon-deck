@@ -30,6 +30,16 @@ class AlpineSetupTests(unittest.TestCase):
         self.login_credentials = Mock()
         self.setup = module.Setup(self.root, self.run, lambda: {"zones": [{"name": "Lounge"}]}, self.login_credentials)
 
+    def test_backup_tools_install_only_after_setup_and_only_when_missing(self):
+        with self.assertRaises(ValueError): self.setup.handle({"action": "install_backup_tools"})
+        state = self.setup.saved(); state["complete"] = True; self.setup.save(state)
+        self.setup.handle({"action": "install_backup_tools"})
+        self.run.assert_called_with(["apk", "add", "--no-cache", "rsync", "openssh-client", "openssl"])
+        self.assertFalse(self.setup.software_lock.locked())
+        for name in ("rsync", "ssh", "ssh-keygen", "openssl"):
+            path = self.root / "usr/bin" / name; path.parent.mkdir(parents=True, exist_ok=True); path.touch()
+        self.run.reset_mock(); self.setup.handle({"action": "install_backup_tools"}); self.run.assert_not_called()
+
     def test_full_setup_persists_password_and_does_not_play_audio(self):
         self.setup.handle({"action": "name", "hostname": "Pi-Home-Lounge"})
         self.setup.handle({"action": "network"})

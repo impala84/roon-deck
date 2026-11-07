@@ -1,0 +1,20 @@
+services:
+  roondeck-backup-server:
+    build:
+      context: ..
+      dockerfile: backup-server/Dockerfile
+    image: roondeck-backup-server:local
+    container_name: roondeck-backup-server
+    restart: unless-stopped
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a server password of at least 16 characters}
+      SSH_PORT: ${SSH_PORT:-2222}
+    ports:
+      - "${WEB_PORT:-8042}:8042"
+      - "${SSH_PORT:-2222}:2222"
+    volumes:
+      - ${BACKUP_DATA_DIR:-/volume1/docker/roondeck-backup-server}:/data
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"

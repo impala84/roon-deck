@@ -30,7 +30,7 @@ from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
 from .home_layout import load_layout, save_layout, with_layout
-from . import remote_backup
+from . import remote_backup, backup_server_client, backup_crypto
 from .backup import SECRET_KEYS, build_backup, check_backup, restore_backup
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
@@ -1061,6 +1061,15 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = target.read_bytes()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "no-cache")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if self.path == "/api/admin/backup-server":
+                if not self.authorised(): return
+                try:
+                    result = backup_server_client.status(state.state_dir)
+                    result["local_status"] = load_json(state.state_dir / "backup-server-status.json", {})
+                    self.send_json(200, json.dumps(result).encode())
+                except (ValueError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)[:240]}).encode())
+                return
             if self.path == "/api/admin/backup-target":
                 if not self.authorised(): return
                 self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)), "google_secret_set": bool(os.getenv(remote_backup.GOOGLE_SECRET)), "google_connected": bool(os.getenv(remote_backup.GOOGLE_TOKEN)), "ssh_key": remote_backup.ssh_key_path(state.state_dir).with_suffix(".pub").read_text().strip() if remote_backup.ssh_key_path(state.state_dir).with_suffix(".pub").is_file() else "",
@@ -1343,6 +1352,43 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return
+            if self.path in {"/api/admin/backup-server/pair", "/api/admin/backup-server/run", "/api/admin/backup-server/password", "/api/admin/backup-server/restore", "/api/admin/backup-server/disconnect"}:
+                if not self.authorised(): return
+                try:
+                    with backup_server_client.LOCK:
+                        if self.headers.get("Content-Type", "").split(";")[0] != "application/json": raise ValueError("JSON request required")
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if not 0 < length <= 8000: raise ValueError("Invalid request")
+                        data = json.loads(self.rfile.read(length))
+                        if not isinstance(data, dict): raise ValueError("Invalid request")
+                        action = self.path.rsplit("/", 1)[-1]
+                        if action == "pair":
+                            if os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype":
+                                accessory_request({}, helper_action="install_backup_tools")
+                            result = backup_server_client.pair(state.state_dir, data.get("url", ""), data.get("code", ""), data.get("name", ""))
+                        elif action == "run":
+                            result = {"ok": True, "name": backup_server_client.run(state.state_dir, config_path, env_path, __version__)}
+                        elif action == "password":
+                            backup_server_client.set_password(state.state_dir, data.get("password", "")); result = {"ok": True}
+                        elif action == "disconnect":
+                            (state.state_dir / "backup-server.json").unlink(missing_ok=True); result = {"ok": True}
+                        else:
+                            checked = backup_server_client.restore(state.state_dir, data.get("name", ""), data.get("password", ""))
+                            # Make a local safety copy before changing settings. Credentials
+                            # remain excluded; independent server pairing is never replaced.
+                            backup_server_client.write_private(state.state_dir / "before-server-restore.json", build_backup(config_path, state.state_dir, env_path, __version__))
+                            restore_backup(checked, config_path, state.state_dir)
+                            for key, value in checked["secrets"].items():
+                                if key in SECRET_KEYS: update_secret(env_path, key, value)
+                            if checked["config"]:
+                                state.config = load_config(config_path)
+                                state.enabled_services.intersection_update(state.config.services)
+                                state.save_enabled_services()
+                            result = {"ok": True, "images": len(checked["art"])}
+                        self.send_json(200, json.dumps(result).encode())
+                except (ValueError, TypeError, KeyError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)[:240]}).encode())
+                return
             if self.path in {"/api/admin/backup-target", "/api/admin/backup-run", "/api/admin/backup-google-start", "/api/admin/backup-google-poll", "/api/admin/backup-rsync-key"}:
                 if not self.authorised(): return
                 try:
@@ -1387,7 +1433,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 40_000_000: raise ValueError("That backup file is too large")
-                    checked = check_backup(json.loads(self.rfile.read(length)))
+                    bundle = json.loads(self.rfile.read(length))
+                    if isinstance(bundle, dict) and "encrypted" in bundle:
+                        bundle = backup_crypto.decrypt(bundle["encrypted"], bundle.get("password", ""))
+                    checked = check_backup(bundle)
                     restore_backup(checked, config_path, state.state_dir)
                     for key, value in checked["secrets"].items():
                         if key in SECRET_KEYS: update_secret(env_path, key, value)
@@ -2033,6 +2082,7 @@ def main() -> None:
     stop = threading.Event()
     threading.Thread(target=state.performance.run, args=(stop,), daemon=True).start()
     threading.Thread(target=poll, args=(state, stop, events), daemon=True).start()
+    threading.Thread(target=backup_server_client.schedule, args=(args.state_dir, args.config, args.env, __version__, stop), daemon=True).start()
     threading.Thread(target=remote_backup.schedule, args=(args.state_dir, args.config, args.env, __version__, stop), daemon=True).start()
     threading.Thread(target=home_assistant_poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=state.listening.poll, args=(stop,), daemon=True).start()
