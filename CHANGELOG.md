@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.44 Alpine — 7 November 2026
+
+- Home Assistant settings: "Entities shown" is now a browser. Search everything in Home Assistant, add up to eight devices, and reorder or remove them, instead of typing entity IDs. With no address or token saved yet, the plain text box stays.
+- Home Assistant settings: the separate "Stream Deck controls" list is gone. Any device or script chosen on a Stream Deck key or dial already works, and existing entries keep working.
+
 ## 1.2.0-beta.43 Alpine — 7 November 2026
 
 - Stream Deck: a key that shows a light's brightness no longer flashes green while its script runs (a running script counts as "on"). The fade is also eased back to a speed between the last two releases.
