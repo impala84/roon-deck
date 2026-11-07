@@ -2,13 +2,13 @@
 
 The current development release is **1.2.0-beta.62**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
 
-The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path. Raspberry Pi OS releases remain separate.
+The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path.
 
 Beta updates are normally source-only releases; full images are built for stable releases and explicit fresh-install requests. Automated backend, controller, update-safety and native layout checks run, followed by complete image validation with **build_image** enabled. The Alpine updater requires a successful verification run for the exact release commit.
 
 RoonDeck is an independent Raspberry Pi touchscreen interface for Roon, with optional Singapore bus arrivals, Home Assistant controls and Roon Bridge. It runs a native GTK4 display in Cage/Wayland, alongside a phone/desktop web interface. Chromium is not required.
 
-The Raspberry Pi OS stable baseline remains **v1.0.0**. **RoonDeck 1.1.0 Alpine** is the first separately published Alpine release (`v1.1.0-alpine`), with first-run setup, optional Roon Bridge/Netdata installation, shared display settings and responsive GTK layouts. Existing Alpine devices retain their verified updater, while Raspberry Pi OS devices stay on their own distribution. Native discovery uses bounded artwork cards and configurable two/three-column portrait grids; Diagnostics captures the live GTK touchscreen, including artwork. Automated release checks do not replace testing on the physical display.
+RoonDeck is Alpine-only: the earlier Raspberry Pi OS build (v1.0.0) is retired and no longer maintained. **RoonDeck 1.1.0 Alpine** was the first Alpine release (`v1.1.0-alpine`), with first-run setup, optional Roon Bridge/Netdata installation, shared display settings and responsive GTK layouts. Existing Alpine devices retain their verified updater. Native discovery uses bounded artwork cards and configurable two/three-column portrait grids; Diagnostics captures the live GTK touchscreen, including artwork. Automated release checks do not replace testing on the physical display.
 
 ## Features
 
@@ -34,9 +34,9 @@ RoonDeck is an independent project and is not affiliated with or endorsed by Roo
 
 The personal installation uses a Raspberry Pi and an official Touch Display 2 in landscape (1280×720). The exact Pi model, OS image and saved rotation have not been audited remotely; the fresh-install procedure below is documented but not proven by a clean hardware rebuild. Original Touch Display (800×480) and Touch Display 2 profiles exist, but that does not mean every panel/model combination has been hardware-tested.
 
-Use **Raspberry Pi OS with desktop, 64-bit**, with Python 3.11 or newer, systemd, NetworkManager and working official-display drivers. Initial setup uses the desktop; appliance mode then boots only Cage and GTK. Keep Ethernet or SSH available as a recovery path.
+RoonDeck runs on **Alpine Linux** (OpenRC, NetworkManager and working official-display drivers), booting straight into Cage and the GTK touchscreen. Keep Ethernet or SSH available as a recovery path. See [the Alpine appliance notes](docs/ALPINE.md) for the image, first-boot wizard and updater.
 
-Required system components are installed by `scripts/install-pi.sh`: Python/venv, PyGObject/GTK4/Cairo, Node.js/npm, Git, Inter fonts, Avahi tools, `wlr-randr`, `grim`, curl and OpenSSL. Appliance mode installs Cage. Python application code has no pip runtime dependencies; native GTK bindings come from the OS. Node dependencies are locked to specific official Roon API revisions and transitive versions.
+The Alpine image includes Python, PyGObject/GTK4/Cairo, Node.js, Cage, Inter fonts, Avahi tools, `wlr-randr`, `grim`, curl and OpenSSL. Python application code has no pip runtime dependencies; native GTK bindings come from the OS. Node dependencies are locked to specific official Roon API revisions and transitive versions.
 
 ## Architecture and repository
 
@@ -55,32 +55,17 @@ The Python service listens on port **8765**. The Node controller listens only on
 
 Roon owns transport, zones, playback, queue and library/catalogue data. Optional bus/Home failures do not replace that integration. Beta augments the official API with an isolated worker for unsupported discovery data and explicitly requested whole-mix operations. Normal playback, queue subscriptions and album/track actions retain the official API; whole-mix controls use an unsupported experimental call and remain audio-unverified. No RoonMCP dependency is used or planned. [Discovery notes](docs/DISCOVERY.md) cover the pinned MIT client, unsupported-protocol risks, bounded caching and beta limitations.
 
-## Fresh Raspberry Pi installation
+## Fresh installation
 
-Do not run these production commands on a development Mac.
+Do not run production commands on a development Mac.
 
-1. Flash Raspberry Pi OS with desktop, 64-bit using Raspberry Pi Imager. Set a normal user, network, SSH and timezone. Connect the official display and verify touch works in the desktop.
-2. From that normal user's terminal, clone a published tag. For the current release:
+1. Download the latest [release image](https://github.com/impala84/roon-deck/releases) and check its SHA-256. Flash it with Raspberry Pi Imager onto a spare card (flashing erases the card). Connect the official display and, if possible, Ethernet.
+2. Boot the Pi and follow the touchscreen wizard: choose the display and orientation, name the device, set the SSH username and web password (at least eight characters) and choose optional software (Roon Bridge, Netdata).
+3. In Roon, open **Settings → Extensions**, enable **RoonDeck**, then select the desired zone in RoonDeck. If you installed Roon Bridge, separately enable the Pi's RAAT output under Roon **Settings → Audio**.
+4. Open `http://<device-name>.local:8765/admin` (or the Pi's IP address) on a trusted local network and sign in with the web password from the wizard. Display profile and orientation are under **Display → Screen hardware**; Touch Display 2 overlay changes require one reboot, so select the exact panel rather than using an assumed rotation.
+5. Updates arrive from **Software** in the web settings, on the Stable or Beta channel.
 
-   ```sh
-   git clone --branch v1.0.0 https://github.com/impala84/roon-deck.git roon-deck
-   cd roon-deck
-   sudo ./scripts/install-pi.sh
-   ```
-
-3. Configure `/etc/pi-home/config.toml` and `/etc/pi-home/secrets.env`. The installer prints a generated web-admin password once. Do not commit these files. New configuration is music-first; enable optional modules explicitly. Existing installations retain their saved settings.
-4. If the Pi should also be a RAAT audio endpoint, run `sudo ./scripts/install-roon-bridge.sh`. This downloads Roon's official architecture-specific installer; Roon Bridge is separately distributed and not bundled in RoonDeck.
-5. Enable appliance mode from the same normal user:
-
-   ```sh
-   sudo pi-bus-appliance-mode enable
-   sudo reboot
-   ```
-
-6. In Roon, open **Settings → Extensions**, enable **RoonDeck**, then select the desired zone in RoonDeck. If you installed Roon Bridge, separately enable the Pi's RAAT output under Roon **Settings → Audio**.
-7. Open `http://<pi-address>:8765/admin` on a trusted local network. Sign in with `admin` and the installer-generated password. Configure display profile/orientation under **Display → Screen hardware**. Touch Display 2 overlay changes require one reboot; select the exact panel rather than using an assumed rotation.
-
-For a frozen v1.0 rebuild, use the `v1.0.0` tag, not an untagged `main` checkout. Back up the configuration/state listed below; Git alone cannot recreate private credentials, Roon authorisation or local display choices.
+Back up the configuration and state listed below; the image alone cannot recreate private credentials, Roon authorisation or local display choices. The Backup Server and Software → Backup can do this automatically.
 
 ### Production files
 
@@ -101,7 +86,7 @@ Roon-pairing compatibility; see [the naming migration policy](docs/NAMING.md).
 
 ## Configuration
 
-`config.example.toml` documents the application settings. Configuration persists across updates. Use the web admin to save settings; manual edits require `sudo systemctl restart pi-bus-time-display.service`.
+`config.example.toml` documents the application settings. Configuration persists across updates. Use the web admin to save settings; manual edits require `sudo rc-service pi-home-api restart`.
 
 Required for Roon: a reachable Roon Server on the local network and extension authorisation. `roon_zone_name` may be blank to follow the active zone. Do not expose ports 8765/8766 directly to the Internet. HTTP admin is intended for a trusted LAN. The backend trusts loopback requests for native control: any local reverse proxy must enforce its own authentication/access restrictions. HTTPS alone does not make that proxy safe. Prefer a restricted VPN for remote access.
 
@@ -148,20 +133,15 @@ Pre-v1.0 updaters follow `main`; the first update to the baseline installs the c
 Use **System → Diagnostics** and **Capture display** first. A captured native display shows actual GTK rendering; a desktop browser simulation does not.
 
 ```sh
-systemctl status pi-bus-time-display.service pi-bus-roon-controller.service pi-bus-native.service
-journalctl -u pi-bus-time-display.service -u pi-bus-roon-controller.service -u pi-bus-native.service -n 100 --no-pager
+rc-service pi-home-api status; rc-service pi-home-roon status; rc-service pi-home-display status
+ls /var/log/pi-home/
 curl --fail http://127.0.0.1:8765/api/status
 curl --fail http://127.0.0.1:8766/api/state
-sudo systemctl restart pi-bus-time-display.service pi-bus-roon-controller.service
-sudo systemctl restart pi-bus-native.service
+sudo rc-service pi-home-api restart; sudo rc-service pi-home-roon restart
+sudo rc-service pi-home-display restart
 ```
 
-Restarting the display does not restart Roon Server; Roon Bridge is independent. If the touchscreen is unusable, use SSH to restore the desktop:
-
-```sh
-sudo pi-bus-appliance-mode disable
-sudo reboot
-```
+Restarting the display does not restart Roon Server; Roon Bridge is independent. Boot output is in `/var/log/rc.log`, and RoonDeck's own logs are under `/var/log/pi-home/`.
 
 Rotation setup keeps backups of the boot command line and managed Touch Display 2 boot configuration. Do not apply a second manual input rotation on top of the saved device-tree configuration.
 

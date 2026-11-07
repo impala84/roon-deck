@@ -38,8 +38,7 @@ printf '%s\n' '{"rgb_gains":[0.9665,0.8712,1.0]}' | sudo tee /etc/pi-home/displa
 sudo rc-service pi-home-display restart
 ```
 
-For Raspberry Pi OS, use `sudo systemctl restart pi-bus-native` instead. The
-profile is read at display startup. Test ordinary white text, grey surfaces,
+The profile is read at display startup. Test ordinary white text, grey surfaces,
 artwork, scrolling and touch on the real device after activation; no further
 instrument readings are required for this owner-selected practical adjustment.
 Do not reuse these gains on a different panel without checking its white balance.
@@ -51,7 +50,7 @@ sudo mv /etc/pi-home/display-white-balance.json /etc/pi-home/display-white-balan
 sudo rc-service pi-home-display restart
 ```
 
-Use the systemd restart command above on Raspberry Pi OS. This restores the
+This restores the
 original rendering and retains the profile for later use. Editing the gains never
 changes source artwork, backend data, or browser colours. Limits are 0.1–1.0 per
 channel; the matrix leaves alpha unchanged and applies no offset to black.

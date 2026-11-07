@@ -3,6 +3,7 @@
 ## 1.2.0-beta.63 Alpine — 7 November 2026
 
 - Settings › System › Device: the About section now tells the RoonDeck story, what it does, how to get involved (website, feedback, issues, source) and a collapsible licences and acknowledgements panel, styled to match the rest of Settings.
+- Documentation and website: RoonDeck is Alpine-only. The README, roadmap and Alpine notes no longer describe a Raspberry Pi OS build, the install and troubleshooting steps use the Alpine image and OpenRC, and the website no longer lists an alternative OS.
 
 ## 1.2.0-beta.62 Alpine — 7 November 2026
 

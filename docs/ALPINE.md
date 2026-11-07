@@ -30,10 +30,9 @@ preserved. Diagnostics shows combined Netdata/collector RSS and CPU when running
 Current version: **1.1.0 Alpine**, the first separately published Alpine release. First-run setup creates an
 owner-chosen device/SSH account, and Settings can manage the installed Netdata
 Agent and its Cloud connection without an Alpine shell. This update is available
-on the Alpine branch. The existing `alpine-beta` branch/channel identifier is retained for updater compatibility; the published release is `v1.1.0-alpine` and is not a GitHub prerelease. It is separate from the Raspberry Pi OS stable distribution and is not marked the repository-wide latest release.
+on the Alpine branch. The existing `alpine-beta` branch/channel identifier is retained for updater compatibility; the published release is `v1.1.0-alpine` and is not a GitHub prerelease. It is not marked the repository-wide latest release.
 
-Software version labels include “Alpine” (for example, “1.1.0-beta.20 Alpine”)
-to distinguish these builds from Raspberry Pi OS. Setup and web password changes
+Software version labels include “Alpine” (for example, “1.1.0-beta.20 Alpine”). Setup and web password changes
 require at least eight characters; setup still requires confirmation.
 Sleep and brightness are applied by the local root-owned helper: sleep writes zero
 backlight brightness but deliberately leaves the DSI/Goodix pipeline alive so a
@@ -56,7 +55,7 @@ heights, with larger route numbers and scrolling when several routes need space.
 Active branch: `alpine-beta`, based on Discover beta.7. The former
 `alpine-appliance-prototype` branch is a temporary update bridge for beta.14
 and older installations. Keep it available until those devices have installed
-beta.15. Alpine releases remain separate from Raspberry Pi OS releases. System → Software now offers Stable/Beta: fresh installs default to Stable and existing beta appliances retain Beta. Switching channels preserves settings and never automatically downgrades. The updater selects a published Alpine tag and checks that its exact revision passed the Alpine image workflow before staging it.
+beta.15. System → Software now offers Stable/Beta: fresh installs default to Stable and existing beta appliances retain Beta. Switching channels preserves settings and never automatically downgrades. The updater selects a published Alpine tag and checks that its exact revision passed the Alpine image workflow before staging it.
 Do not install it over the working Pi. Use a separate SD card.
 
 ## Physical touch recovery — 4 October 2026
@@ -244,7 +243,7 @@ completion (status and an explicit completion reboot remain available).
 General-purpose OS controls remain disabled. The Update button now calls a
 root-owned local helper, allowed only after setup is complete. It follows the
 latest successful Alpine Beta workflow revision on `alpine-beta`,
-not arbitrary URLs or Stable/Beta Pi OS releases. Application source and real
+not arbitrary URLs. Application source and real
 Python/npm dependencies are prepared separately under `/opt/pi-home-releases`.
 The current path switches atomically after preparation; service health failures
 restore the previous application. Configuration, secrets, Wi-Fi and Roon pairing
@@ -341,5 +340,4 @@ Neither test substitutes for Wi-Fi hardware, Wayland/DSI or actual finger input.
 
 Hardware acceptance: cold boot, DSI/touch, rotation mapping, brightness/sleep/wake,
 Roon LAN discovery and pairing persistence, crash recovery, memory peaks,
-network interruption and a power-cycle soak. Compare against Pi OS Lite with
-the same app and graphical stack before choosing the public base OS.
+network interruption and a power-cycle soak.

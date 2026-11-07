@@ -30,7 +30,7 @@ Release usable test builds as `v1.1.0-beta.1`, `v1.1.0-beta.2`, etc. Beta-channe
 
 Maintain one codebase: personal installs can enable Bus Times/Home, while public installs are Roon-focused. Do not generalise Singapore buses into a global transport product.
 
-Explore a Raspberry Pi OS-based image: download → flash with Raspberry Pi Imager → boot → touchscreen setup → use. Keep an advanced manual-install path. First-run setup could cover welcome, network and Roon discovery/authorisation. The supplied brief ended during this first-run section; remaining detail must be confirmed before that phase.
+Keep the Alpine-based image simple: download → flash with Raspberry Pi Imager → boot → touchscreen setup → use. Keep an advanced manual-install path. First-run setup could cover welcome, network and Roon discovery/authorisation. The supplied brief ended during this first-run section; remaining detail must be confirmed before that phase.
 
 Before image distribution: audit all redistributed package licences/notices, supported hardware, recovery, credentials, security updates and reproducible image tooling. RoonDeck remains independent of Roon and does not redistribute proprietary Roon Bridge without permission.
 
