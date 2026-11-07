@@ -30,7 +30,7 @@
   };
 
   /* ------------------------------------------------------------ state */
-  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null;
+  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   const ids = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
   const nameOf = id => catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
   const tileOf = id => layout.tiles[id] || {};
@@ -42,7 +42,7 @@
   }
   function patchTile(id, patch) {
     const next = {...tileOf(id), ...patch};
-    for (const key of Object.keys(next)) if (!next[key]) delete next[key];
+    for (const key of Object.keys(next)) if (next[key] === '' || next[key] === undefined || next[key] === null) delete next[key];
     if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
     markDirty(); render();
   }
@@ -61,28 +61,45 @@
     const wide = Math.max(nativeW, nativeH), tall = Math.min(nativeW, nativeH);
     return {portrait, width: portrait ? tall : wide, height: portrait ? wide : tall, label};
   }
-  // The same placement rules as the touchscreen: tiles with a chosen size flow along 4 columns (2 in portrait).
+  // The same placement rules as the touchscreen. Tiles the owner placed (col/row) keep their cell; the rest take the first free space.
+  const hasPlace = id => Number.isInteger(tileOf(id).col) && Number.isInteger(tileOf(id).row);
   function place(list, portrait) {
-    const custom = list.some(id => (tileOf(id).size && tileOf(id).size !== 'auto') || tileOf(id).rows === 2);
+    const positioned = list.some(hasPlace);
+    const custom = positioned || list.some(id => (tileOf(id).size && tileOf(id).size !== 'auto') || tileOf(id).rows === 2);
     if (!custom) {
-      if (portrait) return {columns: 1, rows: Math.max(1, list.length), cells: list.map((id, i) => ({id, column: 0, row: i, span: 1, height: 1})), custom, rowMode: true};
-      if (list.length === 6) return {columns: 4, rows: 2, custom, rowMode: false, cells: list.map((id, i) => i < 2 ? {id, column: i, row: 0, span: 1, height: 2} : {id, column: 2 + (i - 2) % 2, row: Math.floor((i - 2) / 2), span: 1, height: 1})};
-      return {columns: 4, rows: Math.max(1, Math.ceil(list.length / 4)), custom, rowMode: false, cells: list.map((id, i) => ({id, column: i % 4, row: Math.floor(i / 4), span: 1, height: 1}))};
+      if (portrait) return {columns: 1, rows: Math.max(1, list.length), cells: list.map((id, i) => ({id, column: 0, row: i, span: 1, height: 1})), custom, positioned, rowMode: true, taken: new Set()};
+      if (list.length === 6) return {columns: 4, rows: 2, custom, positioned, rowMode: false, taken: new Set(), cells: list.map((id, i) => i < 2 ? {id, column: i, row: 0, span: 1, height: 2} : {id, column: 2 + (i - 2) % 2, row: Math.floor((i - 2) / 2), span: 1, height: 1})};
+      return {columns: 4, rows: Math.max(1, Math.ceil(list.length / 4)), custom, positioned, rowMode: false, taken: new Set(), cells: list.map((id, i) => ({id, column: i % 4, row: Math.floor(i / 4), span: 1, height: 1}))};
     }
     const columns = portrait ? 2 : 4, spans = {quarter: 1, half: portrait ? 1 : 2, full: columns};
-    // First free place scanning left to right, then down: the touchscreen uses the same rule.
-    const taken = new Set(), cells = []; let rows = 1;
+    const taken = new Set(), at = new Map();
+    const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
+    const dims = id => ({span: Math.min(columns, spans[tileOf(id).size] || 1), height: tileOf(id).rows === 2 ? 2 : 1});
     for (const id of list) {
-      const span = Math.min(columns, spans[tileOf(id).size] || 1), height = tileOf(id).rows === 2 ? 2 : 1;
-      let placed = false;
-      for (let row = 0; !placed; row += 1) for (let column = 0; column + span <= columns && !placed; column += 1) {
-        const spots = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) spots.push(`${column + dx},${row + dy}`);
-        if (spots.some(spot => taken.has(spot))) continue;
-        spots.forEach(spot => taken.add(spot)); cells.push({id, column, row, span, height}); rows = Math.max(rows, row + height); placed = true;
+      const {span, height} = dims(id), tile = tileOf(id);
+      if (hasPlace(id) && tile.col + span <= columns && !spots(tile.col, tile.row, span, height).some(spot => taken.has(spot))) { spots(tile.col, tile.row, span, height).forEach(spot => taken.add(spot)); at.set(id, {id, column: tile.col, row: tile.row, span, height}); }
+    }
+    for (const id of list) {
+      if (at.has(id)) continue;
+      const {span, height} = dims(id); let done = false;
+      for (let row = 0; !done; row += 1) for (let column = 0; column + span <= columns && !done; column += 1) {
+        const here = spots(column, row, span, height); if (here.some(spot => taken.has(spot))) continue;
+        here.forEach(spot => taken.add(spot)); at.set(id, {id, column, row, span, height}); done = true;
       }
     }
-    return {columns, rows, cells, custom, rowMode: false};
+    const cells = list.map(id => at.get(id));
+    const used = Math.max(1, ...cells.map(cell => cell.row + cell.height));
+    return {columns, rows: Math.max(used, Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
   }
+  // Would the owner's tiles all keep their cells if this tile took on these settings?
+  function fitsAfter(id, patch) {
+    const portrait = screen().portrait, before = place(ids(), portrait); if (!before.positioned) return true;
+    const old = layout.tiles[id], next = {...tileOf(id), ...patch}; for (const key of Object.keys(next)) if (next[key] === '' || next[key] === undefined) delete next[key];
+    layout.tiles[id] = next; const after = place(ids(), portrait); if (old) layout.tiles[id] = old; else delete layout.tiles[id];
+    return before.cells.every(cell => { const now = after.cells.find(item => item.id === cell.id); return now && now.column === cell.column && now.row === cell.row && now.row + now.height <= after.rows; });
+  }
+  // Give every tile an explicit cell, so moving one never shuffles the others.
+  function pin(cells) { for (const cell of cells) layout.tiles[cell.id] = {...tileOf(cell.id), col: cell.column, row: cell.row, ...(cell.height === 2 ? {rows: 2} : {})}; }
 
   /* ------------------------------------------------------------ preview */
   function tileView(cell, rowMode) {
@@ -94,7 +111,6 @@
     if (tile.icon) node.append(h('img', {class: 'hd-icon', src: artUrl(tile.icon), alt: '', style: `opacity:${lit ? 1 : .5}`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
-    const index = ids().indexOf(id);
     for (const axis of ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
@@ -104,12 +120,12 @@
     const open = () => { selected = ids().indexOf(id); devicesOpen = false; render(); };
     node.onclick = open;
     node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } };
-    node.ondragstart = event => { dragIndex = index; dragTile = id; dragId = null; live = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); setTimeout(() => node.classList.add('dragging'), 0); };
-    // While a tile is dragged the others slide out of the way, so the drop shows exactly where it will land.
-    node.ondragover = event => { if (dragTile) { event.preventDefault(); liveMove(id); } else if (dragId) { event.preventDefault(); node.classList.add('over'); } };
+    node.ondragstart = event => { dragIndex = ids().indexOf(id); dragTile = id; dragId = null; live = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); setTimeout(() => { node.classList.add('dragging'); openGrid(); }, 0); };
+    // While a tile is dragged the others make room, so the drop shows exactly where it will land.
+    node.ondragover = event => { if (dragTile) { event.preventDefault(); if (id !== dragTile) liveTo(null, id); } else if (dragId) { event.preventDefault(); node.classList.add('over'); } };
     node.ondragleave = () => node.classList.remove('over');
-    node.ondrop = event => { event.preventDefault(); node.classList.remove('over'); if (dragTile) commitLive(); else dropAt(index); };
-    node.ondragend = () => { const cancelled = live !== null; dragIndex = null; dragTile = null; live = null; if (cancelled) render(); else node.classList.remove('dragging'); };
+    node.ondrop = event => { event.preventDefault(); node.classList.remove('over'); if (dragTile) commitLive(); else dropDevice(null, ids().indexOf(id)); };
+    node.ondragend = () => { const reverted = closeGrid(), cancelled = live !== null || reverted; dragIndex = null; dragTile = null; live = null; if (cancelled) render(); else node.classList.remove('dragging'); };
     return node;
   }
   function stretch(event, id, axis, node) {
@@ -123,7 +139,7 @@
       let patch = null;
       if (axis === 'x') { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + (moveEvent.clientX - startX) / unitX)))); if (size !== current()) patch = {size}; }
       else { const rows = Math.max(1, Math.min(2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== (tileOf(id).rows === 2 ? 2 : 1)) patch = {rows: rows === 2 ? 2 : ''}; }
-      if (!patch) return;
+      if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
       selected = ids().indexOf(id); patchTile(id, patch);
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
       const fresh = document.querySelector(`.hd-tile.selected .hd-stretch-${axis}`);
@@ -132,49 +148,81 @@
     const done = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done); document.querySelectorAll('.hd-tile[data-id]').forEach(tile => { tile.draggable = true; }); };
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', done);
   }
-  // Slide the tiles into the order of `list` without redrawing them, so a drag in progress is not interrupted.
-  function liveMove(targetId) {
-    const list = live || ids(), from = list.indexOf(dragTile), to = list.indexOf(targetId);
-    if (from < 0 || to < 0 || from === to) return;
-    const next = [...list]; const [moved] = next.splice(from, 1); next.splice(to, 0, moved); live = next;
+  // Move the dragged tile to an empty cell, or swap it with the tile under it, without redrawing so the drag is not interrupted.
+  function liveTo(cellAt, targetId) {
+    const info = place(ids(), screen().portrait), me = info.cells.find(item => item.id === dragTile); if (!me) return;
+    const moves = {};
+    if (targetId) { const there = info.cells.find(item => item.id === targetId); if (!there) return; moves[dragTile] = {column: there.column, row: there.row}; moves[targetId] = {column: me.column, row: me.row}; }
+    else moves[dragTile] = {column: Math.min(cellAt.column, info.columns - me.span), row: cellAt.row};
+    const final = info.cells.map(item => ({...item, ...(moves[item.id] || {})}));
+    const sound = final.every(item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows)
+      && final.every((item, i) => final.every((other, j) => j <= i || item.column + item.span <= other.column || other.column + other.span <= item.column || item.row + item.height <= other.row || other.row + other.height <= item.row));
+    if (!sound) return;
+    live = final;
     const grid = document.querySelector('.hd-grid'); if (!grid) return;
     const nodes = [...grid.querySelectorAll('.hd-tile[data-id]')], before = new Map(nodes.map(node => [node, node.getBoundingClientRect()]));
-    const info = place(next, screen().portrait);
-    for (const cell of info.cells) { const node = grid.querySelector(`.hd-tile[data-id="${CSS.escape(cell.id)}"]`); if (node) { node.style.gridColumn = `${cell.column + 1} / span ${cell.span}`; node.style.gridRow = `${cell.row + 1} / span ${cell.height}`; } }
+    for (const item of final) { const node = grid.querySelector(`.hd-tile[data-id="${CSS.escape(item.id)}"]`); if (node) { node.style.gridColumn = `${item.column + 1} / span ${item.span}`; node.style.gridRow = `${item.row + 1} / span ${item.height}`; } }
     for (const node of nodes) {
       const was = before.get(node), now = node.getBoundingClientRect(), dx = was.left - now.left, dy = was.top - now.top;
       if ((dx || dy) && node.animate) node.animate([{transform: `translate(${dx}px,${dy}px)`}, {transform: 'none'}], {duration: 200, easing: 'ease-out'});
     }
+    // The cells the tiles left behind become drop targets again, and the ones they now cover stop being so.
+    const taken = new Set(); for (const item of final) for (let dx = 0; dx < item.span; dx += 1) for (let dy = 0; dy < item.height; dy += 1) taken.add(`${item.column + dx},${item.row + dy}`);
+    grid.querySelectorAll('.hd-empty').forEach(node => node.remove());
+    for (let row = 0; row < info.rows; row += 1) for (let column = 0; column < info.columns; column += 1) if (!taken.has(`${column},${row}`)) grid.append(emptySlot({column, row}));
   }
   function commitLive() {
-    const list = live || ids(), id = dragTile; live = null; dragTile = null; dragIndex = null;
-    selected = list.indexOf(id); setIds(list);
+    const id = dragTile, final = live; live = null; dragTile = null; dragIndex = null;
+    if (!final) { closeGrid(); render(); return; }
+    snapshot = null;
+    pin(final); selected = ids().indexOf(id); markDirty(); render();
   }
-  function dropAt(index) {
-    const list = ids();
-    if (dragTile) commitLive();
-    else if (dragId && !list.includes(dragId) && list.length < LIMIT) { list.splice(index, 0, dragId); selected = index; dragId = null; devicesOpen = false; setIds(list); }
+  // A device dragged in from the list, dropped on a cell (cellAt) or on a tile (index to go before).
+  function dropDevice(cellAt, index) {
+    const list = ids(); const id = dragId; dragId = null;
+    if (!id || list.includes(id) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
+    snapshot = null;
+    const info = place(list, screen().portrait); if (info.positioned || cellAt) pin(info.cells);
+    if (cellAt) { list.push(id); const span = Math.min(info.columns, ({half: info.columns > 2 ? 2 : 1, full: info.columns}[tileOf(id).size]) || 1); layout.tiles[id] = {...tileOf(id), col: Math.min(cellAt.column, info.columns - span), row: cellAt.row}; selected = list.length - 1; }
+    else { list.splice(index, 0, id); selected = index; }
+    devicesOpen = false; markDirty(); setIds(list);
   }
+  function emptySlot(spot) {
+    const slot = h('div', {class: 'hd-empty', 'data-col': spot.column, 'data-row': spot.row, style: `grid-column:${spot.column + 1};grid-row:${spot.row + 1}`}, 'Drop here');
+    slot.ondragover = event => { if (dragTile) { event.preventDefault(); liveTo(spot, null); } else if (dragId && ids().length < LIMIT) { event.preventDefault(); slot.classList.add('over'); } };
+    slot.ondragleave = () => slot.classList.remove('over');
+    slot.ondrop = event => { event.preventDefault(); slot.classList.remove('over'); if (dragTile) commitLive(); else dropDevice(spot, null); };
+    return slot;
+  }
+  // The first time a tile or device is picked up, the whole screen becomes the grid: every free cell is a place to drop.
+  function openGrid() {
+    const portrait = screen().portrait, info = place(ids(), portrait), grid = document.querySelector('.hd-grid');
+    if (info.custom || info.rowMode || !grid) return;
+    snapshot = JSON.parse(JSON.stringify(layout)); pin(info.cells);
+    const full = place(ids(), portrait); grid.style.gridTemplateRows = `repeat(${full.rows},minmax(0,1fr))`;
+    grid.querySelectorAll('.hd-empty').forEach(node => node.remove());
+    for (let row = 0; row < full.rows; row += 1) for (let column = 0; column < full.columns; column += 1) if (!full.taken.has(`${column},${row}`)) grid.append(emptySlot({column, row}));
+  }
+  function closeGrid() { if (snapshot) { layout = snapshot; snapshot = null; return true; } return false; }
   function preview() {
-    const shape = screen(), list = ids(), layoutInfo = place(list, shape.portrait);
-    const empties = Math.max(0, Math.min(layoutInfo.columns * layoutInfo.rows - list.length, LIMIT - list.length));
-    const grid = h('div', {class: 'hd-grid', style: `grid-template-columns:repeat(${layoutInfo.columns},minmax(0,1fr));grid-template-rows:repeat(${layoutInfo.rows + (list.length < LIMIT && !layoutInfo.rowMode ? 0 : 0)},minmax(0,1fr))`});
-    for (const cell of layoutInfo.cells) grid.append(tileView(cell, layoutInfo.rowMode));
-    if (list.length < LIMIT) {
-      const last = layoutInfo.cells[layoutInfo.cells.length - 1];
-      let column = last ? last.column + last.span : 0, row = last ? last.row : 0, free = Math.max(1, empties);
-      while (free > 0 && row < layoutInfo.rows + 1) {
-        if (column >= layoutInfo.columns) { column = 0; row += 1; if (row >= layoutInfo.rows) break; }
-        const slot = h('div', {class: 'hd-empty', style: `grid-column:${column + 1};grid-row:${row + 1}`}, 'Drop here');
-        slot.ondragover = event => { if (dragId || dragTile) { event.preventDefault(); slot.classList.add('over'); } };
-        slot.ondragleave = () => slot.classList.remove('over');
-        slot.ondrop = event => { event.preventDefault(); dropAt(ids().length); };
-        grid.append(slot); column += 1; free -= 1;
-      }
+    const shape = screen(), list = ids(), info = place(list, shape.portrait);
+    const grid = h('div', {class: 'hd-grid', style: `grid-template-columns:repeat(${info.columns},minmax(0,1fr));grid-template-rows:repeat(${info.rows},minmax(0,1fr))`});
+    for (const cell of info.cells) grid.append(tileView(cell, info.rowMode));
+    // A drop that lands between cells, or on a cell that has just changed, still counts.
+    grid.ondragover = event => { if (dragTile) event.preventDefault(); };
+    grid.ondrop = event => { if (dragTile) { event.preventDefault(); commitLive(); } };
+    // Every free cell is a place a tile can be dropped.
+    const free = [];
+    if (info.custom) { for (let row = 0; row < info.rows; row += 1) for (let column = 0; column < info.columns; column += 1) if (!info.taken.has(`${column},${row}`)) free.push({column, row}); }
+    else if (list.length < LIMIT) {
+      const last = info.cells[info.cells.length - 1]; let column = last ? last.column + last.span : 0, row = last ? last.row : 0, left = Math.min(info.columns * info.rows - list.length, LIMIT - list.length);
+      while (left > 0 && row < info.rows) { if (column >= info.columns) { column = 0; row += 1; if (row >= info.rows) break; } free.push({column, row}); column += 1; left -= 1; }
     }
+    if (info.rowMode) free.length = 0;
+    for (const spot of free) grid.append(emptySlot(spot));
     const title = form.elements.home_assistant_title?.value;
     const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid);
-    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile to reorder it, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -220,11 +268,7 @@
     if (!id) return h('div', {class: 'hd-group'}, h('h4', {}, 'Selected tile'), h('p', {class: 'cd-muted'}, 'Select a tile in the preview to change its size, label, icon, image or colour.'));
     const tile = tileOf(id), size = tile.size && tile.size !== 'auto' ? tile.size : 'quarter';
     const segmented = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Tile size'}, [['quarter', 'Quarter'], ['half', 'Half'], ['full', 'Full width']].map(([value, text]) => {
-      const button = h('button', {type: 'button', 'aria-pressed': String(size === value)}, text); button.onclick = () => patchTile(id, {size: value}); return button;
-    }));
-    const tall = tile.rows === 2 ? 2 : 1;
-    const heights = h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Tile height'}, [[1, 'Normal'], [2, 'Tall']].map(([value, text]) => {
-      const button = h('button', {type: 'button', 'aria-pressed': String(tall === value)}, text); button.onclick = () => patchTile(id, {rows: value === 2 ? 2 : ''}); return button;
+      const button = h('button', {type: 'button', 'aria-pressed': String(size === value)}, text); button.onclick = () => { if (fitsAfter(id, {size: value})) { message.textContent = ''; patchTile(id, {size: value}); } else message.textContent = 'There is no room for that next to the neighbouring tile.'; }; return button;
     }));
     const label = h('input', {type: 'text', maxlength: 40, placeholder: nameOf(id)}); label.value = tile.label || '';
     label.oninput = () => { const value = label.value.trim(); if (value) layout.tiles[id] = {...tileOf(id), label: value}; else if (layout.tiles[id]) { delete layout.tiles[id].label; if (!Object.keys(layout.tiles[id]).length) delete layout.tiles[id]; } markDirty(); const text = document.querySelector('.hd-tile.selected .hd-name'); if (text) text.textContent = value || nameOf(id); };
@@ -253,17 +297,13 @@
       const button = h('button', {type: 'button', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': String((tile.color || '').toLowerCase() === colour)}); button.onclick = () => patchTile(id, {color: colour}); return button;
     }), custom);
     const useDefault = h('button', {type: 'button', class: 'secondary'}, 'Use the standard colour'); useDefault.onclick = () => patchTile(id, {color: ''});
-    const here = ids().indexOf(id);
-    const shift = by => { const next = ids(); const [moved] = next.splice(here, 1); next.splice(here + by, 0, moved); selected = here + by; setIds(next); };
-    const earlier = h('button', {type: 'button', class: 'secondary'}, '← Move earlier'); earlier.disabled = here <= 0; earlier.onclick = () => shift(-1);
-    const later = h('button', {type: 'button', class: 'secondary'}, 'Move later →'); later.disabled = here >= ids().length - 1; later.onclick = () => shift(1);
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
-      field('Width', segmented, 'Sizes snap to the screen grid. You can also drag a tile\u2019s right edge.'), field('Height', heights, 'A tall tile fills two rows. Drag its bottom edge, or choose here.'),
+      field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'),
       field('Label', label), field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
-      h('div', {class: 'hd-actions'}, earlier, later, remove), message);
+      h('div', {class: 'hd-actions'}, remove), message);
   }
 
   /* ------------------------------------------------------------ device list */
@@ -283,8 +323,8 @@
         const add = h('button', {type: 'button', class: 'secondary hd-add', 'aria-label': `Add ${item.name}`}, 'Add'); add.disabled = current.length >= LIMIT;
         add.onclick = () => { selected = current.length; devicesOpen = false; setIds([...ids(), item.entity_id]); };
         const row = h('li', {draggable: 'true'}, h('span', {class: 'hd-grip', 'aria-hidden': 'true'}, '⋮⋮'), h('span', {class: 'hd-label'}, item.name, h('small', {}, item.entity_id)), add);
-        row.ondragstart = event => { dragId = item.entity_id; dragIndex = null; event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('text/plain', item.entity_id); };
-        row.ondragend = () => { dragId = null; };
+        row.ondragstart = event => { dragId = item.entity_id; dragIndex = null; event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('text/plain', item.entity_id); setTimeout(openGrid, 0); };
+        row.ondragend = () => { dragId = null; if (closeGrid()) render(); };
         return row;
       }) : [h('li', {class: 'hd-none'}, 'No devices match.')]));
     }

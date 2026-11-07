@@ -79,19 +79,39 @@ class HomePageMixin:
         self.home_status.set_visible(bool(self.home_status.get_text()))
         self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
         # Tiles with a chosen size are placed on a 4-column grid (2 in portrait); with none chosen the original arrangement is used.
-        custom = any((entity.get("tile") or {}).get("size") not in (None, "auto") or (entity.get("tile") or {}).get("rows") == 2 for entity in entities)
+        def has_place(entity): return isinstance((entity.get("tile") or {}).get("col"), int) and isinstance((entity.get("tile") or {}).get("row"), int)
+        custom = any((entity.get("tile") or {}).get("size") not in (None, "auto") or (entity.get("tile") or {}).get("rows") == 2 or has_place(entity) for entity in entities)
         columns = (2 if portrait else 4) if custom else 4
         spans = {"quarter": 1, "half": 1 if portrait else 2, "full": columns}
         row_mode = portrait and not custom
-        tile_rules, taken = [], set()
+        tile_rules, taken, placed = [], set(), {}
+        def spots(column, row, span, height): return {(column + dx, row + dy) for dx in range(span) for dy in range(height)}
         def free_slot(span, height):
             # First free place, scanning left to right then down: the same rule the web designer uses.
             row = 0
             while True:
                 for column in range(columns - span + 1):
-                    cells = {(column + dx, row + dy) for dx in range(span) for dy in range(height)}
-                    if not cells & taken: taken.update(cells); return column, row
+                    if not spots(column, row, span, height) & taken: return column, row
                 row += 1
+        if custom:
+            def size_of(entity):
+                tile = entity.get("tile") or {}
+                return min(columns, spans.get(tile.get("size"), 1)), 2 if tile.get("rows") == 2 else 1
+            # Tiles the owner placed on the grid keep their place; the rest fill the first free spaces.
+            for index, entity in enumerate(entities):
+                span, height = size_of(entity); tile = entity.get("tile") or {}
+                if has_place(entity) and tile["col"] + span <= columns and not spots(tile["col"], tile["row"], span, height) & taken:
+                    placed[index] = (tile["col"], tile["row"]); taken |= spots(tile["col"], tile["row"], span, height)
+            for index, entity in enumerate(entities):
+                if index in placed: continue
+                span, height = size_of(entity); column, row = free_slot(span, height); placed[index] = (column, row); taken |= spots(column, row, span, height)
+            used_rows = max((row + size_of(entities[i])[1] for i, (_, row) in placed.items()), default=1)
+            grid_rows = max(used_rows, -(-8 // columns))
+            # Empty cells get invisible spacers so every column and row keeps its share of the screen.
+            for column in range(columns):
+                for row in range(grid_rows):
+                    if (column, row) not in taken:
+                        spacer = Gtk.Box(); spacer.set_hexpand(True); spacer.set_vexpand(True); self.home_grid.attach(spacer, column, row, 1, 1)
         for index, entity in enumerate(entities):
             tile = entity.get("tile") or {}
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if row_mode else Gtk.Orientation.VERTICAL, spacing=18 if row_mode else 4); box.add_css_class("home-tile"); box.set_vexpand(True)
@@ -143,9 +163,7 @@ class HomePageMixin:
             if scene: button.scene_status_label = state_label
             if row_mode: box.append(details)
             if custom:
-                span = min(columns, spans.get(tile.get("size"), 1))
-                height = 2 if tile.get("rows") == 2 else 1
-                column, row = free_slot(span, height)
+                span, height = size_of(entity); column, row = placed[index]
                 self.home_grid.attach(tile_widget, column, row, span, height)
             elif not portrait and len(entities) == 6:
                 # Two full-height primary controls plus a compact 2x2 group

@@ -10,7 +10,7 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "label", "icon", "image", "color"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color"}
 
 
 def validate_layout(data):
@@ -30,6 +30,10 @@ def validate_layout(data):
         if "rows" in tile:
             if tile["rows"] not in (1, 2) or isinstance(tile["rows"], bool): raise ValueError("Tiles can be one or two rows tall")
             if tile["rows"] == 2: out["rows"] = 2
+        for name, top in (("col", 3), ("row", 7)):
+            if name in tile:
+                if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
+                out[name] = tile[name]
         if tile.get("label"):
             if not isinstance(tile["label"], str) or len(tile["label"]) > 40: raise ValueError("Tile labels must be at most 40 characters")
             out["label"] = tile["label"]

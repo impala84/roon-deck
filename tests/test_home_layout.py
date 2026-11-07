@@ -24,6 +24,11 @@ class HomeLayoutTests(unittest.TestCase):
         for rows in (0, 3, "2", True):
             with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": {"rows": rows}}})
 
+    def test_tile_positions(self):
+        self.assertEqual(validate_layout({"tiles": {"light.a": {"col": 0, "row": 1}}}), {"tiles": {"light.a": {"col": 0, "row": 1}}})
+        for tile in ({"col": 4}, {"row": 8}, {"col": -1}, {"col": "1"}, {"row": True}):
+            with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": tile}})
+
     def test_missing_or_broken_file_means_no_custom_tiles(self):
         folder = Path(tempfile.mkdtemp())
         self.assertEqual(load_layout(folder / "none.json"), {"tiles": {}})

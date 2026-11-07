@@ -170,8 +170,8 @@
 .hd-results{max-height:clamp(280px,56vh,620px)}
 .hd-layout .dd-icons{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px}.hd-layout .dd-icons button{height:72px;border-radius:12px}
 .hd-seg.two{grid-template-columns:repeat(2,1fr)}
-.hd-stretch-x{top:0;right:0;bottom:0;width:16px}
-.hd-stretch-y{left:0;right:16px;bottom:0;top:auto;width:auto;height:16px;cursor:ns-resize}.hd-stretch-y::after{width:28px;height:4px}
+.hd-stretch-x{top:16px;right:0;bottom:16px;width:16px}
+.hd-stretch-y{left:16px;right:16px;bottom:0;top:auto;width:auto;height:16px;cursor:ns-resize}.hd-stretch-y::after{width:28px;height:4px}
 .hd-tile.dragging{opacity:.4}
 .hd-accordion{border:1px solid var(--line);border-radius:12px;background:var(--field)}
 .hd-accordion summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;list-style:none;font-weight:700;color:var(--ink);min-height:48px}

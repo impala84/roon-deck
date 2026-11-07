@@ -218,6 +218,9 @@ def handler(store):
 
         def process(self, post=False):
             try:
+                if self.path == '/favicon.svg' and not post:
+                    raw = Path(__file__).with_name('favicon.svg').read_bytes()
+                    self.send_response(200); self.send_header('Content-Type', 'image/svg+xml'); self.send_header('Content-Length', str(len(raw))); self.send_header('Cache-Control', 'public, max-age=3600'); self.end_headers(); self.wfile.write(raw); return
                 if self.path == '/' and not post:
                     raw = Path(__file__).with_name('index.html').read_bytes().replace(b'__VERSION__', ('v' + __version__ + ' Alpine').encode())
                     self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8'); self.send_header('Content-Length', str(len(raw))); self.send_header('Cache-Control', 'no-store')
