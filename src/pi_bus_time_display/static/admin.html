@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1110">
   <title>RoonDeck · Settings</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/admin.css?v=1032"><link rel="stylesheet" href="/deck-designer.css?v=55">
+  <link rel="stylesheet" href="/admin.css?v=1032"><link rel="stylesheet" href="/deck-designer.css?v=56">
 </head>
 <body class="admin-page">
   <header class="masthead admin-header"><div class="masthead-identity"><a href="#overview" data-jump="overview" class="brand-home"><img src="/brand/roondeck-wordmark.svg" alt="RoonDeck" width="737" height="121"></a><h1>Settings</h1><p id="version"></p></div><button class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="settings-sidebar">Menu</button><div class="masthead-actions"><a id="network-trial-link" href="#network/current" hidden>Confirm network switch</a><a class="view-display-button" href="/">View web display</a><button class="global-update" type="button" data-action="update">Update software</button></div></header>
@@ -149,7 +149,6 @@
         <label class="check"><input type="checkbox" id="backup-secrets"> Include saved passwords and tokens (Home Assistant, LTA, OpenObserve)</label><small>Leave this off unless you will keep the file somewhere private. Without it you re-enter those after restoring.</small>
         <div class="maintenance-row"><div><strong>Download a backup</strong><small id="backup-status" role="status">Ready</small></div><button class="secondary" type="button" id="backup-download">Download backup</button></div>
         <div class="maintenance-row"><div><strong>Restore from a backup</strong><small>Replaces your current settings with those in the file.</small></div><button class="secondary" type="button" id="backup-restore">Restore…</button><input type="file" id="backup-file" accept="application/json,.json" hidden></div>
-        <div class="maintenance-row danger-zone"><div><strong>Restart Raspberry Pi</strong><small>The display and web app will be unavailable briefly.</small></div><button class="secondary warning-action" type="button" data-action="reboot" data-confirm="Reboot the Raspberry Pi now?">Reboot Pi</button></div>
       </div><div class="sw-art hd-status" id="sw-summary"><div class="hd-status-title">Checking backups…</div></div></div>
       <div class="dd-pane sw-two" data-sw-pane="server" hidden><div class="sw-text">
         <h3>Backup Server</h3><p class="help">Keeps scheduled backups of this device on your Synology (or any Docker host) with recovery points you can restore from. Schedule and retention are set on the server.</p>
@@ -199,4 +198,4 @@
   </form>
 </main>
 <form id="vpn-profile"></form><form id="dial-config"></form>
-<script src="/admin-layout.js?v=2"></script><script src="/admin.js?v=1046"></script><script src="/accessories.js?v=10" defer></script><script src="/network.js?v=4" defer></script><script src="/diagnostics.js?v=1" defer></script><script src="/preview.js?v=21" defer></script><script src="/listening-settings.js?v=120200"></script><script src="/deck-icons.js?v=2" defer></script><script src="/home-designer.js?v=3" defer></script><script src="/backup.js?v=6" defer></script><script src="/deck-designer.js?v=26" defer></script></body></html>
+<script src="/admin-layout.js?v=2"></script><script src="/admin.js?v=1046"></script><script src="/accessories.js?v=10" defer></script><script src="/network.js?v=4" defer></script><script src="/diagnostics.js?v=1" defer></script><script src="/preview.js?v=21" defer></script><script src="/listening-settings.js?v=120200"></script><script src="/deck-icons.js?v=2" defer></script><script src="/home-designer.js?v=3" defer></script><script src="/backup.js?v=7" defer></script><script src="/deck-designer.js?v=26" defer></script></body></html>

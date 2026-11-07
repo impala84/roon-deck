@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.55 Alpine — 7 November 2026
+
+- Software: removed the duplicate Restart Raspberry Pi row; Reboot stays in the left menu, now without an outline.
+
 ## 1.2.0-beta.54 Alpine — 7 November 2026
 
 - Home designer: tiles can now be tall. Drag a tile's bottom edge, or choose Normal/Tall, to make it fill two rows. The touchscreen places them the same way.

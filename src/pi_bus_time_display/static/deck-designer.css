@@ -71,7 +71,7 @@
 .dd-chip[aria-pressed="true"]{background:var(--mint);border-color:var(--mint);color:#151515}
 .dd-icons{max-height:none}
 
-.sidebar-reboot{width:100%;margin-top:8px;min-height:44px;border-radius:8px;font-weight:700;background:transparent;color:inherit;border:1px solid #575164}
+.sidebar-reboot{width:100%;margin-top:8px;min-height:44px;border-radius:8px;font-weight:700;background:transparent;color:inherit;border:0}
 .sidebar-reboot.needed{background:#e0792a;color:#1b0e03;border:0}
 
 .dd-head-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
