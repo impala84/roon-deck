@@ -43,7 +43,7 @@ class HomePageMixin:
         self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
-        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); home_content.append(self.home_grid); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
+        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_row.append(self.home_grid); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
         elastic_vertical_scroll(self.home_scroll)
         page.append(self.navigation("home")); return page
 
@@ -71,7 +71,9 @@ class HomePageMixin:
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
         self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
-        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape")}, sort_keys=True, default=str)
+        dashboard = self.home_dashboard_active()
+        self.home_side.set_visible(dashboard)
+        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0)}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
         while child := self.home_grid.get_first_child(): self.home_grid.remove(child)
@@ -81,6 +83,9 @@ class HomePageMixin:
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
         self.home_status.set_visible(bool(self.home_status.get_text()))
         self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
+        if dashboard:
+            self.render_home_dashboard(home, entities)
+            return
         # Tiles with a chosen size are placed on a 4-column grid (2 in portrait); with none chosen the original arrangement is used.
         def has_place(entity): return isinstance((entity.get("tile") or {}).get("col"), int) and isinstance((entity.get("tile") or {}).get("row"), int)
         custom = any((entity.get("tile") or {}).get("size") not in (None, "auto") or (entity.get("tile") or {}).get("rows") == 2 or has_place(entity) for entity in entities)

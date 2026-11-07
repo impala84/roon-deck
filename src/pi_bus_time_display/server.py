@@ -310,15 +310,58 @@ def home_assistant_set_value(config: Config, entity_id: str, value: int) -> obje
         return home_assistant_request(config, "/api/services/fan/set_percentage", {"entity_id": entity_id, "percentage": value})
     if domain == "light":
         return home_assistant_request(config, "/api/services/light/turn_on", {"entity_id": entity_id, "brightness_pct": value})
+    if domain == "climate":
+        attributes = (home_assistant_request(config, "/api/states/" + entity_id) or {}).get("attributes") or {}
+        return home_assistant_request(config, "/api/services/climate/set_temperature", {"entity_id": entity_id, "temperature": climate_target(attributes, value)})
     raise ValueError("This device has no adjustable level")
+
+
+def climate_range(attributes):
+    low, high = attributes.get("min_temp"), attributes.get("max_temp")
+    if isinstance(low, (int, float)) and isinstance(high, (int, float)) and high > low: return float(low), float(high)
+    return None
+
+
+def climate_target(attributes, percent):
+    """The temperature a 0-100 slider position stands for, rounded to the unit's own step."""
+    span = climate_range(attributes)
+    if span is None: raise ValueError("This air conditioner has no temperature range")
+    step = attributes.get("target_temp_step") or 1
+    step = float(step) if isinstance(step, (int, float)) and step > 0 else 1.0
+    value = span[0] + (span[1] - span[0]) * max(0, min(100, percent)) / 100
+    return round(min(span[1], max(span[0], round(value / step) * step)), 2)
+
+
+def climate_percent(attributes):
+    span, temperature = climate_range(attributes), attributes.get("temperature")
+    if span is None or not isinstance(temperature, (int, float)): return None
+    return round(100 * (min(span[1], max(span[0], temperature)) - span[0]) / (span[1] - span[0]))
 
 
 def home_assistant_set_state(config: Config, entity_id: str, enabled: bool) -> object:
     domain = entity_id.split(".", 1)[0]
-    if domain not in {"fan", "light", "switch", "input_boolean"}:
+    if domain not in {"fan", "light", "switch", "input_boolean", "climate"}:
         raise ValueError("This entity type cannot be controlled")
     service = "turn_on" if enabled else "turn_off"
     return home_assistant_request(config, f"/api/services/{domain}/{service}", {"entity_id": entity_id})
+
+
+def home_assistant_group(state: "State", entity_id: str) -> list[str]:
+    """The device plus any others its tile switches with it (e.g. two Pi-holes behind one toggle)."""
+    try: tile = load_layout(state.state_dir / "home-layout.json")["tiles"].get(entity_id) or {}
+    except Exception: tile = {}
+    return [entity_id, *[item for item in tile.get("also", []) if item != entity_id]]
+
+
+def home_assistant_switch_group(state: "State", entity_id: str, enabled: bool | None = None) -> bool:
+    """Switch a tile's linked devices together. Returns False when the tile has none, so the caller does the normal single-device action."""
+    group = home_assistant_group(state, entity_id)
+    if len(group) < 2: return False
+    if enabled is None:
+        current = next((item for item in state.home_data.get("entities", []) if item.get("entity_id") == entity_id), {})
+        enabled = not current.get("on")   # everything on switches off; off or mixed switches everything on
+    for item in group: home_assistant_set_state(state.config, item, enabled)
+    return True
 
 
 def home_assistant_activate(config: Config, entity_id: str) -> object:
@@ -376,7 +419,12 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
             continue
         try:
             raw = home_assistant_request(config, "/api/states")
-            selected = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities) | referenced_entities(state.listening.settings())
+            layout_tiles = load_layout(state.state_dir / "home-layout.json").get("tiles", {})
+            linked = {entity_id: tile.get("also", []) for entity_id, tile in layout_tiles.items() if tile.get("also") and entity_id in config.home_assistant_entities}
+            also_ids = {item for group in linked.values() for item in group}
+            shown = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities) | referenced_entities(state.listening.settings())
+            selected = shown | also_ids
+            by_id = {str(item.get("entity_id", "")): item for item in raw if isinstance(item, dict)} if isinstance(raw, list) else {}
             entities = []
             for item in raw if isinstance(raw, list) else []:
                 entity_id = str(item.get("entity_id", ""))
@@ -384,18 +432,33 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     continue
                 domain = entity_id.split(".", 1)[0]
                 attributes = item.get("attributes") or {}
-                entities.append({
-                    "entity_id": entity_id, "domain": domain, "state": item.get("state", "unknown"),
+                raw_state = item.get("state", "unknown")
+                entry = {
+                    "entity_id": entity_id, "domain": domain, "state": raw_state,
                     "name": attributes.get("friendly_name") or entity_id.split(".", 1)[-1].replace("_", " ").title(),
                     "percentage": attributes.get("percentage"), "percentage_step": attributes.get("percentage_step"), "brightness": attributes.get("brightness"),
-                    "action": domain in {"scene", "script"}, "available": home_assistant_entity_available(domain, item.get("state")),
+                    "action": domain in {"scene", "script"}, "available": home_assistant_entity_available(domain, raw_state),
                     "supports_level": bool(
                         (domain == "fan" and (attributes.get("percentage") is not None or attributes.get("percentage_step") is not None))
                         or (domain == "light" and attributes.get("supported_color_modes") not in (None, [], ["onoff"]))
+                        or (domain == "climate" and climate_percent(attributes) is not None)
                     ),
-                })
+                    "on": raw_state in {"on", "open", "playing"} or (domain == "climate" and raw_state not in {"off", "unavailable", "unknown"}),
+                }
+                if domain == "climate":
+                    entry["percentage"] = climate_percent(attributes)
+                    temperature = attributes.get("temperature")
+                    if isinstance(temperature, (int, float)): entry["detail"] = f"{temperature:g} °C"
+                if entity_id in linked:
+                    states = [raw_state] + [str((by_id.get(other) or {}).get("state", "unknown")) for other in linked[entity_id]]
+                    on_count = sum(1 for value in states if value == "on")
+                    entry["state"] = "on" if on_count == len(states) else "off" if on_count == 0 else "mixed"
+                    entry["on"] = on_count == len(states)
+                    entry["linked_total"], entry["linked_on"] = len(states), on_count
+                    entry["available"] = all(value not in {"unavailable", "unknown"} for value in states)
+                entities.append(entry)
             order = {entity_id: index for index, entity_id in enumerate(config.home_assistant_entities)}
-            deck_only = [item for item in entities if item["entity_id"] not in order]
+            deck_only = [item for item in entities if item["entity_id"] not in order and item["entity_id"] in shown]
             entities = sorted((item for item in entities if item["entity_id"] in order), key=lambda item: order[item["entity_id"]])
             state.home_data = {"status": "ok", "entities": entities, "deck_entities": deck_only, "updated_at": datetime.now(ZoneInfo(config.timezone)).isoformat()}
             status = "ok"
@@ -1689,7 +1752,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if self.path == "/api/device/home-value":
                             home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                         elif self.path == "/api/device/home-state":
-                            home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                            if not home_assistant_switch_group(state, entity_id, bool(data.get("enabled"))):
+                                home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                        elif domain not in {"scene", "script"} and home_assistant_switch_group(state, entity_id):
+                            pass
                         elif domain in {"scene", "script"}:
                             home_assistant_activate(state.config, entity_id)
                         else:
@@ -1712,7 +1778,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if self.path == "/api/home/value":
                         home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                     elif self.path == "/api/home/state":
-                        home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                        if not home_assistant_switch_group(state, entity_id, bool(data.get("enabled"))):
+                            home_assistant_set_state(state.config, entity_id, bool(data.get("enabled")))
+                    elif domain not in {"scene", "script"} and home_assistant_switch_group(state, entity_id):
+                        pass
                     elif domain in {"scene", "script"}:
                         home_assistant_activate(state.config, entity_id)
                     else:

@@ -5,6 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ICONS = {
+    'snow': '<path d="M32 8v48M11.2 20l41.6 24M11.2 44l41.6-24M25 13l7 7 7-7M25 51l7-7 7 7"/>',
+    'shield': '<path d="M32 7l20 8v15c0 12-8.5 21-20 25-11.5-4-20-13-20-25V15z"/><path d="M23 32l6 6 12-13"/>',
     'rock': '<path d="M39 19 49 9l5 5-10 10-3-3-16 18c5-1 8 2 6 6l-7 9c-5 6-13 2-17-3s-4-11 1-15l8-5c4-3 8-1 7 4L39 19Z M23 39l18-18 M16 43l4 4 M48 9l3-3 5 5-2 3"/>',
     'classical': '<rect x="12" y="8" width="40" height="7" rx="3.5"/><path d="M16 22h32 M20 22v34 M28 28v28 M36 28v28 M44 22v34"/>',
     'electronic': '<rect x="5" y="16" width="54" height="32" rx="3"/><path d="M10 24h3 M18 24h3 M26 24h3 M10 34v14 M18 34v14 M26 34v14 M34 34v14 M42 34v14 M50 34v14 M14 40v8 M22 40v8 M30 40v8 M38 40v8 M46 40v8 M54 40v8"/><circle cx="43" cy="24" r="2"/><circle cx="52" cy="24" r="2"/>',

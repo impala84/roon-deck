@@ -61,35 +61,49 @@
     const wide = Math.max(nativeW, nativeH), tall = Math.min(nativeW, nativeH);
     return {portrait, width: portrait ? tall : wide, height: portrait ? wide : tall, label};
   }
+  // Landscape displays 1000px wide or more use the card dashboard, which has a choice of 2 or 3 columns.
+  const dashColumns = () => { const shape = screen(); return !shape.portrait && shape.width >= 1000 ? (layout.columns === 3 ? 3 : 2) : 0; };
+  const isScene = id => domainOf(id) === 'scene';
+  const plainTile = id => (!tileOf(id).size || tileOf(id).size === 'auto') && tileOf(id).rows !== 2;
   // The same placement rules as the touchscreen. Tiles the owner placed (col/row) keep their cell; the rest take the first free space.
   const hasPlace = id => Number.isInteger(tileOf(id).col) && Number.isInteger(tileOf(id).row);
   function place(list, portrait) {
+    const dash = dashColumns();
     const positioned = list.some(hasPlace);
-    const custom = positioned || list.some(id => (tileOf(id).size && tileOf(id).size !== 'auto') || tileOf(id).rows === 2);
+    const custom = dash > 0 || positioned || list.some(id => (tileOf(id).size && tileOf(id).size !== 'auto') || tileOf(id).rows === 2);
     if (!custom) {
       if (portrait) return {columns: 1, rows: Math.max(1, list.length), cells: list.map((id, i) => ({id, column: 0, row: i, span: 1, height: 1})), custom, positioned, rowMode: true, taken: new Set()};
       if (list.length === 6) return {columns: 4, rows: 2, custom, positioned, rowMode: false, taken: new Set(), cells: list.map((id, i) => i < 2 ? {id, column: i, row: 0, span: 1, height: 2} : {id, column: 2 + (i - 2) % 2, row: Math.floor((i - 2) / 2), span: 1, height: 1})};
       return {columns: 4, rows: Math.max(1, Math.ceil(list.length / 4)), custom, positioned, rowMode: false, taken: new Set(), cells: list.map((id, i) => ({id, column: i % 4, row: Math.floor(i / 4), span: 1, height: 1}))};
     }
-    const columns = portrait ? 2 : 4, spans = {quarter: 1, half: portrait ? 1 : 2, full: columns};
+    const columns = dash || (portrait ? 2 : 4), spans = {quarter: 1, half: dash ? Math.min(2, columns) : portrait ? 1 : 2, full: columns};
     const taken = new Set(), at = new Map();
+    // Neighbouring scenes share one cell as two square buttons: both unplaced, or both given the same cell.
+    const pairOf = new Map();
+    if (dash) for (let i = 0; i + 1 < list.length; i += 1) {
+      const a = list[i], b = list[i + 1];
+      if (pairOf.has(a) || !isScene(a) || !isScene(b) || !plainTile(a) || !plainTile(b)) continue;
+      if ((!hasPlace(a) && !hasPlace(b)) || (hasPlace(a) && hasPlace(b) && tileOf(a).col === tileOf(b).col && tileOf(a).row === tileOf(b).row)) { pairOf.set(a, 'a'); pairOf.set(b, 'b'); i += 1; }
+    }
+    const lead = id => pairOf.get(id) === 'b' ? list[list.indexOf(id) - 1] : id;
     const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
     const dims = id => ({span: Math.min(columns, spans[tileOf(id).size] || 1), height: tileOf(id).rows === 2 ? 2 : 1});
     for (const id of list) {
+      if (pairOf.get(id) === 'b') continue;
       const {span, height} = dims(id), tile = tileOf(id);
       if (hasPlace(id) && tile.col + span <= columns && !spots(tile.col, tile.row, span, height).some(spot => taken.has(spot))) { spots(tile.col, tile.row, span, height).forEach(spot => taken.add(spot)); at.set(id, {id, column: tile.col, row: tile.row, span, height}); }
     }
     for (const id of list) {
-      if (at.has(id)) continue;
+      if (at.has(id) || pairOf.get(id) === 'b') continue;
       const {span, height} = dims(id); let done = false;
       for (let row = 0; !done; row += 1) for (let column = 0; column + span <= columns && !done; column += 1) {
         const here = spots(column, row, span, height); if (here.some(spot => taken.has(spot))) continue;
         here.forEach(spot => taken.add(spot)); at.set(id, {id, column, row, span, height}); done = true;
       }
     }
-    const cells = list.map(id => at.get(id));
+    const cells = list.map(id => ({...at.get(lead(id)), id, ...(pairOf.has(id) ? {pair: pairOf.get(id)} : {})}));
     const used = Math.max(1, ...cells.map(cell => cell.row + cell.height));
-    return {columns, rows: Math.max(used, Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
+    return {columns, rows: Math.max(used, dash ? (columns === 2 ? 3 : 2) : Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
   }
   // Would the owner's tiles all keep their cells if this tile took on these settings?
   function fitsAfter(id, patch) {
@@ -106,7 +120,7 @@
     const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[id] ? ['on', 'open', 'playing'].includes(states[id].state) : true, scene = domainOf(id) === 'scene';
     const lit = on || scene;
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
-      style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
+      style: `${cell.pair ? `width:calc(50% - 4px);justify-self:${cell.pair === 'a' ? 'start' : 'end'};` : ''}grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
     if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
@@ -156,7 +170,7 @@
     else moves[dragTile] = {column: Math.min(cellAt.column, info.columns - me.span), row: cellAt.row};
     const final = info.cells.map(item => ({...item, ...(moves[item.id] || {})}));
     const sound = final.every(item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows)
-      && final.every((item, i) => final.every((other, j) => j <= i || item.column + item.span <= other.column || other.column + other.span <= item.column || item.row + item.height <= other.row || other.row + other.height <= item.row));
+      && final.every((item, i) => final.every((other, j) => j <= i || (item.pair && other.pair && item.column === other.column && item.row === other.row) || item.column + item.span <= other.column || other.column + other.span <= item.column || item.row + item.height <= other.row || other.row + other.height <= item.row));
     if (!sound) return;
     live = final;
     const grid = document.querySelector('.hd-grid'); if (!grid) return;
@@ -222,7 +236,12 @@
     for (const spot of free) grid.append(emptySlot(spot));
     const title = form.elements.home_assistant_title?.value;
     const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid);
-    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    const dash = dashColumns();
+    const columnPicker = dash ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);
+      button.onclick = () => { if (dash === count) return; layout.columns = count; markDirty(); render(); }; return button;
+    }))) : null;
+    return h('div', {class: 'hd-preview'}, columnPicker, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -297,10 +316,29 @@
       const button = h('button', {type: 'button', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': String((tile.color || '').toLowerCase() === colour)}); button.onclick = () => patchTile(id, {color: colour}); return button;
     }), custom);
     const useDefault = h('button', {type: 'button', class: 'secondary'}, 'Use the standard colour'); useDefault.onclick = () => patchTile(id, {color: ''});
+    const also = tile.also || [];
+    const linkSet = (next) => patchTile(id, {also: next.length ? next : ''});
+    const alsoChips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Devices switched together'}, also.map(other => {
+      const chip = h('button', {type: 'button', class: 'dd-chip', 'aria-label': `Stop switching ${nameOf(other)} with this tile`}, `${nameOf(other)} \u00d7`); chip.onclick = () => linkSet(also.filter(item => item !== other)); return chip;
+    }));
+    const alsoPick = h('select', {'aria-label': 'Switch another device together with this tile'}, h('option', {value: ''}, also.length >= 4 ? 'Four is the most' : 'Add a device\u2026'),
+      ...(also.length >= 4 ? [] : catalog.filter(item => ['switch', 'input_boolean', 'light', 'fan', 'climate'].includes(item.domain) && item.entity_id !== id && !also.includes(item.entity_id) && !ids().includes(item.entity_id)).map(item => h('option', {value: item.entity_id}, item.name))));
+    alsoPick.onchange = () => { if (alsoPick.value) linkSet([...also, alsoPick.value]); };
+    const linkField = isScene(id) ? null : field('Switch together with', h('div', {class: 'hd-stack'}, alsoChips, alsoPick), 'One tap switches this device and the ones added here on or off together, for example two Pi-holes. The tile shows how many are on.');
+    const list2 = ids(), next = list2[list2.indexOf(id) + 1];
+    const canPair = dashColumns() > 0 && isScene(id) && next && isScene(next) && plainTile(id) && plainTile(next);
+    const paired = canPair && ((!hasPlace(id) && !hasPlace(next)) || (hasPlace(id) && hasPlace(next) && tile.col === tileOf(next).col && tile.row === tileOf(next).row));
+    const pairBox = h('input', {type: 'checkbox'}); pairBox.checked = !!paired;
+    pairBox.onchange = () => {
+      const info = place(ids(), screen().portrait), cell = info.cells.find(item => item.id === id);
+      if (pairBox.checked) { pin(info.cells); layout.tiles[next] = {...tileOf(next), col: cell.column, row: cell.row}; markDirty(); render(); }
+      else { const free = (() => { for (let row = 0; row < info.rows + 1; row += 1) for (let column = 0; column < info.columns; column += 1) if (!info.taken.has(`${column},${row}`)) return {column, row}; return null; })(); if (!free) { message.textContent = 'There is no free cell for it.'; pairBox.checked = true; return; } pin(info.cells); layout.tiles[next] = {...tileOf(next), col: free.column, row: free.row}; markDirty(); render(); }
+    };
+    const pairField = canPair ? h('label', {class: 'dd-check'}, pairBox, h('span', {}, `Share a cell with ${nameOf(next)} (two square buttons side by side)`)) : null;
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
       field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'),
-      field('Label', label), field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
+      field('Label', label), linkField, pairField, field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
       h('div', {class: 'hd-actions'}, remove), message);
@@ -406,7 +444,7 @@
 
   window.RoonDeckSaves = window.RoonDeckSaves || {};
   window.RoonDeckSaves.homelayout = async () => {
-    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => ids().includes(id)))})});
+    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => ids().includes(id))), ...(layout.columns ? {columns: layout.columns} : {})})});
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the Home layout');
     layout = result.layout; dirty = false;
   };
@@ -416,7 +454,7 @@
     const [cat, status, art_, saved, sys] = await Promise.all([json('/api/admin/home-catalog'), json('/api/home/status'), json('/api/admin/listening/art'), json('/api/admin/home-layout'), json('/api/admin/system')]);
     catalog = (cat?.entities) || [];
     states = Object.fromEntries([...(status?.entities || []), ...(status?.deck_entities || [])].map(item => [item.entity_id, item]));
-    art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles}; system = sys || {};
+    art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles, ...(saved.columns ? {columns: saved.columns} : {})}; system = sys || {};
     render();
     // Icons made by earlier versions are small in their tile: redraw them at the full size.
     for (const [id, tile] of Object.entries(layout.tiles)) {

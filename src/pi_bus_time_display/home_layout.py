@@ -10,15 +10,18 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also"}
+COLUMNS = (2, 3)
 
 
 def validate_layout(data):
-    if not isinstance(data, dict) or set(data) - {"tiles"}:
+    if not isinstance(data, dict) or set(data) - {"tiles", "columns"}:
         raise ValueError("Invalid Home layout")
     tiles = data.get("tiles", {})
     if not isinstance(tiles, dict) or len(tiles) > 40:
         raise ValueError("Home layout can describe up to 40 tiles")
+    columns = data.get("columns")
+    if columns is not None and (isinstance(columns, bool) or columns not in COLUMNS): raise ValueError("Home can use 2 or 3 columns")
     clean = {}
     for entity_id, tile in tiles.items():
         if not isinstance(entity_id, str) or not ENTITY.fullmatch(entity_id) or not isinstance(tile, dict) or set(tile) - TILE_KEYS:
@@ -34,6 +37,11 @@ def validate_layout(data):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
                 out[name] = tile[name]
+        if tile.get("also"):
+            also = tile["also"]
+            if not isinstance(also, list) or len(also) > 4 or any(not isinstance(item, str) or not ENTITY.fullmatch(item) or item == entity_id for item in also):
+                raise ValueError("A tile can switch up to four other devices with it")
+            out["also"] = list(dict.fromkeys(also))
         if tile.get("label"):
             if not isinstance(tile["label"], str) or len(tile["label"]) > 40: raise ValueError("Tile labels must be at most 40 characters")
             out["label"] = tile["label"]
@@ -45,7 +53,7 @@ def validate_layout(data):
             if not isinstance(tile["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", tile["color"]): raise ValueError("Tile colours must look like #fb923c")
             out["color"] = tile["color"]
         if out: clean[entity_id] = out
-    return {"tiles": clean}
+    return {"tiles": clean, **({"columns": columns} if columns is not None else {})}
 
 
 def load_layout(path):
@@ -75,7 +83,9 @@ def with_layout(home, layout):
     tiles = (layout or {}).get("tiles", {})
     if not isinstance(home, dict): return home
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
-    return {**home, "entities": entities}
+    out = {**home, "entities": entities}
+    if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
+    return out
 
 
 def tint_icon(data, colour):

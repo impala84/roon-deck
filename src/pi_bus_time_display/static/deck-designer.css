@@ -190,3 +190,5 @@
 .sw-card .action-buttons button{flex:0 0 auto}
 @container (max-width:1060px){.sw-two{grid-template-columns:minmax(0,1fr)}.sw-art{position:static}}
 .hd-icon-tint{display:block;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+
+.hd-columns{display:flex;align-items:center;gap:12px;justify-content:space-between}.hd-columns>span{font-size:14px;color:var(--muted)}.hd-columns .hd-seg{width:240px}

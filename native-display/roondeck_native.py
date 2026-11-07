@@ -12,6 +12,7 @@ from datetime import time as datetime_time
 from native_common import Gtk
 from bus_page import BusPageMixin
 from home_page import HomePageMixin
+from home_dashboard import HomeDashboardMixin
 from settings_page import SettingsPageMixin
 from sleep_and_touch import SleepAndTouchMixin
 from now_playing_page import NowPlayingPageMixin
@@ -21,7 +22,7 @@ from artwork import ArtworkMixin
 from screen_preview import ScreenPreviewMixin
 
 
-class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin, NowPlayingPageMixin, DiscoverPageMixin, BrowsePageMixin, ArtworkMixin, ScreenPreviewMixin, Gtk.Application):
+class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin, NowPlayingPageMixin, DiscoverPageMixin, BrowsePageMixin, ArtworkMixin, ScreenPreviewMixin, Gtk.Application):
     def __init__(self):
         super().__init__(application_id="org.pihome.Native")
         self.polling = False
@@ -801,6 +802,7 @@ class Display(BusPageMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin
         # as though it had reflowed. A genuinely empty zone still converges on
         # the fixed-size placeholder via note_missing_artwork().
         self.render_roon(roon)
+        self.render_home_side(roon, status)
         if not self.views_prewarmed:
             self.views_prewarmed = True; GLib.idle_add(self.prewarm_views)
         if self.manual_sleep_pending:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.66 Alpine — 8 November 2026
+
+- Home (7-inch and larger landscape displays): a new dashboard layout. A player card (cover art behind the track, fading to the bottom) and the next bus sit beside a grid of device cards, with one even gap between everything. Lights, fans and the air conditioner have a full-width slider; switches show a toggle; scenes are square buttons, two to a cell. Icons are larger and sit slightly above centre, with room between the name and the slider. The original 800x480 and portrait displays keep the classic tiles.
+- Home builder: choose 2 or 3 columns, and keep dragging tiles to reshuffle or stretch them. A tile can now switch other devices together with it (for example two Pi-holes behind one toggle; it shows "1 of 2 on" when they disagree), and neighbouring scenes can share a cell.
+- Home Assistant: air conditioners (climate) can be added to Home; the slider sets the target temperature across the unit's own range.
+
 ## 1.2.0-beta.65 Alpine — 8 November 2026
 
 - Stream Deck: it can now match RoonDeck's wake and sleep exactly, or follow your own schedule. Settings › Stream Deck › Wake & sleep has a new choice: Match RoonDeck (the deck sleeps and wakes with the touchscreen, including its idle timeout) or My own schedule (set the times yourself; leave them empty and the deck never sleeps). Before, the deck missed the touchscreen's own idle sleep, so it could stay lit while RoonDeck was asleep. Upgrading keeps your choice: unticking "sleep with display" becomes My own schedule, and everything else becomes Match RoonDeck. A touch still wakes a sleeping deck for your chosen stay-awake time.
