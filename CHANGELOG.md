@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.47 Alpine — 7 November 2026
+
+- Automatic backups to a Synology: Software > Maintenance can save a backup file to a folder on your NAS every day (through the Synology WebDAV Server package) and keeps the newest 14. There is a Back up now button and the last result is shown. Passwords and tokens are never included in automatic backups.
+
 ## 1.2.0-beta.46 Alpine — 7 November 2026
 
 - Backup and restore: Software > Maintenance can download all your settings, Stream Deck designs, Home layout and uploaded images as one file, and restore them from it. Saved passwords and tokens are left out unless you tick the box.

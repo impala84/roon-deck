@@ -30,6 +30,7 @@ from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
 from .home_layout import load_layout, save_layout, with_layout
+from . import remote_backup
 from .backup import SECRET_KEYS, build_backup, check_backup, restore_backup
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
@@ -1060,6 +1061,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = target.read_bytes()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "no-cache")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if self.path == "/api/admin/backup-target":
+                if not self.authorised(): return
+                self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)),
+                    "status": load_json(state.state_dir / "backup-status.json", {})}).encode()); return
             if self.path.split("?", 1)[0] == "/api/admin/backup":
                 if not self.authorised(): return
                 bundle = build_backup(config_path, state.state_dir, env_path, __version__, include_secrets="secrets=1" in self.path)
@@ -1337,6 +1342,30 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     threading.Thread(target=state.listening.refresh, daemon=True).start()
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path in {"/api/admin/backup-target", "/api/admin/backup-run"}:
+                if not self.authorised(): return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 4000: raise ValueError("Invalid request")
+                    data = json.loads(self.rfile.read(length))
+                    path = state.state_dir / "backup-target.json"
+                    if self.path == "/api/admin/backup-target":
+                        target = remote_backup.save_target(path, data)
+                        password = str(data.get("password", "")) if isinstance(data, dict) else ""
+                        if password:
+                            if "\n" in password or "\r" in password: raise ValueError("The password cannot contain a line break")
+                            update_secret(env_path, remote_backup.SECRET, password)
+                        self.send_json(200, json.dumps({"ok": True, "target": target}).encode()); return
+                    target = remote_backup.validate_target({**remote_backup.load_target(path), "enabled": True})
+                    try:
+                        name = remote_backup.run_backup(target, os.getenv(remote_backup.SECRET, ""), config_path, state.state_dir, env_path, __version__)
+                    except ValueError as error:
+                        remote_backup.write_status(state.state_dir / "backup-status.json", False, str(error)); raise
+                    remote_backup.write_status(state.state_dir / "backup-status.json", True, f"Saved {name}")
+                    self.send_json(200, json.dumps({"ok": True, "name": name}).encode())
+                except (ValueError, TypeError, OSError, json.JSONDecodeError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)[:200]}).encode())
                 return
             if self.path == "/api/admin/restore":
                 if not self.authorised(): return
@@ -1989,6 +2018,7 @@ def main() -> None:
     stop = threading.Event()
     threading.Thread(target=state.performance.run, args=(stop,), daemon=True).start()
     threading.Thread(target=poll, args=(state, stop, events), daemon=True).start()
+    threading.Thread(target=remote_backup.schedule, args=(args.state_dir, args.config, args.env, __version__, stop), daemon=True).start()
     threading.Thread(target=home_assistant_poll, args=(state, stop, events), daemon=True).start()
     threading.Thread(target=state.listening.poll, args=(stop,), daemon=True).start()
     threading.Thread(target=play_trigger_watch, args=(state, stop), daemon=True).start()
