@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.48 Alpine — 7 November 2026
+
+- Automatic backups can now go to Google Drive as well as your Synology. Switch on either or both; each keeps the newest 14 files. Google Drive uses a one-time sign-in code, and RoonDeck can only see the backup files it creates.
+
 ## 1.2.0-beta.47 Alpine — 7 November 2026
 
 - Automatic backups to a Synology: Software > Maintenance can save a backup file to a folder on your NAS every day (through the Synology WebDAV Server package) and keeps the newest 14. There is a Back up now button and the last result is shown. Passwords and tokens are never included in automatic backups.

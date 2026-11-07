@@ -31,3 +31,29 @@ class RemoteBackupTests(unittest.TestCase):
         server.shutdown()
         self.assertEqual(sorted(FILES), ["roondeck-backup-2026-11-03-0330.json", "roondeck-backup-2026-11-04-0330.json"])
         self.assertEqual(json.loads(FILES["roondeck-backup-2026-11-04-0330.json"])["format"], "roondeck-backup")
+
+
+class GoogleTests(unittest.TestCase):
+    def test_google_upload_prunes_and_signin(self):
+        calls = []; files = {"a": "roondeck-backup-2026-11-01-0330.json", "b": "roondeck-backup-2026-11-02-0330.json"}
+        def fake(method, url, headers=None, body=None):
+            calls.append((method, url))
+            if "oauth2.googleapis.com/token" in url: return 200, {"access_token": "t", "refresh_token": "r"}
+            if "uploadType=multipart" in url: files["c"] = "roondeck-backup-2026-11-03-0330.json"; return 200, {"id": "c"}
+            if method == "DELETE": files.pop(url.rsplit("/", 1)[-1]); return 204, {}
+            if "mimeType%3D" in url or "mimeType" in url: return 200, {"files": [{"id": "F"}]}
+            if "in%20parents" in url: return 200, {"files": [{"id": i, "name": n} for i, n in files.items()]}
+            return 200, {}
+        original = rb._http; rb._http = fake
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder); (root / "state").mkdir(); config = root / "c.toml"; config.write_text('bus_stop_code = "12345"\n')
+                target = rb.validate_target({"google_enabled": True, "google_client_id": "1-x.apps.googleusercontent.com", "keep": 2})
+                rb.run_google(target, "s", "r", config, root / "state", root / "env", "1", __import__("time").strptime("2026-11-03 03:30", "%Y-%m-%d %H:%M"))
+            self.assertEqual(sorted(files), ["b", "c"])
+            self.assertEqual(rb.google_poll("id", "s", "d"), "r")
+        finally: rb._http = original
+
+    def test_google_needs_client_id(self):
+        with self.assertRaises(ValueError): rb.validate_target({"google_enabled": True, "google_client_id": "nope"})
+        self.assertTrue(rb.validate_target({"google_enabled": True, "google_client_id": "1-x.apps.googleusercontent.com"})["google_enabled"])

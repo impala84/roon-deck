@@ -33,24 +33,51 @@
     } catch (error) { say(error.message); }
   };
 
-  const nas = id => document.getElementById(id);
-  if (!nas('nas-url')) return;
-  const nasSay = text => { nas('nas-status').textContent = text; };
+  const $ = id => document.getElementById(id);
+  if (!$('nas-url')) return;
   async function post(path, body) {
     const response = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
     if (response.status === 401) { location.href = '/login.html'; throw new Error('Sign in to continue'); }
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Something went wrong'); return result;
   }
-  const form = () => ({enabled: nas('nas-enabled').checked, url: nas('nas-url').value.trim(), folder: nas('nas-folder').value.trim() || 'RoonDeck', username: nas('nas-user').value.trim(), verify_tls: nas('nas-verify').checked, password: nas('nas-pass').value});
-  async function loadNas() {
+  const form = () => ({enabled: $('nas-enabled').checked, url: $('nas-url').value.trim(), folder: $('nas-folder').value.trim() || 'RoonDeck', username: $('nas-user').value.trim(), verify_tls: $('nas-verify').checked, password: $('nas-pass').value,
+    google_enabled: $('g-enabled').checked, google_client_id: $('g-id').value.trim(), google_folder: $('g-folder').value.trim() || 'RoonDeck', google_secret: $('g-secret').value});
+  const save = async () => { await post('/api/admin/backup-target', form()); $('nas-pass').value = ''; $('g-secret').value = ''; };
+  async function load() {
     try {
       const data = await (await fetch('/api/admin/backup-target', {cache: 'no-store'})).json(), t = data.target;
-      nas('nas-enabled').checked = t.enabled; nas('nas-url').value = t.url; nas('nas-folder').value = t.folder; nas('nas-user').value = t.username; nas('nas-verify').checked = t.verify_tls;
-      nas('nas-pass').placeholder = data.password_set ? 'Saved — leave blank to keep' : 'Password';
-      const s = data.status || {}; nasSay(s.time ? `${s.ok ? 'Last backup' : 'Last attempt failed'} ${s.time}: ${s.message}` : (t.enabled ? 'Waiting for the first backup' : 'Not set up'));
-    } catch (_) { nasSay('Could not load the backup settings'); }
+      $('nas-enabled').checked = t.enabled; $('nas-url').value = t.url; $('nas-folder').value = t.folder; $('nas-user').value = t.username; $('nas-verify').checked = t.verify_tls;
+      $('nas-pass').placeholder = data.password_set ? 'Saved — leave blank to keep' : 'Password';
+      $('g-enabled').checked = t.google_enabled; $('g-id').value = t.google_client_id; $('g-folder').value = t.google_folder;
+      $('g-secret').placeholder = data.google_secret_set ? 'Saved — leave blank to keep' : 'Client secret';
+      $('g-status').textContent = data.google_connected ? 'Connected' : 'Not connected';
+      $('g-connect').textContent = data.google_connected ? 'Reconnect…' : 'Connect…';
+      const s = data.status || {}; $('auto-status').textContent = s.time ? `${s.ok ? 'Last backup' : 'Last attempt failed'} ${s.time}: ${s.message}` : (t.enabled || t.google_enabled ? 'Waiting for the first backup' : 'Not set up');
+    } catch (_) { $('auto-status').textContent = 'Could not load the backup settings'; }
   }
-  nas('nas-save').onclick = async () => { try { await post('/api/admin/backup-target', form()); nas('nas-pass').value = ''; await loadNas(); nasSay('Saved. ' + nas('nas-status').textContent); } catch (error) { nasSay(error.message); } };
-  nas('nas-run').onclick = async () => { nasSay('Backing up…'); try { await post('/api/admin/backup-target', form()); nas('nas-pass').value = ''; const result = await post('/api/admin/backup-run', {}); await loadNas(); nasSay(`Saved ${result.name}`); } catch (error) { nasSay(error.message); } };
-  loadNas();
+  const run = (which, label) => async () => {
+    label.textContent = 'Backing up…';
+    try { await save(); const result = await post('/api/admin/backup-run', {which}); await load(); label.textContent = result.saved.join('; '); }
+    catch (error) { label.textContent = error.message; }
+  };
+  $('auto-save').onclick = async () => { try { await save(); await load(); $('auto-status').textContent = 'Saved. ' + $('auto-status').textContent; } catch (error) { $('auto-status').textContent = error.message; } };
+  $('nas-run').onclick = run('synology', $('nas-status'));
+  $('g-run').onclick = run('google', $('g-status'));
+  $('g-connect').onclick = async () => {
+    const box = $('g-code'), status = $('g-status');
+    try {
+      await save(); const flow = await post('/api/admin/backup-google-start', {});
+      box.hidden = false; box.textContent = '';
+      const link = document.createElement('a'); link.href = flow.url; link.target = '_blank'; link.rel = 'noopener'; link.textContent = flow.url;
+      box.append('Open ', link, ' and enter the code ', Object.assign(document.createElement('strong'), {textContent: flow.user_code}), '. Waiting for you to approve…');
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); let delay = (flow.interval || 5) * 1000;
+      for (let attempt = 0; attempt < 120; attempt++) {
+        await wait(delay);
+        const result = await post('/api/admin/backup-google-poll', {});
+        if (result.connected) { box.hidden = true; await load(); status.textContent = 'Connected'; return; }
+      }
+      box.textContent = 'The code expired. Press Connect to try again.';
+    } catch (error) { box.hidden = false; box.textContent = error.message; }
+  };
+  load();
 })();

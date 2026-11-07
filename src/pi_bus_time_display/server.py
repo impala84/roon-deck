@@ -1063,7 +1063,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/backup-target":
                 if not self.authorised(): return
-                self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)),
+                self.send_json(200, json.dumps({"target": remote_backup.load_target(state.state_dir / "backup-target.json"), "password_set": bool(os.getenv(remote_backup.SECRET)), "google_secret_set": bool(os.getenv(remote_backup.GOOGLE_SECRET)), "google_connected": bool(os.getenv(remote_backup.GOOGLE_TOKEN)),
                     "status": load_json(state.state_dir / "backup-status.json", {})}).encode()); return
             if self.path.split("?", 1)[0] == "/api/admin/backup":
                 if not self.authorised(): return
@@ -1343,29 +1343,42 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return
-            if self.path in {"/api/admin/backup-target", "/api/admin/backup-run"}:
+            if self.path in {"/api/admin/backup-target", "/api/admin/backup-run", "/api/admin/backup-google-start", "/api/admin/backup-google-poll"}:
                 if not self.authorised(): return
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 4000: raise ValueError("Invalid request")
                     data = json.loads(self.rfile.read(length))
+                    if not isinstance(data, dict): raise ValueError("Invalid request")
                     path = state.state_dir / "backup-target.json"
                     if self.path == "/api/admin/backup-target":
                         target = remote_backup.save_target(path, data)
-                        password = str(data.get("password", "")) if isinstance(data, dict) else ""
-                        if password:
-                            if "\n" in password or "\r" in password: raise ValueError("The password cannot contain a line break")
-                            update_secret(env_path, remote_backup.SECRET, password)
+                        for field, key in (("password", remote_backup.SECRET), ("google_secret", remote_backup.GOOGLE_SECRET)):
+                            value = str(data.get(field, ""))
+                            if value:
+                                if "\n" in value or "\r" in value: raise ValueError("A password cannot contain a line break")
+                                update_secret(env_path, key, value)
                         self.send_json(200, json.dumps({"ok": True, "target": target}).encode()); return
-                    target = remote_backup.validate_target({**remote_backup.load_target(path), "enabled": True})
-                    try:
-                        name = remote_backup.run_backup(target, os.getenv(remote_backup.SECRET, ""), config_path, state.state_dir, env_path, __version__)
-                    except ValueError as error:
-                        remote_backup.write_status(state.state_dir / "backup-status.json", False, str(error)); raise
-                    remote_backup.write_status(state.state_dir / "backup-status.json", True, f"Saved {name}")
-                    self.send_json(200, json.dumps({"ok": True, "name": name}).encode())
+                    target = remote_backup.load_target(path)
+                    if self.path == "/api/admin/backup-google-start":
+                        if not target["google_client_id"] or not os.getenv(remote_backup.GOOGLE_SECRET): raise ValueError("Save the Google client ID and secret first")
+                        flow = remote_backup.google_start(target["google_client_id"])
+                        state.google_device = flow["device_code"]
+                        self.send_json(200, json.dumps({"user_code": flow.get("user_code"), "url": flow.get("verification_url") or flow.get("verification_uri"), "interval": flow.get("interval", 5)}).encode()); return
+                    if self.path == "/api/admin/backup-google-poll":
+                        code = getattr(state, "google_device", "")
+                        if not code: raise ValueError("Start the Google sign-in first")
+                        token = remote_backup.google_poll(target["google_client_id"], os.getenv(remote_backup.GOOGLE_SECRET, ""), code)
+                        if token:
+                            update_secret(env_path, remote_backup.GOOGLE_TOKEN, token); state.google_device = ""
+                        self.send_json(200, json.dumps({"connected": bool(token)}).encode()); return
+                    which = data.get("which") if data.get("which") in {"synology", "google"} else None
+                    saved, errors = remote_backup.run_all(remote_backup.validate_target(target), state.state_dir, config_path, env_path, __version__, which)
+                    remote_backup.write_status(state.state_dir / "backup-status.json", not errors, "; ".join(saved + errors))
+                    if errors: raise ValueError("; ".join(errors))
+                    self.send_json(200, json.dumps({"ok": True, "saved": saved}).encode())
                 except (ValueError, TypeError, OSError, json.JSONDecodeError) as error:
-                    self.send_json(400, json.dumps({"error": str(error)[:200]}).encode())
+                    self.send_json(400, json.dumps({"error": str(error)[:240]}).encode())
                 return
             if self.path == "/api/admin/restore":
                 if not self.authorised(): return
