@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.51 Alpine — 7 November 2026
+
+- RoonDeck Backup Server: preserve executable permissions on the Pi installation and update scripts in the published source package. Includes all backup-server features from beta.50.
+
 ## 1.2.0-beta.50 Alpine — 7 November 2026
 
 - Add RoonDeck Backup Server, an optional Docker companion for Synology or another Docker host, with a device dashboard, pairing codes and isolated rsync uploads.
