@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.57 Alpine — 7 November 2026
+
+- Backup Server: the header is the darker purple, Sign out is the brighter purple with white text, and the logo, title and version sit together on one baseline, centred in the header.
+
 ## 1.2.0-beta.56 Alpine — 7 November 2026
 
 - Home designer: tiles can sit anywhere on the screen grid, including with gaps. Drag a tile to any empty cell, or onto another tile to swap them; the free cells appear as soon as you pick a tile up. The touchscreen keeps each tile in the cell you chose.
