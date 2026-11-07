@@ -28,7 +28,18 @@ MAX_BYTES = 40_000_000
 NAME = re.compile(r'roondeck-backup-[A-Za-z0-9-]{10,70}\.json')
 DEVICE = re.compile(r'[a-f0-9]{32}')
 DEFAULT_POLICY = {'enabled': True, 'keep': 14, 'max_age_days': 0, 'time': '03:30', 'timezone': 'UTC',
-                  'on_change': True, 'change_delay_seconds': 120, 'include_secrets': False}
+                  'on_change': False, 'change_delay_seconds': 120, 'include_secrets': False}
+
+
+def contents(reported, bundle, encrypted):
+    """A short, safe summary of what a recovery point holds, for display only."""
+    if isinstance(reported, dict):
+        return {'settings': True, 'streamdeck': reported.get('streamdeck') is True, 'home_layout': reported.get('home_layout') is True,
+                'images': reported['images'] if type(reported.get('images')) is int and 0 <= reported['images'] <= 1000 else 0,
+                'credentials': reported.get('credentials') is True}
+    if encrypted: return {'settings': True, 'credentials': True}
+    files = bundle.get('files', {}); art = bundle.get('art', {})
+    return {'settings': True, 'streamdeck': 'listening.json' in files, 'home_layout': 'home-layout.json' in files, 'images': len(art), 'credentials': False}
 
 
 def policy(data):
@@ -93,7 +104,7 @@ class Store:
         stamp, count = self.attempts.get(address, (now, 0))
         if count >= 20: raise ValueError('Too many pairing attempts; wait ten minutes')
         self.attempts[address] = (stamp, count + 1)
-        entry = self.codes.get(digest(str(data.get('code', '')).strip().upper()))
+        entry = self.codes.get(digest(''.join(str(data.get('code', '')).split()).upper()))
         if not entry or entry['expires'] < now: raise ValueError('Pairing code expired or incorrect')
         key = str(data.get('public_key', '')).split()
         if len(key) < 2 or key[0] != 'ssh-ed25519' or not re.fullmatch(r'[A-Za-z0-9+/=]{40,150}', key[1]): raise ValueError('Invalid SSH public key')
@@ -103,11 +114,11 @@ class Store:
         device = entry['device'] or uuid.uuid4().hex
         record = self.db['devices'].get(device, {'backups': [], 'policy': {}, 'last_success': 0})
         token = secrets.token_urlsafe(32)
-        record.update(name=str(data.get('name', '')).strip()[:80] or 'RoonDeck', public_key=' '.join(key[:2]), token=digest(token), revoked=False, last_seen=now, error='', retry_after=0)
+        record.update(name=str(data.get('name', '')).strip()[:80] or 'RoonDeck', public_key=' '.join(key[:2]), token=digest(token), revoked=False, last_seen=now, paired_at=now, error='', retry_after=0)
         self.paths(device)
         self.db['devices'][device] = record
         self.save(); self.keys()
-        del self.codes[digest(str(data['code']).strip().upper())]
+        del self.codes[digest(''.join(str(data['code']).split()).upper())]
         return {'device': device, 'token': token, 'host_key': host_key, 'ssh_port': self.ssh_port}
 
     def authenticate(self, token):
@@ -124,7 +135,7 @@ class Store:
         changed = bool(record.get('candidate')) and record.get('candidate') != record.get('fingerprint') and now - record.get('changed_at', now) >= p['change_delay_seconds']
         encryption_changed = bool(record['backups']) and record['backups'][0]['encrypted'] != p['include_secrets']
         due = now >= record.get('retry_after', 0) and (record.get('requested', False) or (p['enabled'] and (not record['backups'] or daily or encryption_changed or (p['on_change'] and changed))))
-        return {'name': record['name'], 'policy': p, 'due': due, 'backups': record['backups'], 'error': record.get('error', ''), 'last_success': record['last_success']}
+        return {'name': record['name'], 'policy': p, 'due': due, 'backups': record['backups'], 'error': record.get('error', ''), 'last_success': record['last_success'], 'paired_at': record.get('paired_at', 0), 'requested': bool(record.get('requested', False))}
 
     def prune(self, device):
         record = self.db['devices'][device]; p = self.effective(record)
@@ -167,7 +178,7 @@ class Store:
             temp = archive / ('.' + name)
             with open(temp, 'wb') as handle: handle.write(raw)
             temp.chmod(0o600); os.replace(temp, target)
-            record['backups'].append({'name': name, 'created': time.time(), 'size': len(raw), 'sha256': sha, 'encrypted': encrypted, 'app_version': str(data.get('app_version', ''))[:60]})
+            record['backups'].append({'name': name, 'created': time.time(), 'size': len(raw), 'sha256': sha, 'encrypted': encrypted, 'app_version': str(data.get('app_version', ''))[:60], 'contents': contents(data.get('contents'), bundle, encrypted)})
         source.unlink(missing_ok=True)
         record.update(last_success=time.time(), last_seen=time.time(), error='', retry_after=0, requested=False, fingerprint=str(data.get('fingerprint', ''))[:64])
         self.prune(device); self.save()

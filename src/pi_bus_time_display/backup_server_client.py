@@ -75,10 +75,15 @@ def connection(state_dir):
 
 
 def server_url(url):
-    parts = urllib.parse.urlsplit(str(url).strip().rstrip('/'))
+    text = str(url).strip().rstrip('/')
+    if text and '://' not in text: text = 'http://' + text
+    parts = urllib.parse.urlsplit(text)
+    try: port = parts.port
+    except ValueError: port = None
     if parts.scheme not in {'http', 'https'} or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment or parts.path not in {'', '/'}:
-        raise ValueError('Enter the server address, such as http://synology.local:8042')
-    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, '', '', ''))
+        raise ValueError('Enter the server address, such as synology.local:8042')
+    netloc = parts.netloc if port or parts.scheme == 'https' else parts.netloc + ':8042'
+    return urllib.parse.urlunsplit((parts.scheme, netloc, '', '', ''))
 
 
 def request(conn, path, data=None):
@@ -99,7 +104,7 @@ def request(conn, path, data=None):
 def pair(state_dir, url, code, name):
     from .remote_backup import ensure_ssh_key
     url = server_url(url)
-    result = request({'url': url}, '/api/pair', {'code': str(code).strip(), 'name': str(name).strip()[:80] or socket.gethostname(), 'public_key': ensure_ssh_key(state_dir)})
+    result = request({'url': url}, '/api/pair', {'code': ''.join(str(code).split()), 'name': str(name).strip()[:80] or socket.gethostname(), 'public_key': ensure_ssh_key(state_dir)})
     device, key, port = result.get('device', ''), result.get('host_key', ''), result.get('ssh_port')
     if not re.fullmatch(r'[a-f0-9]{32}', device) or not re.fullmatch(r'ssh-ed25519 [A-Za-z0-9+/=]+', key) or type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('Invalid server pairing response')
@@ -148,12 +153,13 @@ def run(state_dir, config_path, env_path, version):
         except (OSError, ValueError, KeyError): raise ValueError('Set a recovery password on this Pi before enabling encrypted credential backups') from None
     bundle = build_backup(config_path, state_dir, env_path, version, bool(password))
     snapshot_fingerprint = bundle_fingerprint(bundle)
+    contents = {'streamdeck': 'listening.json' in bundle['files'], 'home_layout': 'home-layout.json' in bundle['files'], 'images': len(bundle['art']), 'credentials': bool(password)}
     if password: bundle = backup_crypto.encrypt(bundle, password)
     payload = json.dumps(bundle).encode()
     if len(payload) > MAX_BYTES: raise ValueError('Backup exceeds the 40 MB limit')
     name = 'roondeck-backup-' + time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()) + '-' + os.urandom(4).hex() + '.json'
     upload(conn, state_dir, payload, name)
-    request(conn, '/api/device/complete', {'name': name, 'sha256': hashlib.sha256(payload).hexdigest(), 'app_version': version, 'fingerprint': snapshot_fingerprint})
+    request(conn, '/api/device/complete', {'name': name, 'sha256': hashlib.sha256(payload).hexdigest(), 'app_version': version, 'fingerprint': snapshot_fingerprint, 'contents': contents})
     write_private(state_dir / 'backup-server-status.json', {'ok': True, 'message': name, 'time': time.time()})
     return name
 
@@ -161,7 +167,11 @@ def run(state_dir, config_path, env_path, version):
 def restore(state_dir, name, password=''):
     if not re.fullmatch(r'roondeck-backup-[A-Za-z0-9-]+\.json', str(name)): raise ValueError('Invalid backup name')
     bundle = request(connection(state_dir), '/api/device/backup/' + name)
-    if bundle.get('format') == backup_crypto.FORMAT: bundle = backup_crypto.decrypt(bundle, password)
+    if bundle.get('format') == backup_crypto.FORMAT:
+        if not password:
+            try: password = json.loads((state_dir / 'backup-recovery-password.json').read_text())['password']
+            except (OSError, ValueError, KeyError): raise ValueError('Enter the recovery password for this backup') from None
+        bundle = backup_crypto.decrypt(bundle, password)
     return check_backup(bundle)
 
 

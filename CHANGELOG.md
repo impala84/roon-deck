@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.53 Alpine — 7 November 2026
+
+- Software is now three tabs: **Updates & backup** (updates, the one-time backup download and restore, and a backup status card), **Backup Server** and **Cloud backups**. Cloud backup changes save with Save changes. The direct rsync form is gone; the Backup Server uses rsync underneath.
+- Backup Server pairing: the address no longer needs `http://` (or the port, which defaults to 8042), codes can be pasted with spaces, and the page shows "Pairing…", "Paired" and the first backup. Recovery points list what they contain (Stream Deck designs, Home layout, images) and the saved recovery password is used automatically when restoring.
+- The Backup Server web page now looks like RoonDeck: purple header, left menu (Devices, Policy, Pairing), a pairing dialog with a countdown that closes when the Pi connects, backup feedback, Save changes in the menu, and a sign-in that survives refreshing. Retention applies automatically. "Back up after changes" is now off by default, so you get one recovery point a day unless you switch it on.
+
 ## 1.2.0-beta.52 Alpine — 7 November 2026
 
 - Fix RoonDeck Backup Server deployment in Portainer: configure Debian’s existing backup account instead of attempting to create a duplicate user, which failed the image build with exit code 9.

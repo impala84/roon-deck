@@ -108,8 +108,18 @@ class ManagedBackups(Fixture):
         envelope = json.loads(raw); envelope['mac'] = '0' * 64
         with self.assertRaises(ValueError): backup_crypto.decrypt(envelope, 'independent-recovery-password')
 
+    def test_recovery_points_describe_their_contents_and_default_off_change_policy(self):
+        self.assertFalse(module.DEFAULT_POLICY['on_change'])
+        state, conn, _ = self.paired()
+        with patch.object(client, 'upload', self.upload): client.run(state, self.config, self.env, '1')
+        point = self.store.db['devices'][conn['device']]['backups'][0]
+        self.assertEqual(set(point['contents']), {'settings', 'streamdeck', 'home_layout', 'images', 'credentials'})
+        self.assertFalse(point['contents']['credentials'])
+        self.assertGreater(self.store.db['devices'][conn['device']]['paired_at'], 0)
+
     def test_heartbeat_policy_persistence_failure_backoff_and_auth(self):
         state, conn, _ = self.paired()
+        client.request(self.admin, '/api/admin/policy', {'policy': {**module.DEFAULT_POLICY, 'on_change': True}})
         self.assertTrue(client.status(state)['due'])
         with patch.object(client, 'upload', self.upload): client.run(state, self.config, self.env, '1')
         before = client.fingerprint(self.config, state, self.env, '1')
@@ -189,6 +199,9 @@ class ManagedBackups(Fixture):
             with self.assertRaises(ValueError): module.policy(bad)
         for bad in ('ftp://nas', 'http://u:p@nas', 'http://nas/path', 'http://nas#fragment'):
             with self.assertRaises(ValueError): client.server_url(bad)
+        self.assertEqual(client.server_url('10.12.0.20:8042'), 'http://10.12.0.20:8042')
+        self.assertEqual(client.server_url(' synology.local '), 'http://synology.local:8042')
+        self.assertEqual(client.server_url('https://backup.example.com'), 'https://backup.example.com')
 
 
 @unittest.skipUnless(os.getenv('ROONDECK_TEST_SSH') == '1' and os.geteuid() == 0, 'Opt-in real SSH test on disposable Linux host')
