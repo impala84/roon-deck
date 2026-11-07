@@ -10,7 +10,7 @@
   const DEFAULT_COLOURS = {light: '#fb923c', fan: '#60a5fa', switch: '#9868f9', scene: '#a3e635'};
   const SWATCHES = ['#fb923c', '#60a5fa', '#9868f9', '#a3e635', '#e85d3a', '#d94f8c', '#3fc7a0', '#e9e4da'];
   const lineArt = body => body.replace(/fill="#fff"/g, 'fill="none"');
-  const ICON_STYLE = 'stroke="#fff" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  const ICON_STYLE = 'stroke="#fff" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round" fill="none"';
   // The shape of each touchscreen: width × height as it sits when mounted, from the display profile and orientation.
   const SCREENS = {original: [800, 480, 'Touch Display (7-inch, original)'], 'touch2-5': [720, 1280, '5-inch Touch Display 2'], 'touch2-7': [720, 1280, '7-inch Touch Display 2'], 'touch2-5-7': [720, 1280, 'Touch Display 2'], 'touch2-10': [800, 1280, '10-inch Touch Display 2']};
 
@@ -243,9 +243,9 @@
     const image = url => new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('That file is not an image the browser can read')); node.src = url; });
     return {
       async icon(key) {
-        const name = `icon-${key}-hd5.png`;
+        const name = `icon-${key}-hm6.png`;
         if (art.includes(name)) return name;
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(34,20) scale(2.2)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(14,14) scale(3.8)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
         const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
         try { await upload(name, await toPng(await image(url))); } finally { URL.revokeObjectURL(url); }
         return name;
@@ -275,7 +275,7 @@
     const categories = window.DeckIconCategories || [];
     const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Icons'});
     const fill = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
-      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': tile.icon === `icon-${key}-hd5.png` ? 'true' : 'false'});
+      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': tile.icon === `icon-${key}-hm6.png` ? 'true' : 'false'});
       choice.innerHTML = `<svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" ${ICON_STYLE}>${lineArt(body)}</svg>`;
       choice.onclick = async () => { try { patchTile(id, {icon: await tools.icon(key)}); } catch (error) { message.textContent = error.message; } };
       return choice;
@@ -417,6 +417,12 @@
     catalog = (cat?.entities) || [];
     states = Object.fromEntries([...(status?.entities || []), ...(status?.deck_entities || [])].map(item => [item.entity_id, item]));
     art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles}; system = sys || {};
+    render();
+    // Icons made by earlier versions are small in their tile: redraw them at the full size.
+    for (const [id, tile] of Object.entries(layout.tiles)) {
+      const old = /^icon-(.+)-hd5\.png$/.exec(tile.icon || '');
+      if (old && ICONS[old[1]]) { try { layout.tiles[id] = {...tile, icon: await tools.icon(old[1])}; markDirty(); } catch (_) { /* keep the old icon */ } }
+    }
     render();
   }
   // Home settings load after the page opens; refresh when the Home Assistant tab is shown or saved.

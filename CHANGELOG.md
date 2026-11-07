@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.58 Alpine — 7 November 2026
+
+- Home: tile icons are drawn about twice as large and with a heavier line, in the designer and on the touchscreen. Icons chosen before this release are redrawn at the new size when the Home tab opens; press Save changes to keep them.
+
 ## 1.2.0-beta.57 Alpine — 7 November 2026
 
 - Backup Server: the header is the darker purple, Sign out is the brighter purple with white text, and the logo, title and version sit together on one baseline, centred in the header.

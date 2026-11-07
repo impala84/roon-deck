@@ -182,3 +182,4 @@
 .hd-accordion>summary{padding:14px 16px;gap:12px;justify-content:flex-start;text-align:left}.hd-accordion>summary::before{content:none}.hd-accordion>summary small{margin-left:auto}
 .bs-recovery{padding:6px 18px 18px}.bs-recovery summary{padding:10px 0}.bs-recovery[open] summary{margin-bottom:6px}.bs-recovery label{display:grid;gap:8px;margin-top:6px}.bs-recovery small{display:block;margin:12px 0 18px;line-height:1.5}
 .hd-status,.sw-art.hd-status{display:grid;gap:0;justify-items:center}.hd-status-icon{margin-bottom:18px}.hd-status-title{font-size:18px;margin-bottom:8px}.hd-status-note{line-height:1.5;margin-top:6px;font-size:14px}.hd-status-good{margin-top:16px}
+.hd-layout .hd-icon{width:60px;height:60px}
