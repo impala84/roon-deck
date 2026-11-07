@@ -18,6 +18,12 @@ class HomeLayoutTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_layout({"tiles": {"Not An Entity": {"size": "half"}}})
         with self.assertRaises(ValueError): validate_layout({"tiles": {}, "extra": 1})
 
+    def test_tall_tiles(self):
+        self.assertEqual(validate_layout({"tiles": {"light.a": {"rows": 2}}}), {"tiles": {"light.a": {"rows": 2}}})
+        self.assertEqual(validate_layout({"tiles": {"light.a": {"rows": 1, "size": "half"}}}), {"tiles": {"light.a": {"size": "half"}}})
+        for rows in (0, 3, "2", True):
+            with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": {"rows": rows}}})
+
     def test_missing_or_broken_file_means_no_custom_tiles(self):
         folder = Path(tempfile.mkdtemp())
         self.assertEqual(load_layout(folder / "none.json"), {"tiles": {}})

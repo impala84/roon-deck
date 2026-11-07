@@ -20,6 +20,7 @@ import threading
 import time
 import uuid
 
+from pi_bus_time_display import __version__
 from pi_bus_time_display.backup import check_backup
 from pi_bus_time_display.backup_crypto import FORMAT as ENCRYPTED
 from pi_bus_time_display.backup_server_client import write_private
@@ -218,7 +219,7 @@ def handler(store):
         def process(self, post=False):
             try:
                 if self.path == '/' and not post:
-                    raw = Path(__file__).with_name('index.html').read_bytes()
+                    raw = Path(__file__).with_name('index.html').read_bytes().replace(b'__VERSION__', ('v' + __version__ + ' Alpine').encode())
                     self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8'); self.send_header('Content-Length', str(len(raw))); self.send_header('Cache-Control', 'no-store')
                     self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
                     self.end_headers(); self.wfile.write(raw); return

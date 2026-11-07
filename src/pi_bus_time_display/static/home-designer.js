@@ -30,7 +30,7 @@
   };
 
   /* ------------------------------------------------------------ state */
-  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null;
+  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null;
   const ids = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
   const nameOf = id => catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
   const tileOf = id => layout.tiles[id] || {};
@@ -63,69 +63,97 @@
   }
   // The same placement rules as the touchscreen: tiles with a chosen size flow along 4 columns (2 in portrait).
   function place(list, portrait) {
-    const custom = list.some(id => tileOf(id).size && tileOf(id).size !== 'auto');
+    const custom = list.some(id => (tileOf(id).size && tileOf(id).size !== 'auto') || tileOf(id).rows === 2);
     if (!custom) {
       if (portrait) return {columns: 1, rows: Math.max(1, list.length), cells: list.map((id, i) => ({id, column: 0, row: i, span: 1, height: 1})), custom, rowMode: true};
       if (list.length === 6) return {columns: 4, rows: 2, custom, rowMode: false, cells: list.map((id, i) => i < 2 ? {id, column: i, row: 0, span: 1, height: 2} : {id, column: 2 + (i - 2) % 2, row: Math.floor((i - 2) / 2), span: 1, height: 1})};
       return {columns: 4, rows: Math.max(1, Math.ceil(list.length / 4)), custom, rowMode: false, cells: list.map((id, i) => ({id, column: i % 4, row: Math.floor(i / 4), span: 1, height: 1}))};
     }
     const columns = portrait ? 2 : 4, spans = {quarter: 1, half: portrait ? 1 : 2, full: columns};
-    let column = 0, row = 0; const cells = [];
+    // First free place scanning left to right, then down: the touchscreen uses the same rule.
+    const taken = new Set(), cells = []; let rows = 1;
     for (const id of list) {
-      const span = Math.min(columns, spans[tileOf(id).size] || 1);
-      if (column + span > columns) { column = 0; row += 1; }
-      cells.push({id, column, row, span, height: 1}); column += span;
+      const span = Math.min(columns, spans[tileOf(id).size] || 1), height = tileOf(id).rows === 2 ? 2 : 1;
+      let placed = false;
+      for (let row = 0; !placed; row += 1) for (let column = 0; column + span <= columns && !placed; column += 1) {
+        const spots = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) spots.push(`${column + dx},${row + dy}`);
+        if (spots.some(spot => taken.has(spot))) continue;
+        spots.forEach(spot => taken.add(spot)); cells.push({id, column, row, span, height}); rows = Math.max(rows, row + height); placed = true;
+      }
     }
-    return {columns, rows: row + 1, cells, custom, rowMode: false};
+    return {columns, rows, cells, custom, rowMode: false};
   }
 
   /* ------------------------------------------------------------ preview */
   function tileView(cell, rowMode) {
     const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[id] ? ['on', 'open', 'playing'].includes(states[id].state) : true, scene = domainOf(id) === 'scene';
     const lit = on || scene;
-    const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}`,
+    const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
     if (tile.icon) node.append(h('img', {class: 'hd-icon', src: artUrl(tile.icon), alt: '', style: `opacity:${lit ? 1 : .5}`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
     const index = ids().indexOf(id);
-    const handle = h('span', {class: 'hd-stretch', draggable: 'false', title: 'Drag to stretch this tile', 'aria-hidden': 'true'});
-    handle.onpointerdown = event => stretch(event, cell, node);
-    handle.ondragstart = event => event.preventDefault();
-    node.append(handle);
-    node.onclick = () => { selected = index; render(); };
-    node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selected = index; render(); } };
-    node.ondragstart = event => { dragIndex = index; dragId = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); };
-    node.ondragover = event => { if (dragIndex !== null || dragId) { event.preventDefault(); node.classList.add('over'); } };
+    for (const axis of ['x', 'y']) {
+      const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
+      handle.onpointerdown = event => stretch(event, id, axis, node);
+      handle.ondragstart = event => event.preventDefault();
+      node.append(handle);
+    }
+    const open = () => { selected = ids().indexOf(id); devicesOpen = false; render(); };
+    node.onclick = open;
+    node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } };
+    node.ondragstart = event => { dragIndex = index; dragTile = id; dragId = null; live = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); setTimeout(() => node.classList.add('dragging'), 0); };
+    // While a tile is dragged the others slide out of the way, so the drop shows exactly where it will land.
+    node.ondragover = event => { if (dragTile) { event.preventDefault(); liveMove(id); } else if (dragId) { event.preventDefault(); node.classList.add('over'); } };
     node.ondragleave = () => node.classList.remove('over');
-    node.ondrop = event => { event.preventDefault(); node.classList.remove('over'); dropAt(index); };
-    node.ondragend = () => { dragIndex = null; };
+    node.ondrop = event => { event.preventDefault(); node.classList.remove('over'); if (dragTile) commitLive(); else dropAt(index); };
+    node.ondragend = () => { const cancelled = live !== null; dragIndex = null; dragTile = null; live = null; if (cancelled) render(); else node.classList.remove('dragging'); };
     return node;
   }
-  function stretch(event, cell, node) {
+  function stretch(event, id, axis, node) {
     event.preventDefault(); event.stopPropagation();
-    const grid = node.parentElement, columns = place(ids(), screen().portrait).columns, width = grid.getBoundingClientRect().width / columns;
-    const startX = event.clientX, startSpan = cell.span, portrait = screen().portrait;
-    node.draggable = false;
+    const portrait = screen().portrait, info = place(ids(), portrait), cell = info.cells.find(item => item.id === id); if (!cell) return;
+    const columns = info.columns, box = node.getBoundingClientRect(), unitX = node.parentElement.getBoundingClientRect().width / columns, unitY = box.height / cell.height;
+    const startX = event.clientX, startY = event.clientY; node.draggable = false;
     const sizeFor = span => span >= columns ? 'full' : span >= 2 && !portrait ? 'half' : 'quarter';
+    const current = () => tileOf(id).size && tileOf(id).size !== 'auto' ? tileOf(id).size : 'quarter';
     const move = moveEvent => {
-      const span = Math.max(1, Math.min(columns, Math.round(startSpan + (moveEvent.clientX - startX) / width)));
-      const size = sizeFor(span);
-      if (size !== (tileOf(cell.id).size && tileOf(cell.id).size !== 'auto' ? tileOf(cell.id).size : 'quarter')) {
-        selected = ids().indexOf(cell.id); patchTile(cell.id, {size});
-        document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
-        const fresh = document.querySelector('.hd-tile.selected .hd-stretch');
-        if (fresh) fresh.dispatchEvent(new PointerEvent('pointerdown', {clientX: moveEvent.clientX, bubbles: true}));
-      }
+      let patch = null;
+      if (axis === 'x') { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + (moveEvent.clientX - startX) / unitX)))); if (size !== current()) patch = {size}; }
+      else { const rows = Math.max(1, Math.min(2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== (tileOf(id).rows === 2 ? 2 : 1)) patch = {rows: rows === 2 ? 2 : ''}; }
+      if (!patch) return;
+      selected = ids().indexOf(id); patchTile(id, patch);
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
+      const fresh = document.querySelector(`.hd-tile.selected .hd-stretch-${axis}`);
+      if (fresh) fresh.dispatchEvent(new PointerEvent('pointerdown', {clientX: moveEvent.clientX, clientY: moveEvent.clientY, bubbles: true}));
     };
-    const done = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done); };
+    const done = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done); document.querySelectorAll('.hd-tile[data-id]').forEach(tile => { tile.draggable = true; }); };
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', done);
+  }
+  // Slide the tiles into the order of `list` without redrawing them, so a drag in progress is not interrupted.
+  function liveMove(targetId) {
+    const list = live || ids(), from = list.indexOf(dragTile), to = list.indexOf(targetId);
+    if (from < 0 || to < 0 || from === to) return;
+    const next = [...list]; const [moved] = next.splice(from, 1); next.splice(to, 0, moved); live = next;
+    const grid = document.querySelector('.hd-grid'); if (!grid) return;
+    const nodes = [...grid.querySelectorAll('.hd-tile[data-id]')], before = new Map(nodes.map(node => [node, node.getBoundingClientRect()]));
+    const info = place(next, screen().portrait);
+    for (const cell of info.cells) { const node = grid.querySelector(`.hd-tile[data-id="${CSS.escape(cell.id)}"]`); if (node) { node.style.gridColumn = `${cell.column + 1} / span ${cell.span}`; node.style.gridRow = `${cell.row + 1} / span ${cell.height}`; } }
+    for (const node of nodes) {
+      const was = before.get(node), now = node.getBoundingClientRect(), dx = was.left - now.left, dy = was.top - now.top;
+      if ((dx || dy) && node.animate) node.animate([{transform: `translate(${dx}px,${dy}px)`}, {transform: 'none'}], {duration: 200, easing: 'ease-out'});
+    }
+  }
+  function commitLive() {
+    const list = live || ids(), id = dragTile; live = null; dragTile = null; dragIndex = null;
+    selected = list.indexOf(id); setIds(list);
   }
   function dropAt(index) {
     const list = ids();
-    if (dragIndex !== null && dragIndex !== index) { const [moved] = list.splice(dragIndex, 1); list.splice(index, 0, moved); selected = list.indexOf(moved); dragIndex = null; setIds(list); }
-    else if (dragId && !list.includes(dragId) && list.length < LIMIT) { list.splice(index, 0, dragId); selected = index; dragId = null; setIds(list); }
+    if (dragTile) commitLive();
+    else if (dragId && !list.includes(dragId) && list.length < LIMIT) { list.splice(index, 0, dragId); selected = index; dragId = null; devicesOpen = false; setIds(list); }
   }
   function preview() {
     const shape = screen(), list = ids(), layoutInfo = place(list, shape.portrait);
@@ -138,7 +166,7 @@
       while (free > 0 && row < layoutInfo.rows + 1) {
         if (column >= layoutInfo.columns) { column = 0; row += 1; if (row >= layoutInfo.rows) break; }
         const slot = h('div', {class: 'hd-empty', style: `grid-column:${column + 1};grid-row:${row + 1}`}, 'Drop here');
-        slot.ondragover = event => { if (dragId || dragIndex !== null) { event.preventDefault(); slot.classList.add('over'); } };
+        slot.ondragover = event => { if (dragId || dragTile) { event.preventDefault(); slot.classList.add('over'); } };
         slot.ondragleave = () => slot.classList.remove('over');
         slot.ondrop = event => { event.preventDefault(); dropAt(ids().length); };
         grid.append(slot); column += 1; free -= 1;
@@ -146,7 +174,7 @@
     }
     const title = form.elements.home_assistant_title?.value;
     const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid);
-    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile to reorder it, drag its right edge to stretch it, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile to reorder it, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -194,13 +222,17 @@
     const segmented = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Tile size'}, [['quarter', 'Quarter'], ['half', 'Half'], ['full', 'Full width']].map(([value, text]) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(size === value)}, text); button.onclick = () => patchTile(id, {size: value}); return button;
     }));
+    const tall = tile.rows === 2 ? 2 : 1;
+    const heights = h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Tile height'}, [[1, 'Normal'], [2, 'Tall']].map(([value, text]) => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(tall === value)}, text); button.onclick = () => patchTile(id, {rows: value === 2 ? 2 : ''}); return button;
+    }));
     const label = h('input', {type: 'text', maxlength: 40, placeholder: nameOf(id)}); label.value = tile.label || '';
     label.oninput = () => { const value = label.value.trim(); if (value) layout.tiles[id] = {...tileOf(id), label: value}; else if (layout.tiles[id]) { delete layout.tiles[id].label; if (!Object.keys(layout.tiles[id]).length) delete layout.tiles[id]; } markDirty(); const text = document.querySelector('.hd-tile.selected .hd-name'); if (text) text.textContent = value || nameOf(id); };
     const categories = window.DeckIconCategories || [];
     const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Icons'});
     const fill = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
       const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': tile.icon === `icon-${key}-hd5.png` ? 'true' : 'false'});
-      choice.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ${ICON_STYLE}>${lineArt(body)}</svg>`;
+      choice.innerHTML = `<svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" ${ICON_STYLE}>${lineArt(body)}</svg>`;
       choice.onclick = async () => { try { patchTile(id, {icon: await tools.icon(key)}); } catch (error) { message.textContent = error.message; } };
       return choice;
     }));
@@ -227,7 +259,7 @@
     const later = h('button', {type: 'button', class: 'secondary'}, 'Move later →'); later.disabled = here >= ids().length - 1; later.onclick = () => shift(1);
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
-      field('Size', segmented, 'Sizes snap to the screen grid. You can also drag a tile\u2019s right edge.'),
+      field('Width', segmented, 'Sizes snap to the screen grid. You can also drag a tile\u2019s right edge.'), field('Height', heights, 'A tall tile fills two rows. Drag its bottom edge, or choose here.'),
       field('Label', label), field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
@@ -249,7 +281,7 @@
       const matches = catalog.filter(item => !current.includes(item.entity_id) && filters[kind](item) && (!needle || item.name.toLowerCase().includes(needle) || item.entity_id.includes(needle))).slice(0, 40);
       results.replaceChildren(...(matches.length ? matches.map(item => {
         const add = h('button', {type: 'button', class: 'secondary hd-add', 'aria-label': `Add ${item.name}`}, 'Add'); add.disabled = current.length >= LIMIT;
-        add.onclick = () => { selected = current.length; setIds([...ids(), item.entity_id]); };
+        add.onclick = () => { selected = current.length; devicesOpen = false; setIds([...ids(), item.entity_id]); };
         const row = h('li', {draggable: 'true'}, h('span', {class: 'hd-grip', 'aria-hidden': 'true'}, '⋮⋮'), h('span', {class: 'hd-label'}, item.name, h('small', {}, item.entity_id)), add);
         row.ondragstart = event => { dragId = item.entity_id; dragIndex = null; event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('text/plain', item.entity_id); };
         row.ondragend = () => { dragId = null; };
@@ -258,8 +290,13 @@
     }
     search.oninput = () => { query = search.value; fillResults(); };
     fillResults();
-    return h('div', {class: 'hd-group'}, h('h4', {}, 'Add devices'), search, chips, results,
-      h('p', {class: 'cd-muted'}, `${list.length} of ${LIMIT} tiles used. Drag a device onto the preview, or press Add.`));
+    // Closed once the tiles are chosen, so the controls for the selected tile stay in view.
+    const isOpen = devicesOpen === null ? list.length === 0 : devicesOpen;
+    const box = h('details', {class: 'hd-accordion'}, h('summary', {}, h('span', {}, 'Add devices'), h('small', {}, `${list.length} of ${LIMIT} tiles used`)), h('div', {class: 'hd-accordion-body'}, search, chips, results,
+      h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.')));
+    if (isOpen) box.setAttribute('open', '');
+    box.ontoggle = () => { devicesOpen = box.open; };
+    return box;
   }
 
   /* ------------------------------------------------------------ colours preview */

@@ -79,11 +79,19 @@ class HomePageMixin:
         self.home_status.set_visible(bool(self.home_status.get_text()))
         self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
         # Tiles with a chosen size are placed on a 4-column grid (2 in portrait); with none chosen the original arrangement is used.
-        custom = any((entity.get("tile") or {}).get("size") not in (None, "auto") for entity in entities)
+        custom = any((entity.get("tile") or {}).get("size") not in (None, "auto") or (entity.get("tile") or {}).get("rows") == 2 for entity in entities)
         columns = (2 if portrait else 4) if custom else 4
         spans = {"quarter": 1, "half": 1 if portrait else 2, "full": columns}
         row_mode = portrait and not custom
-        tile_rules, cursor_column, cursor_row = [], 0, 0
+        tile_rules, taken = [], set()
+        def free_slot(span, height):
+            # First free place, scanning left to right then down: the same rule the web designer uses.
+            row = 0
+            while True:
+                for column in range(columns - span + 1):
+                    cells = {(column + dx, row + dy) for dx in range(span) for dy in range(height)}
+                    if not cells & taken: taken.update(cells); return column, row
+                row += 1
         for index, entity in enumerate(entities):
             tile = entity.get("tile") or {}
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if row_mode else Gtk.Orientation.VERTICAL, spacing=18 if row_mode else 4); box.add_css_class("home-tile"); box.set_vexpand(True)
@@ -136,8 +144,9 @@ class HomePageMixin:
             if row_mode: box.append(details)
             if custom:
                 span = min(columns, spans.get(tile.get("size"), 1))
-                if cursor_column + span > columns: cursor_column, cursor_row = 0, cursor_row + 1
-                self.home_grid.attach(tile_widget, cursor_column, cursor_row, span, 1); cursor_column += span
+                height = 2 if tile.get("rows") == 2 else 1
+                column, row = free_slot(span, height)
+                self.home_grid.attach(tile_widget, column, row, span, height)
             elif not portrait and len(entities) == 6:
                 # Two full-height primary controls plus a compact 2x2 group
                 # use the complete landscape canvas without empty grid cells.

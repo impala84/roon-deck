@@ -50,7 +50,7 @@
   const getJson = async path => { const response = await fetch(path, {cache: 'no-store'}); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; };
   const el = (tag, cls, ...kids) => { const node = document.createElement(tag); if (cls) node.className = cls; node.append(...kids.filter(k => k !== null && k !== undefined)); return node; };
   const tick = '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M60 12 20 28v28c0 28 18 44 40 52 22-8 40-24 40-52V28z"/><path d="M42 60l13 13 25-28"/></svg>';
-  const cloudIcon = '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M34 90a22 22 0 0 1-2-44 28 28 0 0 1 54 6 19 19 0 0 1-2 38z"/><path d="M60 52v32M46 66l14-14 14 14"/></svg>';
+  const cloudIcon = '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M34 90a22 22 0 0 1-2-44 28 28 0 0 1 54 6 19 19 0 0 1-2 38z"/><path d="M58 40v34M44 54l14-14 14 14"/></svg>';
   function artCard(target, icon, title, lines, good) {
     const picture = el('div', 'hd-status-icon'); picture.innerHTML = icon;
     target.replaceChildren(picture, el('div', 'hd-status-title', title), ...lines.map(line => el('div', 'hd-status-note', line)), good ? el('div', 'hd-status-good', '● ' + good) : null);

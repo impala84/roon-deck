@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0-beta.54 Alpine — 7 November 2026
+
+- Home designer: tiles can now be tall. Drag a tile's bottom edge, or choose Normal/Tall, to make it fill two rows. The touchscreen places them the same way.
+- Home designer: tiles slide out of the way as you drag one to a new position, so you see where it will land before you drop.
+- Home designer: the Add devices list is a collapsible section that closes once you pick a device or select a tile. The list is taller when open.
+- Home designer: icons in the picker are much larger.
+- Backup Server: the header uses the real RoonDeck wordmark and shows the running server version; the left menu matches the settings sidebar (flat rows, small icons, solid purple selection).
+- Software: more space in the Backup Server status card and the Recovery password section, and the cloud arrow is centred.
+
 ## 1.2.0-beta.53 Alpine — 7 November 2026
 
 - Software is now three tabs: **Updates & backup** (updates, the one-time backup download and restore, and a backup status card), **Backup Server** and **Cloud backups**. Cloud backup changes save with Save changes. The direct rsync form is gone; the Backup Server uses rsync underneath.

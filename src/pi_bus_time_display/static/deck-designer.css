@@ -166,3 +166,19 @@
 .bs-recovery summary{cursor:pointer;color:var(--muted,#a6a2ae);padding:4px 0}.bs-recovery{display:grid;gap:12px}
 @media(max-width:980px){.sw-two{grid-template-columns:minmax(0,1fr)}.sw-art{position:static}}
 .sw-card .action-buttons button{white-space:nowrap}.sw-text h3{margin:8px 0 0}
+
+.hd-results{max-height:clamp(280px,56vh,620px)}
+.hd-layout .dd-icons{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px}.hd-layout .dd-icons button{height:72px;border-radius:12px}
+.hd-seg.two{grid-template-columns:repeat(2,1fr)}
+.hd-stretch-x{top:0;right:0;bottom:0;width:16px}
+.hd-stretch-y{left:0;right:16px;bottom:0;top:auto;width:auto;height:16px;cursor:ns-resize}.hd-stretch-y::after{width:28px;height:4px}
+.hd-tile.dragging{opacity:.4}
+.hd-accordion{border:1px solid var(--line);border-radius:12px;background:var(--field)}
+.hd-accordion summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;list-style:none;font-weight:700;color:var(--ink);min-height:48px}
+.hd-accordion summary::-webkit-details-marker{display:none}.hd-accordion summary small{color:var(--muted);font-weight:400}
+.hd-accordion summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-left:4px;transition:transform .15s}
+.hd-accordion[open] summary::after{transform:rotate(-135deg)}
+.hd-accordion-body{display:grid;gap:12px;padding:0 16px 16px}
+.hd-accordion>summary{padding:14px 16px;gap:12px;justify-content:flex-start;text-align:left}.hd-accordion>summary::before{content:none}.hd-accordion>summary small{margin-left:auto}
+.bs-recovery{padding:6px 18px 18px}.bs-recovery summary{padding:10px 0}.bs-recovery[open] summary{margin-bottom:6px}.bs-recovery label{display:grid;gap:8px;margin-top:6px}.bs-recovery small{display:block;margin:12px 0 18px;line-height:1.5}
+.hd-status,.sw-art.hd-status{display:grid;gap:0;justify-items:center}.hd-status-icon{margin-bottom:18px}.hd-status-title{font-size:18px;margin-bottom:8px}.hd-status-note{line-height:1.5;margin-top:6px;font-size:14px}.hd-status-good{margin-top:16px}
