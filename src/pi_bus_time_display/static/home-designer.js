@@ -90,6 +90,10 @@
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
     const index = ids().indexOf(id);
+    const handle = h('span', {class: 'hd-stretch', draggable: 'false', title: 'Drag to stretch this tile', 'aria-hidden': 'true'});
+    handle.onpointerdown = event => stretch(event, cell, node);
+    handle.ondragstart = event => event.preventDefault();
+    node.append(handle);
     node.onclick = () => { selected = index; render(); };
     node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selected = index; render(); } };
     node.ondragstart = event => { dragIndex = index; dragId = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); };
@@ -98,6 +102,25 @@
     node.ondrop = event => { event.preventDefault(); node.classList.remove('over'); dropAt(index); };
     node.ondragend = () => { dragIndex = null; };
     return node;
+  }
+  function stretch(event, cell, node) {
+    event.preventDefault(); event.stopPropagation();
+    const grid = node.parentElement, columns = place(ids(), screen().portrait).columns, width = grid.getBoundingClientRect().width / columns;
+    const startX = event.clientX, startSpan = cell.span, portrait = screen().portrait;
+    node.draggable = false;
+    const sizeFor = span => span >= columns ? 'full' : span >= 2 && !portrait ? 'half' : 'quarter';
+    const move = moveEvent => {
+      const span = Math.max(1, Math.min(columns, Math.round(startSpan + (moveEvent.clientX - startX) / width)));
+      const size = sizeFor(span);
+      if (size !== (tileOf(cell.id).size && tileOf(cell.id).size !== 'auto' ? tileOf(cell.id).size : 'quarter')) {
+        selected = ids().indexOf(cell.id); patchTile(cell.id, {size});
+        document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
+        const fresh = document.querySelector('.hd-tile.selected .hd-stretch');
+        if (fresh) fresh.dispatchEvent(new PointerEvent('pointerdown', {clientX: moveEvent.clientX, bubbles: true}));
+      }
+    };
+    const done = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done); };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', done);
   }
   function dropAt(index) {
     const list = ids();
@@ -123,7 +146,7 @@
     }
     const title = form.elements.home_assistant_title?.value;
     const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid);
-    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag tiles to reorder, or drag a device in from the list.`));
+    return h('div', {class: 'hd-preview'}, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile to reorder it, drag its right edge to stretch it, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -198,13 +221,17 @@
       const button = h('button', {type: 'button', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': String((tile.color || '').toLowerCase() === colour)}); button.onclick = () => patchTile(id, {color: colour}); return button;
     }), custom);
     const useDefault = h('button', {type: 'button', class: 'secondary'}, 'Use the standard colour'); useDefault.onclick = () => patchTile(id, {color: ''});
+    const here = ids().indexOf(id);
+    const shift = by => { const next = ids(); const [moved] = next.splice(here, 1); next.splice(here + by, 0, moved); selected = here + by; setIds(next); };
+    const earlier = h('button', {type: 'button', class: 'secondary'}, '← Move earlier'); earlier.disabled = here <= 0; earlier.onclick = () => shift(-1);
+    const later = h('button', {type: 'button', class: 'secondary'}, 'Move later →'); later.disabled = here >= ids().length - 1; later.onclick = () => shift(1);
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
-      field('Size', segmented, 'Half and full width tiles are available in the layout, not in the original arrangement.'),
+      field('Size', segmented, 'Sizes snap to the screen grid. You can also drag a tile\u2019s right edge.'),
       field('Label', label), field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
-      h('div', {class: 'hd-actions'}, remove), message);
+      h('div', {class: 'hd-actions'}, earlier, later, remove), message);
   }
 
   /* ------------------------------------------------------------ device list */
@@ -247,12 +274,12 @@
   }
 
   /* ------------------------------------------------------------ structure */
-  const layoutPane = h('div', {class: 'dd-pane hd-layout', hidden: true});
+  const layoutPane = h('div', {class: 'dd-pane hd-layout'});
   const coloursArt = h('div', {class: 'hd-side'});
   const statusArt = h('div', {class: 'hd-side hd-status'});
   const settingsText = h('div', {class: 'hd-text'});
   const coloursText = h('div', {class: 'hd-text'});
-  const settingsPane = h('div', {class: 'dd-pane dd-wake hd-two'}, settingsText, statusArt);
+  const settingsPane = h('div', {class: 'dd-pane dd-wake hd-two', hidden: true}, settingsText, statusArt);
   const coloursPane = h('div', {class: 'dd-pane dd-wake hd-two', hidden: true}, coloursText, coloursArt);
   const labelOf = name => form.elements[name]?.closest('label');
   for (const name of ['home_assistant_title', 'home_assistant_url', 'home_assistant_token']) { const label = labelOf(name); if (label) settingsText.append(label); }
@@ -262,15 +289,15 @@
   // Everything from the colours heading onwards moves, as it is, into the Colours tab so the existing controls keep working.
   const heading = [...options.querySelectorAll('h4')].find(node => /colours/i.test(node.textContent));
   if (heading) { let node = heading.nextSibling; heading.remove(); const moving = []; while (node) { moving.push(node); node = node.nextSibling; } coloursText.append(h('div', {class: 'hd-eyebrow'}, 'TILE COLOURS'), ...moving); }
-  const tabNames = [['settings', 'Settings', settingsPane], ['layout', 'Layout', layoutPane], ['colours', 'Colours', coloursPane]];
-  const buttons = tabNames.map(([id, text]) => h('button', {type: 'button', role: 'tab', 'aria-selected': String(id === 'settings')}, text));
+  const tabNames = [['layout', 'Layout', layoutPane], ['colours', 'Colours', coloursPane], ['setup', 'Setup', settingsPane]];
+  const buttons = tabNames.map(([id, text]) => h('button', {type: 'button', role: 'tab', 'aria-selected': String(id === 'layout')}, text));
   function show(index) {
     tabNames.forEach(([, , pane], i) => { pane.hidden = i !== index; buttons[i].setAttribute('aria-selected', String(i === index)); });
     render();
   }
   buttons.forEach((button, index) => { button.onclick = () => show(index); });
   const tabs = h('nav', {class: 'dd-tabs', role: 'tablist', 'aria-label': 'Home sections'}, buttons);
-  const card = h('div', {class: 'cd-card dd-card hd-card'}, tabs, h('div', {class: 'dd-body'}, settingsPane, layoutPane, coloursPane));
+  const card = h('div', {class: 'cd-card dd-card hd-card'}, tabs, h('div', {class: 'dd-body'}, layoutPane, coloursPane, settingsPane));
   options.prepend(card);
   // The old introduction under the heading is replaced by the cards below it.
   for (const small of [...options.children].filter(node => node.tagName === 'SMALL')) small.hidden = true;

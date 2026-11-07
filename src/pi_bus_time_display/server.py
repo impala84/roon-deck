@@ -30,6 +30,7 @@ from .releases import ReleaseChecker
 from .performance import PerformanceHistory
 from .remote_access import load_json
 from .home_layout import load_layout, save_layout, with_layout
+from .backup import SECRET_KEYS, build_backup, check_backup, restore_backup
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
 from .streamdeck import run as run_streamdeck
 
@@ -1059,6 +1060,14 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 body = target.read_bytes()
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "no-cache")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if self.path.split("?", 1)[0] == "/api/admin/backup":
+                if not self.authorised(): return
+                bundle = build_backup(config_path, state.state_dir, env_path, __version__, include_secrets="secrets=1" in self.path)
+                body = json.dumps(bundle, indent=1).encode()
+                name = "roondeck-backup-" + time.strftime("%Y-%m-%d") + ".json"
+                self.send_response(200); self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Disposition", f'attachment; filename="{name}"'); self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/home-layout":
                 if not self.authorised(): return
                 self.send_json(200, json.dumps(load_layout(state.state_dir / "home-layout.json")).encode()); return
@@ -1328,6 +1337,23 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     threading.Thread(target=state.listening.refresh, daemon=True).start()
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path == "/api/admin/restore":
+                if not self.authorised(): return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 40_000_000: raise ValueError("That backup file is too large")
+                    checked = check_backup(json.loads(self.rfile.read(length)))
+                    restore_backup(checked, config_path, state.state_dir)
+                    for key, value in checked["secrets"].items():
+                        if key in SECRET_KEYS: update_secret(env_path, key, value)
+                    if checked["config"]:
+                        state.config = load_config(config_path)
+                        state.enabled_services.intersection_update(state.config.services)
+                        state.save_enabled_services()
+                    self.send_json(200, json.dumps({"ok": True, "restored_secrets": sorted(checked["secrets"]), "images": len(checked["art"])}).encode())
+                except (ValueError, TypeError, OSError, json.JSONDecodeError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)[:200]}).encode())
                 return
             if self.path == "/api/admin/home-layout":
                 if not self.authorised(): return

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.46 Alpine — 7 November 2026
+
+- Backup and restore: Software > Maintenance can download all your settings, Stream Deck designs, Home layout and uploaded images as one file, and restore them from it. Saved passwords and tokens are left out unless you tick the box.
+- Home Assistant tabs are now Layout, Colours, then Setup (formerly Settings), and open on Layout.
+- The Layout preview is much larger. Tiles stretch by dragging their right edge, snapping to quarter, half or full width, and can be moved with Move earlier / Move later as well as by dragging.
+- The preview says that screen size and orientation come from Display > Screen hardware.
+
 ## 1.2.0-beta.45 Alpine — 7 November 2026
 
 - Home Assistant settings now use tabs like the Stream Deck designer: Settings (address, token and connection status), Layout and Colours.
