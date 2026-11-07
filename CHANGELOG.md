@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.63 Alpine — 7 November 2026
+
+- Settings › System › Device: the About section now tells the RoonDeck story, what it does, how to get involved (website, feedback, issues, source) and a collapsible licences and acknowledgements panel, styled to match the rest of Settings.
+
 ## 1.2.0-beta.62 Alpine — 7 November 2026
 
 - Software › Backup Server: fixed a stray "null" under the status card. Saving a recovery password now takes a backup straight away when credential backups are on, which clears the "Set a recovery password" message.
