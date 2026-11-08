@@ -345,11 +345,10 @@ depend() { need localmount; after networkmanager; }
 # priority and is the last thing the kernel will kill for memory, while the touchscreen, API and
 # Roon controller yield to it. OpenRC reads these per-service overrides from /etc/conf.d.
 PLAYBACK_PRIORITY = {
-    "roonbridge": ("-10", "2:0", "-800"),
-    "pi-home-display": ("5", "2:5", "300"),
-    "pi-home-api": ("8", "2:7", "500"),
-    "pi-home-roon": ("8", "2:7", "500"),
+    "roonbridge": ("-5", "2:0", "-200"),   # only the bridge is nudged; the touchscreen, API and controller keep ordinary priority so they never hang
 }
+# Earlier builds also slowed these services and made them the first to be killed when memory ran low, which could leave the display hung.
+RELAXED_SERVICES = ("pi-home-display", "pi-home-api", "pi-home-roon")
 
 
 def ensure_playback_priority(root, run=None):
@@ -361,10 +360,16 @@ def ensure_playback_priority(root, run=None):
     """
     root = Path(root)
     bridge = (root / "opt/RoonBridge/start.sh").is_file()
+    for name in RELAXED_SERVICES:   # take back what earlier builds set, but only files this code wrote
+        stale = root / "etc/conf.d" / name
+        try:
+            if stale.is_file() and stale.read_text().startswith("# Managed by RoonDeck"): stale.unlink()
+        except OSError:
+            pass
     for name, (nice, ionice, oom) in PLAYBACK_PRIORITY.items():
         if name == "roonbridge" and not bridge: continue
         conf = root / "etc/conf.d" / name
-        text = ("# Managed by RoonDeck: playback is prioritised over the touchscreen and web services.\n"
+        text = ("# Managed by RoonDeck: the Roon Bridge gets a modest head start so playback stays smooth.\n"
                 f'nice={nice}\nionice="{ionice}"\noom_score_adjust={oom}\n')
         try:
             if conf.is_file() and conf.read_text() == text: continue
@@ -385,7 +390,7 @@ def ensure_playback_priority(root, run=None):
     except Exception:
         return
     for pid in (p for p in pids if p.isdigit()):
-        for command_line in (["renice", "-n", "-10", "-p", pid], ["ionice", "-c", "2", "-n", "0", "-p", pid]):
+        for command_line in (["renice", "-n", "-5", "-p", pid], ["ionice", "-c", "2", "-n", "0", "-p", pid]):
             try: run(command_line)
             except Exception: pass
 

@@ -539,24 +539,32 @@ class AlpineSetupTests(unittest.TestCase):
         self.setup.handle({"action": "roon_restart"})
         self.run.assert_any_call(["rc-service", "roonbridge", "restart"])
 
-    def test_playback_priority_favours_the_bridge_and_is_idempotent(self):
+    def test_playback_priority_is_a_mild_bridge_boost_and_is_idempotent(self):
         start = self.root / "opt/RoonBridge/start.sh"; start.parent.mkdir(parents=True); start.touch()
         gov = self.root / "sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"; gov.parent.mkdir(parents=True); gov.write_text("ondemand\n")
         run = Mock(side_effect=lambda cmd: "123\n" if cmd[0] == "pgrep" else "")
         module.ensure_playback_priority(self.root, run)
         bridge = (self.root / "etc/conf.d/roonbridge").read_text()
-        self.assertIn("nice=-10", bridge); self.assertIn("oom_score_adjust=-800", bridge)
-        self.assertIn("nice=5", (self.root / "etc/conf.d/pi-home-display").read_text())
+        self.assertIn("nice=-5", bridge); self.assertIn("oom_score_adjust=-200", bridge)
+        self.assertFalse((self.root / "etc/conf.d/pi-home-display").exists())   # the touchscreen is never slowed down
         self.assertEqual(gov.read_text().strip(), "performance")
-        run.assert_any_call(["renice", "-n", "-10", "-p", "123"])
-        before = (self.root / "etc/conf.d/pi-home-api").stat().st_mtime_ns
+        run.assert_any_call(["renice", "-n", "-5", "-p", "123"])
+        before = (self.root / "etc/conf.d/roonbridge").stat().st_mtime_ns
         module.ensure_playback_priority(self.root, run)
-        self.assertEqual((self.root / "etc/conf.d/pi-home-api").stat().st_mtime_ns, before)
+        self.assertEqual((self.root / "etc/conf.d/roonbridge").stat().st_mtime_ns, before)
+
+    def test_earlier_priority_overrides_on_the_display_and_api_are_removed(self):
+        conf = self.root / "etc/conf.d"; conf.mkdir(parents=True)
+        (conf / "pi-home-display").write_text("# Managed by RoonDeck: playback is prioritised over the touchscreen and web services.\nnice=5\n")
+        (conf / "pi-home-api").write_text("# my own tuning\nnice=3\n")
+        module.ensure_playback_priority(self.root)
+        self.assertFalse((conf / "pi-home-display").exists())
+        self.assertTrue((conf / "pi-home-api").exists())   # files the owner wrote are left alone
 
     def test_playback_priority_skips_the_bridge_when_it_is_not_installed(self):
         module.ensure_playback_priority(self.root)
         self.assertFalse((self.root / "etc/conf.d/roonbridge").exists())
-        self.assertTrue((self.root / "etc/conf.d/pi-home-display").exists())
+        self.assertFalse((self.root / "etc/conf.d/pi-home-display").exists())
 
     def test_roon_bridge_start_reports_when_the_official_files_are_absent(self):
         self.setup.save({"complete": True})

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.79 Alpine — 8 November 2026
+
+- Playback priority is much gentler. Only the Roon Bridge gets a modest head start (slightly higher priority, and less likely to be killed under memory pressure). The touchscreen, API and Roon controller are no longer slowed down or made first in line to be killed when memory is short, which on small Pis could leave the display hung. Overrides written by earlier builds are removed the next time the setup service starts, and take effect when the services restart.
+- Home: live tiles (CPU, memory, network, update, zones) now do nothing while another page is showing: no redrawing and no update or zone checks.
+
 ## 1.2.0-beta.78 Alpine — 8 November 2026
 
 - Home: new Update tile. Add it from Add tiles > RoonDeck > Update. It checks for the latest release every ten minutes, shows whether one is ready, and installs it with a tap (when you are up to date, a tap checks again).

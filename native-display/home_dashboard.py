@@ -193,6 +193,7 @@ class HomeDashboardMixin:
     def sample_system(self):
         if not self.hs_live_shown:
             self.stat_timer = None; return False
+        on_home = getattr(self, "stack", None) is not None and self.stack.get_visible_child_name() == "home"   # off the Home page nothing below is drawn, polled or fetched
         try:
             fields = [int(value) for value in Path("/proc/stat").read_text().splitlines()[0].split()[1:]]
             idle = fields[3] + (fields[4] if len(fields) > 4 else 0); total = sum(fields[:8])
@@ -220,18 +221,18 @@ class HomeDashboardMixin:
             self.hs_cpu_value.set_text(f"{self.stat_cpu[-1]:.0f}%" if self.stat_cpu else "—")
             try: temperature = f"{int(Path('/sys/class/thermal/thermal_zone0/temp').read_text()) / 1000:.0f} °C"
             except (OSError, ValueError): temperature = ""
-            self.hs_cpu_detail.set_text(temperature); self.hs_cpu_area.queue_draw()
+            self.hs_cpu_detail.set_text(temperature); self.hs_cpu_area.queue_draw() if on_home else None
         if "roondeck.memory" in self.hs_live_shown:
             used, total = getattr(self, "mem_used_total", (0, 0))
-            self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_area.queue_draw()
-        if "roondeck.update" in self.hs_live_shown: self.refresh_update_tile()
+            self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_area.queue_draw() if on_home else None
+        if on_home and "roondeck.update" in self.hs_live_shown: self.refresh_update_tile()
         shown_groups = [key for key in GROUP_KEYS if key in self.hs_live_shown]
-        if shown_groups: self.refresh_group_tiles(shown_groups)
+        if on_home and shown_groups: self.refresh_group_tiles(shown_groups)
         if "roondeck.network" in self.hs_live_shown:
             show_down, show_up = self.net_show
             if show_down: self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
             else: self.hs_net_value.set_text(rate(self.stat_up[-1]) if self.stat_up else "—"); self.hs_net_detail.set_text("upload")
-            self.hs_net_area.queue_draw()
+            self.hs_net_area.queue_draw() if on_home else None
         return True
 
     def render_home_side(self, roon, status):
