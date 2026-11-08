@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.82 Alpine — 8 November 2026
+
+- Home: the headline word on the Update and Group zones tiles is a little smaller, with tighter side padding, so "Updating…" and "Up to date" fit a square tile in full.
+
 ## 1.2.0-beta.81 Alpine — 8 November 2026
 
 - Home: the Update tile now follows an update it starts. Before, the update was requested but the touchscreen only watched its progress while Settings was open, so from Home the tile never showed it running. It now shows Updating, then any failure with a Try again prompt.
