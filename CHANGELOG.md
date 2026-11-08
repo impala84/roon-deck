@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.104 Alpine — 8 November 2026
+
+- Builder: dragging a tile now shows a clean rounded copy of it (no square box with the remove button and handles). Tiles of different sizes now trade places on a full page: the tile you drop on moves to the nearest free spot, usually the one you left, so a wide bus tile and two small tiles swap properly.
+
 ## 1.2.0-beta.103 Alpine — 8 November 2026
 
 - Memory: updates no longer leave their working files behind. pip and npm now run without keeping their download caches (which can live in RAM), the update log is trimmed, the page cache is released once an update has finished, and the touchscreen app hands back unused memory every few minutes and keeps fewer cover thumbnails (96, not 192).

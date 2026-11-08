@@ -244,7 +244,7 @@
     const open = () => { selected = ids().indexOf(id); devicesOpen = false; render(); };
     node.onclick = open;
     node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } };
-    node.ondragstart = event => { dragIndex = ids().indexOf(id); dragTile = id; dragId = null; live = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); setTimeout(() => { node.classList.add('dragging'); openGrid(); }, 0); };
+    node.ondragstart = event => { dragIndex = ids().indexOf(id); dragTile = id; dragId = null; live = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); dragGhost(event, node); setTimeout(() => { node.classList.add('dragging'); openGrid(); }, 0); };
     // While a tile is dragged the others make room, so the drop shows exactly where it will land.
     node.ondragover = event => { if (dragTile) { event.preventDefault(); if (id !== dragTile) liveTo(null, id); } else if (dragId) { event.preventDefault(); node.classList.add('over'); } };
     node.ondragleave = () => node.classList.remove('over');
@@ -312,6 +312,39 @@
     const ok = out.every(item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows) && out.every((a, i) => out.every((b, j) => j <= i || !overlap(a, b)));
     return ok && !(fine === 2 && out.some(item => !tileOf(item.id).half && item.column % 2)) ? out : null;
   }
+  // The picture that follows the pointer: a clean rounded copy of the tile, without the remove button, resize handles or selection outline that made a square box.
+  function dragGhost(event, node) {
+    if (!event.dataTransfer.setDragImage || !node.parentNode) return;
+    const rect = node.getBoundingClientRect(), ghost = node.cloneNode(true);
+    ghost.querySelectorAll('.hd-x,.hd-stretch').forEach(item => item.remove());
+    ghost.classList.remove('selected', 'dragging', 'over'); ghost.removeAttribute('draggable');
+    ghost.style.cssText = `position:fixed;left:-9999px;top:0;width:${rect.width}px;height:${rect.height}px;margin:0;grid-area:auto;outline:none;box-shadow:none;opacity:.92;pointer-events:none`;
+    node.parentNode.append(ghost);
+    event.dataTransfer.setDragImage(ghost, Math.max(0, event.clientX - rect.left), Math.max(0, event.clientY - rect.top));
+    setTimeout(() => ghost.remove(), 0);
+  }
+  // Put the dragged tile where it is wanted and move each tile it covers to the nearest free spot (the dragged tile's old place first), so tiles of different sizes still trade places on a full page.
+  function displace(cells, id, want, info) {
+    const mine = cells.find(item => item.id === id); if (!mine) return null;
+    const hit = (a, b) => a.column < b.column + b.span && b.column < a.column + a.span && a.row < b.row + b.height && b.row < a.row + a.height;
+    const dragged = {...mine, ...want}, inside = item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows;
+    if (!inside(dragged)) return null;
+    const out = [dragged, ...cells.filter(item => item.id !== id && !hit(item, dragged)).map(item => ({...item}))];
+    const moved = cells.filter(item => item.id !== id && hit(item, dragged)).sort((a, b) => b.span * b.height - a.span * a.height);
+    const aligned = item => !(dashColumns() && !tileOf(item.id).half && item.column % 2);
+    for (const item of moved) {
+      let best = null, bestDistance = Infinity;
+      for (let row = 0; row < info.rows; row += 1) for (let column = 0; column < info.columns; column += 1) {
+        const trial = {...item, column, row};
+        if (!inside(trial) || !aligned(trial) || out.some(other => hit(other, trial))) continue;
+        const distance = Math.abs(column - mine.column) + Math.abs(row - mine.row) * 2;
+        if (distance < bestDistance) { best = trial; bestDistance = distance; }
+      }
+      if (!best) return null;
+      out.push(best);
+    }
+    return cells.map(item => out.find(other => other.id === item.id));
+  }
   // Move the dragged tile to an empty cell, or swap it with the tile under it, without redrawing so the drag is not interrupted.
   function liveTo(cellAt, targetId) {
     const info = place(ids(), screen().portrait), me = info.cells.find(item => item.id === dragTile); if (!me) return;
@@ -326,7 +359,7 @@
       // No clean swap or empty cell: drop it there anyway and shuffle the others down to make room.
       const spot = targetId ? info.cells.find(item => item.id === targetId) : cellAt; if (!spot) return;
       let column = Math.min(spot.column, info.columns - me.span); if (dashColumns() && !tileOf(me.id).half) column -= column % 2;
-      result = makeRoom(info.cells, dragTile, {column, row: spot.row}, info); if (!result) return;
+      result = displace(info.cells, dragTile, {column, row: spot.row}, info) || makeRoom(info.cells, dragTile, {column, row: spot.row}, info); if (!result) return;
     }
     live = result;
     const grid = document.querySelector('.hd-grid'); if (!grid) return;
