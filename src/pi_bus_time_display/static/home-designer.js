@@ -473,6 +473,13 @@
     select.value = tile.route || ''; select.onchange = () => patchTile(id, {route: select.value});
     return field('Route shown', select, 'Add the bus tile more than once to keep an eye on several routes at the same time.');
   }
+  // A small picture of the grid with the tile's width filled in: half a column, one, two, or all of them.
+  function widthIcon(value, columns) {
+    const gap = 3, total = 56, colWidth = (total - gap * (columns - 1)) / columns, fill = {'half-column': colWidth / 2, quarter: colWidth, half: colWidth * 2 + gap, full: total}[value] || colWidth;
+    const track = Array.from({length: columns}, (_, n) => `<rect x="${(n * (colWidth + gap)).toFixed(1)}" y="1" width="${colWidth.toFixed(1)}" height="22" rx="3" fill="none" stroke="currentColor" stroke-opacity=".35"/>`).join('');
+    const span = document.createElement('span'); span.className = 'hd-widthicon';
+    span.innerHTML = `<svg viewBox="0 0 ${total} 24" width="56" height="24" aria-hidden="true">${track}<rect x="0" y="1" width="${fill.toFixed(1)}" height="22" rx="3" fill="currentColor"/></svg>`; return span;
+  }
   function pageBar() {
     const count = pageCount(), here = Math.min(pageNo, count - 1), tabs = Array.from({length: count}, (_, number) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
@@ -521,7 +528,7 @@
     const current = dash && tile.half ? 'half-column' : size;
     const segmented = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Tile size'}, widths.map(([value, text]) => {
       const patch = value === 'half-column' ? {half: true, size: ''} : {half: '', sub: '', size: value === 'quarter' && dash ? '' : value};
-      const button = h('button', {type: 'button', 'aria-pressed': String(current === value)}, text); button.onclick = () => { if (fitsAfter(id, patch)) { message.textContent = ''; patchTile(id, patch); } else message.textContent = 'There is no room for that next to the neighbouring tile.'; }; return button;
+      const button = h('button', {type: 'button', class: dash ? 'hd-widthbtn' : '', title: text, 'aria-label': text, 'aria-pressed': String(current === value)}, dash ? [widthIcon(value, dash), h('small', {}, text)] : text); button.onclick = () => { if (fitsAfter(id, patch)) { message.textContent = ''; patchTile(id, patch); } else message.textContent = 'There is no room for that next to the neighbouring tile.'; }; return button;
     }));
     const label = h('input', {type: 'text', maxlength: 40, placeholder: nameOf(id)}); label.value = tile.label || '';
     label.oninput = () => { const value = label.value.trim(); if (value) layout.tiles[id] = {...tileOf(id), label: value}; else if (layout.tiles[id]) { delete layout.tiles[id].label; if (!Object.keys(layout.tiles[id]).length) delete layout.tiles[id]; } markDirty(); const text = document.querySelector('.hd-tile.selected .hd-name'); if (text) text.textContent = value || nameOf(id); };

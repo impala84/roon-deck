@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.99 Alpine — 8 November 2026
+
+- Builder: the Width buttons (Half column, One column, Two columns, Full width) now show a small picture of the grid with that width filled in, with the name beneath.
+- Builder: the Now Playing and Update previews have their rounded corners back (they had lost them when the remove button was made to break out of the tile), and the Update/Group titles fit the smallest preview tile.
+
 ## 1.2.0-beta.98 Alpine — 8 November 2026
 
 - Home: on a full-height Now Playing tile the title and artist sit close to the scrubber and the controls close below it, instead of being spread over the height of the tile.
