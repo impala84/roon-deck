@@ -38,12 +38,12 @@ class HomeDashboardMixin:
         fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade); self.hs_fade = fade; self.hs_opts = {}
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content")
         self.hs_zone = self.label("", "hs-zone"); content.append(self.hs_zone)
-        spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
+        spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer); self.hs_spacer = spacer
         self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END); self.hs_title.set_max_width_chars(1)
         self.hs_artist = self.label("", "hs-artist"); self.hs_artist.set_ellipsize(Pango.EllipsizeMode.END)
         self.hs_thumb = Gtk.Image(); self.hs_thumb.add_css_class("hs-thumb"); self.hs_thumb.set_overflow(Gtk.Overflow.HIDDEN); self.hs_thumb.set_halign(Gtk.Align.START); self.hs_thumb.set_hexpand(False); self.hs_thumb.set_valign(Gtk.Align.END); self.hs_thumb.set_visible(False)   # an Image keeps the exact size asked for; a Picture grows to the artwork
         words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); words.set_hexpand(True); words.set_valign(Gtk.Align.END); words.set_margin_bottom(2); words.append(self.hs_title); words.append(self.hs_artist)
-        head = Gtk.Box(spacing=16); head.append(self.hs_thumb); head.append(words); content.append(head)
+        head = Gtk.Box(spacing=16); head.append(self.hs_thumb); head.append(words); content.append(head); self.hs_head = head; self.hs_words = words
         self.hs_progress = Gtk.ProgressBar(); self.hs_progress.add_css_class("hs-progress"); content.append(self.hs_progress)
         self.hs_scrub = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 1); self.hs_scrub.add_css_class("home-slider"); self.hs_scrub.add_css_class("hs-scrub"); self.hs_scrub.set_draw_value(False); self.hs_scrub.set_visible(False)
         self.hs_scrub.connect("value-changed", self.change_seek); content.append(self.hs_scrub)
@@ -66,9 +66,9 @@ class HomeDashboardMixin:
         self.hs_route = self.label("", "hs-route"); self.hs_then = self.label("", "hs-then"); text.append(self.hs_route); text.append(self.hs_then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         self.hs_minutes = self.label("", "hs-minutes"); self.hs_unit = self.label("min", "hs-unit"); self.hs_unit.set_valign(Gtk.Align.END); arrival.append(self.hs_minutes); arrival.append(self.hs_unit); bus.append(arrival)
-        self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU")
+        self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
         self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK")
-        self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY")
+        self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
         self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
         self.hs_cpu_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_cpu, SPARK_GREEN)], 100.0))
         self.hs_mem_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_mem, SPARK_BLUE)], 100.0))
@@ -77,11 +77,18 @@ class HomeDashboardMixin:
         return side
 
     # ---- live tiles: CPU and network, read straight from the Pi every couple of seconds ----
-    def build_stat_card(self, title):
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-stat"); card.set_hexpand(True); card.set_vexpand(True)
+    def build_stat_card(self, title, corner=False):
+        card = Gtk.Overlay(); card.add_css_class("hs-card"); card.add_css_class("hs-stat"); card.set_overflow(Gtk.Overflow.HIDDEN); card.set_hexpand(True); card.set_vexpand(True)
+        area = Gtk.DrawingArea(); area.set_vexpand(True); area.set_hexpand(True); card.set_child(area)   # the graph runs edge to edge, behind the text
         value = self.label("—", "hs-stat-value", 0); detail = self.label("", "hs-stat-detail", 0); detail.set_ellipsize(Pango.EllipsizeMode.END); value.set_ellipsize(Pango.EllipsizeMode.END)
-        area = Gtk.DrawingArea(); area.set_vexpand(True); area.set_hexpand(True); area.set_content_height(20)
-        card.append(self.label(title, "hs-stat-title", 0)); card.append(value); card.append(area); card.append(detail)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); content.add_css_class("hs-stat-content"); content.set_can_target(False)
+        head = Gtk.Box(); head.append(self.label(title, "hs-stat-title", 0))
+        if corner:   # a short reading (the temperature) sits top right, level with the title
+            filler = Gtk.Box(); filler.set_hexpand(True); head.append(filler); head.append(detail)
+        content.append(head); content.append(value)
+        if not corner:
+            filler = Gtk.Box(); filler.set_vexpand(True); content.append(filler); content.append(detail)
+        card.add_overlay(content)
         return card, value, detail, area
 
     def draw_spark(self, cr, width, height, series, top):
@@ -89,13 +96,14 @@ class HomeDashboardMixin:
         for values, (red, green, blue) in series:
             if len(values) < 2: continue
             step = width / (SAMPLES - 1); first = width - step * (len(values) - 1)
+            band_top, band_bottom = height * .52, height - 8   # the line lives in the lower half; the shading runs to the very bottom
             soft = [sum(values[max(0, i - 1):i + 2]) / len(values[max(0, i - 1):i + 2]) for i in range(len(values))]   # a light three-point average takes the jitter off
-            points = [(first + index * step, height - 3 - min(value, scale) / scale * (height - 6)) for index, value in enumerate(soft)]
+            points = [(first + index * step, band_bottom - min(value, scale) / scale * (band_bottom - band_top)) for index, value in enumerate(soft)]
             cr.set_line_width(2.5); cr.set_line_join(1); cr.set_source_rgba(red, green, blue, 1)
             cr.move_to(*points[0])
             for index in range(1, len(points)):   # curved between the points (Catmull-Rom as Béziers), kept inside the tile
                 before, here, there, after = points[max(0, index - 2)], points[index - 1], points[index], points[min(len(points) - 1, index + 1)]
-                low, high = 3, height - 3
+                low, high = band_top, band_bottom
                 c1 = (here[0] + (there[0] - before[0]) / 6, min(high, max(low, here[1] + (there[1] - before[1]) / 6)))
                 c2 = (there[0] - (after[0] - here[0]) / 6, min(high, max(low, there[1] - (after[1] - here[1]) / 6)))
                 cr.curve_to(*c1, *c2, *there)
@@ -133,12 +141,12 @@ class HomeDashboardMixin:
         def rate(bits): return f"{bits / 1e6:.1f} Mbit/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kbit/s"
         if "roondeck.cpu" in self.hs_live_shown:
             self.hs_cpu_value.set_text(f"{self.stat_cpu[-1]:.0f}%" if self.stat_cpu else "—")
-            try: temperature = f"{int(Path('/sys/class/thermal/thermal_zone0/temp').read_text()) / 1000:.0f} °C · "
+            try: temperature = f"{int(Path('/sys/class/thermal/thermal_zone0/temp').read_text()) / 1000:.0f} °C"
             except (OSError, ValueError): temperature = ""
-            self.hs_cpu_detail.set_text(f"{temperature}load {os.getloadavg()[0]:.1f}"); self.hs_cpu_area.queue_draw()
+            self.hs_cpu_detail.set_text(temperature); self.hs_cpu_area.queue_draw()
         if "roondeck.memory" in self.hs_live_shown:
             used, total = getattr(self, "mem_used_total", (0, 0))
-            self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_detail.set_text(f"{used / 1048576:.1f} of {total / 1048576:.1f} GB" if total else ""); self.hs_mem_area.queue_draw()
+            self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_area.queue_draw()
         if "roondeck.network" in self.hs_live_shown:
             show_down, show_up = self.net_show
             if show_down: self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
@@ -155,7 +163,13 @@ class HomeDashboardMixin:
         paintable = self.artwork.get_paintable()
         art = options.get("art") if options.get("art") in ("thumb", "off") else "background"
         self.hs_art.set_visible(art == "background"); self.hs_fade.set_visible(art == "background"); self.hs_thumb.set_visible(art == "thumb" and not self.hs_short)
-        self.hs_thumb.set_pixel_size(round(92 * scale))
+        thumb_mode = art == "thumb" and not self.hs_short
+        card_w, card_h = self.hs_player.get_width(), self.hs_player.get_height()
+        reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs
+        side = round(min(card_w * .46, card_h - reserved) if card_w and card_h else 150 * scale)
+        self.hs_thumb.set_pixel_size(max(96, side))
+        self.hs_spacer.set_vexpand(not thumb_mode); self.hs_head.set_vexpand(thumb_mode)   # with a thumbnail the track sits up with it, not pushed to the bottom
+        self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END)
         if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
         if paintable is not self.hs_thumb.get_paintable(): self.hs_thumb.set_from_paintable(paintable)
         adjustment = self.progress.get_adjustment(); upper = adjustment.get_upper()
@@ -307,11 +321,10 @@ class HomeDashboardMixin:
         on = bool(entity.get("on", state in {"on", "open", "playing"})); accent = self.home_accent(entity, domain); entity_id = entity.get("entity_id", "")
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); card.set_hexpand(True); card.set_vexpand(True)
         self.home_card_classes(card, entity, domain, number, rules, on)
-        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(26 * scale)); inner.set_valign(Gtk.Align.CENTER); inner.set_vexpand(True)
-        inner.set_margin_bottom(round(8 * scale))   # a little nudge up: centred blocks look low to the eye
+        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(16 * scale)); inner.set_valign(Gtk.Align.CENTER); inner.set_vexpand(True)
         top = Gtk.Box(spacing=round(20 * scale))
         icon = self.home_icon_for(entity, domain, on, scale, accent)
-        chip = round((48 if half else 64) * scale); button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
+        chip = round((48 if half else 58) * scale); button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
         button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)

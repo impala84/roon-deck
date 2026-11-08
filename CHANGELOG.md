@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.75 Alpine — 8 November 2026
+
+- Home: Now Playing with a thumbnail now uses a large square album cover (nearly half the tile's width) with the track and artist beside it, and everything sits higher, with no empty space above.
+- Home: device cards (sliders and switches) are more compact and centred, so the bottoms of the Study fan and uplight tiles are no longer cut off with three rows.
+- Home: CPU shows just the temperature, top right; Memory shows just the percentage. The graphs now run edge to edge and are shaded right down to the bottom of the tile.
+- Home: the bus tile sits further left with bigger route and minute numbers.
+
 ## 1.2.0-beta.74 Alpine — 8 November 2026
 
 - Home: no tile can change the shape of the screen any more. Every tile now sits in a frame that ignores its contents, so a long name or tall content is clipped inside its own tile instead of stretching the grid and pushing the bottom menu off the screen. Scene names (such as Study desk cycle) also stay on one line.

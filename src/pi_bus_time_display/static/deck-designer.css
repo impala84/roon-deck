@@ -229,3 +229,8 @@
 .hd-own li{cursor:default}.hd-accordion-body>.hd-seg{justify-self:start}
 .hd-accordion-body>.hd-seg button{min-height:36px;padding:0 16px;font-size:14px}
 .hd-accordion-body{padding-top:16px}
+
+.hd-d-live{position:absolute;inset:0;display:block}.hd-d-live .hd-d-spark{position:absolute;inset:0;height:auto}.hd-d-live .hd-d-spark svg{width:100%;height:100%}
+.hd-d-livetext{position:absolute;inset:0;display:grid;grid-template-rows:auto auto 1fr auto;padding:1.5cqw 1.9cqw;gap:.2cqw}.hd-d-livehead{display:flex;justify-content:space-between;align-items:baseline}.hd-d-livefoot{align-self:end}
+.hd-d-player.art-thumb .hd-d-spacer{display:none}.hd-d-player.art-thumb .hd-d-headrow{flex:1;align-items:center;gap:1.6cqw}.hd-d-thumb{width:11cqw;height:11cqw}
+.hd-d-bus{margin-left:-.9cqw;gap:1.1cqw}.hd-d-route b{font-size:3.4cqw}.hd-d-minutes b{font-size:5.6cqw}

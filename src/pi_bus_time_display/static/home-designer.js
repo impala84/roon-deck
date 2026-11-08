@@ -144,9 +144,16 @@
     }
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (id in LIVE) {
-      const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', points = (mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24]).map((value, i, all) => `${(i * 100 / (all.length - 1)).toFixed(1)},${(36 - value * .55).toFixed(1)}`).join(' ');
-      const spark = h('span', {class: 'hd-d-spark'}); spark.innerHTML = `<svg viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="${cpu ? '#6ed9ae' : '#6aa8ff'}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
-      return [h('div', {class: 'hd-d-live'}, h('small', {}, cpu ? 'CPU' : mem ? 'MEMORY' : 'NETWORK'), h('b', {class: 'hd-d-big'}, mem ? '54%' : cpu ? '36%' : (tile.download === false ? '0.3 Mbit/s' : '12.4 Mbit/s')), spark, h('small', {}, mem ? '2.1 of 4.0 GB' : cpu ? '52 \u00b0C \u00b7 load 0.4' : tile.download === false ? 'upload' : tile.upload === false ? '' : 'up 0.3 Mbit/s'))];
+      const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', net = !cpu && !mem;
+      const values = mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24];
+      const line = values.map((value, i) => `${(i * 100 / (values.length - 1)).toFixed(1)},${(37 - value * .24).toFixed(1)}`).join(' ');
+      const tint = cpu ? '#6ed9ae' : '#6aa8ff';
+      const spark = h('span', {class: 'hd-d-spark'}); spark.innerHTML = `<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,40 ${line} 100,40" fill="${tint}" fill-opacity=".16"/><polyline points="${line}" fill="none" stroke="${tint}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+      const down = tile.download !== false;
+      return [h('div', {class: 'hd-d-live'}, spark, h('span', {class: 'hd-d-livetext'},
+        h('span', {class: 'hd-d-livehead'}, h('small', {}, cpu ? 'CPU' : mem ? 'MEMORY' : 'NETWORK'), cpu ? h('small', {}, '52 \u00b0C') : null),
+        h('b', {class: 'hd-d-big'}, mem ? '54%' : cpu ? '36%' : (down ? '12.4 Mbit/s' : '0.3 Mbit/s')),
+        net ? h('small', {class: 'hd-d-livefoot'}, down ? (tile.upload === false ? '' : 'up 0.3 Mbit/s') : 'upload') : null))];
     }
     const domain = domainOf(id), info = states[id] || {}, scene = domain === 'scene';
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
