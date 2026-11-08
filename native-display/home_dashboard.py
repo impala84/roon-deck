@@ -361,8 +361,8 @@ class HomeDashboardMixin:
 
     def clip_cell(self, widget):
         """Hold a tile in a frame whose size ignores what is inside it, so nothing a tile shows (a long name, a tall player) can ever change the shape of the screen; the grid decides every tile's size, and anything extra is clipped."""
-        frame = Gtk.ScrolledWindow(); frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
-        frame.set_propagate_natural_height(False); frame.set_min_content_height(0); frame.set_kinetic_scrolling(False); frame.set_overflow(Gtk.Overflow.HIDDEN)
+        frame = Gtk.ScrolledWindow(); frame.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL)   # neither direction asks the grid for room
+        frame.set_propagate_natural_height(False); frame.set_propagate_natural_width(False); frame.set_min_content_height(0); frame.set_min_content_width(0); frame.set_kinetic_scrolling(False); frame.set_overflow(Gtk.Overflow.HIDDEN)
         frame.set_hexpand(True); frame.set_vexpand(True); frame.add_css_class("home-clip"); frame.clip_wrapper = True
         frame.set_child(widget); return frame
 

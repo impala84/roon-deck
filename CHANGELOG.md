@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.76 Alpine — 8 November 2026
+
+- Home: fixed the right-hand margin looking tighter than the left. Tiles were still reporting a minimum width to the grid, which could make the grid a few pixels wider than the screen and clip its right edge. Tiles now ask for no minimum width or height at all, so the grid is always exactly the width of the screen and margins are equal.
+
 ## 1.2.0-beta.75 Alpine — 8 November 2026
 
 - Home: Now Playing with a thumbnail now uses a large square album cover (nearly half the tile's width) with the track and artist beside it, and everything sits higher, with no empty space above.
