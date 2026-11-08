@@ -843,14 +843,10 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")
                 and not self.settings_open
                 and time.monotonic() - getattr(self, "last_touch", 0.0) > 15 and time.monotonic() - self.browse_last_interaction > 15):
-            # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial), so show where the
-            # level can be seen: Now Playing while Roon is playing, otherwise the Home page with the listening controls.
-            if ((roon or {}).get("zone") or {}).get("state") == "playing":
-                target = "http://127.0.0.1:8766/"
-                if self.last_mode != "roon": self.set_roon_view("now")
-                elif self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
-            else:
-                target = "/home"
+            # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial). Show the Roon
+            # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
+            target = "http://127.0.0.1:8766/"
+            if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
             print("RoonDeck showing the screen for a volume change: " + target, flush=True)
         scheduled_wake = bool(
             target is not None

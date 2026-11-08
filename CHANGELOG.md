@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.122 Alpine — 8 November 2026
+
+- Changing the volume from the remote or a dial now flicks the touchscreen to the Roon Now Playing page, which is the large volume page while the HDMI ARC input is active (and the playing track otherwise). It no longer goes to Home.
+
 ## 1.2.0-beta.121 Alpine — 8 November 2026
 
-- Changing the volume from the remote, the Surface Dial or a Stream Deck dial now brings the touchscreen to the right page, even when it was awake on another one: Now Playing while Roon is playing, otherwise Home (with the listening controls). It does nothing if you touched the screen in the last 15 seconds or Settings is open.
+- Volume changes from a remote or dial bring the touchscreen to a relevant page (superseded by beta.122). It does nothing if you touched the screen in the last 15 seconds or Settings is open.
 
 ## 1.2.0-beta.120 Alpine — 8 November 2026
 
