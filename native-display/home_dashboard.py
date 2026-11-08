@@ -302,8 +302,9 @@ class HomeDashboardMixin:
         self.hs_thumb.set_pixel_size(max(96, side))
         self.hs_spacer.set_vexpand(not thumb_mode); self.hs_head.set_vexpand(thumb_mode)   # with a thumbnail the track sits up with it, not pushed to the bottom
         self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END)
-        for words in (self.hs_zone, self.hs_title, self.hs_artist):   # beside a thumbnail the words stay left; on their own they are centred
-            words.set_xalign(0.0 if thumb_mode else 0.5); words.set_justify(Gtk.Justification.LEFT if thumb_mode else Gtk.Justification.CENTER)
+        left = thumb_mode or options.get("align") == "left"
+        for words in (self.hs_zone, self.hs_title, self.hs_artist):   # centred by default; left beside a thumbnail or when chosen
+            words.set_xalign(0.0 if left else 0.5); words.set_justify(Gtk.Justification.LEFT if left else Gtk.Justification.CENTER)
         if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
         if paintable is not self.hs_thumb.get_paintable(): self.hs_thumb.set_from_paintable(paintable)
         adjustment = self.progress.get_adjustment(); upper = adjustment.get_upper()

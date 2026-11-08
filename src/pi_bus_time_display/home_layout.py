@@ -11,7 +11,7 @@ SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with", "page", "route", "border"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "page", "route", "border"}
 MAX_PAGES = 4
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
@@ -63,6 +63,7 @@ def validate_layout(data):
         if tile.get("scrubber") is True: out["scrubber"] = True
         if tile.get("volume") is False: out["volume"] = False
         if tile.get("heading") is False: out["heading"] = False
+        if tile.get("align") == "left": out["align"] = "left"   # the track text is centred unless asked otherwise
         for name in ("zone", "with"):   # the two Roon zones a group tile works on, by name
             if isinstance(tile.get(name), str) and tile[name].strip(): out[name] = tile[name].strip()[:80]
         for name in ("download", "upload"):   # the network tile can show either direction, or both

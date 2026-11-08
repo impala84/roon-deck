@@ -33,7 +33,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'download', 'upload', 'zone', 'with', 'page', 'route', 'border']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'page', 'route', 'border']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
@@ -174,7 +174,7 @@
   function dashBody(id, tile, colour, lit, height) {
     if (B(id) === 'roondeck.player') {
       const art = tile.art || 'background', short = height === 1, bar = tile.scrubber ? h('span', {class: 'hd-d-bar scrub'}, h('i', {}), h('em', {})) : h('span', {class: 'hd-d-bar'}, h('i', {}));
-      return [h('div', {class: `hd-d-player art-${art}`},
+      return [h('div', {class: `hd-d-player art-${art}${tile.align === 'left' ? ' align-left' : ''}`},
         tile.heading === false || short ? null : h('span', {class: 'hd-d-zone'}, (tile.label || 'ROONDECK').toUpperCase()), h('span', {class: 'hd-d-spacer'}),
         h('span', {class: 'hd-d-headrow'}, art === 'thumb' && !short ? h('span', {class: 'hd-d-thumb'}) : null, h('span', {class: 'hd-d-words'}, h('b', {}, 'Track title'), h('small', {}, 'Artist'))), bar,
         h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
@@ -618,8 +618,11 @@
       const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
         const button = h('button', {type: 'button', 'aria-pressed': String((tile.art || 'background') === value)}, text); button.onclick = () => patchTile(id, {art: value === 'background' ? '' : value}); return button;
       }));
+      const alignment = h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Text alignment'}, [['center', 'Centred'], ['left', 'Left']].map(([value, text]) => {
+        const button = h('button', {type: 'button', 'aria-pressed': String((tile.align === 'left' ? 'left' : 'center') === value)}, text); button.onclick = () => patchTile(id, {align: value === 'left' ? 'left' : ''}); return button;
+      }));
       const playerFields = B(id) !== 'roondeck.player' ? [] : [field('Title', label, 'Shown above the track. Leave it blank to show the zone name.'), check('Show the title', tile.heading !== false, on => ({heading: on ? '' : false})),
-        field('Artwork', artwork), check('Track scrubber (drag to seek)', !!tile.scrubber, on => ({scrubber: on ? true : ''})), check('Volume slider', tile.volume !== false, on => ({volume: on ? '' : false}))];
+        field('Artwork', artwork), field('Text alignment', alignment), check('Track scrubber (drag to seek)', !!tile.scrubber, on => ({scrubber: on ? true : ''})), check('Volume slider', tile.volume !== false, on => ({volume: on ? '' : false}))];
       const netFields = B(id) !== 'roondeck.network' ? [] : (() => {
         const down = tile.download !== false, up = tile.upload !== false;
         const one = (text, on, other, key) => { const box = h('input', {type: 'checkbox'}); box.checked = on; box.disabled = on && !other; box.onchange = () => patchTile(id, {[key]: box.checked ? '' : false}); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };

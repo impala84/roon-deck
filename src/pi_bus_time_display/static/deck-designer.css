@@ -265,3 +265,4 @@
 .hd-pages .hd-iconbtn{display:grid;place-items:center;width:40px;height:36px;padding:0!important}.hd-iconbtn svg{display:block}
 .hd-preview>.hd-columns{margin:12px 0 4px;justify-content:flex-start}.hd-preview>.hd-columns .hd-seg{width:200px}.hd-preview>.hd-columns .hd-seg button{padding:8px 12px}
 .hd-preview>.hd-columns .hd-seg{width:auto;display:flex;gap:6px}.hd-preview>.hd-columns .hd-seg button{white-space:nowrap;flex:0 0 auto}
+.hd-d-player:not(.art-thumb):not(.align-left) .hd-d-words,.hd-d-player:not(.art-thumb):not(.align-left) .hd-d-zone{text-align:center}

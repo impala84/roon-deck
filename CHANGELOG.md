@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.107 Alpine — 8 November 2026
+
+- Home: Now Playing text alignment is an option in the builder (Centred by default, or Left). Beside a thumbnail the text is always left-aligned.
+
 ## 1.2.0-beta.106 Alpine — 8 November 2026
 
 - Home: the title and artist on the Now Playing tile are centred (they stay left-aligned beside a thumbnail), and on the tallest tile the play controls sit higher, clear of the bottom edge.
