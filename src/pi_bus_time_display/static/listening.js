@@ -26,7 +26,7 @@
       else if (tile.border) card.style.borderColor=tile.border;
       const title=document.createElement('strong'); title.textContent=tile.label || names[kind]; card.append(title);
       const speaker=state.kef || {}, connected=!!(state.enabled && speaker.connected), full=kind==='roondeck.kef';
-      const status=document.createElement('small'); status.textContent=!state.enabled?'Not enabled':connected?`${speaker.powered?'On':'Standby'} · ${speaker.input || ''} · ${speaker.volume}%`:'Offline'; card.append(status);
+      const status=document.createElement('small'); status.textContent=!state.enabled?'Not enabled':connected?`${speaker.powered?'On':'Standby'} · ${speaker.volume}%`:'Offline'; card.append(status);
       function button(row,label,action,value,enabled=connected) {
         const node=document.createElement('button'); node.type='button'; node.textContent=label; node.style.cssText='min-height:44px;flex:1;padding:6px'; node.disabled=busy || !enabled;
         node.onclick=()=>command(action,value); row.append(node);

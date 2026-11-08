@@ -16,8 +16,7 @@ class ListeningTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "listening.json"
-        self.settings = {"enabled": True, "kef_host": "10.12.0.125", "maximum_volume": 40,
-                         "modes": [{"id": "pi", "kef_input": "aux", "topping_input": "coaxial", "volume": 20}]}
+        self.settings = {"enabled": True, "kef_roon_output_id": "study-output", "maximum_volume": 40}
         self.write()
         self.speaker = Mock()
         self.speaker.status.return_value = {"connected": True, "powered": True, "input": "aux", "volume": 20, "muted": False}
@@ -26,27 +25,11 @@ class ListeningTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.settings))
 
-    def test_topping_mode_preflight_changes_no_hardware(self):
-        with self.assertRaisesRegex(ValueError, "Topping"):
-            self.controls.command("mode", "pi")
-        self.speaker.command.assert_not_called()
-        self.assertIsNone(self.controls.snapshot()["last_mode"])
 
     def test_cached_status_does_not_wait_for_network_lock(self):
         with self.controls.lock:
             self.assertFalse(self.controls.snapshot()["kef"]["connected"])
 
-    @patch("pi_bus_time_display.listening.time.sleep")
-    def test_mode_requires_readback_and_external_changes_clear_selection(self, _sleep):
-        del self.settings["modes"][0]["topping_input"]
-        self.write()
-        self.controls.refresh()
-        self.assertEqual(self.controls.command("mode", "pi")["last_mode"], "pi")
-        self.speaker.status.return_value["input"] = "optical"
-        self.assertIsNone(self.controls.refresh()["last_mode"])
-        with self.assertRaisesRegex(OSError, "confirm"):
-            self.controls.command("mode", "pi")
-        self.assertIsNone(self.controls.snapshot()["last_mode"])
 
     def test_malformed_settings_disable_controls_and_report_error(self):
         self.controls.refresh()
@@ -56,36 +39,14 @@ class ListeningTests(unittest.TestCase):
         self.assertFalse(result["kef"]["connected"])
         self.assertTrue(result["error"])
 
-    @patch("pi_bus_time_display.listening.time.sleep")
-    def test_mode_waits_for_input_before_setting_its_volume(self, _sleep):
-        del self.settings["modes"][0]["topping_input"]
-        self.write()
-        old = {"connected": True, "powered": False, "input": "wifi", "volume": 10}
-        ready = {**old, "powered": True, "input": "aux"}
-        self.speaker.status.side_effect = [old, ready, ready, {**ready, "volume": 20}]
-        self.assertEqual(self.controls.command("mode", "pi")["last_mode"], "pi")
-        self.assertEqual(self.speaker.method_calls, [
-            unittest.mock.call.command("input", "aux"),
-            unittest.mock.call.status(), unittest.mock.call.status(),
-            unittest.mock.call.command("volume", 20),
-            unittest.mock.call.status(), unittest.mock.call.status()])
+
 
     @patch("pi_bus_time_display.listening.time.sleep")
-    def test_mode_never_changes_volume_if_input_does_not_confirm(self, _sleep):
-        del self.settings["modes"][0]["topping_input"]
-        self.write()
-        self.speaker.status.return_value = {"connected": True, "powered": False, "input": "wifi", "volume": 10}
-        with self.assertRaisesRegex(OSError, "confirm the input"):
-            self.controls.command("mode", "pi")
-        self.speaker.command.assert_called_once_with("input", "aux")
-        self.assertIsNone(self.controls.snapshot()["last_mode"])
-
-    @patch("pi_bus_time_display.listening.time.sleep")
-    def test_power_and_input_commands_require_actual_state_change(self, _sleep):
-        for action, value in (("power", False), ("input", "wifi"), ("volume", 30)):
+    def test_power_and_volume_commands_require_actual_state_change(self, _sleep):
+        for action, value in (("power", False), ("volume", 30)):
             with self.subTest(action=action):
                 self.speaker.reset_mock()
-                with self.assertRaisesRegex(OSError, "did not confirm"):
+                with self.assertRaisesRegex(OSError, "not confirmed"):
                     self.controls.command(action, value)
                 self.speaker.command.assert_called_once_with(action, value)
 
@@ -111,61 +72,33 @@ class ListeningTests(unittest.TestCase):
         saved = self.controls.save({**self.settings, "buttons": [{"label": "A", "action": "mute", "color": "#236650", "image": "icon-mute.png"}]})
         self.assertEqual(saved["buttons"][0]["color"], "#236650")
 
-    def test_volume_limit_and_types_validate_before_hardware(self):
-        self.settings["modes"][0]["volume"] = 41
-        self.write()
-        with self.assertRaises(ValueError): load_settings(self.path)
-        speaker = KefLSX("unused", 40); speaker.exchange = Mock(return_value=39)
-        speaker.command("volume_delta", 10)
-        self.assertEqual(speaker.exchange.call_args.args[0], bytes([83, 37, 129, 40]))
-        speaker.exchange.reset_mock()
-        with self.assertRaises(ValueError): speaker.command("volume", True)
-        speaker.exchange.assert_not_called()
+    def test_kef_uses_roon_and_never_opens_the_speakers_own_port(self):
+        from pi_bus_time_display.listening import KefRoon
+        speaker = KefRoon("", 40, "study-output")
+        with patch("pi_bus_time_display.listening.socket", create=True) as sock, patch.object(KefRoon, "roon_request") as request:
+            speaker.command("volume_delta", 10)
+            request.assert_called_once_with("volume_delta", 10)
+            sock.create_connection.assert_not_called()
+            request.reset_mock()
+            with self.assertRaises(ValueError): speaker.command("volume", True)
+            with self.assertRaisesRegex(ValueError, "Broadlink"): speaker.command("input", "aux")
+            with self.assertRaises(ValueError): speaker.command("shell", None)
+            request.assert_not_called()
+            speaker.command("input", "wifi")
+            request.assert_called_once_with("input", "wifi")
+        with self.assertRaisesRegex(OSError, "Choose the KEF"): KefRoon("", 40, "").status()
 
-    def test_source_preserves_dsp_bits_and_rejects_lsx_usb(self):
-        speaker = KefLSX("unused"); speaker.exchange = Mock(return_value=0xD2)
-        speaker.command("input", "aux")
-        self.assertEqual(speaker.exchange.call_args.args[0], bytes([83, 48, 129, 0x5A]))
-        speaker.exchange.reset_mock()
-        with self.assertRaises(ValueError): speaker.command("input", "usb")
-        speaker.exchange.assert_not_called()
+    def test_listening_modes_are_gone_and_old_mode_keys_are_migrated(self):
+        saved = self.controls.save({**self.settings, "modes": [{"id": "pi"}], "buttons": [{"label": "Pi", "action": "mode", "value": "pi"}]})
+        self.assertNotIn("modes", saved)
+        self.assertEqual(saved["buttons"][0]["action"], "none")
+        with self.assertRaisesRegex(ValueError, "Roon output"): self.controls.save({"enabled": True})
 
-    @patch("pi_bus_time_display.listening.socket.create_connection")
-    def test_tcp_partial_reply_is_assembled_and_timeout_is_bounded(self, connect):
-        connection = connect.return_value.__enter__.return_value
-        connection.recv.side_effect = [b"R", b"%", b"\x81", b"\x14\xff"]
-        self.assertEqual(KefLSX("10.12.0.125").exchange(bytes.fromhex("472580")), 20)
-        self.assertTrue(all(0 < call.args[0] <= 2 for call in connection.settimeout.call_args_list))
-        connection.recv.side_effect = [b"R\x11", b"\xff"]
-        self.assertEqual(KefLSX("10.12.0.125").exchange(bytes.fromhex("53258114")), 17)
-        connection.recv.side_effect = [b"G", b""]
-        with self.assertRaises(OSError): KefLSX("10.12.0.125").exchange(bytes.fromhex("472580"))
 
-    @patch("pi_bus_time_display.listening.socket.create_connection")
-    def test_real_lsx_read_frames_allow_variable_trailers_and_skip_unrelated_frames(self, connect):
-        connection = connect.return_value.__enter__.return_value
-        connection.recv.side_effect = [bytes.fromhex("5230812a43"), bytes.fromhex("522581149a")]
-        self.assertEqual(KefLSX("unused").exchange(bytes.fromhex("472580")), 20)
-        connection.sendall.assert_called_once()
 
-    @patch("pi_bus_time_display.listening.socket.create_connection")
-    def test_command_rejection_is_immediate_and_never_replayed(self, connect):
-        connection = connect.return_value.__enter__.return_value
-        connection.recv.return_value = bytes.fromhex("5212ff")
-        with self.assertRaisesRegex(OSError, "rejected"):
-            KefLSX("unused").exchange(bytes.fromhex("5330812a"))
-        connection.sendall.assert_called_once()
-        connect.assert_called_once()
 
-    @patch("pi_bus_time_display.listening.time.sleep")
-    @patch("pi_bus_time_display.listening.socket.create_connection")
-    def test_connection_refusal_retries_only_before_sending(self, connect, sleep):
-        context = Mock(); connection = Mock(); context.__enter__ = Mock(return_value=connection); context.__exit__ = Mock(return_value=False)
-        connection.recv.return_value = bytes.fromhex("522581149a")
-        connect.side_effect = [ConnectionRefusedError(), context]
-        self.assertEqual(KefLSX("unused").exchange(bytes.fromhex("472580")), 20)
-        connection.sendall.assert_called_once()
-        sleep.assert_called_once_with(.15)
+
+
 
     def test_infrared_input_uses_only_the_saved_remote_without_claiming_readback(self):
         self.settings["kef_ir_remote"] = "remote.study"
@@ -175,7 +108,6 @@ class ListeningTests(unittest.TestCase):
         result = controls.command("input", "aux")
         send.assert_called_once_with("remote.study", "aux")
         self.speaker.command.assert_not_called()
-        self.assertIsNone(result["last_mode"])
         self.assertIn("readback is unavailable", result["notice"])
         self.assertTrue(result["ir_available"])
         self.assertFalse(result["kef"]["connected"])
@@ -215,17 +147,6 @@ class ListeningTests(unittest.TestCase):
             self.assertEqual(decoded, [0x01, 0xFE, command, command ^ 0xFF])
         with self.assertRaises(ValueError): input_command("usb")
 
-    def test_roon_wake_uses_explicit_output_and_never_repeats_tcp_commands(self):
-        speaker = KefLSX("10.12.0.125", 40, "speaker-output")
-        speaker.roon_request = Mock(return_value={"connected": True, "powered": True, "input": "wifi"})
-        speaker.exchange = Mock(side_effect=ConnectionRefusedError())
-        speaker.command("power", True)
-        speaker.roon_request.assert_called_once_with("power", True)
-        speaker.exchange.assert_not_called()
-        self.assertTrue(speaker.status()["powered"])
-        with self.assertRaises(OSError): speaker.command("input", "optical")
-        # Failed physical source selection is never substituted with Wi-Fi.
-        self.assertEqual(speaker.roon_request.call_count, 2)
 
     def handler(self, payload, authorised=True, forwarded=False):
         state = State(Config(), Path(self.directory.name)); state.listening = self.controls

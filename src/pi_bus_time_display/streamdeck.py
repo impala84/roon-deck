@@ -103,7 +103,7 @@ def _dispatch(base, binding, delta=None):
     action = binding.get("action")
     if action in {None, "none"}:
         return {}
-    if action in {"mode", "power", "input", "volume", "volume_delta", "mute"}:
+    if action in {"power", "input", "volume", "volume_delta", "mute"}:
         value = binding.get("value")
         if action == "volume_delta" and delta is not None:
             value = delta * int(binding.get("step", 1))
@@ -252,7 +252,7 @@ class Painter:
 
     def _key(self, binding, state, home, cover, elapsed):
         from PIL import Image, ImageDraw
-        selected = binding.get("action") == "mode" and binding.get("value") == state.get("last_mode")
+        selected = False
         entity = next((item for item in _home_entities(home) if item.get("entity_id") == binding.get("entity_id")), {})
         active = selected or entity.get("state") == "on"
         # A key that shows a light's level never flashes the green "on" colour (a running script reports "on" while it works).
@@ -292,8 +292,6 @@ class Painter:
             top = 106 - len(lines) * (size + 3)
             for number, text in enumerate(lines):
                 draw.text((60, top + number * (size + 3)), text, fill="white", font=face, anchor="ma", stroke_width=2 if art else 0, stroke_fill="#000000")
-        if binding.get("action") == "mode" and not next((mode.get("available") for mode in state.get("modes", []) if mode["id"] == binding.get("value")), False):
-            draw.text((8, 8), "Unavailable", fill="#f2b991", font=self.load_font(14))
         # Rounded corners: the corners are always the darkest black, whatever the key colour.
         mask = Image.new("L", (120, 120), 0)
         ImageDraw.Draw(mask).rounded_rectangle((0, 0, 119, 119), radius=16, fill=255)

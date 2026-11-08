@@ -324,7 +324,7 @@ class HomePageMixin:
         card.title.set_text(card.default_title)
         while child := card.body.get_first_child(): card.body.remove(child)
         detail = "Not enabled" if not data.get("enabled") else "Offline"
-        if connected: detail = f"{'On' if speaker.get('powered') else 'Standby'} · {speaker.get('input', '')} · {speaker.get('volume', 0)}%"
+        if connected: detail = f"{'On' if speaker.get('powered') else 'Standby'} · {speaker.get('volume', 0)}%"
         status = self.label(detail, "muted"); status.set_wrap(True); card.body.append(status)
         def row():
             box = Gtk.Box(spacing=5); box.set_homogeneous(True); card.body.append(box); return box
@@ -335,7 +335,7 @@ class HomePageMixin:
             box = row(); button(box, "On", "power", True); button(box, "Standby", "power", False)
         if kind in ("", "_input"):
             choices = [("Choose input…", None), ("Wi-Fi / Roon", "wifi")]
-            if data.get("ir_available") or speaker.get("direct_inputs_available") is not False:
+            if data.get("ir_available"):   # the other inputs are sent as infrared through Home Assistant
                 choices += [("AUX", "aux"), ("Optical", "optical"), ("Bluetooth", "bluetooth")]
             pick = Gtk.DropDown.new_from_strings([name for name, _ in choices]); pick.set_size_request(-1, 42); pick.set_sensitive(bool(data.get("enabled") and (connected or data.get("ir_available"))))
             def changed(control, _param):

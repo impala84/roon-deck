@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current development release is **1.2.0-beta.133**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
+The current development release is **1.2.0-beta.134**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path.
 
@@ -181,11 +181,11 @@ RoonDeck's own code is [MIT](LICENSE). The official Roon Node libraries are Apac
 
 [CHANGELOG.md](CHANGELOG.md) records releases. [ROADMAP.md](ROADMAP.md) defines the gated v1.1 Discover work and later public-appliance goals. No unsupported Roon protocol is part of the v1.0 baseline.
 
-## Physical controls and listening modes
+## Physical controls and KEF control
 
-See [Stream Deck +, KEF LSX and Topping setup](docs/LISTENING.md).
-KEF and USB control code is available for hardware validation; Topping Bluetooth
-input switching remains unverified and dependent listening modes stay disabled.
+See [Stream Deck + and KEF LSX setup](docs/LISTENING.md).
+The KEF is controlled through Roon (power, volume, mute) and a Home Assistant
+Broadlink remote (input switching).
 
 ## RoonDeck Backup Server
 

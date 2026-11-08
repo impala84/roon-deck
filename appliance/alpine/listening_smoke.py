@@ -28,8 +28,7 @@ keys = ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.ke
 home = {"status":"ok", "cards": {key:{"show":True,"rows":2 if key == keys[0] else 1,"size":"half" if key == keys[0] else "quarter"} for key in keys}, "entities":[]}
 display.render_home(home)
 state = {"enabled":True,"kef":{"connected":True,"powered":True,"input":"aux","volume":20,"muted":False},
-         "modes":[{"id":"pi","name":"Pi / Roon","available":False,"reason":"Topping input switching is not available yet"},
-                  {"id":"kef","name":"Speakers only","available":True}],"error":""}
+         "ir_available":True,"error":""}
 display.render_listening(state)
 window.present()
 def settle():

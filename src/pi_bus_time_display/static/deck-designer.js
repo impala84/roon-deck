@@ -15,13 +15,13 @@
   const KEY_DEFAULT = '#11201d';
   const SWATCHES = ['#11201d', '#236650', '#1f3a6e', '#6b2d7a', '#8a2f2f', '#8a5a14', '#3a3a3a', '#000000'];
   const KEY_ACTIONS = [
-    ['none', 'Unused'], ['mode', 'Listening mode'], ['power', 'KEF power'], ['input', 'KEF input'], ['mute', 'KEF mute'],
+    ['none', 'Unused'], ['power', 'KEF power'], ['input', 'KEF input'], ['mute', 'KEF mute'],
     ['previous', 'Previous track'], ['playpause', 'Play / pause'], ['next', 'Next track'], ['home_toggle', 'Home device on / off'], ['home_scene', 'Home scene'], ['home_script', 'Home script (e.g. IR remote)'],
   ];
   const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['roon_volume', 'Roon volume (current zone)'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)'], ['remote_steps', 'IR remote steps (e.g. aircon temperature)']];
   const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['roon_mute', 'Roon mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script'], ['remote_toggle', 'IR remote on / off (e.g. aircon power)']];
   // KEF-only actions disappear while the KEF speakers are switched off (a saved binding keeps showing its own action).
-  const KEF_ACTIONS = new Set(['mode', 'power', 'input', 'mute', 'volume_delta']);
+  const KEF_ACTIONS = new Set(['power', 'input', 'mute', 'volume_delta']);
   const kefOn = () => !!SHARED().settings.enabled;
   const available = (list, current) => list.filter(([id]) => kefOn() || !KEF_ACTIONS.has(id) || id === current);
   const TEXT_SWATCHES = ['#ffffff', '#a4dcc7', '#6ef0be', '#ffd166', '#f2b991', '#8ecbff', '#ff8fa3', '#000000'];
@@ -58,9 +58,9 @@
   const blankDial = () => ({label: '', action: 'none', step: 1, press: {action: 'none'}});
   const clone = value => JSON.parse(JSON.stringify(value));
   const defaultButtons = [
-    {label: 'Pi / Roon', action: 'mode', value: 'pi'}, {label: 'Mac', action: 'mode', value: 'mac'},
+    {label: 'Wi-Fi', action: 'input', value: 'wifi'}, {label: 'AUX', action: 'input', value: 'aux'}, {label: 'Optical', action: 'input', value: 'optical'},
     {label: 'Power on', action: 'power', value: true}, {label: 'Standby', action: 'power', value: false},
-    {label: 'Previous', action: 'previous'}, {label: 'Play / Pause', action: 'playpause'}, {label: 'Next', action: 'next'}, {label: 'Mute', action: 'mute'}];
+    {label: 'Previous', action: 'previous'}, {label: 'Play / Pause', action: 'playpause'}, {label: 'Next', action: 'next'}];
 
   function adopt() {
     const settings = SHARED().settings;
@@ -77,9 +77,7 @@
   const artUrl = name => `/api/admin/listening/art/${encodeURIComponent(name)}`;
 
   function describe(binding) {
-    const modes = SHARED().settings.modes || [];
     switch (binding.action) {
-      case 'mode': return modes.find(mode => mode.id === binding.value)?.name || 'Listening mode';
       case 'power': return binding.value === false ? 'Standby' : 'Power on';
       case 'input': return `Input · ${binding.value || '—'}`;
       case 'home_toggle': case 'home_scene': return entityName(binding.entity_id) || 'Choose a device';
@@ -157,13 +155,6 @@
   function targetEditor(binding, onChange) {
     const settings = SHARED().settings, change = () => { onChange(); };
     switch (binding.action) {
-      case 'mode': {
-        const modes = (settings.modes || []).map(mode => [mode.id, mode.name || mode.id]);
-        if (!modes.length) return h('p', {class: 'cd-muted'}, 'Add a listening mode in the Listening & KEF tab first.');
-        const select = selectOf(modes, binding.value); binding.value = select.value;
-        select.onchange = () => { binding.value = select.value; change(); };
-        return field('Mode', select);
-      }
       case 'power': {
         const select = selectOf([['true', 'Power on'], ['false', 'Standby']], String(binding.value !== false)); binding.value = select.value === 'true';
         select.onchange = () => { binding.value = select.value === 'true'; change(); };
@@ -326,7 +317,7 @@
       binding.action && binding.action !== 'none' ? alsoFields(binding) : null,
       colourPicker(binding),
       ['home_script', 'home_toggle', 'home_scene', 'home_level'].includes(binding.action) ? levelFields(binding) : null,
-      ['home_toggle', 'mode', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
+      ['home_toggle', 'home_level'].includes(binding.action) ? colourPicker(binding, 'Used instead of the normal colour while the key is on (a lit Home device or the current listening mode).', 'active_color', 'Colour when on') : null,
       imagePicker(binding));
   }
   function levelFields(binding) {

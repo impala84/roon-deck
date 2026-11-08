@@ -7,58 +7,39 @@ Elgato desktop software and the Mac are not required.
 
 ## Status and limits
 
-- Original KEF LSX: direct local TCP control on port 50001. Power, source,
-  volume, relative volume and mute are implemented, with status readback.
-  Hardware acceptance is still required. Protocol references:
-  <https://www.home-assistant.io/integrations/kef/> and
-  <https://github.com/kraih/kefctl>.
+- **KEF LSX:** controlled through **Roon** and **Home Assistant infrared** only.
+  The speaker's own network control port (50001) is not used. Roon handles
+  wake, standby, volume (0-100) and mute. A Broadlink remote in Home Assistant
+  switches the input (Wi-Fi, AUX, optical, Bluetooth) with KEF's published
+  infrared codes.
+- Roon starts and controls playback on the KEF zone as usual (play, pause,
+  previous, next).
+- Infrared has no acknowledgement: RoonDeck says an input was **sent** and never
+  claims to know which input is selected.
 - Stream Deck +: buttons, encoder turns/presses, short strip taps, custom
   artwork and state feedback are implemented using python-elgato-streamdeck.
-  Physical USB acceptance, hot unplugging and permissions must be tested on Pi.
-- Topping E50 II: **no control commands are implemented or guessed**. A mode
-  requiring a Topping input is rejected before KEF power/input/volume changes.
-  USB remains connected to the Mac; Pi audio goes over its S/PDIF HAT.
-- This release does not claim Bluetooth control during USB/S/PDIF playback.
-  BLE discovery is not proof of successful input switching or Classic/SPP
-  support. No Bluetooth audio connection is made by the worker.
+- Listening modes and the Topping E50 II controls were removed in beta.134.
 
-## KEF control paths (beta.133)
+## KEF control (beta.134)
 
-Under **Controls → Listening & KEF**, enable KEF controls and select the exact
-speaker under **KEF output in Roon**. For this installation it is **Study**, the
-LSX at `10.12.0.125`; do not select the Pi's separate Roon Bridge output.
-Roon's existing connection provides wake/convenience switching to Wi-Fi,
-standby, numeric 0–100 volume and mute. Commands wait for Roon subscription
-readback. They do not start music as a side effect of waking the speaker.
+Under **Controls -> Listening & KEF**, enable the speaker, select the KEF under
+**KEF output in Roon** (for this installation, **Study**, the LSX at
+`10.12.0.125`; not the Pi's Roon Bridge output) and set **Broadlink input
+remote** to the Home Assistant remote entity in the room (here
+`remote.wi_fi_universal_remote`, an RM4 Mini). Home Assistant must be enabled.
 
-For physical input selection when the LSX's TCP service is unavailable, set
-**Broadlink input remote** to the Home Assistant remote entity in the room.
-The verified Study transmitter is `remote.wi_fi_universal_remote` (RM4 Mini).
-The optional path sends only KEF's discrete Wi-Fi, AUX, optical and Bluetooth
-NEC codes; it requires Home Assistant and an unobstructed infrared path. It
-cannot report the selected physical input or set a confirmed starting volume.
-The UI labels commands as sent, without claiming input readback. Full
-starting-volume modes for physical sources still require direct control.
-Keep saved Topping modes intact: choosing an LSX input does not switch the DAC.
+Roon commands wait for Roon's readback before reporting success. Waking the
+speaker does not start music. The infrared path needs a clear line to the LSX.
+Volume over infrared is not implemented; add it only after its codes have been
+captured and checked.
 
-The original LSX at this installation continues to refuse TCP port 50001 even
-after a mains restart; KEF Control also fails. The speaker's live UPnP service
-advertises media, volume and mute operations but no physical input selector.
-AUX selection via the configured RM4 Mini was physically confirmed on
-9 November 2026. Captured remote signals confirm KEF's published NEC bytes
-use MSB-first transmission. References:
-<https://assets.kef.com/pdf_doc/LSX/LSX-IRcode-INT.pdf> and
+References: <https://assets.kef.com/pdf_doc/LSX/LSX-IRcode-INT.pdf> and
 <https://www.home-assistant.io/integrations/broadlink/#sending-commands>.
-
-Original-LSX GET replies have a variable fifth byte. The driver matches the
-response register and marker rather than assuming an FF trailer, accepts split
-TCP replies, recognises command rejection, and only retries refusal before any
-command bytes are sent. Writes are never replayed after an uncertain reply.
 
 ## Enable on a Pi
 
 Use web **Settings → Controls → Listening & Stream Deck +** to save the KEF
-address, maximum volume, listening modes and button/dial mappings. Both support
+Roon output, infrared remote, maximum volume and button/dial mappings. Both support
 switches are off by default. Saved controls load automatically, and the page
 shows the connection state.
 
@@ -92,19 +73,8 @@ Python major-version upgrade will require reinstalling the library.
 Alpine container checks confirm imports, HIDAPI startup and USB enumeration
 with these packages; physical USB access and reconnect still need hardware
 acceptance. Package manager and group names differ on Debian installations.
-The separate Topping diagnostic also needs the optional `bleak` dependency,
-which can be installed in a temporary diagnostic virtual environment.
 
-The example KEF address is the user's `10.12.0.125`. AUX is an **example**, not
-a confirmed cable connection. Choose the actual KEF input. Choose `coaxial` or
-`optical` for the actual HAT cable. Starting volumes and maximum volume are
-operator configurable; default maximum is 50%. Each KEF source has its own
-stored volume. Source changes can briefly restore its previous level.
-
-Modes without `topping_input` can control the KEFs alone. Do not remove that
-field just to bypass a disabled mode: it would stop configuring the DAC.
-The two supplied end-to-end modes deliberately remain unavailable until a
-Topping driver has been validated.
+Maximum volume is operator configurable (default 50%).
 
 ## Bindings and artwork
 
@@ -112,7 +82,6 @@ Eight `buttons` and four `dials` use these actions:
 
 | Action | Value / option |
 | --- | --- |
-| `mode` | Mode ID |
 | `power` | Boolean `value` |
 | `input` | `wifi`, `aux`, `optical`, `bluetooth` |
 | `volume` / `volume_delta` | Integer `value`; dials use `step` |
@@ -123,8 +92,8 @@ Eight `buttons` and four `dials` use these actions:
 | `home_level` | Allowed dimmable light/fan `entity_id`; dial `step` |
 
 Dial `press` is another binding and is also invoked by a short strip tap.
-Use buttons to select rooms through configured home devices or listening
-modes; automatic room pages are not implemented. Scene buttons can activate only
+Use buttons to select rooms through configured home devices; automatic room
+pages are not implemented. Scene buttons can activate only
 scenes explicitly allowed in Home Assistant display settings.
 Add `"image": "music.png"` to a button and place that image in
 `STATE_DIR/deck-art/music.png`. Images are resized to 120×120 and labelled;
@@ -132,39 +101,14 @@ artwork paths cannot escape that directory. The strip shows confirmed KEF
 volume/mute or home level, plus bounded command errors. Home buttons reflect
 Home Assistant state. This is not a general Elgato Marketplace plugin host.
 
-## Topping investigation
-
-Official app description confirms Bluetooth input/output switching:
-<https://play.google.com/store/apps/details?id=com.topping.home>.
-Home Web uses USB/HID and E50 II requires firmware 1.56 or newer:
-<https://www.toppingaudio.com/download/topping-home-web-web-control-center>.
-Neither confirms an independently usable public Bluetooth protocol.
-
-With Bluetooth enabled on the DAC and the Mac USB connection untouched, run:
-
-```sh
-.venv/bin/python tools/topping_probe.py --input coaxial
-.venv/bin/python tools/topping_probe.py --input coaxial --address DEVICE_ADDRESS
-```
-
-Repeat with USB selected and while audio plays. The tool only scans and lists
-GATT services/characteristics; it never writes characteristic values or pairs.
-Then use Topping Home to switch USB → S/PDIF → USB and test reconnecting when
-the app starts on each input, including with the Mac off. Capture app traffic
-on an Android test phone if needed to identify transport, service UUIDs,
-command frames and acknowledgements. Confirm direct input selection, readback,
-reconnect behaviour and standby before implementing a driver. Do not replay
-unidentified firmware/update writes.
-
 ## API
 
 `GET /api/listening/status` returns cached polled status (no hardware access
 in the request). `POST /api/listening/command` accepts JSON
-`{"action":"volume_delta","value":-2}` or `{"action":"mode","value":"pi"}`.
+`{"action":"volume_delta","value":-2}` or `{"action":"input","value":"aux"}`.
 It uses existing dashboard authentication. Forwarded loopback writes are
 rejected. Native/USB callers use loopback; trusted LAN browsers log in.
 Network errors return 502 and unsupported/disabled commands return 400.
-Mode completion is recorded only after KEF state confirms the target values.
 
 ## Verification for 1.2.0 beta
 

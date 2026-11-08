@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.134 Alpine — 9 November 2026
+
+- KEF: removed the direct speaker connection (TCP port 50001), listening modes and the Topping controls and probe tool. The LSX is now controlled only through Roon (wake, standby, volume, mute) and a Home Assistant Broadlink remote (Wi-Fi, AUX, optical and Bluetooth input codes).
+- KEF tiles, the Stream Deck and the Settings page no longer show an input the speaker cannot report; infrared input changes say they were sent. Enabling the speaker needs its Roon output; the speaker address is no longer used.
+- Saved Stream Deck buttons that used a listening mode become unused; the default Stream Deck keys are Wi-Fi, AUX, optical, power, standby and transport.
+
 ## 1.2.0-beta.133 Alpine — 9 November 2026
 
 - Add KEF speaker, power, input and volume tiles to the Home builder, with ordinary grid placement, size, colour and page options. Remove the separate panel above Home tiles.
