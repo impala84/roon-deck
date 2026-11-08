@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.117 Alpine — 8 November 2026
+
+- Updates: a brief GitHub hiccup (HTTP 500/502/503/504 or a timeout) while looking up the release is now retried a few times, the updater a little longer, instead of failing the whole update straight away.
+
 ## 1.2.0-beta.116 Alpine — 8 November 2026
 
 - Update tile: when the release check itself fails (GitHub rate limit, no connection) it now says "Couldn't check" with the reason, instead of "Up to date". A failed check is retried after about a minute rather than being remembered for 15.

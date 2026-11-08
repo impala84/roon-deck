@@ -103,7 +103,7 @@ def _rate_limit_message(headers) -> str:
     return "GitHub is limiting requests from this network (every Pi on it shares one hourly allowance)." + when + " Try again then."
 
 
-def github_json(url: str, timeout: float = 15):
+def github_json(url: str, timeout: float = 15, attempts: int = 3):
     """GET a GitHub API URL. An unchanged answer (HTTP 304) is free of the rate limit, so the last answer and
     its ETag are kept on disk and re-validated instead of fetched again."""
     try: cache = json.loads(CACHE_PATH.read_text())
@@ -111,14 +111,21 @@ def github_json(url: str, timeout: float = 15):
     entry = cache.get(url) if isinstance(cache, dict) else None
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "RoonDeck-Updater"}
     if isinstance(entry, dict) and entry.get("etag"): headers["If-None-Match"] = entry["etag"]
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as response:
-            body = json.load(response)
-            etag = response.headers.get("ETag")
-    except urllib.error.HTTPError as error:
-        if error.code == 304 and isinstance(entry, dict) and "body" in entry: return entry["body"]
-        if error.code in {403, 429}: raise RateLimited(_rate_limit_message(error.headers)) from error
-        raise
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as response:
+                body = json.load(response)
+                etag = response.headers.get("ETag")
+            break
+        except urllib.error.HTTPError as error:
+            if error.code == 304 and isinstance(entry, dict) and "body" in entry: return entry["body"]
+            if error.code in {403, 429}: raise RateLimited(_rate_limit_message(error.headers)) from error
+            if error.code in {500, 502, 503, 504} and attempt < attempts:   # GitHub briefly overloaded: a short wait and another go
+                time.sleep(2 * attempt); continue
+            raise
+        except (urllib.error.URLError, TimeoutError) as error:
+            if attempt >= attempts: raise
+            time.sleep(2 * attempt)
     if etag:
         try:
             if not isinstance(cache, dict): cache = {}

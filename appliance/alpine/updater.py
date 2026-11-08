@@ -62,7 +62,7 @@ def run(args, timeout=300, env=None):
 
 def fetch_json(url):
     # Shared with the release list: unchanged answers are re-validated for free and a rate-limited network says so.
-    return github_json(url, timeout=30)
+    return github_json(url, timeout=30, attempts=4)   # an update runs in the background, so it can afford to wait out a brief GitHub hiccup
 
 
 def wait_for_clock(timeout=45):
