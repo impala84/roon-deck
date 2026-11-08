@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.111 Alpine — 8 November 2026
+
+- Home: while updating, the Update tile's status text is limited to two lines on a small tile, so it no longer pushes past (and clips) the tile border.
+
 ## 1.2.0-beta.110 Alpine — 8 November 2026
 
 - Home: more room around the bus icon (further from the left edge, and more space before the route text).
