@@ -592,3 +592,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-big .home-icon-chip { border-radius: 44px; }
 .hs-split .hs-content { padding: 22px 34px 22px 12px; }
 .home-card.home-big .home-icon-chip, .home-big .home-icon-chip { min-width: 88px; min-height: 88px; border-radius: 44px; }
+.hs-fade.hs-fade-side { background-image: linear-gradient(to right, rgba(19,28,26,0) 0%, rgba(19,28,26,.12) 28%, rgba(19,28,26,.9) 50%, #131c1a 60%); }
+.theme-roon .hs-fade.hs-fade-side { background-image: linear-gradient(to right, rgba(35,34,40,0) 0%, rgba(35,34,40,.12) 28%, rgba(35,34,40,.9) 50%, #232228 60%); }
+.hs-volbig { font-size: 120px; }
+.hs-volstep { min-width: 76px; min-height: 76px; border-radius: 38px; font-size: 42px; }

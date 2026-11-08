@@ -59,7 +59,7 @@ def validate_layout(data):
         if tile.get("half") is True: out["half"] = True   # half a column wide (dashboard only)
         if tile.get("sub") == 1 and not isinstance(tile.get("sub"), bool): out["sub"] = 1   # the right-hand half of its column
         # Now Playing options: artwork as the background (default), a thumbnail or none; a seekable scrubber; the volume row and heading can be hidden.
-        if tile.get("art") in ("thumb", "off"): out["art"] = tile["art"]
+        if tile.get("art") in ("thumb", "off", "fade"): out["art"] = tile["art"]
         if tile.get("scrubber") is True: out["scrubber"] = True
         if tile.get("volume") is False: out["volume"] = False
         if tile.get("heading") is False: out["heading"] = False

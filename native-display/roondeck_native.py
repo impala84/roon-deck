@@ -842,7 +842,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         elif (not asleep and previous_volume is not None and volume_signature != previous_volume
                 and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")
                 and not self.settings_open
-                and time.monotonic() - getattr(self, "last_touch", 0.0) > 15 and time.monotonic() - self.browse_last_interaction > 15):
+                and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20):
             # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial). Show the Roon
             # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
             target = "http://127.0.0.1:8766/"

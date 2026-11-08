@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.131 Alpine — 8 November 2026
+
+- Fixed: changing the volume on the touchscreen itself (the Home volume tile or its slider) no longer flicks the screen to Now Playing. The jump to the volume page is only for volume changes made by a remote or dial, and now waits 20 seconds after any touch or on-screen volume change.
+- Wide Now Playing tile: new "Fade" artwork option (Home builder > tile > Artwork). The artwork runs full bleed on the left, scaled to fill, and fades into the track details on the right. The default stays the framed square.
+- The Home volume tile's number and − / + buttons are much larger.
+
 ## 1.2.0-beta.130 Alpine — 8 November 2026
 
 - Wide Now Playing tile: the artwork has the same inset on the top, left and bottom, the track details line up with the sliders in the tiles below, and the previous/next buttons are larger.

@@ -420,7 +420,7 @@
   function closeGrid() { if (snapshot) { layout = snapshot; snapshot = null; return true; } return false; }
   // A Now Playing tile much wider than it is tall puts the artwork on its left half and the track details, left-aligned, on its right.
   function markWide() {
-    document.querySelectorAll('.hd-d-player').forEach(node => { const box = node.getBoundingClientRect(); node.classList.toggle('split', !node.classList.contains('art-thumb') && !node.classList.contains('art-off') && box.height > 40 && box.width >= box.height * 1.5); });
+    document.querySelectorAll('.hd-d-player').forEach(node => { const box = node.getBoundingClientRect(); const wide = !node.classList.contains('art-thumb') && !node.classList.contains('art-off') && box.height > 40 && box.width >= box.height * 1.5; node.classList.toggle('split', wide && !node.classList.contains('art-fade')); node.classList.toggle('fadewide', wide && node.classList.contains('art-fade')); });
   }
   function preview() {
     LIMIT = pageLimit();
@@ -621,7 +621,7 @@
       const drop = id in CARDS ? null : h('button', {type: 'button', class: 'secondary'}, 'Remove tile');
       if (drop) drop.onclick = () => removeTile(id);
       const check = (text, checked, patch) => { const box = h('input', {type: 'checkbox'}); box.checked = checked; box.onchange = () => patchTile(id, patch(box.checked)); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
-      const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
+      const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['fade', 'Fade'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
         const button = h('button', {type: 'button', 'aria-pressed': String((tile.art || 'background') === value)}, text); button.onclick = () => patchTile(id, {art: value === 'background' ? '' : value}); return button;
       }));
       const alignment = h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Text alignment'}, [['center', 'Centred'], ['left', 'Left']].map(([value, text]) => {

@@ -718,6 +718,7 @@ class NowPlayingPageMixin:
 
     def change_volume(self, scale):
         if self.volume_updating or not self.state: return
+        self.volume_local_at = time.monotonic()   # the screen itself changed it: the volume page must not be shown over what is being used
         amplifier = self.state.get("amplifier") or {}
         if amplifier.get("connected"):
             threading.Thread(target=post_json, args=(ROON + "/api/bluos/volume", {"value": round(scale.get_value())}), daemon=True).start(); return
