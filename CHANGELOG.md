@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.108 Alpine — 8 November 2026
+
+- Home: the bus icon is centred in its circle again (it had slipped to the left since beta.95).
+
 ## 1.2.0-beta.107 Alpine — 8 November 2026
 
 - Home: Now Playing text alignment is an option in the builder (Centred by default, or Left). Beside a thumbnail the text is always left-aligned.

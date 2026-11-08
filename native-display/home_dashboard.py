@@ -100,7 +100,7 @@ class HomeDashboardMixin:
         tile = types.SimpleNamespace(key=key, choice=None, default=None)
         bus = Gtk.Box(spacing=14); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); tile.box = bus
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
-        icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(False); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip)
+        icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip)   # the glyph expands inside the chip so it is centred in the circle
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
