@@ -561,3 +561,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-volume-row { margin: 0; }
 
 .hs-minutes.hs-minutes-due { font-size: 56px; }
+
+/* No theme highlight, focus ring or edge line on the two Now Playing sliders. */
+.home-card .hs-scrub:focus trough, .home-card .hs-volume:focus trough, .home-card .hs-scrub:focus-visible trough, .home-card .hs-volume:focus-visible trough { outline: none; box-shadow: none; }
+.home-card .hs-scrub trough, .home-card .hs-volume trough, .home-card .hs-scrub highlight, .home-card .hs-volume highlight, .home-card .hs-scrub slider, .home-card .hs-volume slider { background-image: none; border-image: none; border-style: none; outline-style: none; }
+.home-card .hs-scrub trough highlight, .home-card .hs-volume trough highlight { margin: 0; padding: 0; }

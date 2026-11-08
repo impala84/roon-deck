@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.114 Alpine — 8 November 2026
+
+- Home: removed the blue outline from the Now Playing scrubber and volume slider (no focus ring, no theme edge line).
+
 ## 1.2.0-beta.113 Alpine — 8 November 2026
 
 - Home: "Due" on a bus tile is set smaller than the minutes number, so it fits inside the tile instead of pushing past its edge.

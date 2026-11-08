@@ -61,7 +61,8 @@ class HomeDashboardMixin:
         volume = Gtk.Box(spacing=14); volume.add_css_class("hs-volume-row")
         self.hs_volume_label = self.label("VOL", "hs-volume-label")   # kept for the tests, no longer shown: the slider needs no caption
         self.hs_volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.hs_volume.add_css_class("home-slider"); self.hs_volume.add_css_class("hs-volume")
-        self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
+        self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.set_focusable(False); self.hs_scrub.set_focusable(False);   # touch only: no keyboard focus ring around the sliders
+        self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
         self.hs_volume_row = volume; content.append(volume)
         player.add_overlay(content)
         self.bus_tiles = {}; self.bus_defaults = {}; self.hs_bus_services = []; self.hs_bus = self.bus_tile("roondeck.bus").box
