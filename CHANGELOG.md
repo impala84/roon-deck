@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.87 Alpine — 8 November 2026
+
+- Home: "Home Assistant offline" no longer takes a line on the dashboard and pushes the tiles down; the layout stays the same whether Home Assistant is reachable or not.
+- Home: the bus tile now has the same bright border and tinted fill as the other tiles, in the colour of the route it shows (the same hues as the Bus Times page), so it changes colour as you tap through the routes.
+- Bus settings: new "Route colour strength" (0–100) under Services > Bus sets how strongly the route colour tints the Bus Times rows and the Home bus tile. The builder no longer overrides the bus tile colour; choose route colours and strength in Bus settings.
+- Builder: the tile remove button is now a round 24px × button sitting on the tile's top-right corner.
+
 ## 1.2.0-beta.86 Alpine — 8 November 2026
 
 - Home: the bus tile takes the colour of the route it is showing, the same colour that route has on the Bus Times page, so tapping through the routes changes the tile's colour too. A colour chosen for the tile in the builder still wins.

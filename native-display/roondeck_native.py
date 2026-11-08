@@ -733,7 +733,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 self.discovery_signature = None
                 self.render_discover(self.discovery_request, self.discovery_data)
             self.apply_theme(config.get("display_theme"))
-            self.apply_home_colors(config)
+            self.apply_home_colors(config); self.apply_route_tint(config)
             for value, button in getattr(self, "touch_background_buttons", {}).items():
                 (button.add_css_class if value == config.get("display_background", "current") else button.remove_css_class)("active")
             for button in self.bus_nav_buttons: button.set_visible(config.get("bus_enabled", True))

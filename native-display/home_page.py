@@ -98,7 +98,7 @@ class HomePageMixin:
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
-        self.home_status.set_visible(bool(self.home_status.get_text()))
+        self.home_status.set_visible(bool(self.home_status.get_text()) and not dashboard)   # on the dashboard a message line would push the tiles down
         self.home_grid.set_margin_top((0 if getattr(self, "viewport_width", 800) >= 1000 else PORTRAIT_CONTENT_GAP) if portrait else 0)
         if dashboard:
             self.render_home_dashboard(home, entities)

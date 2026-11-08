@@ -481,6 +481,7 @@ def write_config(path: Path, config: Config) -> None:
         f"bus_stop_name = {json.dumps(config.bus_stop_name)}",
         f"services = [{services}]",
         f"service_colours = {json.dumps(config.service_colours)}",
+        f"route_tint = {config.route_tint}",
         f"walking_minutes = {config.walking_minutes}",
         f"poll_seconds = {config.poll_seconds}",
         f"stale_after_seconds = {config.stale_after_seconds}",
@@ -1223,7 +1224,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 config = state.config
                 body = json.dumps({
                     "bus_stop_code": config.bus_stop_code, "bus_stop_name": config.bus_stop_name,
-                    "services": list(config.services), "service_colours": config.service_colours, "walking_minutes": config.walking_minutes,
+                    "services": list(config.services), "service_colours": config.service_colours, "route_tint": config.route_tint, "walking_minutes": config.walking_minutes,
                     "poll_seconds": config.poll_seconds, "morning_start": config.morning_start,
                     "morning_end": config.morning_end, "scheduled_wake_enabled": config.scheduled_wake_enabled,
                     "weekend_wake_enabled": config.weekend_wake_enabled, "weekend_wake_time": config.weekend_wake_time,
@@ -1936,6 +1937,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     bus_stop_code=str(data.get("bus_stop_code", current.bus_stop_code)).strip(),
                     bus_stop_name=str(data.get("bus_stop_name", current.bus_stop_name)).strip(),
                     services=values("services", current.services),
+                    route_tint=int(data.get("route_tint", current.route_tint)),
                     service_colours=", ".join(f"{route}={name}" for route, name in parse_route_colours(str(data.get("service_colours", current.service_colours))).items()),
                     walking_minutes=int(data.get("walking_minutes", current.walking_minutes)), poll_seconds=int(data.get("poll_seconds", current.poll_seconds)),
                     stale_after_seconds=current.stale_after_seconds,
@@ -2018,6 +2020,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raise ValueError("Roon display name must be 16 characters or fewer")
                 if len(candidate.roon_now_playing_name) > 16 or len(candidate.roon_queue_name) > 16:
                     raise ValueError("Roon view names must be 16 characters or fewer")
+                if not 0 <= candidate.route_tint <= 100:
+                    raise ValueError("Route colour strength must be between 0 and 100")
                 if candidate.walking_minutes < 0 or candidate.walking_minutes > 60:
                     raise ValueError("Walking time must be between 0 and 60 minutes")
                 if not (5 <= candidate.poll_seconds <= 300):

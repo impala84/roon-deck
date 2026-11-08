@@ -2,10 +2,33 @@
 from __future__ import annotations
 
 from native_common import PORTRAIT_CONTENT_GAP, elastic_vertical_scroll
-from gi.repository import Gtk, Pango
+from gi.repository import Gdk, Gtk, Pango
+
+
+def mix_colour(front, back, amount):
+    top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
+    return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
+
+
+ROUTE_ACCENTS = {"blue": "#55a9d7", "green": "#61c68f", "violet": "#a998e0", "amber": "#d4a85f", "rose": "#e07a95", "teal": "#4fc3c0"}
 
 
 class BusPageMixin:
+    def apply_route_tint(self, config):
+        """One setting (Bus settings > Route colour strength) fills the Bus Times rows and the Home bus tile with each route's colour."""
+        try: tint = max(0, min(100, int(config.get("route_tint", 34)))) / 100
+        except (TypeError, ValueError): tint = .34
+        if getattr(self, "route_tint_applied", None) == tint: return
+        self.route_tint_applied = tint
+        provider = getattr(self, "route_tint_provider", None)
+        if provider is None:
+            provider = self.route_tint_provider = Gtk.CssProvider(); Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        rules = []
+        for name, accent in ROUTE_ACCENTS.items():
+            rules.append(f".service.service-{name} {{ background: {mix_colour(accent, '#0f1114', tint * .45)}; }}")
+            rules.append(f".hs-bus.hs-bus-{name} {{ background: {mix_colour(accent, '#232228', tint)}; border-color: {accent}; }}")
+        provider.load_from_data("\n".join(rules))
+
     def build_bus(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("bus-page")
         self.bus_clock = self.label("--:--", "clock", 1); self.stop = self.label("Connecting…", "stop"); self.stop_code = self.label("", "stop-code")

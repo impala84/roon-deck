@@ -538,9 +538,5 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 
 .hs-net-value { font-size: 25px; }
 
-.hs-bus.hs-bus-blue { background: #1d3e52; border-color: #3f86ad; }
-.hs-bus.hs-bus-green { background: #1c4430; border-color: #4aa874; }
-.hs-bus.hs-bus-violet { background: #3b3158; border-color: #8a78c4; }
-.hs-bus.hs-bus-amber { background: #4a3a1c; border-color: #c49a4a; }
-.hs-bus.hs-bus-rose { background: #4d2431; border-color: #c4647d; }
-.hs-bus.hs-bus-teal { background: #1b4543; border-color: #3fa9a6; }
+/* Route colours and their strength come from Bus settings (apply_route_tint). */
+.hs-bus { border-color: #a998e0; }

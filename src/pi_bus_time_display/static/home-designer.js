@@ -531,7 +531,7 @@
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
-        field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
+        B(id) === 'roondeck.bus' ? h('p', {class: 'cd-muted'}, 'The bus tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.') : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);
