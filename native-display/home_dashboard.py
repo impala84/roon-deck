@@ -30,7 +30,7 @@ class HomeDashboardMixin:
         self.hs_art = Gtk.Picture(); self.hs_art.set_content_fit(Gtk.ContentFit.COVER); self.hs_art.set_can_shrink(True); self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL)
         player.set_child(self.hs_art)
         fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); content.add_css_class("hs-content")
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content")
         self.hs_zone = self.label("", "hs-zone"); content.append(self.hs_zone)
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
         self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END)
@@ -213,16 +213,11 @@ class HomeDashboardMixin:
             switch = Gtk.Box(); switch.add_css_class("home-switch"); switch.set_valign(Gtk.Align.CENTER)
             if on: switch.add_css_class("on")
             knob = Gtk.Box(); knob.add_css_class("home-switch-knob"); knob.set_hexpand(True); knob.set_halign(Gtk.Align.END if on else Gtk.Align.START); switch.append(knob)
-        if compact:
-            # Three columns leave a narrow card: icon and toggle on top, name and state under them.
-            filler = Gtk.Box(); filler.set_hexpand(True); top.append(filler)
-            if switch is not None: top.append(switch)
-            inner.set_spacing(round(16 * scale))
-        else:
-            top.append(text)
-            if switch is not None: top.append(switch)
+        # One row for icon, name and toggle keeps every card short enough for three rows to fit the screen.
+        top.append(text)
+        if switch is not None: top.append(switch)
+        if compact: inner.set_spacing(round(14 * scale)); top.set_spacing(round(16 * scale))
         inner.append(top)
-        if compact: inner.append(text)
         if has_level:
             level = entity.get("percentage")
             if level is None and entity.get("brightness") is not None: level = round(float(entity["brightness"]) * 100 / 255)
