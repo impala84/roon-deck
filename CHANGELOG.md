@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.112 Alpine — 8 November 2026
+
+- Home: on the Now Playing tile the volume slider matches the track scrubber (same width, thickness, handle and purple fill, no outline), and the "VOL" caption is gone.
+
 ## 1.2.0-beta.111 Alpine — 8 November 2026
 
 - Home: while updating, the Update tile's status text is limited to two lines on a small tile, so it no longer pushes past (and clips) the tile border.

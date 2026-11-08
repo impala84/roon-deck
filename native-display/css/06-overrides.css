@@ -551,3 +551,11 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-volstep { min-width: 52px; min-height: 52px; padding: 0; border-radius: 26px; font-size: 30px; font-weight: 600; color: #f4f0e6; background: rgba(255,255,255,.12); border: 0; box-shadow: none; }
 .hs-volstep:active { background: rgba(255,255,255,.26); }
 .hs-volstep:disabled { opacity: .4; }
+
+/* The track scrubber and the volume slider on the Now Playing tile look the same: one thickness, no outline, the same round handle. */
+.home-card .hs-scrub, .home-card .hs-volume { min-height: 28px; outline: none; box-shadow: none; border: 0; }
+.home-card .hs-scrub trough, .home-card .hs-volume trough { min-height: 8px; border: 0; outline: none; box-shadow: none; border-radius: 4px; background: rgba(255,255,255,.22); }
+.home-card .hs-scrub highlight, .home-card .hs-volume highlight { min-height: 8px; border: 0; outline: none; box-shadow: none; border-radius: 4px; background: #6ed9ae; }
+.theme-roon .home-card .hs-scrub highlight, .theme-roon .home-card .hs-volume highlight { background: #9868F9; }
+.home-card .hs-scrub slider, .home-card .hs-volume slider { min-width: 22px; min-height: 22px; margin: -8px 0; border: 0; outline: none; box-shadow: none; border-radius: 11px; background: #f6f3ee; }
+.hs-volume-row { margin: 0; }

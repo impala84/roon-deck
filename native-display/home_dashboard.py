@@ -59,7 +59,7 @@ class HomeDashboardMixin:
         for button in (self.hs_prev, self.hs_play, self.hs_next): transport.append(button)
         content.append(transport); self.hs_transport = transport
         volume = Gtk.Box(spacing=14); volume.add_css_class("hs-volume-row")
-        self.hs_volume_label = self.label("VOL", "hs-volume-label"); volume.append(self.hs_volume_label)
+        self.hs_volume_label = self.label("VOL", "hs-volume-label")   # kept for the tests, no longer shown: the slider needs no caption
         self.hs_volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.hs_volume.add_css_class("home-slider"); self.hs_volume.add_css_class("hs-volume")
         self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
         self.hs_volume_row = volume; content.append(volume)
