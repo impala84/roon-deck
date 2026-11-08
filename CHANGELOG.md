@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.125 Alpine — 8 November 2026
+
+- Settings: Save changes could do nothing at all (no message) when any other field on the page, even on a tab you weren't looking at, held a value the browser considered invalid. Only the fields of the sections you changed are checked now, with a visible message.
+
 ## 1.2.0-beta.124 Alpine — 8 November 2026
 
 - Home builder: the portrait preview now scales text, icons and spacing to match the real 7-inch and 10-inch screens, so it no longer looks tiny.
