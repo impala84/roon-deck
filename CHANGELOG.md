@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.90 Alpine — 8 November 2026
+
+- Home: the bus tile's bus icon and route number now take the route's colour, the same highlight colour as on the Bus Times page.
+
 ## 1.2.0-beta.89 Alpine — 8 November 2026
 
 - Home: Now Playing, Network, CPU and Memory tiles that have a colour chosen in the builder now get the same bright border as the other coloured tiles (the builder preview already showed it). Tiles left on the standard colour keep the standard look.
