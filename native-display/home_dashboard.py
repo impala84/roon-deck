@@ -303,14 +303,19 @@ class HomeDashboardMixin:
         split = art == "background" and not self.hs_short and card_h >= 200 and card_w >= card_h * 1.5   # a wide tile: artwork on the left half, the details on the right
         (self.hs_player.add_css_class if split else self.hs_player.remove_css_class)("hs-split")   # a wide tile is laid out like the 7-inch Now Playing screen: big title, big controls
         if split: self.hs_content.set_spacing(20)
-        self.hs_art.set_halign(Gtk.Align.START if split else Gtk.Align.FILL); self.hs_art.set_size_request(card_w // 2 if split else -1, -1)
+        if split:   # a framed square of artwork centred in the left half, with room round it, not full bleed
+            pad = 24; side = max(120, min(card_w // 2, card_h) - 2 * pad)
+            self.hs_art.set_halign(Gtk.Align.START); self.hs_art.set_valign(Gtk.Align.CENTER); self.hs_art.set_size_request(side, side); self.hs_art.set_margin_start((card_w // 2 - side) // 2)
+        else:
+            self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1); self.hs_art.set_margin_start(0)
+        self.hs_art.set_overflow(Gtk.Overflow.HIDDEN); (self.hs_art.add_css_class if split else self.hs_art.remove_css_class)("hs-art-framed")
         self.hs_content.set_margin_start(card_w // 2 if split else 0); self.hs_fade.set_visible(art == "background" and not split)
         reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs
         side = round(min(card_w * .46, card_h - reserved) if card_w and card_h else 150 * scale)
         self.hs_thumb.set_pixel_size(max(96, side))
         self.hs_spacer.set_vexpand(not (thumb_mode or split)); self.hs_head.set_vexpand(thumb_mode or split)   # with a thumbnail the track sits up with it, not pushed to the bottom
         self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode or split else Gtk.Align.END)
-        left = thumb_mode or split or options.get("align") == "left"
+        left = thumb_mode or options.get("align") == "left"
         for words in (self.hs_zone, self.hs_title, self.hs_artist):   # centred by default; left beside a thumbnail or when chosen
             words.set_xalign(0.0 if left else 0.5); words.set_justify(Gtk.Justification.LEFT if left else Gtk.Justification.CENTER)
         if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)

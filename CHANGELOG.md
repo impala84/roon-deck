@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.127 Alpine — 8 November 2026
+
+- Wide Now Playing tile: the artwork is a rounded square with padding round it, centred in the left half, instead of full bleed; the track details on the right are centred. The builder preview matches.
+
 ## 1.2.0-beta.126 Alpine — 8 November 2026
 
 - A wide Now Playing tile on Home now follows the 7-inch Now Playing screen: a large title (up to three lines) and artist, a bigger zone label, a thicker progress bar, large transport controls with a big play button, and more room around everything.

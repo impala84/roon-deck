@@ -267,6 +267,6 @@
 .hd-preview>.hd-columns .hd-seg{width:auto;display:flex;gap:6px}.hd-preview>.hd-columns .hd-seg button{white-space:nowrap;flex:0 0 auto}
 .hd-d-player:not(.art-thumb):not(.align-left) .hd-d-words,.hd-d-player:not(.art-thumb):not(.align-left) .hd-d-zone{text-align:center}
 /* A wide Now Playing tile: artwork on the left half, the track details left-aligned on the right half. */
-.hd-d-player.split{background:linear-gradient(90deg,#8a4a35 0%,#5a3a40 50%,#232228 50%,#232228 100%);padding-left:calc(50% + calc(1.7cqw*var(--k,1)))}
-.hd-d-player.split .hd-d-words,.hd-d-player.split .hd-d-zone{text-align:left}
+.hd-d-player.split{background:#232228;padding-left:calc(50% + calc(1.7cqw*var(--k,1)))}.hd-d-player.split::before{content:"";position:absolute;top:calc(1.7cqw*var(--k,1));bottom:calc(1.7cqw*var(--k,1));left:25%;aspect-ratio:1;transform:translateX(-50%);border-radius:calc(1.2cqw*var(--k,1));background:linear-gradient(135deg,#a0553a,#5a3a40)}
+.hd-d-player.split .hd-d-words,.hd-d-player.split .hd-d-zone{text-align:center}.hd-d-player.split .hd-d-headrow{justify-content:center}
 .hd-d-player.split .hd-d-spacer{display:none}.hd-d-player.split .hd-d-headrow{flex:1;align-items:center}
