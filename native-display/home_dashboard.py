@@ -22,8 +22,9 @@ SPARK_GREEN, SPARK_BLUE = (0.43, 0.85, 0.68), (0.42, 0.66, 1.0)
 
 class HomeDashboardMixin:
     def home_dashboard_active(self):
-        return (not self.window.has_css_class("portrait") and not self.window.has_css_class("original-landscape")
-                and getattr(self, "viewport_width", 800) >= 1000)
+        if self.window.has_css_class("original-landscape"): return False
+        if self.window.has_css_class("portrait"): return getattr(self, "viewport_width", 800) >= 700 and getattr(self, "viewport_height", 480) >= 1200   # a tall 7/10-inch panel: two columns, more rows
+        return getattr(self, "viewport_width", 800) >= 1000
 
     def home_scale(self):
         return max(1.0, getattr(self, "viewport_width", 1280) / 1280)
@@ -67,10 +68,12 @@ class HomeDashboardMixin:
         self.hs_minutes = self.label("", "hs-minutes"); self.hs_unit = self.label("min", "hs-unit"); self.hs_unit.set_valign(Gtk.Align.END); arrival.append(self.hs_minutes); arrival.append(self.hs_unit); bus.append(arrival)
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU")
         self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK")
-        self.stat_cpu, self.stat_down, self.stat_up = [], [], []
+        self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY")
+        self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
         self.hs_cpu_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_cpu, SPARK_GREEN)], 100.0))
-        self.hs_net_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_up, SPARK_GREEN), (self.stat_down, SPARK_BLUE)], None))
-        self.stat_timer = None; self.stat_prev_cpu = None; self.stat_prev_net = None; self.hs_live_shown = set()
+        self.hs_mem_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_mem, SPARK_BLUE)], 100.0))
+        self.hs_net_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [pair for pair, shown in (((self.stat_up, SPARK_GREEN), self.net_show[1]), ((self.stat_down, SPARK_BLUE), self.net_show[0])) if shown], None))
+        self.net_show = (True, True); self.stat_timer = None; self.stat_prev_cpu = None; self.stat_prev_net = None; self.hs_live_shown = set()
         return side
 
     # ---- live tiles: CPU and network, read straight from the Pi every couple of seconds ----
@@ -116,14 +119,25 @@ class HomeDashboardMixin:
                 self.stat_down = (self.stat_down + [max(0, rx - self.stat_prev_net[0]) * 8 / seconds])[-SAMPLES:]; self.stat_up = (self.stat_up + [max(0, tx - self.stat_prev_net[1]) * 8 / seconds])[-SAMPLES:]
             self.stat_prev_net = (rx, tx, GLib.get_monotonic_time())
         except (OSError, ValueError, IndexError): pass
+        try:
+            info = {line.split(":")[0]: int(line.split()[1]) for line in Path("/proc/meminfo").read_text().splitlines() if len(line.split()) > 1}
+            total_kb = info["MemTotal"]; used_kb = total_kb - info.get("MemAvailable", info.get("MemFree", 0))
+            self.stat_mem = (self.stat_mem + [100.0 * used_kb / total_kb])[-SAMPLES:]; self.mem_used_total = (used_kb, total_kb)
+        except (OSError, ValueError, KeyError, ZeroDivisionError): pass
         def rate(bits): return f"{bits / 1e6:.1f} Mbit/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kbit/s"
         if "roondeck.cpu" in self.hs_live_shown:
             self.hs_cpu_value.set_text(f"{self.stat_cpu[-1]:.0f}%" if self.stat_cpu else "—")
             try: temperature = f"{int(Path('/sys/class/thermal/thermal_zone0/temp').read_text()) / 1000:.0f} °C · "
             except (OSError, ValueError): temperature = ""
             self.hs_cpu_detail.set_text(f"{temperature}load {os.getloadavg()[0]:.1f}"); self.hs_cpu_area.queue_draw()
+        if "roondeck.memory" in self.hs_live_shown:
+            used, total = getattr(self, "mem_used_total", (0, 0))
+            self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_detail.set_text(f"{used / 1048576:.1f} of {total / 1048576:.1f} GB" if total else ""); self.hs_mem_area.queue_draw()
         if "roondeck.network" in self.hs_live_shown:
-            self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if self.stat_up else ""); self.hs_net_area.queue_draw()
+            show_down, show_up = self.net_show
+            if show_down: self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
+            else: self.hs_net_value.set_text(rate(self.stat_up[-1]) if self.stat_up else "—"); self.hs_net_detail.set_text("upload")
+            self.hs_net_area.queue_draw()
         return True
 
     def render_home_side(self, roon, status):
@@ -144,7 +158,7 @@ class HomeDashboardMixin:
         self.hs_progress.set_visible(not scrubber); self.hs_scrub.set_visible(scrubber)
         if scrubber:
             self.seek_updating = True; self.hs_scrub.set_range(0, max(1.0, upper)); self.hs_scrub.set_value(adjustment.get_value()); self.hs_scrub.set_sensitive(self.progress.get_sensitive()); self.seek_updating = False
-        current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round(40 * scale)
+        current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round(46 * scale)
         shown = self.hs_play.get_child()
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
@@ -164,7 +178,8 @@ class HomeDashboardMixin:
 
     # ---- right: the grid of device cards ----
     def render_home_dashboard(self, home, entities):
-        columns = home.get("columns") if home.get("columns") in (2, 3) else 3   # 3 unless the owner chose 2
+        portrait = self.window.has_css_class("portrait")
+        columns = 2 if portrait else home.get("columns") if home.get("columns") in (2, 3) else 3   # portrait is always two columns; landscape 3 unless the owner chose 2
         cols = columns * 2                                                      # the grid is counted in half columns
         scale = self.home_scale()
         self.home_grid.set_row_spacing(GAP); self.home_grid.set_column_spacing(GAP); self.home_grid.set_hexpand(True)
@@ -174,7 +189,11 @@ class HomeDashboardMixin:
         untouched = not any(isinstance((cards.get(key) or {}).get("col"), int) for key in ("roondeck.player", "roondeck.bus"))
         wanted = [("roondeck.player", self.hs_player, 2, (0, 0)), ("roondeck.bus", self.hs_bus, 1, (0, 2))]
         if (cards.get("roondeck.cpu") or {}).get("show"): wanted.append(("roondeck.cpu", self.hs_cpu, 1, None))
-        if (cards.get("roondeck.network") or {}).get("show"): wanted.append(("roondeck.network", self.hs_net, 1, None))
+        if (cards.get("roondeck.memory") or {}).get("show"): wanted.append(("roondeck.memory", self.hs_mem, 1, None))
+        net = cards.get("roondeck.network") or {}
+        self.net_show = (net.get("download") is not False, net.get("upload") is not False)   # either direction can be switched off, never both
+        if self.net_show == (False, False): self.net_show = (True, False)
+        if net.get("show"): wanted.append(("roondeck.network", self.hs_net, 1, None))
         for key, widget, rows, home_cell in wanted:
             tile = dict(cards.get(key) or {}); tile.setdefault("rows", rows)
             if home_cell and untouched and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
@@ -184,7 +203,7 @@ class HomeDashboardMixin:
         def mix(front, back, amount):
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
             return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
-        self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network")}
+        self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network", "roondeck.memory")}
         rules = []
         for entity in virtual:                     # each card can have its own colour; without one it keeps the standard card look
             name = "hs-custom-" + entity["entity_id"].replace(".", "-"); colour = entity["tile"].get("color")
@@ -217,7 +236,7 @@ class HomeDashboardMixin:
         for number, entity in enumerate(entities):
             if number in placed: continue
             width, height = size_of(entity); column, row = free_slot(width, height, 1 if is_half(entity) else 2); placed[number] = (column, row); taken |= spots(column, row, width, height)
-        grid_rows = max(max((row + size_of(entities[number])[1] for number, (_, row) in placed.items()), default=1), 3)
+        grid_rows = max(max((row + size_of(entities[number])[1] for number, (_, row) in placed.items()), default=1), 6 if portrait else 3)
         for column in range(cols):
             for row in range(grid_rows):
                 if (column, row) not in taken:
@@ -291,12 +310,12 @@ class HomeDashboardMixin:
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)
         name.set_max_width_chars(1)   # let the card narrow the name instead of the name widening the card
-        if compact: name.set_wrap(True); name.set_lines(2); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        name.set_wrap(False); name.set_lines(1)   # one line, cut with an ellipsis: a long name must never make its tile (and so the whole grid) taller
         text.append(name); text.append(self.label(self.home_detail(entity, on), "home-state", 0))
         has_level = bool(entity.get("supports_level"))
         switch = None
         if not has_level:
-            switch = Gtk.Box(); switch.add_css_class("home-switch"); switch.set_valign(Gtk.Align.CENTER)
+            switch = Gtk.Box(); switch.add_css_class("home-switch"); switch.set_valign(Gtk.Align.CENTER); switch.set_halign(Gtk.Align.END); switch.set_hexpand(False)
             if on: switch.add_css_class("on")
             knob = Gtk.Box(); knob.add_css_class("home-switch-knob"); knob.set_hexpand(True); knob.set_halign(Gtk.Align.END if on else Gtk.Align.START); switch.append(knob)
         if half:

@@ -10,10 +10,10 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload"}
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
-CPU, NETWORK = "roondeck.cpu", "roondeck.network"   # live tiles the owner can add
+CPU, NETWORK, MEMORY = "roondeck.cpu", "roondeck.network", "roondeck.memory"   # live tiles the owner can add
 
 
 def validate_layout(data):
@@ -47,6 +47,8 @@ def validate_layout(data):
         if tile.get("scrubber") is True: out["scrubber"] = True
         if tile.get("volume") is False: out["volume"] = False
         if tile.get("heading") is False: out["heading"] = False
+        for name in ("download", "upload"):   # the network tile can show either direction, or both
+            if tile.get(name) is False: out[name] = False
         if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
         if tile.get("also"):
             also = tile["also"]
@@ -94,7 +96,7 @@ def with_layout(home, layout):
     tiles = (layout or {}).get("tiles", {})
     if not isinstance(home, dict): return home
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
-    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS, CPU, NETWORK) if key in tiles}}
+    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS, CPU, NETWORK, MEMORY) if key in tiles}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     return out
 

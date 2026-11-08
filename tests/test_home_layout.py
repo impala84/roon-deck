@@ -129,3 +129,11 @@ class CardOptionTests(unittest.TestCase):
         for key, value in tile.items(): self.assertEqual(layout["tiles"]["roondeck.player"][key], value)
         defaults = validate_layout({"tiles": {"roondeck.player": {"art": "background", "scrubber": False, "volume": True, "heading": True}}})
         self.assertNotIn("art", defaults["tiles"].get("roondeck.player", {}))
+
+    def test_network_directions(self):
+        layout = validate_layout({"tiles": {"roondeck.network": {"show": True, "upload": False}}})
+        self.assertEqual(layout["tiles"]["roondeck.network"], {"show": True, "upload": False})
+        self.assertNotIn("download", validate_layout({"tiles": {"roondeck.network": {"show": True, "download": True}}})["tiles"]["roondeck.network"])
+
+    def test_memory_tile_is_kept(self):
+        self.assertEqual(validate_layout({"tiles": {"roondeck.memory": {"show": True}}})["tiles"]["roondeck.memory"], {"show": True})

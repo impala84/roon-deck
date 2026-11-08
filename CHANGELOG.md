@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0-beta.73 Alpine — 8 November 2026
+
+- Home builder: the page heading (Home Controls by default) can now be edited right beside the Show Home on the touchscreen switch, instead of inside the Setup tab.
+- Home builder: Add devices is now Add tiles, with a RoonDeck / Home Assistant switch. RoonDeck comes first and lists Now Playing, Bus times, CPU and Network with an Add button for each, so the live tiles are no longer hidden at the bottom of the Home Assistant list. The switch buttons are smaller.
+- Home: the network tile can show download, upload or both. Choose in the tile's options in the builder; one direction always stays on, and the graph follows.
+- Home: a Memory tile shows how much RAM is in use, with a live graph (Add tiles > RoonDeck > Memory).
+- Home: the dashboard and its builder now work on tall 7/10-inch Touch Display 2 panels held in portrait: two columns and more rows, sized from the screen.
+- Home: on/off switches on cards are shorter and fixed in size, device names always stay on one line (cut with an ellipsis), so a long name can no longer make a tile taller and push the bottom menu off the screen. Card icons are a little larger.
+
 ## 1.2.0-beta.72 Alpine — 8 November 2026
 
 - Home: Now Playing options. In the builder, select the Now Playing tile to change its title (or hide it), show the artwork as the background, a thumbnail beside the track or not at all, add a drag-to-seek track scrubber, and hide the volume slider.

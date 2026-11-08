@@ -499,8 +499,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-card .home-slider slider, .hs-volume slider { min-width: 8px; min-height: 28px; margin: -6px 0; border-radius: 4px; background: #f6f3ee; }
 .hs-volume highlight { background: #d9d6e2; }
 .home-card .home-level { min-width: 0; min-height: 28px; }
-.home-switch { min-width: 64px; min-height: 36px; border-radius: 18px; background: rgba(255,255,255,.2); }
-.home-switch-knob { min-width: 28px; min-height: 28px; margin: 4px; border-radius: 14px; background: #f6f3ee; }
+.home-switch { min-width: 56px; min-height: 32px; border-radius: 16px; background: rgba(255,255,255,.2); }
+.home-switch-knob { min-width: 24px; min-height: 24px; margin: 4px; border-radius: 12px; background: #f6f3ee; }
 .home-scene { border-radius: 22px; }
 
 /* Live CPU and network tiles */

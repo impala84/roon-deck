@@ -30,10 +30,10 @@
   };
 
   /* ------------------------------------------------------------ state */
-  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
+  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
-  const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.network': 'Network'};   // optional live tiles the owner adds
+  const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network'};   // optional live tiles the owner adds
   const isCard = id => id in CARDS || id in LIVE;
   const liveShown = () => Object.keys(LIVE).filter(id => layout.tiles[id]?.show);
   const deviceIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
@@ -75,7 +75,7 @@
     return {portrait, width: portrait ? tall : wide, height: portrait ? wide : tall, label};
   }
   // Landscape displays 1000px wide or more use the card dashboard, which has a choice of 2 or 3 columns.
-  const dashColumns = () => { const shape = screen(); return !shape.portrait && shape.width >= 1000 ? (layout.columns === 2 ? 2 : 3) : 0; };
+  const dashColumns = () => { const shape = screen(); if (shape.portrait) return shape.width >= 700 && shape.height >= 1200 ? 2 : 0; return shape.width >= 1000 ? (layout.columns === 2 ? 2 : 3) : 0; };   // tall 7/10-inch panels: always two columns
   const isScene = id => domainOf(id) === 'scene';
   // The same placement rules as the touchscreen. Tiles the owner placed (col/row) keep their cell; the rest take the first free space.
   const hasPlace = id => Number.isInteger(tileOf(id).col) && Number.isInteger(tileOf(id).row);
@@ -110,7 +110,7 @@
     }
     const cells = list.map(id => ({...at.get(id), id}));
     const used = Math.max(1, ...cells.map(cell => cell.row + cell.height));
-    return {columns, rows: Math.max(used, dash ? 3 : Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
+    return {columns, rows: Math.max(used, dash ? (screen().portrait ? 6 : 3) : Math.ceil(LIMIT / columns)), cells, custom, positioned, rowMode: false, taken};
   }
   // Would the owner's tiles all keep their cells if this tile took on these settings?
   function fitsAfter(id, patch) {
@@ -144,9 +144,9 @@
     }
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (id in LIVE) {
-      const cpu = id === 'roondeck.cpu', points = (cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24]).map((value, i, all) => `${(i * 100 / (all.length - 1)).toFixed(1)},${(36 - value * .55).toFixed(1)}`).join(' ');
+      const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', points = (mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24]).map((value, i, all) => `${(i * 100 / (all.length - 1)).toFixed(1)},${(36 - value * .55).toFixed(1)}`).join(' ');
       const spark = h('span', {class: 'hd-d-spark'}); spark.innerHTML = `<svg viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="${cpu ? '#6ed9ae' : '#6aa8ff'}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
-      return [h('div', {class: 'hd-d-live'}, h('small', {}, cpu ? 'CPU' : 'NETWORK'), h('b', {class: 'hd-d-big'}, cpu ? '36%' : '12.4 Mbit/s'), spark, h('small', {}, cpu ? '52 \u00b0C \u00b7 load 0.4' : 'up 0.3 Mbit/s'))];
+      return [h('div', {class: 'hd-d-live'}, h('small', {}, cpu ? 'CPU' : mem ? 'MEMORY' : 'NETWORK'), h('b', {class: 'hd-d-big'}, mem ? '54%' : cpu ? '36%' : (tile.download === false ? '0.3 Mbit/s' : '12.4 Mbit/s')), spark, h('small', {}, mem ? '2.1 of 4.0 GB' : cpu ? '52 \u00b0C \u00b7 load 0.4' : tile.download === false ? 'upload' : tile.upload === false ? '' : 'up 0.3 Mbit/s'))];
     }
     const domain = domainOf(id), info = states[id] || {}, scene = domain === 'scene';
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
@@ -302,7 +302,7 @@
     const navBar = dashColumns() ? h('div', {class: 'hd-nav'}, ['Now Playing', 'Discover', 'Bus Times', 'Home'].map(name => h('span', {class: name === 'Home' ? 'on' : ''}, name))) : null;
     const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, dashColumns() ? h('div', {class: 'hd-head'}, h('span', {class: 'hd-title'}, title || 'Home Controls'), h('span', {class: 'hd-clock'}, new Date().toTimeString().slice(0, 5))) : (title ? h('div', {class: 'hd-title'}, title) : null), grid, navBar);
     const dash = dashColumns();
-    const columnPicker = dash ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
+    const columnPicker = dash && !shape.portrait ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
       const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);
       button.onclick = () => { if (dash === count) return; layout.columns = count; markDirty(); render(); }; return button;
     }))) : null;
@@ -402,7 +402,12 @@
       }));
       const playerFields = id !== 'roondeck.player' ? [] : [field('Title', label, 'Shown above the track. Leave it blank to show the zone name.'), check('Show the title', tile.heading !== false, on => ({heading: on ? '' : false})),
         field('Artwork', artwork), check('Track scrubber (drag to seek)', !!tile.scrubber, on => ({scrubber: on ? true : ''})), check('Volume slider', tile.volume !== false, on => ({volume: on ? '' : false}))];
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields,
+      const netFields = id !== 'roondeck.network' ? [] : (() => {
+        const down = tile.download !== false, up = tile.upload !== false;
+        const one = (text, on, other, key) => { const box = h('input', {type: 'checkbox'}); box.checked = on; box.disabled = on && !other; box.onchange = () => patchTile(id, {[key]: box.checked ? '' : false}); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
+        return [field('Show', h('div', {class: 'hd-stack'}, one('Download', down, up, 'download'), one('Upload', up, down, 'upload')), 'Switch either direction off. One must stay on.')];
+      })();
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields,
         field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
@@ -441,12 +446,25 @@
     fillResults();
     // Closed once the tiles are chosen, so the controls for the selected tile stay in view.
     const isOpen = devicesOpen === null ? list.length === 0 : devicesOpen;
-    const box = h('details', {class: 'hd-accordion'}, h('summary', {}, h('span', {}, 'Add devices'), h('small', {}, `${list.length} of ${LIMIT} tiles used`)), h('div', {class: 'hd-accordion-body'}, search, chips, results,
-      h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'),
-      dashColumns() ? h('div', {class: 'hd-group'}, h('h4', {}, 'Live tiles'), h('div', {class: 'hd-actions'}, Object.entries(LIVE).map(([key, name]) => {
-        const add = h('button', {type: 'button', class: 'secondary'}, `Add ${name}`); add.disabled = !!layout.tiles[key]?.show;
-        add.onclick = () => { layout.tiles[key] = {...(layout.tiles[key] || {}), show: true}; devicesOpen = false; markDirty(); selected = ids().indexOf(key); render(); }; return add;
-      })), h('small', {}, 'Live readings from your RoonDeck, updated every couple of seconds.')) : null));
+    // Two sources of tiles, switched at the top: RoonDeck's own (first, as they are the quickest to add) and Home Assistant devices.
+    const dash = !!dashColumns();
+    const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
+    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : 'Throughput with a live graph'])];
+    const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
+      const live = key in LIVE, shown = live ? !!layout.tiles[key]?.show : true;
+      const add = h('button', {type: 'button', class: 'secondary hd-add'}, live ? (shown ? 'Added' : 'Add') : 'On screen'); add.disabled = shown;
+      if (live) add.onclick = () => { layout.tiles[key] = {...(layout.tiles[key] || {}), show: true}; devicesOpen = false; markDirty(); selected = ids().indexOf(key); render(); };
+      return h('li', {}, h('span', {class: 'hd-label'}, name, h('small', {}, note)), add);
+    }));
+    let source = addSource === 'ha' || !dash ? 'ha' : 'own';
+    const body = h('div', {class: 'hd-accordion-body'});
+    const switcher = dash ? h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Tile source'}, [['own', 'RoonDeck'], ['ha', 'Home Assistant']].map(([value, text]) => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(source === value)}, text);
+      button.onclick = () => { addSource = value; source = value; fillBody(); }; return button;
+    })) : null;
+    function fillBody() { switcher?.querySelectorAll('button').forEach((node, i) => node.setAttribute('aria-pressed', String(source === ['own', 'ha'][i]))); body.replaceChildren(...[switcher, source === 'own' ? ownPanel : haPanel].filter(Boolean)); }
+    fillBody();
+    const box = h('details', {class: 'hd-accordion'}, h('summary', {}, h('span', {}, 'Add tiles'), h('small', {}, `${list.length} of ${LIMIT} tiles used`)), body);
     if (isOpen) box.setAttribute('open', '');
     box.ontoggle = () => { devicesOpen = box.open; };
     return box;
@@ -472,7 +490,7 @@
   const settingsPane = h('div', {class: 'dd-pane dd-wake hd-two', hidden: true}, settingsText, statusArt);
   const coloursPane = h('div', {class: 'dd-pane dd-wake hd-two', hidden: true}, coloursText, coloursArt);
   const labelOf = name => form.elements[name]?.closest('label');
-  for (const name of ['home_assistant_title', 'home_assistant_url', 'home_assistant_token']) { const label = labelOf(name); if (label) settingsText.append(label); }
+  for (const name of ['home_assistant_url', 'home_assistant_token']) { const label = labelOf(name); if (label) settingsText.append(label); }
   const entitiesLabel = textarea.closest('label');
   entitiesLabel.hidden = true; settingsText.append(entitiesLabel);
   const deckField = form.elements.home_assistant_deck_entities; if (deckField) deckField.hidden = true;
@@ -489,6 +507,9 @@
   const tabs = h('nav', {class: 'dd-tabs', role: 'tablist', 'aria-label': 'Home sections'}, buttons);
   const card = h('div', {class: 'cd-card dd-card hd-card'}, tabs, h('div', {class: 'dd-body'}, layoutPane, coloursPane, settingsPane));
   options.prepend(card);
+  // The page heading sits beside the "Show Home on the touchscreen" switch, where it is easy to find.
+  const enabledLabel = labelOf('home_assistant_enabled'), titleLabel = labelOf('home_assistant_title');
+  if (enabledLabel && titleLabel) { const row = h('div', {class: 'hd-headrow-set'}); enabledLabel.before(row); row.append(enabledLabel, titleLabel); }
   // The old introduction under the heading is replaced by the cards below it.
   for (const small of [...options.children].filter(node => node.tagName === 'SMALL')) small.hidden = true;
 
