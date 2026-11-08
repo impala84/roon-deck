@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.119 Alpine — 8 November 2026
+
+- Stream Deck: the Roon volume dial shows the number exactly as Roon does (for example 42, or -30.5 dB), not a percentage worked out from the range. "Muted" sits at the top right.
+
 ## 1.2.0-beta.118 Alpine — 8 November 2026
 
 - Stream Deck: a dial set to "Roon volume (current zone)" now shows that zone's volume (a percentage and bar, or dB for dB outputs) on the strip. It was showing the KEF's state, so it read "Offline" whenever the KEF control link was down.

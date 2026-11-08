@@ -338,14 +338,18 @@ class Painter:
                     nx, ny = math.cos(angle), math.sin(angle)
                     draw.polygon([(px + tx * 9, py + ty * 9), (px + nx * 5, py + ny * 5), (px - nx * 5, py - ny * 5)], fill="#a4dcc7")
                 continue
-            elif action == "roon_volume":   # the Roon zone's own volume, whatever the KEF is doing
+            elif action == "roon_volume":   # the Roon zone's own volume, shown as Roon shows it (a plain number, or dB), whatever the KEF is doing
                 roon = state.get("roon_volume") or {}
                 if roon.get("value") is None: detail = "Fixed volume" if roon.get("fixed") else "No zone"
                 else:
-                    low, high = roon.get("min", 0), roon.get("max", 100)
-                    level = round(100 * (roon["value"] - low) / (high - low)) if high > low else 0
-                    if roon.get("muted"): detail = "Muted"
-                    elif roon.get("type") == "db": detail = f"{roon['value']:g} dB"
+                    value, low, high = roon["value"], roon.get("min", 0), roon.get("max", 100)
+                    shown = f"{value:g} dB" if roon.get("type") == "db" else f"{value:g}"
+                    draw.text((left, 32), shown, fill=text_colour or "#a4dcc7", font=self.load_font(30))
+                    draw.rounded_rectangle((left, 80, left + 172, 85), radius=3, fill="#2c4a42")
+                    fraction = max(0.0, min(1.0, (value - low) / (high - low))) if high > low else 0.0
+                    if fraction: draw.rounded_rectangle((left, 80, left + max(6, round(172 * fraction)), 85), radius=3, fill="#6ef0be")
+                    if roon.get("muted"): draw.text((left + 172, 12), "Muted", fill="#f2b991", font=self.load_font(14), anchor="ra")
+                    continue
             elif speaker.get("connected"):
                 level = speaker.get("volume")
                 if speaker.get("muted"): detail = "Muted"
