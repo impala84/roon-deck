@@ -33,6 +33,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'download', 'upload', 'zone', 'with', 'page', 'route']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
@@ -179,15 +180,14 @@
         h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
         tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
     }
-    if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
+    if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, tileOf(id).route || '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
       const upd = B(id) === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
       const chip = h('span', {class: 'hd-d-achip'}); chip.innerHTML = upd
         ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 10v31M19 29l13 13 13-13M11 47v7h42v-7"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
-      return [h('div', {class: 'hd-d-live hd-d-action' + (upd ? ' alert' : '')}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, chip,
+      return [h('div', {class: 'hd-d-live hd-d-action' + (upd ? ' alert' : '')}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, upd ? 'Update' : zones.length === 2 ? 'Group' : 'Set zones')),
         h('span', {class: 'hd-d-spacer'}),
-        h('b', {class: 'hd-d-big'}, upd ? 'Update' : zones.length === 2 ? 'Group' : 'Set zones'),
         h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready. Tap to install' : zones.length === 2 ? zones[0] + '\n+ ' + zones[1] : 'Choose them in the tile options')))];
     }
     if (B(id) in LIVE) {
@@ -223,13 +223,13 @@
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
-    if (dashColumns()) { node.classList.add('hd-dash'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
+    if (dashColumns()) { node.classList.add('hd-dash'); if (cell.span >= 4) node.classList.add('hd-wide'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
     if (isCard(id) && !tile.color) { node.style.background = '#232228'; node.style.borderColor = '#44414c'; }   // the standard card look, unless the owner picked a colour
-    for (const axis of ['x', 'y']) {
-      const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
+    for (const axis of dashColumns() ? ['x', 'y', 'w', 'n', 'se', 'sw', 'ne', 'nw'] : ['x', 'y']) {
+      const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: 'Drag to resize this tile', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
       handle.ondragstart = event => event.preventDefault();
       node.append(handle);
@@ -258,24 +258,58 @@
     const startX = event.clientX, startY = event.clientY; node.draggable = false;
     const sizeFor = span => span >= columns ? 'full' : span >= 2 && !portrait ? 'half' : 'quarter';
     const current = () => tileOf(id).size && tileOf(id).size !== 'auto' ? tileOf(id).size : 'quarter';
+    const dash = dashColumns(), allowed = [...new Set([1, 2, 4, columns])].filter(value => value <= columns), maxRows = dash ? 3 : 2;
+    const snap = want => allowed.reduce((best, value) => Math.abs(value - want) < Math.abs(best - want) ? value : best);
+    const widthPatch = units => units === 1 ? {half: true, size: ''} : {half: '', sub: '', size: units >= columns ? 'full' : units === 4 ? 'half' : ''};
+    const east = axis === 'x' || axis.includes('e'), south = axis === 'y' || axis.includes('s'), west = axis === 'w' || axis.includes('w'), north = axis === 'n' || axis.includes('n');
     const move = moveEvent => {
-      let patch = null;
-      if (axis === 'x' && dashColumns()) {
-        // Widths in half columns: half a column, one, two, or the full width.
-        const want = cell.span + (moveEvent.clientX - startX) / unitX, allowed = [...new Set([1, 2, 4, columns])].filter(value => value <= columns);
-        const units = allowed.reduce((best, value) => Math.abs(value - want) < Math.abs(best - want) ? value : best);
-        if (units !== cell.span) patch = units === 1 ? {half: true, size: ''} : {half: '', sub: '', size: units >= columns ? 'full' : units === 4 ? 'half' : ''};
+      const dxu = (moveEvent.clientX - startX) / unitX, dyu = (moveEvent.clientY - startY) / unitY;
+      if (!dash) {
+        let patch = null;
+        if (east && dash) { const units = snap(cell.span + dxu); if (units !== cell.span) patch = widthPatch(units); }
+        else if (east) { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + dxu)))); if (size !== current()) patch = {size}; }
+        if (south) { const rows = Math.max(1, Math.min(maxRows, Math.round(cell.height + dyu))); if (rows !== cell.height) patch = {...(patch || {}), ...rowsPatch(id, rows)}; }
+        if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
+        selected = ids().indexOf(id); patchTile(id, patch);
+      } else {
+        // The edge opposite the one being dragged stays put; the tile grows towards the finger, pushing neighbours down if they are in the way.
+        let units = cell.span, rows = cell.height;
+        if (east) units = snap(cell.span + dxu); else if (west) units = snap(cell.span - dxu);
+        if (south) rows = Math.max(1, Math.min(maxRows, Math.round(cell.height + dyu))); else if (north) rows = Math.max(1, Math.min(maxRows, Math.round(cell.height - dyu)));
+        const column = west ? cell.column + cell.span - units : cell.column, row = north ? cell.row + cell.height - rows : cell.row;
+        if (units === cell.span && rows === cell.height) return;
+        if (column < 0 || row < 0) return;
+        const saved = layout.tiles[id], patch = {...(units !== cell.span ? widthPatch(units) : {}), ...(rows !== cell.height ? rowsPatch(id, rows) : {})};
+        const next = {...tileOf(id), ...patch}; for (const key of Object.keys(next)) if (next[key] === '' || next[key] === undefined) delete next[key];
+        layout.tiles[id] = next;
+        const after = place(ids(), portrait), mine = after.cells.find(item => item.id === id);
+        const trial = makeRoom(info.cells.map(item => item.id === id ? {...item, span: mine ? mine.span : units, height: rows} : item), id, {column, row}, info);
+        if (saved) layout.tiles[id] = saved; else delete layout.tiles[id];
+        if (!trial) return;
+        layout.tiles[id] = next; pin(trial); selected = ids().indexOf(id); markDirty(); render();
       }
-      else if (axis === 'x') { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + (moveEvent.clientX - startX) / unitX)))); if (size !== current()) patch = {size}; }
-      else { const rows = Math.max(1, Math.min(dashColumns() ? 3 : 2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== cell.height) patch = rowsPatch(id, rows); }
-      if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
-      selected = ids().indexOf(id); patchTile(id, patch);
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
       const fresh = document.querySelector(`.hd-tile.selected .hd-stretch-${axis}`);
       if (fresh) fresh.dispatchEvent(new PointerEvent('pointerdown', {clientX: moveEvent.clientX, clientY: moveEvent.clientY, bubbles: true}));
     };
     const done = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done); document.querySelectorAll('.hd-tile[data-id]').forEach(tile => { tile.draggable = true; }); };
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', done);
+  }
+  // Put one tile where it is wanted and push any tile it lands on out of the way (down, in turn pushing the ones below), so there is no need to clear a space first.
+  function makeRoom(cells, id, want, info) {
+    const out = cells.map(item => item.id === id ? {...item, ...want} : {...item}), overlap = (a, b) => a.column < b.column + b.span && b.column < a.column + a.span && a.row < b.row + b.height && b.row < a.row + a.height;
+    for (let guard = 0; guard < 80; guard += 1) {
+      let moved = false;
+      for (const a of out) for (const b of out) {
+        if (a === b || !overlap(a, b)) continue;
+        const loser = a.id === id ? b : b.id === id ? a : (a.row > b.row || (a.row === b.row && a.column > b.column) ? a : b), winner = loser === a ? b : a;
+        loser.row = winner.row + winner.height; moved = true;
+      }
+      if (!moved) break;
+    }
+    const fine = dashColumns() ? 2 : 1;
+    const ok = out.every(item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows) && out.every((a, i) => out.every((b, j) => j <= i || !overlap(a, b)));
+    return ok && !(fine === 2 && out.some(item => !tileOf(item.id).half && item.column % 2)) ? out : null;
   }
   // Move the dragged tile to an empty cell, or swap it with the tile under it, without redrawing so the drag is not interrupted.
   function liveTo(cellAt, targetId) {
@@ -286,17 +320,23 @@
     const final = info.cells.map(item => ({...item, ...(moves[item.id] || {})}));
     const sound = final.every(item => item.column >= 0 && item.column + item.span <= info.columns && item.row >= 0 && item.row + item.height <= info.rows)
       && final.every((item, i) => final.every((other, j) => j <= i || item.column + item.span <= other.column || other.column + other.span <= item.column || item.row + item.height <= other.row || other.row + other.height <= item.row));
-    if (!sound || (dashColumns() && final.some(item => !tileOf(item.id).half && item.column % 2))) return;
-    live = final;
+    let result = final;
+    if (!sound || (dashColumns() && final.some(item => !tileOf(item.id).half && item.column % 2))) {
+      // No clean swap or empty cell: drop it there anyway and shuffle the others down to make room.
+      const spot = targetId ? info.cells.find(item => item.id === targetId) : cellAt; if (!spot) return;
+      let column = Math.min(spot.column, info.columns - me.span); if (dashColumns() && !tileOf(me.id).half) column -= column % 2;
+      result = makeRoom(info.cells, dragTile, {column, row: spot.row}, info); if (!result) return;
+    }
+    live = result;
     const grid = document.querySelector('.hd-grid'); if (!grid) return;
     const nodes = [...grid.querySelectorAll('.hd-tile[data-id]')], before = new Map(nodes.map(node => [node, node.getBoundingClientRect()]));
-    for (const item of final) { const node = grid.querySelector(`.hd-tile[data-id="${CSS.escape(item.id)}"]`); if (node) { node.style.gridColumn = `${item.column + 1} / span ${item.span}`; node.style.gridRow = `${item.row + 1} / span ${item.height}`; } }
+    for (const item of result) { const node = grid.querySelector(`.hd-tile[data-id="${CSS.escape(item.id)}"]`); if (node) { node.style.gridColumn = `${item.column + 1} / span ${item.span}`; node.style.gridRow = `${item.row + 1} / span ${item.height}`; } }
     for (const node of nodes) {
       const was = before.get(node), now = node.getBoundingClientRect(), dx = was.left - now.left, dy = was.top - now.top;
       if ((dx || dy) && node.animate) node.animate([{transform: `translate(${dx}px,${dy}px)`}, {transform: 'none'}], {duration: 200, easing: 'ease-out'});
     }
     // The cells the tiles left behind become drop targets again, and the ones they now cover stop being so.
-    const taken = new Set(); for (const item of final) for (let dx = 0; dx < item.span; dx += 1) for (let dy = 0; dy < item.height; dy += 1) taken.add(`${item.column + dx},${item.row + dy}`);
+    const taken = new Set(); for (const item of result) for (let dx = 0; dx < item.span; dx += 1) for (let dy = 0; dy < item.height; dy += 1) taken.add(`${item.column + dx},${item.row + dy}`);
     grid.querySelectorAll('.hd-empty').forEach(node => node.remove());
     for (const spot of freeSpots(taken, info.columns, info.rows)) grid.append(emptySlot(spot));
   }
@@ -676,7 +716,7 @@
 
   window.RoonDeckSaves = window.RoonDeckSaves || {};
   window.RoonDeckSaves.homelayout = async () => {
-    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => isCard(id) || allIds().includes(id))), ...(layout.columns ? {columns: layout.columns} : {}), ...(pageCount() > 1 ? {pages: pageCount()} : {})})});
+    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id, tile]) => (isCard(id) || allIds().includes(id)) && /^[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?$/.test(id) && tile && typeof tile === 'object').map(([id, tile]) => [id, Object.fromEntries(Object.entries(tile).filter(([key, value]) => TILE_KEYS.has(key) && value !== null && value !== undefined))])), ...(layout.columns ? {columns: layout.columns} : {}), ...(pageCount() > 1 ? {pages: pageCount()} : {})})});
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the Home layout');
     layout = result.layout; dirty = false;
   };

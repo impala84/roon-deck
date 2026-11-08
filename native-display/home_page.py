@@ -44,7 +44,7 @@ class HomePageMixin:
         self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); header_row = self.header(self.home_title, self.home_clock); header_overlay = Gtk.Overlay(); header_overlay.set_child(header_row); page.append(header_overlay)
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.hs_drag_claimed = False; self.hs_page = 0; self.hs_pages = 1; self.hs_last_home = {}; self.hs_paged_at = 0.0
-        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); self.home_dots.set_can_target(False); header_overlay.add_overlay(self.home_dots)   # centred in the header row, so the tiles keep their place
+        self.home_dots = Gtk.Box(spacing=0); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); header_overlay.add_overlay(self.home_dots)   # centred in the header row, so the tiles keep their place
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
         self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_stack = Gtk.Stack(); self.home_stack.set_hexpand(True); self.home_stack.set_vexpand(True); self.home_stack.set_transition_duration(280); self.home_stack.set_hhomogeneous(True); self.home_stack.set_vhomogeneous(True)
         self.home_ghost = Gtk.Picture(); self.home_ghost.set_can_shrink(True); self.home_ghost.set_content_fit(Gtk.ContentFit.FILL)   # the page just left, drawn as a picture so it can slide away
@@ -86,9 +86,11 @@ class HomePageMixin:
         self.home_signature = signature
         while child := self.home_dots.get_first_child(): self.home_dots.remove(child)
         for number in range(self.hs_pages):
-            dot = Gtk.Box(); dot.add_css_class("hs-dot"); dot.set_size_request(12, 12)
+            dot = Gtk.Box(); dot.add_css_class("hs-dot"); dot.set_size_request(12, 12); dot.set_halign(Gtk.Align.CENTER); dot.set_valign(Gtk.Align.CENTER)
             if number == self.hs_page: dot.add_css_class("current")
-            self.home_dots.append(dot)
+            hit = Gtk.Box(); hit.set_size_request(34, 34); hit.append(dot)   # a finger-sized target around each dot: tap it to go to that page
+            tap = Gtk.GestureClick(); tap.connect("released", lambda *_, page=number: self.home_go_to_page(page)); hit.add_controller(tap)
+            self.home_dots.append(hit)
         self.home_dots.set_visible(self.hs_pages > 1)
         while child := self.home_grid.get_first_child():
             if getattr(child, "clip_wrapper", False): child.set_child(None)   # let the tile go before its frame, so it can be placed again
@@ -235,15 +237,19 @@ class HomePageMixin:
         if not self.hs_drag_ok or self.hs_pages < 2 or abs(dx) < abs(dy) * 1.5: return
         quick = time.monotonic() - getattr(self, "hs_drag_started", 0) < 0.4   # a short, quick flick counts as a swipe too
         if abs(dx) < (50 if quick else 100): return
-        target = max(0, min(self.hs_pages - 1, self.hs_page + (1 if dx < 0 else -1)))
+        self.home_go_to_page(max(0, min(self.hs_pages - 1, self.hs_page + (1 if dx < 0 else -1))))
+
+    def home_go_to_page(self, target):
+        """Show another page, sliding from the side it lies on (a swipe and a tap on a dot both come here)."""
+        target = max(0, min(self.hs_pages - 1, target))
         if target == self.hs_page: return
+        forward = target > self.hs_page
         ghost = self.home_snapshot()   # the page being left, taken before the new one is built
         self.hs_page = target; self.hs_paged_at = time.monotonic(); self.home_signature = None; self.render_home(self.hs_last_home)
         if ghost is None: return
-        # The new page slides in from the side the finger moved away from, pushing the old one out. The old page is put on show first and the slide
-        # starts on the next frame, so the switch is always drawn as a slide and never as a jump.
+        # The old page is put on show first and the slide starts on the next frame, so the switch is always drawn as a slide and never as a jump.
         self.home_ghost.set_paintable(ghost); self.home_stack.set_transition_type(Gtk.StackTransitionType.NONE); self.home_stack.set_visible_child(self.home_ghost)
-        direction = Gtk.StackTransitionType.SLIDE_LEFT if dx < 0 else Gtk.StackTransitionType.SLIDE_RIGHT
+        direction = Gtk.StackTransitionType.SLIDE_LEFT if forward else Gtk.StackTransitionType.SLIDE_RIGHT
         def slide():
             self.home_stack.set_transition_duration(280); self.home_stack.set_transition_type(direction); self.home_stack.set_visible_child(self.home_grid); return False
         GLib.idle_add(slide)

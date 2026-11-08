@@ -38,7 +38,8 @@ def validate_layout(data):
     clean = {}
     for entity_id, tile in tiles.items():
         if not isinstance(entity_id, str) or not ENTITY.fullmatch(entity_id) or not isinstance(tile, dict) or set(tile) - TILE_KEYS:
-            raise ValueError("Invalid Home tile")
+            extra = ", ".join(sorted(map(str, set(tile) - TILE_KEYS))) if isinstance(tile, dict) else ""
+            raise ValueError(f"Invalid Home tile {str(entity_id)[:60]!r}" + (f" (unknown setting: {extra})" if extra else ""))
         out = {}
         if "size" in tile:
             if tile["size"] not in SIZES: raise ValueError("Choose a tile size")

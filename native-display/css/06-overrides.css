@@ -523,6 +523,10 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-action-icon { color: #d9d6e0; }
 .hs-action-value { font-size: 22px; font-weight: 700; color: #f4f0e6; }
 .hs-action-detail { font-size: 15px; }
+.hs-action-wide { padding: 18px 22px; }
+.hs-action-wide .hs-action-chip { min-width: 56px; min-height: 56px; border-radius: 28px; }
+.hs-action-wide .hs-action-value { font-size: 32px; }
+.hs-action-wide .hs-action-detail { font-size: 20px; }
 .hs-action.is-ok .hs-action-chip { background: rgba(110,217,174,.2); }
 .hs-action.is-ok .hs-action-icon { color: #6ed9ae; }
 .hs-action.is-alert { background: #4a3520; border-color: #f59a3d; }

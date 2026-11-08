@@ -41,7 +41,7 @@ class HomeDashboardMixin:
         self.hs_art = Gtk.Picture(); self.hs_art.set_content_fit(Gtk.ContentFit.COVER); self.hs_art.set_can_shrink(True); self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL)
         player.set_child(self.hs_art)
         fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade); self.hs_fade = fade; self.hs_opts = {}
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content")
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content"); self.hs_content = content
         self.hs_zone = self.label("", "hs-zone"); content.append(self.hs_zone)
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer); self.hs_spacer = spacer
         self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END); self.hs_title.set_max_width_chars(1)
@@ -113,7 +113,7 @@ class HomeDashboardMixin:
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-action"); card.set_hexpand(True); card.set_vexpand(True)
         chip = Gtk.Box(); chip.add_css_class("hs-action-chip"); chip.set_halign(Gtk.Align.START); chip.set_valign(Gtk.Align.START)
         chip.set_size_request(44, 44); card.icon_name = None; card.chip = chip
-        value = self.label("—", "hs-action-value", 0); value.set_wrap(True); value.set_wrap_mode(Pango.WrapMode.WORD_CHAR); value.set_lines(2); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1); value.set_hexpand(True); value.set_valign(Gtk.Align.CENTER)   # the title sits beside the icon, leaving the lines below for the detail
+        value = self.label("—", "hs-action-value", 0); value.set_wrap(True); value.set_wrap_mode(Pango.WrapMode.WORD_CHAR); value.set_lines(2); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1); value.set_hexpand(True); value.set_xalign(0); value.set_valign(Gtk.Align.CENTER)   # the title sits beside the icon, leaving the lines below for the detail
         detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(3); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
         filler = Gtk.Box(); filler.set_vexpand(True)
         head = Gtk.Box(spacing=10); head.append(chip); head.append(value); card.append(head); card.append(filler); card.append(detail)
@@ -404,6 +404,14 @@ class HomeDashboardMixin:
             if entity.get("widget") is not None:
                 widget = entity["widget"]
                 if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
+                if base_of(entity["entity_id"]) == "roondeck.player":
+                    tall = height >= 3   # a full-height player has room to spare, so the slider and controls are given some
+                    self.hs_content.set_spacing(26 if tall else 10)
+                    self.hs_progress.set_margin_top(10 if tall else 0); self.hs_progress.set_margin_bottom(10 if tall else 0); self.hs_scrub.set_margin_top(10 if tall else 0); self.hs_scrub.set_margin_bottom(10 if tall else 0)
+                    self.hs_volume_row.set_margin_top(10 if tall else 0)
+                if hasattr(widget, "chip"):   # a wide action tile (Update, Group) gets larger type and icon
+                    widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
+                    (widget.add_css_class if width >= 4 else widget.remove_css_class)("hs-action-wide")
                 if base_of(entity["entity_id"]) == "roondeck.network":
                     self.hs_net_wide = width >= 2
                     self.hs_net_value.remove_css_class("hs-net-small") if self.hs_net_wide else self.hs_net_value.add_css_class("hs-net-small")

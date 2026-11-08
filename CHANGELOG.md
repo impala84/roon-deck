@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0-beta.94 Alpine — 8 November 2026
+
+- Home: tap a page dot on the touchscreen to go to that page (with the same slide as a swipe).
+- Home: the Update and Group tiles are laid out for being wider — at two columns or more they get a bigger icon, title and message, and the title sits left, beside the icon.
+- Home: a full-height Now Playing tile gives the progress bar, controls and volume more room.
+- Builder: tiles can be resized from any edge or corner, not just the right and bottom. Dragging a tile (or a resize) onto others now pushes them down to make room instead of refusing.
+- Builder: the selected tile has a quieter outline; the bus tile preview shows the route you chose; the Update and Group previews match the touchscreen layout.
+- Builder: saving the layout now sends only settings the server knows, and a rejected tile names itself in the message ("Invalid Home tile 'x'"), to track down the "Invalid Home tile" error.
+
 ## 1.2.0-beta.93 Alpine — 8 November 2026
 
 - Home: you can add the bus tile more than once, and choose which route each one shows first (Route shown, in the tile's settings). Tapping a tile still steps through the other routes, and each tile steps on its own — so one tile can follow the 42 and another the 40.
