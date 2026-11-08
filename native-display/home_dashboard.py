@@ -33,7 +33,7 @@ class HomeDashboardMixin:
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content")
         self.hs_zone = self.label("", "hs-zone"); content.append(self.hs_zone)
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
-        self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END)
+        self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END); self.hs_title.set_max_width_chars(1)
         self.hs_artist = self.label("", "hs-artist"); self.hs_artist.set_ellipsize(Pango.EllipsizeMode.END)
         content.append(self.hs_title); content.append(self.hs_artist)
         self.hs_progress = Gtk.ProgressBar(); self.hs_progress.add_css_class("hs-progress"); content.append(self.hs_progress)
@@ -49,7 +49,7 @@ class HomeDashboardMixin:
         self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
         self.hs_volume_row = volume; content.append(volume)
         player.add_overlay(content)
-        bus = Gtk.Box(spacing=22); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); self.hs_bus = bus
+        bus = Gtk.Box(spacing=14); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); self.hs_bus = bus
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
         self.hs_bus_icon = FamilyIcon("bus", 44); self.hs_bus_icon.set_halign(Gtk.Align.CENTER); self.hs_bus_icon.set_valign(Gtk.Align.CENTER); self.hs_bus_icon.set_hexpand(True); chip.append(self.hs_bus_icon); bus.append(chip)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
@@ -93,8 +93,10 @@ class HomeDashboardMixin:
         # The player and the next bus are tiles too: placed, sized and moved like the devices, with the player two rows tall unless the owner shortens it.
         cards = home.get("cards") or {}
         virtual = []
-        for key, widget, rows in (("roondeck.player", self.hs_player, 2), ("roondeck.bus", self.hs_bus, 1)):
+        untouched = not any(isinstance((cards.get(key) or {}).get("col"), int) for key in ("roondeck.player", "roondeck.bus"))
+        for key, widget, rows, home_cell in (("roondeck.player", self.hs_player, 2, (0, 0)), ("roondeck.bus", self.hs_bus, 1, (0, 2))):
             tile = dict(cards.get(key) or {}); tile.setdefault("rows", rows)
+            if untouched and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)
         rules = []
@@ -205,6 +207,7 @@ class HomeDashboardMixin:
         button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)
+        name.set_max_width_chars(1)   # let the card narrow the name instead of the name widening the card
         if compact: name.set_wrap(True); name.set_lines(2); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
         text.append(name); text.append(self.label(self.home_detail(entity, on), "home-state", 0))
         has_level = bool(entity.get("supports_level"))

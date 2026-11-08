@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.69 Alpine — 8 November 2026
+
+- Home: the page no longer grows wider than the screen. The next-bus card is more compact (smaller minutes and spacing), long names shrink instead of widening a column, and the page can no longer push past the display edge.
+- Home builder: the preview now looks like the touchscreen. Cards show the icon, name, level or toggle as on the display, the player shows cover, track and controls, the bus shows its route and minutes, and the page's tab bar sits underneath. The player starts top-left with the bus under it.
+
 ## 1.2.0-beta.68 Alpine — 8 November 2026
 
 - Home: fixes the dashboard growing past the screen in beta.67. Cards are shorter so three rows always fit, and the page can scroll as a last resort instead of overflowing.

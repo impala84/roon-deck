@@ -37,7 +37,13 @@
   const deviceIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
   const ids = () => dashColumns() ? [...Object.keys(CARDS), ...deviceIds()] : deviceIds();
   const nameOf = id => CARDS[id] || catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
-  const tileOf = id => layout.tiles[id] || {};
+  // Until the owner has placed either card, the player sits top-left and the bus under it.
+  const CARD_HOME = {'roondeck.player': {col: 0, row: 0}, 'roondeck.bus': {col: 0, row: 2}};
+  const tileOf = id => {
+    const own = layout.tiles[id] || {};
+    if (id in CARD_HOME && !Object.keys(CARD_HOME).some(key => Number.isInteger(layout.tiles[key]?.col)) && !Number.isInteger(own.col)) return {...own, ...CARD_HOME[id]};
+    return own;
+  };
   const markDirty = () => { dirty = true; window.RoonDeckDirty?.('homelayout', 'Home layout'); };
   function setIds(list) {
     textarea.value = list.filter(id => !isCard(id)).join(', ');
@@ -121,20 +127,33 @@
   function pin(cells) { for (const cell of cells) layout.tiles[cell.id] = {...tileOf(cell.id), col: cell.column, row: cell.row, ...(cell.height === 2 ? {rows: 2} : cell.id === 'roondeck.player' ? {rows: 1} : {})}; }
 
   /* ------------------------------------------------------------ preview */
+  // A small copy of the touchscreen's cards, so the builder reads like the real Home page.
+  const svgOf = (key, colour, size) => { const span = h('span', {class: 'hd-glyph', style: `color:${colour};width:${size}px;height:${size}px`}); if (ICONS[key]) span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" ${ICON_STYLE.replace('stroke="#fff"', 'stroke="currentColor"')}>${lineArt(ICONS[key][1])}</svg>`; return span; };
+  function dashBody(id, tile, colour, lit) {
+    if (id === 'roondeck.player') return [h('div', {class: 'hd-d-player'}, h('span', {class: 'hd-d-zone'}, 'ROONDECK'), h('span', {class: 'hd-d-spacer'}), h('b', {}, 'Track title'), h('small', {}, 'Artist'), h('span', {class: 'hd-d-bar'}, h('i', {})),
+      h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6', 14), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d', 16)), svgOf('next', '#f4f0e6', 14)))];
+    if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
+    const domain = domainOf(id), info = states[id] || {}, scene = domain === 'scene';
+    const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
+    const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
+    const name = tile.label || nameOf(id);
+    const chip = h('span', {class: 'hd-d-chip', style: `opacity:${lit ? 1 : .6}`}, tile.icon ? h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}) : svgOf(scene ? 'scene' : domain === 'light' ? 'bulb' : domain === 'fan' ? 'fan' : domain === 'climate' ? 'snow' : 'switch', colour, 22));
+    if (scene) return [h('div', {class: 'hd-d-scene'}, chip, h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, 'TAP TO ACTIVATE')))];
+    const text = h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, level ? (lit ? `${pct}%` : 'OFF') : (lit ? 'ON' : 'OFF')));
+    if (level) return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text), h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? pct : 0}%;background:${colour}`})))];
+    return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text, h('span', {class: `hd-d-switch${lit ? ' on' : ''}`, style: lit ? `background:${colour}` : ''}, h('i', {}))))];
+  }
   function tileView(cell, rowMode) {
     const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[id] ? ['on', 'open', 'playing'].includes(states[id].state) : true, scene = domainOf(id) === 'scene';
     const lit = on || scene;
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `${cell.pair ? `width:calc(50% - 4px);justify-self:${cell.pair === 'a' ? 'start' : 'end'};` : ''}grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
-    if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
+    if (dashColumns()) { node.classList.add('hd-dash'); node.append(...dashBody(id, tile, colour, lit)); }
+    else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
-    node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
-    if (isCard(id)) {
-      node.style.background = '#2b2a31'; node.style.borderColor = '#5b5766';
-      node.querySelector('.hd-dot')?.remove();
-      node.append(h('span', {style: 'font-size:12px;opacity:.65'}, id === 'roondeck.player' ? 'Cover, play controls, volume' : 'Minutes to your bus'));
-    }
+    if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
+    if (isCard(id)) { node.style.background = id === 'roondeck.bus' ? '#2c4262' : '#232228'; node.style.borderColor = id === 'roondeck.bus' ? '#6aa8ff' : '#44414c'; }
     for (const axis of ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
@@ -245,7 +264,8 @@
     if (info.rowMode) free.length = 0;
     for (const spot of free) grid.append(emptySlot(spot));
     const title = form.elements.home_assistant_title?.value;
-    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid);
+    const navBar = dashColumns() ? h('div', {class: 'hd-nav'}, ['Now Playing', 'Discover', 'Bus Times', 'Home'].map(name => h('span', {class: name === 'Home' ? 'on' : ''}, name))) : null;
+    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid, navBar);
     const dash = dashColumns();
     const columnPicker = dash ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
       const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);

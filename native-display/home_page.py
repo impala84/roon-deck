@@ -72,7 +72,7 @@ class HomePageMixin:
         portrait = self.window.has_css_class("portrait")
         dashboard = self.home_dashboard_active()
         # The dashboard may scroll as a last resort, so cards that are too tall can never push the page past the screen.
-        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or dashboard or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
+        self.home_scroll.set_policy(Gtk.PolicyType.EXTERNAL if dashboard else Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or dashboard or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
         signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "cards": home.get("cards"), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0)}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
