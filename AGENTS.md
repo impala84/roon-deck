@@ -55,7 +55,8 @@ release. `tools/release-beta` remains the way to do it from the user's computer.
 
 GitHub-hosted runtime is limited. Do not use repeated pushes or GitHub Actions runs as the development loop for layout work.
 
-- Run unit tests, native rendering, screenshot capture, and the complete supported screen-size matrix locally while developing.
+- Select checks by the changed behaviour using the table in docs/DEVELOPMENT.md. Do not run the full candidate suite or all screen families for an ordinary beta.
+- During layout work, render the affected page at the affected viewport first. Run that page across all six viewports once when the final change affects shared sizing, placement or responsive behaviour.
 - Keep intermediate fixes local. Consolidate related changes and push only after the local checks pass.
 - Do not make a sequence of speculative CI-only commits to adjust screenshot geometry or workflow assertions. Reproduce and resolve those failures locally first.
 - For an ordinary release, trigger GitHub Actions only once for the final release candidate. A second run is acceptable only when the first uncovers a failure that could not reasonably be reproduced locally.
@@ -66,15 +67,19 @@ GitHub-hosted runtime is limited. Do not use repeated pushes or GitHub Actions r
 
 Use the repository's local entry point instead of reconstructing checks by hand:
 
-- `tools/check fast` for code and controller changes.
-- `tools/check screen <settings|discover|all>` while developing native layouts.
-- `tools/check candidate` before pushing a release candidate.
-- `tools/check image` only for stable, boot/provisioning/package, or explicitly requested image work.
+- During implementation, run the tests for the changed behaviour. Once the final code is ready, run `tools/check fast` once; `tools/release-beta` already runs it, so do not run it immediately beforehand too.
+- Native layout changes: `tools/check screen <settings|discover|listening> <viewport-id>` first. Expand only the affected page to the full viewport matrix when shared or responsive layout changes justify it. `listening` covers the KEF Home tiles.
+- Web-only layout changes: verify the affected browser flow and save/readback behaviour; GTK renders are unnecessary.
+- `tools/check appliance` is for service, privileged helper, dependency/packaging or updater changes that need the Alpine runtime. It is not a routine beta requirement.
+- `tools/check candidate` is an explicit broad regression sweep for stable or cross-cutting changes, not a prerequisite for every beta.
+- `tools/check image` is for stable image releases, boot/provisioning/package changes needing a fresh image, or an explicitly requested image test.
+- Do not dispatch the manual Alpine workflow for an ordinary source-only beta. The baseline workflow already runs fast checks on the final push.
+- A passing check stays valid until relevant code or dependencies change. Do not repeat successful checks merely to get a fresh log. Report unrelated pre-existing fixture failures separately; fix or investigate failures caused by the change before publishing.
+- Never test on or restart the user's live Pi merely to satisfy a checklist. Physical acceptance is needed only for changed hardware behaviour; simulator results do not prove it.
 
-The viewport matrix lives only in `tools/viewports.json`. Do not duplicate it in
-workflow YAML or another test. Inspect the relevant gallery below
-`dist/native-review/` before
-pushing layout work. See `docs/DEVELOPMENT.md` for the complete release sequence.
+The viewport matrix lives only in `tools/viewports.json`. Inspect the affected
+gallery below `dist/native-review/` before pushing native layout work.
+See `docs/DEVELOPMENT.md` for the audit and selection table.
 
 ## Optional remote/accessory beta
 
