@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.128 Alpine — 8 November 2026
+
+- Home: the wide Now Playing tile no longer flicks between its wide and narrow layouts while the grid is being laid out again (for example around an update); it keeps its last layout until the tile has a measured size.
+
 ## 1.2.0-beta.127 Alpine — 8 November 2026
 
 - Wide Now Playing tile: the artwork is a rounded square with padding round it, centred in the left half, instead of full bleed; the track details on the right are centred. The builder preview matches.

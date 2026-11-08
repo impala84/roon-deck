@@ -300,7 +300,12 @@ class HomeDashboardMixin:
         self.hs_art.set_visible(art == "background"); self.hs_fade.set_visible(art == "background"); self.hs_thumb.set_visible(art == "thumb" and not self.hs_short)
         thumb_mode = art == "thumb" and not self.hs_short
         card_w, card_h = self.hs_player.get_width(), self.hs_player.get_height()
-        split = art == "background" and not self.hs_short and card_h >= 200 and card_w >= card_h * 1.5   # a wide tile: artwork on the left half, the details on the right
+        if card_w > 0 and card_h > 0:
+            split = art == "background" and not self.hs_short and card_h >= 200 and card_w >= card_h * 1.5   # a wide tile: artwork on the left half, the details on the right
+            self.hs_split_last = (split, card_w, card_h)
+        else:
+            # Not measured yet (the grid is being laid out again): keep what was last decided, so the tile does not flick between layouts.
+            split, card_w, card_h = getattr(self, "hs_split_last", (False, 0, 0))
         (self.hs_player.add_css_class if split else self.hs_player.remove_css_class)("hs-split")   # a wide tile is laid out like the 7-inch Now Playing screen: big title, big controls
         if split: self.hs_content.set_spacing(20)
         if split:   # a framed square of artwork centred in the left half, with room round it, not full bleed
