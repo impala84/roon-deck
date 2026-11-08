@@ -480,6 +480,12 @@
     const span = document.createElement('span'); span.className = 'hd-widthicon';
     span.innerHTML = `<svg viewBox="0 0 ${total} 24" width="56" height="24" aria-hidden="true">${track}<rect x="0" y="1" width="${fill.toFixed(1)}" height="22" rx="3" fill="currentColor"/></svg>`; return span;
   }
+  // Page actions as icons; the words stay as the tooltip and the screen-reader label.
+  function pageIcon(kind, text) {
+    const paths = {add: '<path d="M12 5v14M5 12h14"/>', copy: '<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12.5A2 2 0 0 0 9 21h6a2 2 0 0 0 2-1.5L18 7M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/>'};
+    const button = h('button', {type: 'button', class: 'secondary hd-iconbtn', title: text, 'aria-label': text});
+    button.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`; return button;
+  }
   function pageBar() {
     const count = pageCount(), here = Math.min(pageNo, count - 1), tabs = Array.from({length: count}, (_, number) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
@@ -487,9 +493,9 @@
     });
     const actions = [];
     if (count < MAX_PAGES) {
-      const add = h('button', {type: 'button', class: 'secondary'}, 'Add page'); add.onclick = () => { layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render(); }; actions.push(add);
+      const add = pageIcon('add', 'Add page'); add.onclick = () => { layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render(); }; actions.push(add);
       // A copy of this page: every tile on it is copied onto a new page, where each can be changed on its own.
-      const dup = h('button', {type: 'button', class: 'secondary'}, 'Duplicate page');
+      const dup = pageIcon('copy', 'Duplicate page');
       dup.onclick = () => {
         const copies = {};
         for (const key of ids()) { const target = newCopyKey(B(key)); if (!target) continue; layout.tiles[target] = {...tileOf(key), page: count}; copies[target] = true; }
@@ -498,7 +504,7 @@
       actions.push(dup);
     }
     if (count > 1) {
-      const del = h('button', {type: 'button', class: 'secondary'}, 'Delete page');
+      const del = pageIcon('trash', 'Delete page');
       del.title = 'Tiles that are only on this page move to page 1';
       del.onclick = () => {
         for (const id of [...textIds(), ...Object.keys(CARDS)]) if (!(id in layout.tiles)) layout.tiles[id] = {};   // tiles on the first page have no record until now

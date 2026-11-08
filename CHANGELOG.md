@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.100 Alpine — 8 November 2026
+
+- Builder: Add page, Duplicate page and Delete page are now icon buttons (plus, copy, bin) on the right of the page bar; hover for the name.
+
 ## 1.2.0-beta.99 Alpine — 8 November 2026
 
 - Builder: the Width buttons (Half column, One column, Two columns, Full width) now show a small picture of the grid with that width filled in, with the name beneath.

@@ -262,3 +262,4 @@
 .hd-tile>*:not(.hd-x):not(.hd-stretch){border-radius:inherit}
 .hd-widthbtn{display:grid!important;gap:6px;justify-items:center;align-content:center}.hd-widthbtn small{font-size:12px;font-weight:600;line-height:1.1;margin:0}.hd-widthicon{display:block;line-height:0}.hd-widthicon svg{display:block}
 .hd-widthbtn small{color:inherit!important;opacity:.9}
+.hd-pages .hd-iconbtn{display:grid;place-items:center;width:40px;height:36px;padding:0!important}.hd-iconbtn svg{display:block}
