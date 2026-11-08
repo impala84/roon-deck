@@ -151,7 +151,7 @@ class HomePageMixin:
             icon_texture = self.home_art(tile["icon"], accent) if tile.get("icon") else None
             if tile.get("icon") and icon_texture is None: self.home_signature = None
             if icon_texture is not None:
-                icon = Gtk.Image.new_from_paintable(icon_texture); icon.set_pixel_size(icon_size); icon.set_opacity(1 if (state in {"on", "open", "playing"} or scene) else .5)
+                icon = Gtk.Image.new_from_paintable(icon_texture); icon.set_pixel_size(icon_size); icon.set_opacity(1 if (state in {"on", "open", "playing"} or scene) else .72)
             else: icon = FamilyIcon("check" if scene else domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size)
             icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
             button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not row_mode); button.set_vexpand(True); button.set_child(icon)

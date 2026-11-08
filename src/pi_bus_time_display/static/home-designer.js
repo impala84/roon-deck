@@ -10,7 +10,7 @@
   const DEFAULT_COLOURS = {light: '#fb923c', fan: '#60a5fa', switch: '#9868f9', scene: '#a3e635'};
   const SWATCHES = ['#fb923c', '#60a5fa', '#9868f9', '#a3e635', '#e85d3a', '#d94f8c', '#3fc7a0', '#e9e4da'];
   const lineArt = body => body.replace(/fill="#fff"/g, 'fill="none"');
-  const ICON_STYLE = 'stroke="#fff" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  const ICON_STYLE = 'stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"';
   // The shape of each touchscreen: width × height as it sits when mounted, from the display profile and orientation.
   const SCREENS = {original: [800, 480, 'Touch Display (7-inch, original)'], 'touch2-5': [720, 1280, '5-inch Touch Display 2'], 'touch2-7': [720, 1280, '7-inch Touch Display 2'], 'touch2-5-7': [720, 1280, 'Touch Display 2'], 'touch2-10': [800, 1280, '10-inch Touch Display 2']};
 
@@ -58,7 +58,7 @@
     if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
     markDirty(); render();
   }
-  const rowsPatch = (id, rows) => id === 'roondeck.player' ? {rows} : {rows: rows === 2 ? 2 : ''};
+  const rowsPatch = (id, rows) => id === 'roondeck.player' ? {rows} : {rows: rows > 1 ? rows : ''};
   const domainOf = id => { const d = id.split('.')[0]; return d === 'script' || d === 'scene' ? 'scene' : d === 'input_boolean' ? 'switch' : d; };
   const accent = id => {
     if (tileOf(id).color) return tileOf(id).color;
@@ -94,7 +94,7 @@
     const taken = new Set(), at = new Map();
     const isHalf = id => !!dash && !!tileOf(id).half;
     const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
-    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: (tileOf(id).rows || (id === 'roondeck.player' ? 2 : 1)) === 2 ? 2 : 1});
+    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: Math.min(dash ? 3 : 2, Math.max(1, tileOf(id).rows || (id === 'roondeck.player' ? 2 : 1)))});
     const startOf = id => tileOf(id).col * fine + (isHalf(id) && tileOf(id).sub ? 1 : 0);
     for (const id of list) {
       const {span, height} = dims(id), tile = tileOf(id), x = startOf(id);
@@ -125,7 +125,7 @@
     for (const cell of cells) {
       const half = fine === 2 && tileOf(cell.id).half, next = {...tileOf(cell.id), col: Math.floor(cell.column / fine), row: cell.row}; delete next.rows;
       if (half && cell.column % 2) next.sub = 1; else delete next.sub;
-      if (cell.height === 2) next.rows = 2; else if (cell.id === 'roondeck.player') next.rows = 1;
+      if (cell.height !== (cell.id === 'roondeck.player' ? 2 : 1)) next.rows = cell.height;
       layout.tiles[cell.id] = next;
     }
   }
@@ -133,9 +133,15 @@
   /* ------------------------------------------------------------ preview */
   // A small copy of the touchscreen's cards, so the builder reads like the real Home page.
   const svgOf = (key, colour) => { const span = h('span', {class: 'hd-glyph', style: `color:${colour}`}); if (ICONS[key]) span.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" ${ICON_STYLE.replace('stroke="#fff"', 'stroke="currentColor"')}>${lineArt(ICONS[key][1])}</svg>`; return span; };
-  function dashBody(id, tile, colour, lit) {
-    if (id === 'roondeck.player') return [h('div', {class: 'hd-d-player'}, h('span', {class: 'hd-d-zone'}, 'ROONDECK'), h('span', {class: 'hd-d-spacer'}), h('b', {}, 'Track title'), h('small', {}, 'Artist'), h('span', {class: 'hd-d-bar'}, h('i', {})),
-      h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')))];
+  function dashBody(id, tile, colour, lit, height) {
+    if (id === 'roondeck.player') {
+      const art = tile.art || 'background', short = height === 1, bar = tile.scrubber ? h('span', {class: 'hd-d-bar scrub'}, h('i', {}), h('em', {})) : h('span', {class: 'hd-d-bar'}, h('i', {}));
+      return [h('div', {class: `hd-d-player art-${art}`},
+        tile.heading === false || short ? null : h('span', {class: 'hd-d-zone'}, (tile.label || 'ROONDECK').toUpperCase()), h('span', {class: 'hd-d-spacer'}),
+        h('span', {class: 'hd-d-headrow'}, art === 'thumb' && !short ? h('span', {class: 'hd-d-thumb'}) : null, h('span', {class: 'hd-d-words'}, h('b', {}, 'Track title'), h('small', {}, 'Artist'))), bar,
+        h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
+        tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
+    }
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (id in LIVE) {
       const cpu = id === 'roondeck.cpu', points = (cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24]).map((value, i, all) => `${(i * 100 / (all.length - 1)).toFixed(1)},${(36 - value * .55).toFixed(1)}`).join(' ');
@@ -163,11 +169,11 @@
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
-    if (dashColumns()) { node.classList.add('hd-dash'); node.append(...dashBody(id, tile, colour, lit)); }
+    if (dashColumns()) { node.classList.add('hd-dash'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
-    if (isCard(id)) { node.style.background = id === 'roondeck.bus' ? '#2c4262' : '#232228'; node.style.borderColor = id === 'roondeck.bus' ? '#6aa8ff' : '#44414c'; }
+    if (isCard(id) && !tile.color) { node.style.background = '#232228'; node.style.borderColor = '#44414c'; }   // the standard card look, unless the owner picked a colour
     for (const axis of ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: axis === 'x' ? 'Drag to make this tile wider or narrower' : 'Drag to make this tile taller or shorter', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
@@ -201,7 +207,7 @@
         if (units !== cell.span) patch = units === 1 ? {half: true, size: ''} : {half: '', sub: '', size: units >= columns ? 'full' : units === 4 ? 'half' : ''};
       }
       else if (axis === 'x') { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + (moveEvent.clientX - startX) / unitX)))); if (size !== current()) patch = {size}; }
-      else { const rows = Math.max(1, Math.min(2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== cell.height) patch = rowsPatch(id, rows); }
+      else { const rows = Math.max(1, Math.min(dashColumns() ? 3 : 2, Math.round(cell.height + (moveEvent.clientY - startY) / unitY))); if (rows !== cell.height) patch = rowsPatch(id, rows); }
       if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
       selected = ids().indexOf(id); patchTile(id, patch);
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', done);
@@ -321,7 +327,7 @@
     const image = url => new Promise((resolve, reject) => { const node = new Image(); node.onload = () => resolve(node); node.onerror = () => reject(new Error('That file is not an image the browser can read')); node.src = url; });
     return {
       async icon(key) {
-        const name = `icon-${key}-hm6.png`;
+        const name = `icon-${key}-hm7.png`;
         if (art.includes(name)) return name;
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120"><g transform="translate(14,14) scale(3.8)" ${ICON_STYLE}>${lineArt(ICONS[key][1])}</g></svg>`;
         const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
@@ -356,7 +362,7 @@
     const categories = window.DeckIconCategories || [];
     const icons = h('div', {class: 'dd-icons', role: 'group', 'aria-label': 'Icons'});
     const fill = () => icons.replaceChildren(...Object.entries(ICONS).filter(([, [, , category]]) => category === iconCategory).map(([key, [name, body]]) => {
-      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': tile.icon === `icon-${key}-hm6.png` ? 'true' : 'false'});
+      const choice = h('button', {type: 'button', title: name, 'aria-label': name, 'aria-pressed': tile.icon === `icon-${key}-hm7.png` ? 'true' : 'false'});
       choice.innerHTML = `<svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" ${ICON_STYLE}>${lineArt(body)}</svg>`;
       choice.onclick = async () => { try { patchTile(id, {icon: await tools.icon(key)}); } catch (error) { message.textContent = error.message; } };
       return choice;
@@ -390,7 +396,14 @@
     if (isCard(id)) {
       const drop = id in LIVE ? h('button', {type: 'button', class: 'secondary'}, 'Remove tile') : null;
       if (drop) drop.onclick = () => { delete layout.tiles[id]; selected = -1; markDirty(); render(); };
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`),
+      const check = (text, checked, patch) => { const box = h('input', {type: 'checkbox'}); box.checked = checked; box.onchange = () => patchTile(id, patch(box.checked)); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
+      const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
+        const button = h('button', {type: 'button', 'aria-pressed': String((tile.art || 'background') === value)}, text); button.onclick = () => patchTile(id, {art: value === 'background' ? '' : value}); return button;
+      }));
+      const playerFields = id !== 'roondeck.player' ? [] : [field('Title', label, 'Shown above the track. Leave it blank to show the zone name.'), check('Show the title', tile.heading !== false, on => ({heading: on ? '' : false})),
+        field('Artwork', artwork), check('Track scrubber (drag to seek)', !!tile.scrubber, on => ({scrubber: on ? true : ''})), check('Volume slider', tile.volume !== false, on => ({volume: on ? '' : false}))];
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields,
+        field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
@@ -520,7 +533,7 @@
     render();
     // Icons made by earlier versions are small in their tile: redraw them at the full size.
     for (const [id, tile] of Object.entries(layout.tiles)) {
-      const old = /^icon-(.+)-hd5\.png$/.exec(tile.icon || '');
+      const old = /^icon-(.+)-(?:hd5|hm6)\.png$/.exec(tile.icon || '');
       if (old && ICONS[old[1]]) { try { layout.tiles[id] = {...tile, icon: await tools.icon(old[1])}; markDirty(); } catch (_) { /* keep the old icon */ } }
     }
     render();

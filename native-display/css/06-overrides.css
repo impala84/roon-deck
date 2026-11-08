@@ -482,7 +482,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-play { min-width: 72px; min-height: 72px; border-radius: 36px; padding: 0; background: #6ed9ae; color: #17151d; }
 .theme-roon .hs-play { background: #9868F9; }
 .hs-volume-label { font-size: 15px; font-weight: 700; letter-spacing: 1px; color: #aab4b0; }
-.hs-bus { background: #2c4262; border-color: #6aa8ff; padding: 0 22px 0 20px; }
+.hs-bus { padding: 0 22px 0 20px; }
 .hs-bus-chip { min-width: 60px; min-height: 60px; border-radius: 30px; }
 .hs-route { font-size: 36px; font-weight: 700; color: #f4f0e6; }
 .hs-then { font-size: 17px; color: #d3dcec; }
@@ -509,3 +509,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .theme-roon .hs-stat-title { color: #a29eaf; }
 .hs-stat-value { font-size: 34px; font-weight: 600; color: #f4f0e6; }
 .hs-stat-detail { font-size: 17px; color: #9fb0ab; }
+
+/* Now Playing options: thumbnail artwork and the seekable scrubber */
+.hs-thumb { border-radius: 14px; }
+.hs-scrub { margin: 2px 0; }

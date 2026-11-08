@@ -220,3 +220,8 @@
 .hd-d-live{display:grid;gap:.6cqw;align-content:center}.hd-d-live .hd-d-big{font-size:3cqw}.hd-d-spark{display:block;height:3.4cqw}.hd-d-spark svg{width:100%;height:100%}
 .hd-d-live{gap:.3cqw}.hd-d-live .hd-d-big{font-size:2.4cqw;white-space:nowrap;display:block}.hd-d-spark{height:2.4cqw}
 .hd-d-half .hd-d-chip{width:3.6cqw;height:3.6cqw}.hd-d-half b{font-size:1.6cqw;-webkit-line-clamp:1}
+
+.hd-d-player.art-thumb,.hd-d-player.art-off{background:transparent}
+.hd-d-headrow{display:flex;gap:1.2cqw;align-items:flex-end}.hd-d-words{display:grid;flex:1;min-width:0}.hd-d-thumb{flex:none;width:7cqw;height:7cqw;border-radius:1cqw;background:linear-gradient(135deg,#a0553a,#5a3a40)}
+.hd-d-bar.scrub em{position:absolute;left:30%;top:50%;width:1.4cqw;height:1.4cqw;margin:-.7cqw;border-radius:50%;background:#f4f0e6}.hd-d-bar.vol{width:70%;align-self:center;margin-top:.8cqw}.hd-d-bar.vol i{width:55%}
+.hd-glyph svg{stroke-width:2.1}

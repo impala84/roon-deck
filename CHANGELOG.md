@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.72 Alpine — 8 November 2026
+
+- Home: Now Playing options. In the builder, select the Now Playing tile to change its title (or hide it), show the artwork as the background, a thumbnail beside the track or not at all, add a drag-to-seek track scrubber, and hide the volume slider.
+- Home: tiles can be one, two or three rows tall, and dragging a tile's bottom edge scales between them. Short tiles drop the title and volume to fit.
+- Home: the Now Playing and bus tiles can be given any colour from the tile's Colour options. The bus tile is now the same neutral grey in the builder as on the screen.
+- Home: tile icons are bolder and brighter (heavier line, and a stronger glow when a device is off). Icons made earlier are redrawn at the new weight the next time the builder is opened; save to apply.
+
 ## 1.2.0-beta.71 Alpine — 8 November 2026
 
 - Home: tiles can be half a column wide. In the builder, drag a tile's right edge narrower than one column (or pick Half column in the tile's width options) and two half tiles share a column. Half-width cards stack the icon, toggle, name and level to fit. This replaces sharing a cell between two scenes.

@@ -34,14 +34,18 @@ class HomeDashboardMixin:
         player = Gtk.Overlay(); player.add_css_class("hs-card"); player.set_overflow(Gtk.Overflow.HIDDEN); player.set_hexpand(True); player.set_vexpand(True); self.hs_player = player; self.hs_short = False
         self.hs_art = Gtk.Picture(); self.hs_art.set_content_fit(Gtk.ContentFit.COVER); self.hs_art.set_can_shrink(True); self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL)
         player.set_child(self.hs_art)
-        fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade)
+        fade = Gtk.Box(); fade.add_css_class("hs-fade"); fade.set_can_target(False); player.add_overlay(fade); self.hs_fade = fade; self.hs_opts = {}
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); content.add_css_class("hs-content")
         self.hs_zone = self.label("", "hs-zone"); content.append(self.hs_zone)
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
         self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END); self.hs_title.set_max_width_chars(1)
         self.hs_artist = self.label("", "hs-artist"); self.hs_artist.set_ellipsize(Pango.EllipsizeMode.END)
-        content.append(self.hs_title); content.append(self.hs_artist)
+        self.hs_thumb = Gtk.Picture(); self.hs_thumb.set_content_fit(Gtk.ContentFit.COVER); self.hs_thumb.set_can_shrink(True); self.hs_thumb.add_css_class("hs-thumb"); self.hs_thumb.set_overflow(Gtk.Overflow.HIDDEN); self.hs_thumb.set_valign(Gtk.Align.START); self.hs_thumb.set_visible(False)
+        words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); words.set_hexpand(True); words.set_valign(Gtk.Align.END); words.append(self.hs_title); words.append(self.hs_artist)
+        head = Gtk.Box(spacing=16); head.append(self.hs_thumb); head.append(words); content.append(head)
         self.hs_progress = Gtk.ProgressBar(); self.hs_progress.add_css_class("hs-progress"); content.append(self.hs_progress)
+        self.hs_scrub = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 1); self.hs_scrub.add_css_class("home-slider"); self.hs_scrub.add_css_class("hs-scrub"); self.hs_scrub.set_draw_value(False); self.hs_scrub.set_visible(False)
+        self.hs_scrub.connect("value-changed", self.change_seek); content.append(self.hs_scrub)
         transport = Gtk.Box(spacing=26); transport.set_halign(Gtk.Align.CENTER)
         self.hs_prev = self.icon_button("previous", lambda *_: self.control("previous"), "hs-transport")
         self.hs_play = self.icon_button("play", lambda *_: self.control("playpause"), "hs-play")
@@ -126,18 +130,27 @@ class HomeDashboardMixin:
         if not self.home_dashboard_active(): return
         scale = self.home_scale()
         # The Now Playing page already works out the zone, track, controls and volume each refresh; mirror its widgets.
-        self.hs_zone.set_text((self.zone.get_text() or "ROON").upper()); self.hs_title.set_text(self.title.get_text()); self.hs_artist.set_text(self.artist.get_text())
+        options = self.hs_opts or {}
+        self.hs_zone.set_text(str(options.get("label") or self.zone.get_text() or "ROON").upper()); self.hs_title.set_text(self.title.get_text()); self.hs_artist.set_text(self.artist.get_text())
         paintable = self.artwork.get_paintable()
-        if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
+        art = options.get("art") if options.get("art") in ("thumb", "off") else "background"
+        self.hs_art.set_visible(art == "background"); self.hs_fade.set_visible(art == "background"); self.hs_thumb.set_visible(art == "thumb" and not self.hs_short)
+        self.hs_thumb.set_size_request(round(104 * scale), round(104 * scale))
+        for picture in (self.hs_art, self.hs_thumb):
+            if paintable is not picture.get_paintable(): picture.set_paintable(paintable)
         adjustment = self.progress.get_adjustment(); upper = adjustment.get_upper()
         self.hs_progress.set_fraction(min(1.0, adjustment.get_value() / upper) if upper > 1 else 0.0)
+        scrubber = bool(options.get("scrubber"))
+        self.hs_progress.set_visible(not scrubber); self.hs_scrub.set_visible(scrubber)
+        if scrubber:
+            self.seek_updating = True; self.hs_scrub.set_range(0, max(1.0, upper)); self.hs_scrub.set_value(adjustment.get_value()); self.hs_scrub.set_sensitive(self.progress.get_sensitive()); self.seek_updating = False
         current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round(40 * scale)
         shown = self.hs_play.get_child()
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
         self.volume_updating = True
-        self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible() and not self.hs_short)
-        self.hs_zone.set_visible(not self.hs_short); self.hs_title.set_lines(1 if self.hs_short else 2)
+        self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible() and not self.hs_short and options.get("volume") is not False)
+        self.hs_zone.set_visible(not self.hs_short and options.get("heading") is not False); self.hs_title.set_lines(1 if self.hs_short else 2)
         self.volume_updating = False
         services = (status or {}).get("services") or []
         chosen = next((item for item in services if str(item.get("service")) == HOME_BUS_ROUTE), services[0] if services else None)
@@ -167,8 +180,17 @@ class HomeDashboardMixin:
             if home_cell and untouched and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)
+        self.hs_opts = dict(cards.get("roondeck.player") or {})
+        def mix(front, back, amount):
+            top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
+            return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
         self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network")}
         rules = []
+        for entity in virtual:                     # each card can have its own colour; without one it keeps the standard card look
+            name = "hs-custom-" + entity["entity_id"].replace(".", "-"); colour = entity["tile"].get("color")
+            entity["widget"].remove_css_class(name)
+            if isinstance(colour, str) and len(colour) == 7 and colour.startswith("#"):
+                entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {mix(colour, '#44414c', .58)}; }}")
         for domain, accent in (getattr(self, "home_domain_colours", None) or {}).items():
             rules.append(f".home-card.home-domain-{domain} .home-switch.on {{ background: {accent}; }}")
         def tile_of(entity): return entity.get("tile") or {}
@@ -176,7 +198,7 @@ class HomeDashboardMixin:
         def has_place(entity): return isinstance(tile_of(entity).get("col"), int) and isinstance(tile_of(entity).get("row"), int)
         def is_half(entity): return tile_of(entity).get("half") is True
         spans = {"quarter": 2, "half": min(4, cols), "full": cols}
-        def size_of(entity): return 1 if is_half(entity) else min(cols, spans.get(tile_of(entity).get("size"), 2)), 2 if tile_of(entity).get("rows") == 2 else 1
+        def size_of(entity): return 1 if is_half(entity) else min(cols, spans.get(tile_of(entity).get("size"), 2)), tile_of(entity).get("rows") if tile_of(entity).get("rows") in (2, 3) else 1
         def start_of(entity): return tile_of(entity)["col"] * 2 + (1 if is_half(entity) and tile_of(entity).get("sub") == 1 else 0)
         taken, placed = set(), {}
         def spots(column, row, width, height): return {(column + dx, row + dy) for dx in range(width) for dy in range(height)}
@@ -234,7 +256,7 @@ class HomeDashboardMixin:
         texture = self.home_art(tile["icon"], accent) if tile.get("icon") else None
         if tile.get("icon") and texture is None: self.home_signature = None   # the picture has not arrived yet: try again next refresh
         if texture is not None:
-            icon = Gtk.Image.new_from_paintable(texture); icon.set_pixel_size(glyph); icon.set_opacity(1 if on else .55)
+            icon = Gtk.Image.new_from_paintable(texture); icon.set_pixel_size(glyph); icon.set_opacity(1 if on else .75)
         else:
             if domain in {"scene", "script"}: name = "check"
             elif domain in CARD_DOMAINS: name = CARD_DOMAINS[domain]

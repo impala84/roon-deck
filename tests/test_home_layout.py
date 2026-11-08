@@ -21,7 +21,7 @@ class HomeLayoutTests(unittest.TestCase):
     def test_tall_tiles(self):
         self.assertEqual(validate_layout({"tiles": {"light.a": {"rows": 2}}}), {"tiles": {"light.a": {"rows": 2}}})
         self.assertEqual(validate_layout({"tiles": {"light.a": {"rows": 1, "size": "half"}}}), {"tiles": {"light.a": {"size": "half"}}})
-        for rows in (0, 3, "2", True):
+        for rows in (0, 4, "2", True):
             with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": {"rows": rows}}})
 
     def test_tile_positions(self):
@@ -120,3 +120,12 @@ class LinkedHomeDevicesTests(unittest.TestCase):
                 set_state.reset_mock()
                 self.assertFalse(server.home_assistant_switch_group(state, "switch.other"))
                 set_state.assert_not_called()
+
+
+class CardOptionTests(unittest.TestCase):
+    def test_now_playing_options_and_three_rows(self):
+        tile = {"rows": 3, "art": "thumb", "scrubber": True, "volume": False, "heading": False, "label": "Lounge"}
+        layout = validate_layout({"tiles": {"roondeck.player": dict(tile, col=0, row=0)}})
+        for key, value in tile.items(): self.assertEqual(layout["tiles"]["roondeck.player"][key], value)
+        defaults = validate_layout({"tiles": {"roondeck.player": {"art": "background", "scrubber": False, "volume": True, "heading": True}}})
+        self.assertNotIn("art", defaults["tiles"].get("roondeck.player", {}))

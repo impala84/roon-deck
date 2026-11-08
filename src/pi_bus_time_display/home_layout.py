@@ -10,7 +10,7 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading"}
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
 CPU, NETWORK = "roondeck.cpu", "roondeck.network"   # live tiles the owner can add
@@ -33,15 +33,20 @@ def validate_layout(data):
             if tile["size"] not in SIZES: raise ValueError("Choose a tile size")
             out["size"] = tile["size"]
         if "rows" in tile:
-            if tile["rows"] not in (1, 2) or isinstance(tile["rows"], bool): raise ValueError("Tiles can be one or two rows tall")
+            if tile["rows"] not in (1, 2, 3) or isinstance(tile["rows"], bool): raise ValueError("Tiles can be one, two or three rows tall")
             # The player is two rows tall unless the owner makes it one; every other tile is one row unless it is two.
-            if tile["rows"] == 2 or (tile["rows"] == 1 and entity_id == PLAYER): out["rows"] = tile["rows"]
+            if tile["rows"] in (2, 3) or (tile["rows"] == 1 and entity_id == PLAYER): out["rows"] = tile["rows"]
         for name, top in (("col", 3), ("row", 7)):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
                 out[name] = tile[name]
         if tile.get("half") is True: out["half"] = True   # half a column wide (dashboard only)
         if tile.get("sub") == 1 and not isinstance(tile.get("sub"), bool): out["sub"] = 1   # the right-hand half of its column
+        # Now Playing options: artwork as the background (default), a thumbnail or none; a seekable scrubber; the volume row and heading can be hidden.
+        if tile.get("art") in ("thumb", "off"): out["art"] = tile["art"]
+        if tile.get("scrubber") is True: out["scrubber"] = True
+        if tile.get("volume") is False: out["volume"] = False
+        if tile.get("heading") is False: out["heading"] = False
         if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
         if tile.get("also"):
             also = tile["also"]
