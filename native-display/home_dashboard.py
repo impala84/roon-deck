@@ -74,7 +74,7 @@ class HomeDashboardMixin:
         self.hs_bus_route = None; self.hs_bus_services = []
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
-        self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK")
+        self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK"); self.hs_net_value.add_css_class("hs-net-value")
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
         self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
         self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}

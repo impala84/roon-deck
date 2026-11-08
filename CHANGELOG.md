@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.85 Alpine — 8 November 2026
+
+- Home: the Network speed is set in a smaller size, so "6.6 Mb/s" fits the smallest tile in full.
+
 ## 1.2.0-beta.84 Alpine — 8 November 2026
 
 - Home: the page dots are now centred in the header row and are all the same round size, with the current page in white. In the builder preview too.
