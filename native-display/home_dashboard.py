@@ -429,9 +429,9 @@ class HomeDashboardMixin:
                 if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
                 if base_of(entity["entity_id"]) == "roondeck.player":
                     tall = height >= 3   # a full-height player has room to spare, so the slider and controls are given some
-                    self.hs_content.set_spacing(26 if tall else 10)
-                    self.hs_progress.set_margin_top(10 if tall else 0); self.hs_progress.set_margin_bottom(10 if tall else 0); self.hs_scrub.set_margin_top(10 if tall else 0); self.hs_scrub.set_margin_bottom(10 if tall else 0)
-                    self.hs_volume_row.set_margin_top(10 if tall else 0)
+                    self.hs_content.set_spacing(8 if tall else 10)   # the title, scrubber and controls stay together at the bottom; the spare height goes to the artwork above
+                    for bar in (self.hs_progress, self.hs_scrub): bar.set_margin_top(6 if tall else 0); bar.set_margin_bottom(10 if tall else 0)
+                    self.hs_volume_row.set_margin_top(6 if tall else 0)
                 if hasattr(widget, "chip"):   # a wide action tile (Update, Group) gets larger type and icon
                     widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
                     # The title sits beside the icon only where there is room for it: on the smallest tile it goes below the icon.

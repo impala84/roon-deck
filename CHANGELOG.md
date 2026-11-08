@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.98 Alpine — 8 November 2026
+
+- Home: on a full-height Now Playing tile the title and artist sit close to the scrubber and the controls close below it, instead of being spread over the height of the tile.
+
 ## 1.2.0-beta.97 Alpine — 8 November 2026
 
 - Home: on the Update and Group tiles the title sits beside the icon only when the tile is wide enough (two columns or more); on the smallest tile it goes below the icon again. Stretching the tile moves it up beside the icon. Same in the builder preview.
