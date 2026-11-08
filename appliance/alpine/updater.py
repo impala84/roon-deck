@@ -120,7 +120,7 @@ def verified_revision():
     configuration = tomllib.loads(CONFIG.read_text())
     channel = configuration.get("release_channel", "stable") if (STATE / "update-channel-initialized").exists() else "beta"
     installed = tomllib.loads((APP / "pyproject.toml").read_text())["project"]["version"]
-    selected = select_release(published_releases(), channel, installed, "alpine")
+    selected = select_release(published_releases(channel), channel, installed, "alpine")
     if selected["status"] == "ahead":
         raise NoDowngrade(selected["message"])
     if selected["status"] == "unavailable":

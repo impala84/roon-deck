@@ -130,15 +130,20 @@ def github_json(url: str, timeout: float = 15):
     return body
 
 
-def published_releases() -> list:
+def published_releases(channel: str = "beta") -> list:
+    """Newest releases first. One small page is normally enough, which keeps each check to a single GitHub request;
+    more pages are read only while the channel has no usable release yet (the stable channel, behind many betas)."""
     releases = []
     for page in range(1, 6):
-        batch = github_json(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100&page={page}", timeout=15)
+        batch = github_json(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=30&page={page}", timeout=15)
         if not isinstance(batch, list):
             raise ValueError("Invalid release catalogue")
         # Only these fields are used, and keeping them small keeps the on-disk cache small.
         releases.extend({"tag_name": item.get("tag_name"), "draft": item.get("draft"), "prerelease": item.get("prerelease")} for item in batch if isinstance(item, dict))
-        if len(batch) < 100:
+        if len(batch) < 30:
+            return releases
+        usable = [r for r in releases if not r.get("draft") and isinstance(r.get("tag_name"), str) and r["tag_name"].startswith("v") and (channel != "stable" or (not r.get("prerelease") and "-" not in r["tag_name"].removesuffix("-alpine")))]
+        if usable:
             return releases
     raise ValueError("Release catalogue exceeds the supported page limit")
 
@@ -155,7 +160,7 @@ class ReleaseChecker:
             if not refresh and getattr(self, "cache_key", None) == key and time.monotonic() - self.checked_at < 300:
                 return dict(self.cached)
             try:
-                result = select_release(published_releases(), channel, installed, distribution)
+                result = select_release(published_releases(channel), channel, installed, distribution)
             except RateLimited as error:
                 result = {"installed_version": installed, "release_channel": channel, "latest_version": None, "update_available": False, "status": "unavailable", "message": str(error)}
                 self.cached = result; self.cache_key = key; self.checked_at = time.monotonic() - 240
@@ -174,7 +179,7 @@ def main():
     parser.add_argument("--installed", required=True)
     args = parser.parse_args()
     config = tomllib.loads(args.config.read_text()) if args.config.exists() else {}
-    result = select_release(published_releases(), config.get("release_channel", "stable"), args.installed)
+    result = select_release(published_releases(config.get("release_channel", "stable")), config.get("release_channel", "stable"), args.installed)
     if result["status"] == "unavailable":
         raise SystemExit(result["message"])
     print(result["tag"] if result["update_available"] else "")

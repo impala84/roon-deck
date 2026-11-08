@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.92 Alpine — 8 November 2026
+
+- Updates: checking for a new version now reads one small page of GitHub releases (30) instead of up to 100 at a time, so a check normally costs a single request. That makes the "GitHub is limiting requests from this network" message much less likely when several Pis share one network. More pages are read only if the channel has no usable release yet.
+
 ## 1.2.0-beta.91 Alpine — 8 November 2026
 
 - Home: the smaller Network speed text is used only on the smallest tile. At two columns wide or more it is the same size as CPU and Memory, with the full-size "Mb/s".
