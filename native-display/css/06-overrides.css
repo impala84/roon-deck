@@ -499,6 +499,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-card .home-slider highlight, .hs-volume highlight { min-height: 16px; border-radius: 8px; }
 .home-card .home-slider slider, .hs-volume slider { min-width: 8px; min-height: 28px; margin: -6px 0; border-radius: 4px; background: #f6f3ee; }
 .hs-volume highlight { background: #d9d6e2; }
+.theme-roon .home-card .hs-scrub highlight { background: #9868F9; }
 .home-card .home-level { min-width: 0; min-height: 28px; }
 .home-switch { min-width: 56px; min-height: 32px; border-radius: 16px; background: rgba(255,255,255,.2); }
 .home-switch-knob { min-width: 24px; min-height: 24px; margin: 4px; border-radius: 12px; background: #f6f3ee; }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.105 Alpine — 8 November 2026
+
+- Home: the Now Playing scrubber's filled part is the same purple as the play/pause button.
+
 ## 1.2.0-beta.104 Alpine — 8 November 2026
 
 - Builder: dragging a tile now shows a clean rounded copy of it (no square box with the remove button and handles). Tiles of different sizes now trade places on a full page: the tile you drop on moves to the nearest free spot, usually the one you left, so a wide bus tile and two small tiles swap properly.
