@@ -30,10 +30,11 @@
   };
 
   /* ------------------------------------------------------------ state */
-  let catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
+  let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
-  const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network'};   // optional live tiles the owner adds
+  const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
+  const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
   const isCard = id => id in CARDS || id in LIVE;
   const liveShown = () => Object.keys(LIVE).filter(id => layout.tiles[id]?.show);
   const deviceIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
@@ -143,6 +144,13 @@
         tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
     }
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
+    if (id === 'roondeck.update' || GROUPS.includes(id)) {
+      const upd = id === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext'},
+        h('span', {class: 'hd-d-livehead'}, h('small', {}, upd ? 'SOFTWARE' : 'ZONES')),
+        h('b', {class: 'hd-d-big'}, upd ? 'Update' : zones.length === 2 ? 'Group' : 'Set zones'),
+        h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready' : zones.length === 2 ? zones.join(' + ') : 'Choose them in the tile options')))];
+    }
     if (id in LIVE) {
       const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', net = !cpu && !mem;
       const values = mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24];
@@ -414,7 +422,12 @@
         const one = (text, on, other, key) => { const box = h('input', {type: 'checkbox'}); box.checked = on; box.disabled = on && !other; box.onchange = () => patchTile(id, {[key]: box.checked ? '' : false}); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
         return [field('Show', h('div', {class: 'hd-stack'}, one('Download', down, up, 'download'), one('Upload', up, down, 'upload')), 'Switch either direction off. One must stay on.')];
       })();
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields,
+      const groupFields = !GROUPS.includes(id) ? [] : (() => {
+        const names = [...new Set(roonOutputs.map(item => item.name))];
+        const pick = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), names.concat(tile[key] && !names.includes(tile[key]) ? [tile[key]] : []).map(name => h('option', {value: name}, name))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
+        return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
+      })();
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
         field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
@@ -456,7 +469,7 @@
     // Two sources of tiles, switched at the top: RoonDeck's own (first, as they are the quickest to add) and Home Assistant devices.
     const dash = !!dashColumns();
     const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
-    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : 'Throughput with a live graph'])];
+    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
     const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
       const live = key in LIVE, shown = live ? !!layout.tiles[key]?.show : true;
       const add = h('button', {type: 'button', class: 'secondary hd-add'}, live ? (shown ? 'Added' : 'Add') : 'On screen'); add.disabled = shown;
@@ -554,7 +567,8 @@
 
   async function load() {
     const json = async (url) => { try { const response = await fetch(url, {cache: 'no-store'}); return response.ok ? await response.json() : null; } catch (_) { return null; } };
-    const [cat, status, art_, saved, sys] = await Promise.all([json('/api/admin/home-catalog'), json('/api/home/status'), json('/api/admin/listening/art'), json('/api/admin/home-layout'), json('/api/admin/system')]);
+    const [cat, status, art_, saved, sys, outs] = await Promise.all([json('/api/admin/home-catalog'), json('/api/home/status'), json('/api/admin/listening/art'), json('/api/admin/home-layout'), json('/api/admin/system'), json('/roon/api/accessory/outputs')]);
+    roonOutputs = outs?.outputs || [];
     catalog = (cat?.entities) || [];
     states = Object.fromEntries([...(status?.entities || []), ...(status?.deck_entities || [])].map(item => [item.entity_id, item]));
     art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles, ...(saved.columns ? {columns: saved.columns} : {})}; system = sys || {};

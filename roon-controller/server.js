@@ -491,6 +491,20 @@ http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/accessory/outputs') {
       return json(response, 200, {outputs: [...zones.values()].flatMap(zone => (zone.outputs || []).map(output => ({id: output.output_id, name: output.display_name, zone: zone.display_name})))});
     }
+    if (request.method === 'POST' && url.pathname === '/api/zones/group') {
+      // Group or ungroup two zones by their output names. action: 'group', 'ungroup', or 'toggle' (the default) which does whichever is not the current state.
+      const data = await body(request);
+      const outputs = [...zones.values()].flatMap(item => item.outputs || []);
+      const first = outputs.find(item => item.display_name === data.zone), second = outputs.find(item => item.display_name === data.with);
+      if (!transport || !first || !second || first.output_id === second.output_id) return json(response, 409, {error: 'Those zones are not available'});
+      const together = [...zones.values()].some(item => (item.outputs || []).some(o => o.output_id === first.output_id) && (item.outputs || []).some(o => o.output_id === second.output_id));
+      const wanted = data.action === 'group' || data.action === 'ungroup' ? data.action : (together ? 'ungroup' : 'group');
+      await new Promise((resolve, reject) => {
+        const done = error => error ? reject(new Error(String(error))) : resolve();
+        if (wanted === 'group') transport.group_outputs([first, second], done); else transport.ungroup_outputs([second], done);
+      });
+      return json(response, 200, {ok: true, action: wanted});
+    }
     if (request.method === 'POST' && url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/accessory/control') {
         return json(response, 200, await accessoryControl.run(await body(request)));

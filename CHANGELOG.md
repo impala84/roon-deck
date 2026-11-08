@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.78 Alpine — 8 November 2026
+
+- Home: new Update tile. Add it from Add tiles > RoonDeck > Update. It checks for the latest release every ten minutes, shows whether one is ready, and installs it with a tap (when you are up to date, a tap checks again).
+- Home: new Group zones tiles (up to three). In the tile's options choose a Zone and a zone to Group with. Tapping groups them in Roon; once grouped the tile reads Ungroup and a tap separates them.
+
 ## 1.2.0-beta.77 Alpine — 8 November 2026
 
 - Home: a half-width scene tile (such as Study desk cycle) no longer breaks out of its cell. Its TAP TO ACTIVATE text is cut with an ellipsis instead of widening the tile.

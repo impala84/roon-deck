@@ -137,3 +137,10 @@ class CardOptionTests(unittest.TestCase):
 
     def test_memory_tile_is_kept(self):
         self.assertEqual(validate_layout({"tiles": {"roondeck.memory": {"show": True}}})["tiles"]["roondeck.memory"], {"show": True})
+
+    def test_update_and_group_tiles(self):
+        tiles = {"roondeck.update": {"show": True}, "roondeck.group": {"show": True, "zone": "Kitchen", "with": " Office "}, "roondeck.group2": {"show": True}}
+        out = validate_layout({"tiles": tiles})
+        self.assertEqual(out["tiles"]["roondeck.group"], {"show": True, "zone": "Kitchen", "with": "Office"})
+        saved = with_layout({}, out)
+        for key in tiles: self.assertIn(key, saved["cards"])

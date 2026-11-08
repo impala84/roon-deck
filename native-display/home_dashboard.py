@@ -5,9 +5,10 @@ classic tile grid in home_page.py.
 """
 from __future__ import annotations
 
-from native_common import FamilyIcon
+from native_common import FamilyIcon, BUS, ROON, get_json, post_json
 from home_page import tile_colour_rules
 import os
+import threading
 from pathlib import Path
 from gi.repository import GLib, Gtk, Pango
 
@@ -17,6 +18,8 @@ CLIMATE_COLOUR = "#4fc3d9"
 CARD_DOMAINS = {"light": "light", "fan": "fan", "climate": "snow"}
 SAMPLES = 45                # readings kept for the live tiles
 SAMPLE_SECONDS = 2
+GROUP_KEYS = ("roondeck.group", "roondeck.group2", "roondeck.group3")
+ACTION_KEYS = ("roondeck.update",) + GROUP_KEYS   # tiles that do something when tapped
 SPARK_GREEN, SPARK_BLUE = (0.43, 0.85, 0.68), (0.42, 0.66, 1.0)
 
 
@@ -69,6 +72,9 @@ class HomeDashboardMixin:
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
         self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK")
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
+        self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
+        self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}
+        self.upd_info, self.upd_checked, self.upd_checking, self.group_outputs, self.group_polled, self.hs_cfg = None, 0.0, False, [], 0.0, {}
         self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
         self.hs_cpu_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_cpu, SPARK_GREEN)], 100.0))
         self.hs_mem_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_mem, SPARK_BLUE)], 100.0))
@@ -90,6 +96,77 @@ class HomeDashboardMixin:
             filler = Gtk.Box(); filler.set_vexpand(True); content.append(filler); content.append(detail)
         card.add_overlay(content)
         return card, value, detail, area
+
+    def build_action_card(self, title, on_tap):
+        """A tile you tap to do something: a small title, a big word for what a tap will do, and a line of detail."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-action"); card.set_hexpand(True); card.set_vexpand(True)
+        value = self.label("—", "hs-stat-value", 0); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1)
+        detail = self.label("", "hs-stat-detail", 0); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1)
+        filler = Gtk.Box(); filler.set_vexpand(True)
+        heading = self.label(title, "hs-stat-title", 0); heading.set_ellipsize(Pango.EllipsizeMode.END); heading.set_max_width_chars(1)
+        card.append(heading); card.append(value); card.append(filler); card.append(detail)
+        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: on_tap()); card.add_controller(tap)
+        return card, value, detail
+
+    # ---- update tile: shows whether a newer RoonDeck is out and installs it on a tap ----
+    def check_updates(self, refresh=False):
+        if self.upd_checking: return
+        self.upd_checking = True
+        def run():
+            info = get_json(BUS + "/api/device/releases" + ("?refresh=1" if refresh else ""), timeout=20)
+            def done():
+                self.upd_checking = False; self.upd_checked = GLib.get_monotonic_time() / 1e6
+                if info: self.upd_info = info
+                return False
+            GLib.idle_add(done)
+        threading.Thread(target=run, daemon=True).start()
+
+    def tap_update_tile(self):
+        if getattr(self, "update_in_progress", False): return
+        info = self.upd_info or {}
+        if info.get("update_available"): self.request_update()
+        else: self.hs_upd_value.set_text("Checking…"); self.check_updates(refresh=True)   # up to date (or never checked): look again now
+
+    def refresh_update_tile(self):
+        now = GLib.get_monotonic_time() / 1e6
+        if not self.upd_checking and now - self.upd_checked > 600: self.check_updates()
+        info = self.upd_info or {}; status = self.device_status.get_text() if hasattr(self, "device_status") else ""
+        if getattr(self, "update_in_progress", False):
+            self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Do not unplug")
+        elif info.get("update_available"):
+            self.hs_upd_value.set_text("Update"); self.hs_upd_detail.set_text(f"v{info.get('latest_version', '')} ready · tap to install")
+        elif info:
+            self.hs_upd_value.set_text("Up to date"); self.hs_upd_detail.set_text(f"v{info.get('installed_version', '')} · tap to check")
+        elif not self.upd_checking:
+            self.hs_upd_value.set_text("Check"); self.hs_upd_detail.set_text("Tap to look for updates")
+
+    # ---- zone group tiles: group one Roon zone with another, or ungroup them ----
+    def zones_grouped(self, first, second):
+        zone_of = {item.get("name"): item.get("zone") for item in self.group_outputs}
+        return bool(first in zone_of and second in zone_of and zone_of[first] == zone_of[second])
+
+    def refresh_group_tiles(self, keys):
+        now = GLib.get_monotonic_time() / 1e6
+        if now - self.group_polled > 4:
+            self.group_polled = now
+            def run():
+                data = get_json(ROON + "/api/accessory/outputs", timeout=3)
+                if data: GLib.idle_add(lambda: setattr(self, "group_outputs", data.get("outputs", [])) or False)
+            threading.Thread(target=run, daemon=True).start()
+        for key in keys:
+            _, value, detail = self.hs_groups[key]; cfg = self.hs_cfg.get(key) or {}
+            first, second = cfg.get("zone"), cfg.get("with")
+            if not first or not second: value.set_text("Set zones"); detail.set_text("Choose them in the builder"); continue
+            value.set_text("Ungroup" if self.zones_grouped(first, second) else "Group"); detail.set_text(f"{first} + {second}")
+
+    def tap_group_tile(self, key):
+        cfg = self.hs_cfg.get(key) or {}
+        if not cfg.get("zone") or not cfg.get("with"): return
+        self.hs_groups[key][1].set_text("Working…")
+        def run():
+            post_json(ROON + "/api/zones/group", {"zone": cfg["zone"], "with": cfg["with"], "action": "toggle"}, timeout=8)
+            self.group_polled = 0.0   # look again straight away
+        threading.Thread(target=run, daemon=True).start()
 
     def draw_spark(self, cr, width, height, series, top):
         scale = top or max([1.0] + [max(values) for values, _ in series if values])
@@ -147,6 +224,9 @@ class HomeDashboardMixin:
         if "roondeck.memory" in self.hs_live_shown:
             used, total = getattr(self, "mem_used_total", (0, 0))
             self.hs_mem_value.set_text(f"{self.stat_mem[-1]:.0f}%" if self.stat_mem else "—"); self.hs_mem_area.queue_draw()
+        if "roondeck.update" in self.hs_live_shown: self.refresh_update_tile()
+        shown_groups = [key for key in GROUP_KEYS if key in self.hs_live_shown]
+        if shown_groups: self.refresh_group_tiles(shown_groups)
         if "roondeck.network" in self.hs_live_shown:
             show_down, show_up = self.net_show
             if show_down: self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
@@ -210,6 +290,10 @@ class HomeDashboardMixin:
         wanted = [("roondeck.player", self.hs_player, 2, (0, 0)), ("roondeck.bus", self.hs_bus, 1, (0, 2))]
         if (cards.get("roondeck.cpu") or {}).get("show"): wanted.append(("roondeck.cpu", self.hs_cpu, 1, None))
         if (cards.get("roondeck.memory") or {}).get("show"): wanted.append(("roondeck.memory", self.hs_mem, 1, None))
+        if (cards.get("roondeck.update") or {}).get("show"): wanted.append(("roondeck.update", self.hs_upd, 1, None))
+        for key in GROUP_KEYS:
+            if (cards.get(key) or {}).get("show"): wanted.append((key, self.hs_groups[key][0], 1, None))
+        self.hs_cfg = {key: cards.get(key) or {} for key in GROUP_KEYS}
         net = cards.get("roondeck.network") or {}
         self.net_show = (net.get("download") is not False, net.get("upload") is not False)   # either direction can be switched off, never both
         if self.net_show == (False, False): self.net_show = (True, False)
@@ -223,7 +307,7 @@ class HomeDashboardMixin:
         def mix(front, back, amount):
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
             return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
-        self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network", "roondeck.memory")}
+        self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network", "roondeck.memory") + ACTION_KEYS}
         rules = []
         for entity in virtual:                     # each card can have its own colour; without one it keeps the standard card look
             name = "hs-custom-" + entity["entity_id"].replace(".", "-"); colour = entity["tile"].get("color")

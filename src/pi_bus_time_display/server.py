@@ -1289,6 +1289,14 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 }).encode()
                 self.send_json(200, body)
                 return
+            if self.path in {"/api/device/releases", "/api/device/releases?refresh=1"}:   # the touchscreen's Update tile asks the same question as the admin page
+                if self.client_address[0] not in {"127.0.0.1", "::1"}:
+                    self.send_json(403, b'{"error":"Touchscreen only"}')
+                    return
+                distribution = "alpine" if os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype" else "rpi"
+                result = releases.check(state.config.release_channel, __version__, refresh=self.path.endswith("refresh=1"), distribution=distribution)
+                self.send_json(200, json.dumps(result).encode())
+                return
             if self.path in {"/api/admin/releases", "/api/admin/releases?refresh=1"}:
                 if not self.authorised():
                     return

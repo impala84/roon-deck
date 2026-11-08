@@ -516,3 +516,5 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-thumb { border-radius: 14px; }
 .hs-scrub { margin: 2px 0; }
 .home-clip, .home-clip > viewport { background: transparent; border: none; }
+.hs-action { padding: 14px 20px; }
+.hs-action:active { background: #2d2c34; }
