@@ -337,6 +337,7 @@ class HomeDashboardMixin:
             tile.box.add_css_class("hs-bus-" + (colour if colour in ROUTE_TINTS else "amber"))   # the same colour as that route on the Bus Times page
             tile.route.set_text(str(chosen.get("service", "")))
             tile.minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); tile.unit.set_visible(bool(minutes) and minutes[0] != 0)
+            (tile.minutes.add_css_class if minutes and minutes[0] == 0 else tile.minutes.remove_css_class)("hs-minutes-due")   # the word "Due" is set smaller than a number so it fits the tile
             tile.then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.then.set_visible(len(minutes) > 1)
 
     def cycle_bus_route(self, tile):

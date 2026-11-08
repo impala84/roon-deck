@@ -559,3 +559,5 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .theme-roon .home-card .hs-scrub highlight, .theme-roon .home-card .hs-volume highlight { background: #9868F9; }
 .home-card .hs-scrub slider, .home-card .hs-volume slider { min-width: 22px; min-height: 22px; margin: -8px 0; border: 0; outline: none; box-shadow: none; border-radius: 11px; background: #f6f3ee; }
 .hs-volume-row { margin: 0; }
+
+.hs-minutes.hs-minutes-due { font-size: 56px; }

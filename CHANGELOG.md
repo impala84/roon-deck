@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.113 Alpine — 8 November 2026
+
+- Home: "Due" on a bus tile is set smaller than the minutes number, so it fits inside the tile instead of pushing past its edge.
+
 ## 1.2.0-beta.112 Alpine — 8 November 2026
 
 - Home: on the Now Playing tile the volume slider matches the track scrubber (same width, thickness, handle and purple fill, no outline), and the "VOL" caption is gone.
