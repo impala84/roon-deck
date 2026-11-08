@@ -486,8 +486,8 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-bus-chip { min-width: 60px; min-height: 60px; border-radius: 30px; }
 .hs-route { font-size: 46px; font-weight: 700; color: #f4f0e6; }
 .hs-then { font-size: 17px; color: #d3dcec; }
-.hs-minutes { font-size: 72px; font-weight: 600; color: #f4f0e6; }
-.hs-unit { font-size: 22px; color: #d3dcec; padding-bottom: 8px; }
+.hs-minutes { font-size: 82px; font-weight: 600; color: #f4f0e6; }
+.hs-unit { font-size: 22px; color: #d3dcec; }
 .home-card { border-radius: 22px; border-width: 2px; padding: 16px 20px; min-height: 0; }
 .home-card .home-name { font-size: 24px; font-weight: 700; }
 .home-card .home-state { font-size: 17px; }

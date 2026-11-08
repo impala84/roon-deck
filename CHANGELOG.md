@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.109 Alpine — 8 November 2026
+
+- Home: the bus minutes number is larger and sits on the same baseline as "min".
+
 ## 1.2.0-beta.108 Alpine — 8 November 2026
 
 - Home: the bus icon is centred in its circle again (it had slipped to the left since beta.95).

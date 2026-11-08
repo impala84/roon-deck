@@ -104,7 +104,7 @@ class HomeDashboardMixin:
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
-        tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.END); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
+        tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.BASELINE); tile.minutes.set_valign(Gtk.Align.BASELINE); arrival.set_baseline_position(Gtk.BaselinePosition.CENTER); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route(tile)); bus.add_controller(tap)
         self.bus_tiles[key] = tile
         return tile
