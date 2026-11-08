@@ -402,13 +402,17 @@ class HomeDashboardMixin:
         # The same card can be on several pages ("roondeck.cpu#2"): each copy has its own place and options, but they share one widget, which only ever shows on one page at a time.
         widgets = {"roondeck.player": (self.hs_player, 2, (0, 0)), "roondeck.bus": (self.hs_bus, 1, (0, 2)), "roondeck.cpu": (self.hs_cpu, 1, None), "roondeck.memory": (self.hs_mem, 1, None),
                    "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), "roondeck.volume": (self.hs_vol, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}}
-        records = {key: tile for key, tile in cards.items() if base_of(key) in widgets}
+        for key in cards:
+            if base_of(key) in ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume"):
+                widgets[key] = (self.kef_tile(key), 2 if base_of(key) == "roondeck.kef" else 1, None)
+        records = {key: tile for key, tile in cards.items() if base_of(key) in widgets or key in widgets}
         for fixed in ("roondeck.player", "roondeck.bus"):
             if not any(base_of(key) == fixed for key in records): records[fixed] = {}
         untouched = not any(isinstance(tile.get("col"), int) for key, tile in records.items() if key in ("roondeck.player", "roondeck.bus"))
         virtual = []
         for key, record in records.items():
-            widget, rows, home_cell = widgets[base_of(key)]
+            widget, rows, home_cell = widgets.get(key, widgets.get(base_of(key)))
+            if key in self.kef_tiles: self.style_kef_tile(widget, record)
             if base_of(key) == "roondeck.bus":   # every bus tile has its own widgets and its own route
                 widget = self.bus_tile(key).box; self.bus_defaults[key] = record.get("route") or None
             if base_of(key) not in ("roondeck.player", "roondeck.bus") and not record.get("show"): continue

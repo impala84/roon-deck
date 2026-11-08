@@ -111,3 +111,13 @@ body[data-theme="roon"] { background: linear-gradient(120deg, #242338, #181818 6
 .service.service-rose .service-no { color: #e07a95; }
 .service.service-teal { border-color: rgba(79,195,192,.5); background: linear-gradient(90deg,rgba(37,98,95,.24),var(--panel) 34%); }
 .service.service-teal .service-no { color: #4fc3c0; }
+
+/* Match the native Home bus tile and Bus Times rows, including saved custom strength. */
+.service.service-blue { --route-accent: #55a9d7; }
+.service.service-green { --route-accent: #61c68f; }
+.service.service-violet { --route-accent: #a998e0; }
+.service.service-amber { --route-accent: #d4a85f; }
+.service.service-rose { --route-accent: #e07a95; }
+.service.service-teal { --route-accent: #4fc3c0; }
+.service[class*="service-"] { border-color: var(--route-accent); background: color-mix(in srgb, var(--route-accent) var(--route-tint, 20%), #232228); }
+.service[class*="service-"] .service-no { color: var(--route-accent); }

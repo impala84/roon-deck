@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from native_common import BUS, FamilyIcon, PORTRAIT_CONTENT_GAP, elastic_vertical_scroll, get_bytes, post_json
+from pi_bus_time_display.home_layout import KEF_CARDS
 import json
 import threading
 import time
@@ -46,7 +47,7 @@ class HomePageMixin:
         self.hs_drag_claimed = False; self.hs_page = 0; self.hs_pages = 1; self.hs_last_home = {}; self.hs_paged_at = 0.0
         self.home_dots = Gtk.Box(spacing=0); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); header_overlay.add_overlay(self.home_dots)   # centred in the header row, so the tiles keep their place
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
-        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_stack = Gtk.Stack(); self.home_stack.set_hexpand(True); self.home_stack.set_vexpand(True); self.home_stack.set_transition_duration(280); self.home_stack.set_hhomogeneous(True); self.home_stack.set_vhomogeneous(True)
+        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.kef_tiles = {}; self.listening_data = {}; self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_stack = Gtk.Stack(); self.home_stack.set_hexpand(True); self.home_stack.set_vexpand(True); self.home_stack.set_transition_duration(280); self.home_stack.set_hhomogeneous(True); self.home_stack.set_vhomogeneous(True)
         self.home_ghost = Gtk.Picture(); self.home_ghost.set_can_shrink(True); self.home_ghost.set_content_fit(Gtk.ContentFit.FILL)   # the page just left, drawn as a picture so it can slide away
         self.home_stack.add_named(self.home_grid, "grid"); self.home_stack.add_named(self.home_ghost, "ghost"); self.home_stack.set_visible_child(self.home_grid); self.home_row.append(self.home_stack); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
         drag = Gtk.GestureDrag(); drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); drag.connect("drag-begin", self.home_drag_begin); drag.connect("drag-update", self.home_drag_update); drag.connect("drag-end", self.home_drag_end); self.home_scroll.add_controller(drag); self.hs_drag_ok = True
@@ -80,7 +81,7 @@ class HomePageMixin:
         self.hs_pages = home.get("pages") if dashboard and isinstance(home.get("pages"), int) and home.get("pages") > 1 else 1
         self.hs_page = max(0, min(self.hs_pages - 1, self.hs_page))
         # The dashboard may scroll as a last resort, so cards that are too tall can never push the page past the screen.
-        self.home_scroll.set_policy(Gtk.PolicyType.EXTERNAL if dashboard else Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or dashboard or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
+        self.home_scroll.set_policy(Gtk.PolicyType.EXTERNAL if dashboard else Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or dashboard or bool(self.kef_tiles) else Gtk.PolicyType.NEVER)
         signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "cards": home.get("cards"), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0), "page": self.hs_page, "pages": home.get("pages")}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
@@ -96,6 +97,9 @@ class HomePageMixin:
             if getattr(child, "clip_wrapper", False): child.set_child(None)   # let the tile go before its frame, so it can be placed again
             self.home_grid.remove(child)
         entities = home.get("entities", []) if dashboard else [entity for entity in home.get("entities", []) if not (entity.get("tile") or {}).get("page")]   # small screens have no pages
+        if not dashboard:
+            entities = [{"entity_id": key, "widget": self.kef_tile(key), "tile": tile} for key, tile in (home.get("cards") or {}).items()
+                        if key.split("#")[0] in KEF_CARDS and tile.get("show") and not tile.get("page")] + entities
         entities = entities[:64 if dashboard else 8]
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
@@ -141,6 +145,14 @@ class HomePageMixin:
                         spacer = Gtk.Box(); spacer.set_hexpand(True); spacer.set_vexpand(True); self.home_grid.attach(spacer, column, row, 1, 1)
         for index, entity in enumerate(entities):
             tile = entity.get("tile") or {}
+            if entity.get("widget") is not None:
+                widget = entity["widget"]; self.style_kef_tile(widget, tile)
+                frame = self.clip_cell(widget)
+                if custom:
+                    span, height = size_of(entity); column, row = placed[index]
+                    self.home_grid.attach(frame, column, row, span, height)
+                else: self.home_grid.attach(frame, 0 if portrait else index % 4, index if portrait else index // 4, 1, 1)
+                continue
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if row_mode else Gtk.Orientation.VERTICAL, spacing=18 if row_mode else 4); box.add_css_class("home-tile"); box.set_vexpand(True)
             art_image = self.home_art(tile["image"]) if tile.get("image") else None
             if tile.get("image") and art_image is None: self.home_signature = None   # try again on the next refresh
@@ -286,38 +298,59 @@ class HomePageMixin:
             result = post_json(BUS + "/api/listening/command", {"action": action, "value": value}, timeout=15)
             if result is None: result = {"error": "Listening command timed out or the service is unavailable"}
             if isinstance(result, dict) and result.get("error"):
-                GLib.idle_add(self.listening_feedback.set_text, result["error"])
+                GLib.idle_add(self.kef_feedback, result["error"])
         threading.Thread(target=work, daemon=True).start()
 
+    def kef_feedback(self, text):
+        for card in self.kef_tiles.values(): card.feedback.set_text(text)
+        return False
+
+    def kef_tile(self, key):
+        if key in self.kef_tiles: return self.kef_tiles[key]
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-kef"); card.set_vexpand(True)
+        card.title = self.label("KEF speaker", "home-name"); card.append(card.title)
+        scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_min_content_height(0); scroll.set_propagate_natural_height(False); scroll.set_vexpand(True)
+        card.body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5); scroll.set_child(card.body); card.append(scroll)
+        card.feedback = self.label("", "muted"); card.feedback.set_wrap(True); card.body.append(card.feedback)
+        self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
+        return card
+
+    def style_kef_tile(self, card, tile):
+        card.title.set_text(tile.get("label") or card.default_title)
+
+    def populate_kef_tile(self, key, card, data):
+        kind = key.split("#")[0].removeprefix("roondeck.kef"); speaker = data.get("kef") or {}; connected = bool(data.get("enabled") and speaker.get("connected"))
+        card.default_title = {"": "KEF speaker", "_power": "KEF power", "_input": "KEF input", "_volume": "KEF volume"}[kind]
+        card.title.set_text(card.default_title)
+        while child := card.body.get_first_child(): card.body.remove(child)
+        detail = "Not enabled" if not data.get("enabled") else "Offline"
+        if connected: detail = f"{'On' if speaker.get('powered') else 'Standby'} · {speaker.get('input', '')} · {speaker.get('volume', 0)}%"
+        status = self.label(detail, "muted"); status.set_wrap(True); card.body.append(status)
+        def row():
+            box = Gtk.Box(spacing=5); box.set_homogeneous(True); card.body.append(box); return box
+        def button(box, text, action, value, available=connected):
+            control = self.button(text, lambda _button, a=action, v=value: self.listening_command(a, v), "")
+            control.set_sensitive(available); control.set_hexpand(True); control.set_size_request(-1, 42); box.append(control)
+        if kind in ("", "_power"):
+            box = row(); button(box, "On", "power", True); button(box, "Standby", "power", False)
+        if kind in ("", "_input"):
+            choices = [("Choose input…", None), ("Wi-Fi / Roon", "wifi")]
+            if data.get("ir_available") or speaker.get("direct_inputs_available") is not False:
+                choices += [("AUX", "aux"), ("Optical", "optical"), ("Bluetooth", "bluetooth")]
+            pick = Gtk.DropDown.new_from_strings([name for name, _ in choices]); pick.set_size_request(-1, 42); pick.set_sensitive(bool(data.get("enabled") and (connected or data.get("ir_available"))))
+            def changed(control, _param):
+                selected = control.get_selected()
+                if 0 < selected < len(choices):
+                    self.listening_command("input", choices[selected][1]); control.set_selected(0)
+            pick.connect("notify::selected", changed); card.body.append(pick); card.input_pick = pick
+        if kind in ("", "_volume"):
+            box = row(); button(box, "−", "volume_delta", -2); button(box, "+", "volume_delta", 2); button(box, "Unmute" if speaker.get("muted") else "Mute", "mute", None)
+        card.feedback = self.label(data.get("error") or data.get("notice") or "", "muted"); card.feedback.set_wrap(True); card.body.append(card.feedback)
+
     def render_listening(self, data):
-        self.listening_box.set_visible(bool(data.get("enabled")))
-        self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if data.get("enabled") or self.window.has_css_class("portrait") else Gtk.PolicyType.NEVER)
-        if not data.get("enabled"): return
         signature = json.dumps(data, sort_keys=True)
         if signature == getattr(self, "listening_signature", None): return
-        self.listening_signature = signature
-        while child := self.listening_box.get_first_child(): self.listening_box.remove(child)
-        speaker = data.get("kef", {})
-        detail = "KEF LSX · Offline"
-        if speaker.get("connected"):
-            detail = f"KEF LSX · {'On' if speaker.get('powered') else 'Standby'} · {speaker.get('input', '')} · {speaker.get('volume', 0)}%"
-            if speaker.get("muted"): detail += " · Muted"
-        detail_label = self.label(detail, "home-name"); detail_label.set_wrap(True); self.listening_box.append(detail_label)
-        controls = Gtk.FlowBox(); controls.set_selection_mode(Gtk.SelectionMode.NONE); controls.set_min_children_per_line(1); controls.set_max_children_per_line(2 if self.window.has_css_class("portrait") else 4); controls.set_row_spacing(6); controls.set_column_spacing(6)
-        for label, action, value in [("Power on", "power", True), ("Standby", "power", False), ("− Volume", "volume_delta", -2), ("+ Volume", "volume_delta", 2), ("Mute", "mute", None)]:
-            button = self.button(label, lambda _button, a=action, v=value: self.listening_command(a, v), "")
-            button.set_sensitive(bool(speaker.get("connected"))); controls.append(button)
-        for source in ("wifi", "aux", "optical", "bluetooth"):
-            button = self.button(source.title(), lambda _button, v=source: self.listening_command("input", v), "")
-            button.set_sensitive(bool(speaker.get("connected")))
-            if speaker.get("input") == source: button.add_css_class("active")
-            controls.append(button)
-        for mode in data.get("modes", []):
-            button = self.button(mode.get("name", mode["id"]), lambda _button, value=mode["id"]: self.listening_command("mode", value), "")
-            button.set_sensitive(bool(mode.get("available") and speaker.get("connected"))); button.set_tooltip_text(mode.get("reason") or "")
-            if data.get("last_mode") == mode["id"]: button.add_css_class("active")
-            controls.append(button)
-        self.listening_box.append(controls)
-        pending = any(not mode.get("available") for mode in data.get("modes", []))
-        self.listening_feedback = self.label(data.get("error") or ("Topping input switching is not available yet." if pending else ""), "muted")
-        self.listening_feedback.set_wrap(True); self.listening_box.append(self.listening_feedback)
+        self.listening_signature = signature; self.listening_data = data
+        for key, card in self.kef_tiles.items():
+            self.populate_kef_tile(key, card, data)
+            self.style_kef_tile(card, (self.hs_last_home.get("cards") or {}).get(key, {}))

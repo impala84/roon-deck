@@ -4,7 +4,7 @@
   if (!root) return;
   const SOURCES = [['aux', 'Aux'], ['optical', 'Optical'], ['wifi', 'Wi‑Fi'], ['bluetooth', 'Bluetooth']];
   const TOPPING = [['', 'Keep unchanged (KEF controls only)'], ['usb', 'Mac USB'], ['coaxial', 'Pi coaxial'], ['optical', 'Pi optical'], ['bluetooth', 'Bluetooth']];
-  const DEFAULT_MODES = [{id: 'pi', name: 'Pi / Roon', kef_input: 'aux', topping_input: 'coaxial', volume: 20}, {id: 'mac', name: 'Mac', kef_input: 'aux', topping_input: 'usb', volume: 20}];
+  const DEFAULT_MODES = [{id: 'pi', name: 'Roon / LSX', kef_input: 'wifi', topping_input: null, volume: 20}, {id: 'mac', name: 'Mac', kef_input: 'aux', topping_input: 'usb', volume: 20}];
   const listeners = [];
   const api = window.RoonDeckListening = {
     settings: null,
@@ -53,14 +53,26 @@
 
     const enabled = h('input', {type: 'checkbox'}); enabled.checked = !!settings.enabled;
     const host = h('input', {type: 'text', placeholder: '10.12.0.125', autocomplete: 'off', inputmode: 'decimal'}); host.value = settings.kef_host || '';
-    const maximum = h('input', {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
+    const roonOutput = selectOf([['', 'Direct KEF connection only']], settings.kef_roon_output_id || '');
+    try {
+      const data = await api.call('GET', undefined, '/roon/api/accessory/outputs');
+      for (const output of data.outputs || []) roonOutput.add(new Option(`${output.name} (${output.zone})`, output.id));
+      if (settings.kef_roon_output_id && ![...roonOutput.options].some(option => option.value === settings.kef_roon_output_id)) {
+        roonOutput.add(new Option('Saved output (currently unavailable)', settings.kef_roon_output_id));
+      }
+      roonOutput.value = settings.kef_roon_output_id || '';
+    } catch (_) { if (settings.kef_roon_output_id) roonOutput.add(new Option('Saved output', settings.kef_roon_output_id)); roonOutput.value = settings.kef_roon_output_id || ''; }
+    const irRemote = h('input', {type:'text', placeholder:'remote.study'}); irRemote.value = settings.kef_ir_remote || '';
+    const maximum = h('input' , {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
 
     const speakers = h('section', {class: 'cd-card'},
       h('div', {class: 'cd-card-head'}, h('h3', {}, 'KEF speakers'), h('label', {class: 'cd-switch'}, enabled, h('span', {}, 'Enabled'))),
       h('p', {class: 'cd-muted'}, 'Control original KEF LSX speakers over your network: power, input, volume and mute.'),
       h('div', {class: 'cd-grid two'},
         labelled('Speaker address', host, 'The IP address or hostname of the KEF LSX'),
-        labelled('Maximum volume (%)', maximum, 'Volume can never be raised above this')),
+        labelled('KEF output in Roon', roonOutput, 'Choose this speaker only. Roon handles wake, standby, Wi-Fi, volume and mute; the other inputs require the direct KEF connection.'),
+        labelled('Broadlink input remote (optional)', irRemote, 'Home Assistant remote entity in this room. Sends discrete AUX, optical, Bluetooth and Wi-Fi commands; requires a clear infrared path to the speaker.'),
+        labelled('Maximum volume (%)', maximum, 'Applies to direct KEF and Roon volume commands')),
       connection);
 
     // Listening modes: one card per mode, shown directly instead of hidden in a menu.
@@ -93,6 +105,8 @@
       const taken = new Set();
       settings.enabled = enabled.checked;
       settings.kef_host = host.value.trim();
+      settings.kef_roon_output_id = roonOutput.value;
+      settings.kef_ir_remote = irRemote.value.trim();
       settings.maximum_volume = Number(maximum.value);
       settings.modes = rows.map(row => {
         const id = taken.has(row.mode.id) ? slug(row.name.value, taken) : row.mode.id; taken.add(id);
@@ -115,7 +129,7 @@
         const response = await fetch('/api/listening/status', {cache: 'no-store'});
         if (!response.ok) return;
         const state = await response.json();
-        connection.textContent = `Status: ${state.kef?.connected ? 'Connected' : state.enabled ? 'Unavailable' : 'Disabled'}`;
+        connection.textContent = `Status: ${state.kef?.connected ? (state.kef.control_path === 'roon' ? (state.ir_available ? 'Connected through Roon · infrared inputs ready' : 'Connected through Roon · direct input control unavailable') : 'Connected directly') : state.enabled ? 'Unavailable' : 'Disabled'}${state.error ? ' · ' + state.error : ''}`;
       } catch (_) { connection.textContent = 'Controls service unavailable'; }
     }
     status(); setInterval(status, 5000);

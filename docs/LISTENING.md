@@ -22,6 +22,39 @@ Elgato desktop software and the Mac are not required.
   BLE discovery is not proof of successful input switching or Classic/SPP
   support. No Bluetooth audio connection is made by the worker.
 
+## KEF control paths (beta.133)
+
+Under **Controls → Listening & KEF**, enable KEF controls and select the exact
+speaker under **KEF output in Roon**. For this installation it is **Study**, the
+LSX at `10.12.0.125`; do not select the Pi's separate Roon Bridge output.
+Roon's existing connection provides wake/convenience switching to Wi-Fi,
+standby, numeric 0–100 volume and mute. Commands wait for Roon subscription
+readback. They do not start music as a side effect of waking the speaker.
+
+For physical input selection when the LSX's TCP service is unavailable, set
+**Broadlink input remote** to the Home Assistant remote entity in the room.
+The verified Study transmitter is `remote.wi_fi_universal_remote` (RM4 Mini).
+The optional path sends only KEF's discrete Wi-Fi, AUX, optical and Bluetooth
+NEC codes; it requires Home Assistant and an unobstructed infrared path. It
+cannot report the selected physical input or set a confirmed starting volume.
+The UI labels commands as sent, without claiming input readback. Full
+starting-volume modes for physical sources still require direct control.
+Keep saved Topping modes intact: choosing an LSX input does not switch the DAC.
+
+The original LSX at this installation continues to refuse TCP port 50001 even
+after a mains restart; KEF Control also fails. The speaker's live UPnP service
+advertises media, volume and mute operations but no physical input selector.
+AUX selection via the configured RM4 Mini was physically confirmed on
+9 November 2026. Captured remote signals confirm KEF's published NEC bytes
+use MSB-first transmission. References:
+<https://assets.kef.com/pdf_doc/LSX/LSX-IRcode-INT.pdf> and
+<https://www.home-assistant.io/integrations/broadlink/#sending-commands>.
+
+Original-LSX GET replies have a variable fifth byte. The driver matches the
+response register and marker rather than assuming an FF trailer, accepts split
+TCP replies, recognises command rejection, and only retries refusal before any
+command bytes are sent. Writes are never replayed after an uncertain reply.
+
 ## Enable on a Pi
 
 Use web **Settings → Controls → Listening & Stream Deck +** to save the KEF
@@ -148,3 +181,7 @@ same assertion fails against untouched 1.1.8 in the same container. The current
 release workflow treats simulated native layout failures as advisory. The
 full native review matrix and the new strict listening smoke pass; this does
 not represent a completely green candidate-command exit.
+
+## Home tiles
+
+In Settings → Home → Layout → Add tiles → RoonDeck, add **KEF speaker** for combined power, input and volume, or add **KEF power**, **KEF input** and **KEF volume** separately. Both styles can be used together. They use the same grid, placement, sizes, colours, labels and dashboard pages as the other Home tiles. There is no separate control strip above the grid. Enable and configure the speaker under Listening first. Input selections send commands; infrared input feedback reports that it was sent, because the remote cannot confirm the speaker input.

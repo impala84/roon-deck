@@ -69,7 +69,7 @@ window.set_resizable(False)
 window.add_css_class("theme-roon")
 provider = Gtk.CssProvider(); provider.load_from_data(native.CSS)
 Gtk.StyleContext.add_provider_for_display(window.get_display(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-display = native.Display()
+display = native.Display(); display.home_tile_provider = Gtk.CssProvider()
 display.settings_data["display_theme"] = "roon"
 page = display.build_roon()
 # The real app wraps its pages in an overlay; the in-window action menu is drawn on it.

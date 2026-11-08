@@ -12,6 +12,7 @@ ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
 TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "page", "route", "border"}
+KEF_CARDS = ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume")
 MAX_PAGES = 4
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
@@ -128,7 +129,7 @@ def with_layout(home, layout):
         entity_id = item.get("entity_id")
         entities.append({**item, "tile": tiles[entity_id]} if entity_id in tiles else item)
         entities.extend({**item, "tile": tile} for tile in copies.get(entity_id, []))
-    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, VOLUME, UPDATE, *GROUPS)
+    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, VOLUME, UPDATE, *GROUPS, *KEF_CARDS)
     out = {**home, "entities": entities, "cards": {key: tiles[key] for key in tiles if base_id(key) in cards_of}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     if isinstance((layout or {}).get("pages"), int) and layout["pages"] > 1: out["pages"] = layout["pages"]

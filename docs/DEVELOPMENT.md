@@ -77,3 +77,14 @@ the dimensions into another workflow or script.
 GitHub's baseline workflow remains a quick independent test on pushes. The
 manual Alpine workflow performs the native release gate. A full disk-image job
 runs only when `build_image` is explicitly selected.
+
+## Resource priority
+
+System → Device → Performance priority switches between `playback` (the
+existing modest Roon Bridge boost) and `dashboard` (prefer the display, API and
+controller; return the Bridge to ordinary priority). The privileged Alpine
+helper writes owned OpenRC overrides and adjusts existing worker threads and
+OOM scores without restarting audio. It retains the selection in
+`/var/lib/pi-home/performance-profile` and reapplies it on helper startup.
+This is scheduling and memory-pressure protection, not fixed RAM allocation.
+Operator-owned service overrides are preserved.

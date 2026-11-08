@@ -72,6 +72,17 @@ class AlpinePrototypeTests(unittest.TestCase):
             self.assertTrue(write_control_request(Path("/unused"), {"action": "set_hostname", "hostname": "pi-home-room"}))
             self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "set_hostname", "hostname": "pi-home-room"})
 
+    def test_performance_profile_crosses_the_helper_boundary_without_arbitrary_tuning(self):
+        client = Mock(); client.__enter__ = Mock(return_value=client); client.__exit__ = Mock(return_value=False)
+        client.makefile.return_value.readline.return_value = b'{"ok":true}\n'
+        with patch.dict(os.environ, {"PI_HOME_APPLIANCE_PLATFORM": "alpine-prototype"}), patch("pi_bus_time_display.server.socket.socket", return_value=client):
+            self.assertTrue(write_control_request(Path("/unused"), {"action": "performance_profile", "profile": "dashboard"}))
+            self.assertEqual(json.loads(client.sendall.call_args.args[0]), {"action": "performance_profile", "profile": "dashboard"})
+            client.sendall.reset_mock()
+            for profile in ("realtime", [], None):
+                with self.assertRaises(ValueError): write_control_request(Path("/unused"), {"action": "performance_profile", "profile": profile})
+            client.sendall.assert_not_called()
+
     def test_alpine_backlight_actions_use_the_bounded_root_helper(self):
         client = Mock(); client.__enter__ = Mock(return_value=client); client.__exit__ = Mock(return_value=False)
         client.makefile.return_value.readline.return_value = b'{"ok":true}\n'

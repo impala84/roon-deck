@@ -1,61 +1,56 @@
-/* Shared listening commands; device text is rendered as text, never markup. */
+/* KEF controls are optional Home grid tiles, configured in the Home builder. */
 (() => {
-  const root = document.getElementById('listening');
-  let busy = false;
-  let signature = '';
-  const message = document.createElement('p');
+  const grid = document.getElementById('entities');
+  const names = {'roondeck.kef':'KEF speaker','roondeck.kef_power':'KEF power','roondeck.kef_input':'KEF input','roondeck.kef_volume':'KEF volume'};
+  let busy = false, state = {}, cards = {}, error = '';
   async function command(action, value) {
     if (busy) return;
-    busy = true;
-    root.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    busy = true; paint();
     try {
-      const response = await fetch('/api/listening/command', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action, value})
-      });
-      if (response.status === 401) { location.href = '/login.html'; return; }
+      const response = await fetch('/api/listening/command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action,value})});
+      if (response.status === 401) { location.href='/login.html'; return; }
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Listening command failed');
-      message.textContent = '';
-    } catch (error) { message.textContent = error.message; }
-    finally { busy = false; signature = ''; await load(); }
+      if (!response.ok) throw new Error(result.error || 'Speaker command failed');
+      error = '';
+    } catch (failure) { error = failure.message; }
+    finally { busy=false; await load(); }
   }
-  async function load() {
-    if (busy) return;
-    try {
-      const response = await fetch('/api/listening/status', {cache: 'no-store'});
-      if (!response.ok) throw new Error('Listening service unavailable');
-      const state = await response.json();
-      root.hidden = !state.enabled;
-      const current = JSON.stringify(state);
-      if (!state.enabled || current === signature) return;
-      signature = current;
-      root.replaceChildren();
-      const speaker = state.kef || {};
-      const heading = document.createElement('h2'); heading.textContent = 'Listening'; root.append(heading);
-      const status = document.createElement('p');
-      status.textContent = speaker.connected
-        ? `KEF LSX · ${speaker.powered ? 'On' : 'Standby'} · ${speaker.input} · ${speaker.volume}%${speaker.muted ? ' · Muted' : ''}`
-        : 'KEF LSX · Offline';
-      root.append(status);
-      const controls = document.createElement('div');
-      controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin:12px 0';
-      function button(label, action, value, enabled = true, reason = '') {
-        const node = document.createElement('button'); node.type = 'button'; node.textContent = label;
-        node.style.cssText = 'min-height:48px;padding:10px 16px';
-        node.disabled = !speaker.connected || !enabled; node.title = reason;
-        node.onclick = () => command(action, value); controls.append(node);
+  function paint() {
+    grid.querySelectorAll('.kef-tile').forEach(node=>node.remove());
+    for (const [key,tile] of Object.entries(cards)) {
+      const kind=key.split('#')[0];
+      if (!names[kind] || !tile.show || tile.page) continue;
+      const card=document.createElement('article'); card.className='entity kef-tile'; card.dataset.id=key;
+      card.style.cssText='display:flex;flex-direction:column;gap:8px;min-width:0;overflow:auto;padding:14px';
+      if (tile.color) { card.style.background=tile.color+'44'; card.style.borderColor=tile.color; }
+      else if (tile.border) card.style.borderColor=tile.border;
+      const title=document.createElement('strong'); title.textContent=tile.label || names[kind]; card.append(title);
+      const speaker=state.kef || {}, connected=!!(state.enabled && speaker.connected), full=kind==='roondeck.kef';
+      const status=document.createElement('small'); status.textContent=!state.enabled?'Not enabled':connected?`${speaker.powered?'On':'Standby'} · ${speaker.input || ''} · ${speaker.volume}%`:'Offline'; card.append(status);
+      function button(row,label,action,value,enabled=connected) {
+        const node=document.createElement('button'); node.type='button'; node.textContent=label; node.style.cssText='min-height:44px;flex:1;padding:6px'; node.disabled=busy || !enabled;
+        node.onclick=()=>command(action,value); row.append(node);
       }
-      button('Power on', 'power', true); button('Standby', 'power', false);
-      button('− Volume', 'volume_delta', -2); button('+ Volume', 'volume_delta', 2); button('Mute', 'mute');
-      for (const input of ['wifi', 'aux', 'optical', 'bluetooth']) button(input, 'input', input);
-      for (const mode of state.modes || []) button(mode.name, 'mode', mode.id, mode.available, mode.reason);
-      root.append(controls);
-      if (state.error) message.textContent = state.error;
-      else if ((state.modes || []).some(mode => !mode.available)) message.textContent = "Topping input switching is not available yet.";
-      message.setAttribute('role', 'status'); root.append(message);
-    } catch (error) {
-      if (!root.hidden) { message.textContent = error.message; root.append(message); }
+      function row() { const node=document.createElement('div'); node.style.cssText='display:flex;gap:6px'; card.append(node); return node; }
+      if (full || kind.endsWith('_power')) { const controls=row(); button(controls,'On','power',true); button(controls,'Standby','power',false); }
+      if (full || kind.endsWith('_input')) {
+        const pick=document.createElement('select'); pick.setAttribute('aria-label','KEF input'); pick.style.minHeight='44px';
+        const choices=[['','Choose input…'],['wifi','Wi-Fi / Roon']];
+        if (state.ir_available || speaker.direct_inputs_available!==false) choices.push(['aux','AUX'],['optical','Optical'],['bluetooth','Bluetooth']);
+        for (const [value,label] of choices) { const option=document.createElement('option'); option.value=value; option.textContent=label; pick.append(option); }
+        pick.disabled=busy || !state.enabled || !(connected || state.ir_available); pick.onchange=()=>{ if(pick.value) command('input',pick.value); }; card.append(pick);
+      }
+      if (full || kind.endsWith('_volume')) { const controls=row(); button(controls,'−','volume_delta',-2); button(controls,'+','volume_delta',2); button(controls,speaker.muted?'Unmute':'Mute','mute',null); }
+      const message=document.createElement('small'); message.setAttribute('role','status'); message.textContent=error || state.error || state.notice || ''; card.append(message);
+      grid.append(card);
     }
   }
-  load(); setInterval(load, 3000);
+  document.addEventListener('home-rendered', event=>{ cards=event.detail.cards || {}; paint(); });
+  async function load() {
+    if (busy) return;
+    try { const response=await fetch('/api/listening/status',{cache:'no-store'}); if(!response.ok) throw new Error('Speaker service unavailable'); state=await response.json(); }
+    catch (failure) { error=failure.message; }
+    paint();
+  }
+  load(); setInterval(load,3000);
 })();

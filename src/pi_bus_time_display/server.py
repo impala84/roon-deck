@@ -33,6 +33,7 @@ from .home_layout import load_layout, save_layout, tint_icon, with_layout
 from . import remote_backup, backup_server_client, backup_crypto
 from .backup import SECRET_KEYS, build_backup, check_backup, restore_backup
 from .listening import referenced_entities, ListeningControls, remote_step_allowed
+from .kef_ir import input_command as kef_input_command
 from .streamdeck import run as run_streamdeck
 
 
@@ -40,7 +41,7 @@ CONTROL_REQUEST_LOCK = threading.Lock()
 DECK_ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ALPINE_SYSTEM_ACTIONS = {
     "update", "reboot", "shutdown", "netdata_enable", "netdata_disable", "netdata_claim",
-    "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight",
+    "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight", "performance_profile",
     "device_credentials", "install_tools", "install_streamdeck", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
     "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable", "set_audio_hat",
@@ -112,7 +113,7 @@ class State:
             saved_services = set(config.services)
         self.enabled_services: set[str] = saved_services.intersection(config.services)
         self.home_data: dict = {"status": "disabled", "entities": []}
-        self.listening = ListeningControls(self.state_dir / "listening.json")
+        self.listening = ListeningControls(self.state_dir / "listening.json", ir_sender=self.send_kef_input)
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -129,11 +130,17 @@ class State:
             "interface_size": self.config.interface_size,
             "settings_layout": self.config.settings_layout,
             "bus_enabled": self.config.bus_enabled,
+            "route_tint": self.config.route_tint,
             "stale": bool(self.last_success and (now - self.last_success).total_seconds() > self.config.stale_after_seconds),
         })
         if self.config.services:
             result["services"] = [item for item in result.get("services", []) if item.get("service") in self.enabled_services]
         return result
+
+    def send_kef_input(self, remote, source):
+        if not self.config.home_assistant_enabled: raise ValueError("Enable Home Assistant before using the KEF infrared remote")
+        home_assistant_request(self.config, "/api/services/remote/send_command",
+            {"entity_id": remote, "command": kef_input_command(source), "num_repeats": 1})
 
     def controls_snapshot(self) -> dict:
         with self.lock:
@@ -993,6 +1000,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
         "netdata": netdata["service"],
         "netdata_details": netdata,
         "netdata_lightweight": (state_dir / "netdata-lightweight").is_file() and (state_dir / "netdata-lightweight").read_text().strip() == "yes",
+        "performance_profile": load_performance_profile(state_dir),
         "device_username": device_username,
         "pi_leds": pi_led_state(state_dir),
         "audio_hat": audio_hat_state(),
@@ -1021,6 +1029,12 @@ def audio_hat_state() -> str:
     return value or "none"
 
 
+def load_performance_profile(state_dir):
+    try: value = (Path(state_dir) / "performance-profile").read_text().strip()
+    except OSError: return "playback"
+    return value if value in {"playback", "dashboard"} else "playback"
+
+
 def write_control_request(state_dir: Path, request: dict) -> bool:
     """Atomically enqueue a privileged action and wake the systemd path unit.
 
@@ -1044,6 +1058,9 @@ def write_control_request(state_dir: Path, request: dict) -> bool:
                 payload.update(token=str(request.get("token", "")), rooms=str(request.get("rooms", "")))
             if request["action"] in {"netdata_claim_command", "netdata_official_install"}:
                 payload["command"] = str(request.get("command", ""))
+            if request["action"] == "performance_profile":
+                if request.get("profile") not in ("playback", "dashboard"): raise ValueError("Choose playback or dashboard priority.")
+                payload["profile"] = request["profile"]
             if request["action"] == "netdata_lightweight":
                 if type(request.get("enabled")) is not bool: raise ValueError("Choose a supported Netdata monitoring mode.")
                 payload["enabled"] = request["enabled"]
@@ -1362,7 +1379,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 return
             if self.path == "/api/home/status":
                 home_single = state.config.home_assistant_single_color if state.config.home_assistant_color_mode == "single" else None
-                self.send_json(200, json.dumps({**state.home_data, "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
+                self.send_json(200, json.dumps({**with_layout(state.home_data, load_layout(state.state_dir / "home-layout.json")), "roon_display_name": state.config.roon_display_name, "display_theme": state.config.display_theme,
                     "tile_colors": {"light": home_single or state.config.home_assistant_light_color, "fan": home_single or state.config.home_assistant_fan_color,
                         "switch": home_single or state.config.home_assistant_switch_color, "input_boolean": home_single or state.config.home_assistant_switch_color,
                         "scene": home_single or state.config.home_assistant_scene_color, "script": home_single or state.config.home_assistant_scene_color}}).encode())
@@ -1859,6 +1876,9 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         request.update(token=str(data.get("token", "")), rooms=str(data.get("rooms", "")))
                     if action in {"netdata_claim_command", "netdata_official_install"}:
                         request["command"] = str(data.get("command", ""))
+                    if action == "performance_profile":
+                        if data.get("profile") not in ("playback", "dashboard"): raise ValueError("Choose playback or dashboard priority.")
+                        request["profile"] = data["profile"]
                     if action == "netdata_lightweight":
                         if type(data.get("enabled")) is not bool:
                             raise ValueError("Choose a supported Netdata monitoring mode.")

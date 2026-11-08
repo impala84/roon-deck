@@ -566,6 +566,33 @@ class AlpineSetupTests(unittest.TestCase):
         self.assertFalse((self.root / "etc/conf.d/roonbridge").exists())
         self.assertFalse((self.root / "etc/conf.d/pi-home-display").exists())
 
+    def test_dashboard_profile_applies_and_reverses_live_thread_priorities(self):
+        start = self.root / "opt/RoonBridge/start.sh"; start.parent.mkdir(parents=True); start.touch()
+        for pid in ("123", "124"):
+            proc = self.root / "proc" / pid; (proc / "task" / pid).mkdir(parents=True)
+            (proc / "task" / (pid + "0")).mkdir()
+            (proc / "oom_score_adj").write_text("0")
+        run = Mock(side_effect=lambda cmd: ("123" if "RoonBridge" in cmd[-1] else "124") if cmd[0] == "pgrep" else "")
+        module.ensure_playback_priority(self.root, run, "dashboard")
+        self.assertIn("nice=0", (self.root / "etc/conf.d/roonbridge").read_text())
+        self.assertIn("nice=-5", (self.root / "etc/conf.d/pi-home-display").read_text())
+        self.assertEqual((self.root / "proc/123/oom_score_adj").read_text().strip(), "0")
+        run.assert_any_call(["renice", "-n", "0", "-p", "1230"])
+        module.ensure_playback_priority(self.root, run, "playback")
+        self.assertFalse((self.root / "etc/conf.d/pi-home-display").exists())
+        run.assert_any_call(["renice", "-n", "0", "-p", "1240"])
+        self.assertEqual((self.root / "proc/123/oom_score_adj").read_text().strip(), "-200")
+        self.assertFalse(any(command.args[0][0] == "rc-service" for command in run.call_args_list))
+
+    def test_performance_selection_is_validated_and_persists_for_startup(self):
+        self.setup.save({"complete": True})
+        self.setup.handle({"action": "performance_profile", "profile": "dashboard"})
+        self.assertEqual(module.performance_profile(self.root), "dashboard")
+        module.ensure_playback_priority(self.root)
+        self.assertIn("nice=-5", (self.root / "etc/conf.d/pi-home-display").read_text())
+        with self.assertRaises(ValueError): self.setup.handle({"action": "performance_profile", "profile": "realtime"})
+        self.assertEqual(module.performance_profile(self.root), "dashboard")
+
     def test_roon_bridge_start_reports_when_the_official_files_are_absent(self):
         self.setup.save({"complete": True})
         with self.assertRaisesRegex(ValueError, "not installed"):

@@ -340,59 +340,70 @@ depend() { need localmount; after networkmanager; }
 """, 0o755)
     return service
 
-# Playback comes first on this appliance. A 192 kHz / 24-bit stream is ~9 Mbit/s of steady network
-# and needs its audio threads scheduled on time, so Roon Bridge gets the best CPU and disk
-# priority and is the last thing the kernel will kill for memory, while the touchscreen, API and
-# Roon controller yield to it. OpenRC reads these per-service overrides from /etc/conf.d.
-PLAYBACK_PRIORITY = {
-    "roonbridge": ("-5", "2:0", "-200"),   # only the bridge is nudged; the touchscreen, API and controller keep ordinary priority so they never hang
+# Keep resource preferences explicit and reversible; neither profile stops audio.
+PERFORMANCE_PROFILES = {
+    "playback": {"roonbridge": ("-5", "2:0", "-200")},
+    "dashboard": {"roonbridge": ("0", "2:4", "0"),
+                  "pi-home-display": ("-5", "2:2", "-200"),
+                  "pi-home-api": ("-3", "2:3", "-100"),
+                  "pi-home-roon": ("-3", "2:3", "-100")},
 }
-# Earlier builds also slowed these services and made them the first to be killed when memory ran low, which could leave the display hung.
-RELAXED_SERVICES = ("pi-home-display", "pi-home-api", "pi-home-roon")
+PRIORITY_PROCESS_PATTERNS = {
+    "roonbridge": "/opt/RoonBridge",
+    "pi-home-display": "/opt/pi-home/native-display/|(^|/)cage( |$)|/usr/local/bin/pi-home-display-launch",
+    "pi-home-api": "/opt/pi-home/.venv/bin/pi-home( |$)",
+    "pi-home-roon": "/opt/pi-home/roon-controller/server.js",
+}
 
 
-def ensure_playback_priority(root, run=None):
-    """Write managed priority overrides, lift a running bridge now and pin the CPU to full speed.
+def performance_profile(root):
+    try: value = (Path(root) / "var/lib/pi-home/performance-profile").read_text().strip()
+    except OSError: value = "playback"
+    return value if value in PERFORMANCE_PROFILES else "playback"
 
-    Safe to repeat on every start: files are rewritten only when they differ, and nothing here
-    restarts a service, so music is never interrupted. New settings reach the display, API and
-    controller at their next restart (the updater restarts them) and the bridge at its next start.
-    """
+
+def ensure_playback_priority(root, run=None, profile=None):
+    """Apply the saved CPU, disk and memory-pressure preference without restarting services."""
     root = Path(root)
+    profile = performance_profile(root) if profile is None else profile
+    if profile not in PERFORMANCE_PROFILES: raise ValueError("Choose playback or dashboard priority.")
+    desired = PERFORMANCE_PROFILES[profile]
     bridge = (root / "opt/RoonBridge/start.sh").is_file()
-    for name in RELAXED_SERVICES:   # take back what earlier builds set, but only files this code wrote
-        stale = root / "etc/conf.d" / name
-        try:
-            if stale.is_file() and stale.read_text().startswith("# Managed by RoonDeck"): stale.unlink()
-        except OSError:
-            pass
-    for name, (nice, ionice, oom) in PLAYBACK_PRIORITY.items():
+    for name in PRIORITY_PROCESS_PATTERNS:
         if name == "roonbridge" and not bridge: continue
         conf = root / "etc/conf.d" / name
-        text = ("# Managed by RoonDeck: the Roon Bridge gets a modest head start so playback stays smooth.\n"
-                f'nice={nice}\nionice="{ionice}"\noom_score_adjust={oom}\n')
-        try:
-            if conf.is_file() and conf.read_text() == text: continue
-            conf.parent.mkdir(parents=True, exist_ok=True)
-            atomic(conf, text, 0o644)
-        except OSError:
-            continue
-    if not bridge: return
-    # A governor that ramps up late is a common cause of dropouts on hi-res streams.
-    for governor in sorted(root.glob("sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor")):
-        try:
-            if governor.read_text().strip() != "performance": governor.write_text("performance\n")
-        except OSError:
-            pass
-    if run is None: return
-    try:
-        pids = run(["pgrep", "-f", "/opt/RoonBridge"]).split()
-    except Exception:
-        return
-    for pid in (p for p in pids if p.isdigit()):
-        for command_line in (["renice", "-n", "-5", "-p", pid], ["ionice", "-c", "2", "-n", "0", "-p", pid]):
-            try: run(command_line)
-            except Exception: pass
+        managed = conf.is_file() and conf.read_text().startswith("# Managed by RoonDeck")
+        if conf.exists() and not managed: continue  # preserve operator-owned service tuning
+        if name in desired:
+            nice, ionice, oom = desired[name]
+            text = (f"# Managed by RoonDeck: {profile} resource priority.\n"
+                    f'nice={nice}\nionice="{ionice}"\noom_score_adjust={oom}\n')
+            if not conf.is_file() or conf.read_text() != text:
+                conf.parent.mkdir(parents=True, exist_ok=True)
+                atomic(conf, text, 0o644)
+        elif managed:
+            conf.unlink()
+        if run is None: continue
+        nice, io, oom = desired.get(name, ("0", "2:4", "0"))
+        try: pids = run(["pgrep", "-f", PRIORITY_PROCESS_PATTERNS[name]]).split()
+        except Exception: continue
+        for pid in (pid for pid in pids if pid.isdigit()):
+            # Linux scheduling and I/O priorities are per thread. Also undo the
+            # previous profile on existing workers, rather than waiting for reboot.
+            tasks = list((root / "proc" / pid / "task").glob("[0-9]*"))
+            for tid in ([task.name for task in tasks] or [pid]):
+                for command in (["renice", "-n", nice, "-p", tid],
+                                ["ionice", "-c", io.split(":")[0], "-n", io.split(":")[1], "-p", tid]):
+                    try: run(command)
+                    except Exception: pass  # the process can exit while being inspected
+            try: (root / "proc" / pid / "oom_score_adj").write_text(oom + "\n")
+            except OSError: pass
+    # Both profiles benefit from prompt CPU ramp-up; no CPU affinity or real-time scheduling.
+    if bridge or profile == "dashboard":
+        for governor in sorted(root.glob("sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor")):
+            try:
+                if governor.read_text().strip() != "performance": governor.write_text("performance\n")
+            except OSError: pass
 
 
 def configure_airplay(root, name="RoonDeck"):
@@ -938,6 +949,14 @@ class Setup:
                     atomic(self.root / "var/lib/pi-home/reboot-required-boot-id", boot_id + "\n")
                 except OSError: pass
             return {"ok": True, "audio_hat": hat, "reboot_required": changed}
+        if action == "performance_profile":
+            if not state.get("complete"): raise ValueError("Finish setup first.")
+            profile = data.get("profile")
+            if not isinstance(profile, str) or profile not in PERFORMANCE_PROFILES: raise ValueError("Choose playback or dashboard priority.")
+            ensure_playback_priority(self.root, self.run, profile)
+            (self.root / "var/lib/pi-home").mkdir(parents=True, exist_ok=True)
+            atomic(self.root / "var/lib/pi-home/performance-profile", profile + "\n")
+            return {"ok": True, "profile": profile}
         if action == "netdata_lightweight":
             if not state.get("complete"): raise ValueError("Finish setup first.")
             if not (self.root / "opt/netdata/bin/netdata").is_file() and not (self.root / "usr/sbin/netdata").is_file(): raise ValueError("Netdata is not installed.")

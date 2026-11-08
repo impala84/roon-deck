@@ -8,43 +8,85 @@ import threading
 import time
 import tempfile
 import os
+import urllib.request
+import urllib.error
+import urllib.parse
 from pathlib import Path
 
 
 class KefLSX:
     SOURCES = {"wifi": 2, "bluetooth": 9, "aux": 10, "optical": 11}
 
-    def __init__(self, host, maximum_volume=50):
+    def __init__(self, host, maximum_volume=50, roon_output_id=""):
         self.host = host
         self.maximum_volume = maximum_volume
+        self.roon_output_id = roon_output_id
 
     def exchange(self, request):
-        with socket.create_connection((self.host, 50001), timeout=2) as connection:
+        deadline = time.monotonic() + 2
+        for attempt in range(3):
+            try:
+                connection = socket.create_connection((self.host, 50001), timeout=max(.01, deadline - time.monotonic()))
+                break
+            except ConnectionRefusedError:
+                if attempt == 2 or time.monotonic() + .15 >= deadline: raise
+                time.sleep(.15)
+        # Retry only opening the connection. Once bytes are sent, a lost reply
+        # must never cause a volume/mute command to be replayed.
+        with connection as connection:
             connection.settimeout(2)
             connection.sendall(request)
             reply = bytearray()
+            received = 0
             deadline = time.monotonic() + 2
-            while len(reply) < 128:
+            while received < 128:
                 connection.settimeout(max(.01, deadline - time.monotonic()))
-                part = connection.recv(64)
-                if not part:
-                    raise OSError("KEF closed the control connection")
+                part = connection.recv(128 - received)
+                if not part: raise OSError("KEF closed the control connection")
+                received += len(part)
                 reply.extend(part)
-                if request[0] == 83:
-                    if b"R\x11\xff" in reply:
-                        return 17
-                else:
-                    offset = reply.find(bytes([82, request[1], 129]))
-                    if offset >= 0 and len(reply) >= offset + 5:
-                        if reply[offset + 4] != 255:
-                            raise OSError("Malformed KEF response")
-                        return reply[offset + 3]
-                if time.monotonic() >= deadline:
-                    raise OSError("KEF control response timed out")
+                offset = 0
+                while len(reply) - offset >= 2:
+                    if reply[offset] != 82: raise OSError("Malformed KEF response")
+                    kind = reply[offset + 1]
+                    size = 3 if kind in (17, 18) else 5
+                    if len(reply) - offset < size: break
+                    packet = reply[offset:offset + size]
+                    if kind in (17, 18):
+                        if packet[-1] != 255: raise OSError("Malformed KEF acknowledgement")
+                        if kind == 18: raise OSError("KEF rejected the command")
+                        if request[0] == 83: return 17
+                    else:
+                        if packet[2] != 129: raise OSError("Malformed KEF response marker")
+                        # Real LSX GET frames have a variable fifth byte, not
+                        # a fixed 0xff terminator. Match the register instead.
+                        if request[0] == 71 and kind == request[1]: return packet[3]
+                    offset += size
+                if offset: del reply[:offset]
+                if time.monotonic() >= deadline: raise OSError("KEF control response timed out")
             raise OSError("Unexpected KEF response")
 
+    def roon_request(self, action=None, value=None):
+        if action is None:
+            request = "http://127.0.0.1:8766/api/kef/status?" + urllib.parse.urlencode({"output_id": self.roon_output_id})
+        else:
+            request = urllib.request.Request("http://127.0.0.1:8766/api/kef/command",
+                json.dumps({"output_id": self.roon_output_id, "action": action, "value": value,
+                            "maximum_volume": self.maximum_volume}).encode(), {"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response: return json.load(response)
+        except urllib.error.HTTPError as error:
+            try: message = json.load(error).get("error", "Roon KEF control failed")
+            except (ValueError, AttributeError): message = "Roon KEF control failed"
+            raise OSError(message) from error
+        except (urllib.error.URLError, ValueError) as error:
+            raise OSError("Roon KEF connection is unavailable") from error
+
     def status(self):
-        source = self.exchange(bytes.fromhex("473080"))
+        try: source = self.exchange(bytes.fromhex("473080"))
+        except OSError as error:
+            if self.roon_output_id: return self.roon_request()
+            raise OSError("KEF control is unavailable on port 50001. Choose its Roon output for wake and Wi-Fi control; AUX, optical and Bluetooth need the speaker's direct control service.") from error
         volume = self.exchange(bytes.fromhex("472580"))
         if volume & 127 > 100:
             raise OSError("Invalid KEF volume response")
@@ -53,6 +95,12 @@ class KefLSX:
                 "volume": volume & 127, "muted": bool(volume & 128)}
 
     def command(self, action, value=None):
+        if action == "power" and type(value) is not bool: raise ValueError("Power requires true or false")
+        if action in {"volume", "volume_delta"} and (type(value) is not int or not -100 <= value <= 100):
+            raise ValueError("Volume requires an integer between -100 and 100")
+        if self.roon_output_id and (action in {"power", "volume", "volume_delta", "mute"} or (action == "input" and value == "wifi")):
+            self.roon_request(action, value)
+            return
         if action in {"power", "input"}:
             if action == "power" and type(value) is not bool:
                 raise ValueError("Power requires true or false")
@@ -96,13 +144,19 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     host = data.get("kef_host", "")
     if not isinstance(host, str) or len(host) > 253 or any(character.isspace() or character in "/\\@" for character in host):
         raise ValueError("Enter a speaker IP address or hostname")
     if data.get("enabled") and not host:
         raise ValueError("Enter the KEF speaker address before enabling controls")
+    output_id = data.get("kef_roon_output_id", "")
+    if not isinstance(output_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{0,128}", output_id):
+        raise ValueError("Choose a valid KEF Roon output")
+    remote = data.get("kef_ir_remote", "")
+    if not isinstance(remote, str) or (remote and not re.fullmatch(r"remote\.[a-z0-9_]{1,100}", remote)):
+        raise ValueError("Choose a Broadlink remote entity")
     maximum = data.get("maximum_volume", 50)
     if type(maximum) is not int or not 0 <= maximum <= 100:
         raise ValueError("maximum_volume must be between 0 and 100")
@@ -201,15 +255,16 @@ def validate_settings(data):
 
 
 class ListeningControls:
-    def __init__(self, settings_path, kef_factory=KefLSX):
+    def __init__(self, settings_path, kef_factory=KefLSX, ir_sender=None):
         self.path = Path(settings_path)
         self.factory = kef_factory
+        self.ir_sender = ir_sender
         self.lock = threading.Lock()
         self.brightness_preview = None   # a slider move waiting for the Stream Deck thread to show it
         self.state = {"enabled": False, "kef": {"connected": False}, "modes": [],
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
                       "topping": {"available": False, "reason": "Bluetooth commands have not been verified"},
-                      "last_mode": None, "error": ""}
+                      "last_mode": None, "error": "", "notice": "", "ir_available": False}
 
     def settings(self):
         return load_settings(self.path)
@@ -235,6 +290,8 @@ class ListeningControls:
         host = settings.get("kef_host")
         if not isinstance(host, str) or not host.strip():
             raise ValueError("Configure kef_host before enabling listening controls")
+        if settings.get("kef_roon_output_id"):
+            return self.factory(host, settings.get("maximum_volume", 50), settings["kef_roon_output_id"])
         return self.factory(host, settings.get("maximum_volume", 50))
 
     def refresh(self):
@@ -242,6 +299,7 @@ class ListeningControls:
             try:
                 settings = self.settings()
                 self.state["enabled"] = bool(settings.get("enabled"))
+                self.state["ir_available"] = bool(settings.get("kef_ir_remote") and self.ir_sender)
                 self.state["modes"] = [{"id": mode["id"], "name": mode.get("name", mode["id"]),
                     "available": not bool(mode.get("topping_input")),
                     "reason": "Topping input switching is not available yet" if mode.get("topping_input") else ""}
@@ -283,6 +341,17 @@ class ListeningControls:
             speaker = self.speaker(settings)
             try:
                 self.state["last_mode"] = None
+                self.state["notice"] = ""
+                if action == "input" and settings.get("kef_ir_remote"):
+                    if value not in KefLSX.SOURCES: raise ValueError("Choose a supported KEF input")
+                    if self.ir_sender is None: raise ValueError("Home Assistant infrared control is unavailable")
+                    self.ir_sender(settings["kef_ir_remote"], value)
+                    self.state["ir_available"] = True
+                    self.state["notice"] = f"Sent {value.upper() if value == 'aux' else value.title()} via infrared. Input readback is unavailable."
+                    self.state["error"] = ""
+                    # An IR transmission has no device acknowledgement. Do not
+                    # invent input/volume feedback or mark a listening mode done.
+                    return self.snapshot_unlocked()
                 if action == "mode":
                     mode = next((item for item in settings.get("modes", []) if item["id"] == value), None)
                     if mode is None:
@@ -290,24 +359,47 @@ class ListeningControls:
                     # Preflight every dependency before touching any hardware.
                     if mode.get("topping_input"):
                         raise ValueError("Mode unavailable: Topping Bluetooth commands are not verified")
-                    speaker.command("power", True)
-                    time.sleep(.3)
+                    # Selecting an LSX input also wakes it. Wait for that source
+                    # before changing its per-input volume; a fixed sleep can
+                    # change the previous input's volume while it is waking.
+                    if settings.get("kef_ir_remote") and mode["kef_input"] != "wifi":
+                        raise ValueError("Use the input shortcut for infrared selection; a starting-volume mode needs direct KEF readback")
                     speaker.command("input", mode["kef_input"])
-                    time.sleep(.3)
+                    self.confirm(speaker, lambda status: status.get("powered") and status.get("input") == mode["kef_input"],
+                                 "Speaker did not confirm the input")
                     speaker.command("volume", mode["volume"])
                 else:
                     speaker.command(action, value)
-                status = speaker.status()
                 if action == "mode":
-                    if not status["powered"] or status["input"] != mode["kef_input"] or status["volume"] != mode["volume"]:
-                        raise OSError("Speaker did not confirm the listening mode")
+                    status = self.confirm(speaker, lambda status: status.get("powered") and status.get("input") == mode["kef_input"] and status.get("volume") == mode["volume"],
+                                          "Speaker did not confirm the listening mode")
                     self.state["last_mode"] = value
+                elif action in {"power", "input", "volume"}:
+                    def confirmed(status):
+                        if action == "power": return status.get("powered") == value
+                        if action == "input": return status.get("powered") and status.get("input") == value
+                        return status.get("volume") == max(0, min(settings.get("maximum_volume", 50), value))
+                    status = self.confirm(speaker, confirmed, f"Speaker did not confirm {action}")
+                else:
+                    status = speaker.status()
                 self.state["kef"] = status
                 self.state["error"] = ""
             except (OSError, ValueError) as error:
+                if isinstance(error, OSError):
+                    self.state["kef"] = {"connected": False}
                 self.state["error"] = str(error)
                 raise
             return self.snapshot_unlocked()
+
+    def confirm(self, speaker, predicate, message):
+        # Poll readback only: never repeat a write, particularly a relative
+        # volume or mute command. Acknowledgement alone is not state acceptance.
+        for attempt in range(5):
+            status = speaker.status()
+            self.state["kef"] = status
+            if predicate(status): return status
+            if attempt < 4: time.sleep(.25)
+        raise OSError(message)
 
     def poll(self, stop):
         while not stop.is_set():
@@ -318,6 +410,7 @@ class ListeningControls:
 def referenced_entities(settings):
     """Home Assistant entities a saved Stream Deck design uses, so they work without also being listed under Home settings."""
     found = set()
+    if settings.get("kef_ir_remote"): found.add(settings["kef_ir_remote"])
     def add(value):
         if isinstance(value, str) and "." in value: found.add(value)
     for binding in [*(settings.get("buttons") or []), *(settings.get("dials") or [])]:

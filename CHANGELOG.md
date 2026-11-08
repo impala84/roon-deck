@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0-beta.133 Alpine — 9 November 2026
+
+- Add KEF speaker, power, input and volume tiles to the Home builder, with ordinary grid placement, size, colour and page options. Remove the separate panel above Home tiles.
+- Added System → Device → Performance priority: choose local Roon Bridge playback or a responsive touchscreen. Applies CPU, I/O and memory-pressure preferences to running services without restarting them, and retains the choice after reboot and source updates.
+- KEF LSX controls can reuse a selected Roon output for wake, standby, Wi-Fi selection, volume and mute. Added optional Broadlink infrared input selection through Home Assistant for AUX, optical, Bluetooth and Wi-Fi. AUX was physically verified on an original LSX; infrared transmission does not claim device readback.
+- Fixed original-LSX binary reply parsing and bounded connection recovery. Input and power changes now require readback; listening modes wait for the input before changing its volume.
+- Bus route tint now defaults to 20% on all native screen sizes and the web Bus Times page. Saved strengths and route colours are preserved.
+- Fixed the native review fixtures to provide the Home tile CSS provider required by the current display code.
+
 ## 1.2.0-beta.132 Alpine — 9 November 2026
 
 - Fixed the Baseline checks setup: install Pillow for the image tests and use the same Python version as the local check runner. This resolves the repeated missing-library failure emails.

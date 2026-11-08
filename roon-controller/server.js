@@ -2,6 +2,7 @@
 
 const http = require('http');
 const {AccessoryControl} = require('./accessory-control');
+const {KefRoonControl} = require('./kef-control');
 const fs = require('fs');
 const path = require('path');
 const RoonApi = require('node-roon-api');
@@ -39,6 +40,7 @@ let transport = null;
 let imageService = null;
 let browseService = null;
 let zones = new Map();
+const kefControl = new KefRoonControl({zones: () => [...zones.values()], transport: () => transport});
 const rememberedOutputIds = new Map();
 let queueItems = [];
 let queueHistory = [];
@@ -487,6 +489,13 @@ http.createServer(async (request, response) => {
       const jpeg=bytes[0]===255&&bytes[1]===216, png=bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
       if(!jpeg&&!png) return response.writeHead(404).end();
       response.writeHead(200,{'Content-Type':jpeg?'image/jpeg':'image/png','Cache-Control':'private, max-age=300'});return response.end(bytes);
+    }
+    if (request.method === 'GET' && url.pathname === '/api/kef/status') {
+      return json(response, 200, kefControl.status(url.searchParams.get('output_id')));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/kef/command') {
+      const data = await body(request);
+      return json(response, 200, await kefControl.command(data.output_id, data.action, data.value, data.maximum_volume));
     }
     if (request.method === 'GET' && url.pathname === '/api/accessory/outputs') {
       return json(response, 200, {outputs: [...zones.values()].flatMap(zone => (zone.outputs || []).map(output => ({id: output.output_id, name: output.display_name, zone: zone.display_name})))});

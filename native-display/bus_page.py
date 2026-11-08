@@ -16,8 +16,8 @@ ROUTE_ACCENTS = {"blue": "#55a9d7", "green": "#61c68f", "violet": "#a998e0", "am
 class BusPageMixin:
     def apply_route_tint(self, config):
         """One setting (Bus settings > Route colour strength) fills the Bus Times rows and the Home bus tile with each route's colour."""
-        try: tint = max(0, min(100, int(config.get("route_tint", 34)))) / 100
-        except (TypeError, ValueError): tint = .34
+        try: tint = max(0, min(100, int(config.get("route_tint", 20)))) / 100
+        except (TypeError, ValueError): tint = .20
         if getattr(self, "route_tint_applied", None) == tint: return
         self.route_tint_applied = tint
         provider = getattr(self, "route_tint_provider", None)

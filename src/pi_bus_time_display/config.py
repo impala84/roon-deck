@@ -18,7 +18,7 @@ class Config:
     bus_stop_code: str = "00000"
     bus_stop_name: str = "Bus stop"
     services: tuple[str, ...] = ()
-    route_tint: int = 34   # how strongly a route's colour fills its Bus Times row and the Home bus tile, 0 to 100
+    route_tint: int = 20   # how strongly a route's colour fills its Bus Times row and the Home bus tile, 0 to 100
     service_colours: str = ""   # route=colour pairs, e.g. "40=blue, 42=green"; routes not listed keep their usual colour
     walking_minutes: int = 7
     poll_seconds: int = 20

@@ -12,6 +12,15 @@ class HomeLayoutTests(unittest.TestCase):
         saved = save_layout(path, {"tiles": {"light.study_uplight": {"size": "full", "label": "Uplight", "icon": "icon-bulb-hd5.png", "image": "wood.png", "color": "#fb923c"}}})
         self.assertEqual(load_layout(path), saved)
 
+    def test_kef_controls_are_optional_layout_cards_with_copies(self):
+        keys = ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume", "roondeck.kef_input#2")
+        tiles = {key: {"show": True, "col": 1, "row": 2, "size": "half", "rows": 2, "label": "Study", "color": "#9868f9", "page": 1} for key in keys}
+        layout = validate_layout({"pages": 2, "tiles": tiles})
+        home = with_layout({"entities": []}, layout)
+        self.assertEqual(home["cards"], tiles)
+        self.assertEqual(home["entities"], [])
+        self.assertEqual(with_layout({"entities": []}, {"tiles": {}})["cards"], {})
+
     def test_rejects_bad_tiles(self):
         for tile in ({"size": "huge"}, {"label": "x" * 41}, {"icon": "../x.png"}, {"image": "x.jpg"}, {"color": "orange"}, {"other": 1}):
             with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": tile}})

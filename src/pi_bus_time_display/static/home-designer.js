@@ -35,7 +35,8 @@
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
   const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'page', 'route', 'border']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
-  const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
+  const KEF = {'roondeck.kef': 'KEF speaker', 'roondeck.kef_power': 'KEF power', 'roondeck.kef_input': 'KEF input', 'roondeck.kef_volume': 'KEF volume'};
+  const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
   // The same device or card can be on several pages: the copies are kept as "light.lamp#2" and behave as tiles of their own.
   const B = id => id.split('#')[0];
@@ -52,7 +53,7 @@
   const pageOf = id => Math.min(pageCount() - 1, (layout.tiles[id] || {}).page || 0);
   const onPage = id => pageCount() < 2 || pageOf(id) === Math.min(pageNo, pageCount() - 1);
   const deviceIds = () => allDevices().filter(onPage);
-  const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...Object.keys(layout.tiles).filter(key => key.includes('#') && B(key) in CARDS), ...liveShown(), ...allDevices()] : allDevices();
+  const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...Object.keys(layout.tiles).filter(key => key.includes('#') && B(key) in CARDS), ...liveShown(), ...allDevices()] : [...liveShown().filter(key => B(key) in KEF), ...allDevices()];
   const ids = () => allIds().filter(onPage);
   const hasOnPage = (base, page) => instancesOf(base).some(key => pageOf(key) === page && (key in layout.tiles || textIds().includes(key) || key in CARDS));
   const withPage = tile => { const next = {...tile}; if (pageNo > 0 && pageCount() > 1) next.page = pageNo; else delete next.page; return next; };
@@ -192,6 +193,13 @@
         h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready. Tap to install' : zones.length === 2 ? zones[0] + '\n+ ' + zones[1] : 'Choose them in the tile options')))];
     }
     if (B(id) === 'roondeck.volume') return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, 'VOLUME'), h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '42'), h('i', {}, '+')))];
+    if (B(id) in KEF) {
+      const kind = B(id), full = kind === 'roondeck.kef';
+      return [h('div', {class: 'hd-d-live'}, h('b', {}, tile.label || KEF[kind]), h('small', {}, 'On · Wi-Fi · 20%'),
+        full || kind.endsWith('_power') ? h('span', {}, 'On   ·   Standby') : null,
+        full || kind.endsWith('_input') ? h('span', {}, 'Choose input ▾') : null,
+        full || kind.endsWith('_volume') ? h('span', {}, '−   20   +   Mute') : null)];
+    }
     if (B(id) in LIVE) {
       const cpu = B(id) === 'roondeck.cpu', mem = B(id) === 'roondeck.memory', net = !cpu && !mem;
       const values = mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24];
@@ -225,7 +233,7 @@
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
-    if (dashColumns()) { node.classList.add('hd-dash'); if (cell.span >= 4) node.classList.add('hd-wide'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
+    if (dashColumns() || B(id) in KEF) { node.classList.add('hd-dash'); if (cell.span >= 4) node.classList.add('hd-wide'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
@@ -639,7 +647,7 @@
         const pick = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), names.concat(tile[key] && !names.includes(tile[key]) ? [tile[key]] : []).map(name => h('option', {value: name}, name))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
       })();
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields,
         B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
@@ -681,28 +689,28 @@
     // Two sources of tiles, switched at the top: RoonDeck's own (first, as they are the quickest to add) and Home Assistant devices.
     const dash = !!dashColumns();
     const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
-    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.volume' ? 'A large volume number with minus and plus' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
-    const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
+    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key in KEF ? (key === 'roondeck.kef' ? 'Power, input and volume together' : key === 'roondeck.kef_power' ? 'Wake for Roon or put the speaker in standby' : key === 'roondeck.kef_input' ? 'Wi-Fi, AUX, optical and Bluetooth' : 'Speaker volume and mute') : key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.volume' ? 'A large volume number with minus and plus' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
+    const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.filter(([key]) => dash || key in KEF).map(([key, name, note]) => {
       const here = ids().some(other => B(other) === key && (!(key in LIVE) || layout.tiles[other]?.show)), more = key === 'roondeck.bus' && here && !!newCopyKey(key);   // the bus tile can be added again, once per route
       const add = h('button', {type: 'button', class: 'secondary hd-add'}, more ? 'Add another' : here ? (key in LIVE ? 'Added' : 'On screen') : 'Add'); add.disabled = here && !more;
       add.onclick = () => {
         // A tile that is already on another page is added here as a copy with its own place.
         const elsewhere = key in LIVE ? !!layout.tiles[key]?.show : true, target = elsewhere && (key in CARDS || layout.tiles[key]) ? newCopyKey(key) : key;
         if (!target) return;
-        layout.tiles[target] = withPage({...(target === key ? layout.tiles[key] || {} : {}), ...(key in LIVE ? {show: true} : {})});
+        layout.tiles[target] = withPage({...(target === key ? layout.tiles[key] || {} : {}), ...(key in LIVE ? {show: true} : {}), ...(key === 'roondeck.kef' ? {rows: 2, size: 'half'} : {})});
         devicesOpen = false; markDirty(); render(); selected = ids().indexOf(target); render();
       };
       return h('li', {}, h('span', {class: 'hd-label'}, name, h('small', {}, note)), add);
     }));
-    let source = addSource === 'ha' || !dash ? 'ha' : 'own';
+    let source = addSource === 'ha' ? 'ha' : 'own';
     const body = h('div', {class: 'hd-accordion-body'});
-    const switcher = dash ? h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Tile source'}, [['own', 'RoonDeck'], ['ha', 'Home Assistant']].map(([value, text]) => {
+    const switcher = h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Tile source'}, [['own', 'RoonDeck'], ['ha', 'Home Assistant']].map(([value, text]) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(source === value)}, text);
       button.onclick = () => { addSource = value; source = value; fillBody(); }; return button;
-    })) : null;
+    }));
     function fillBody() { switcher?.querySelectorAll('button').forEach((node, i) => node.setAttribute('aria-pressed', String(source === ['own', 'ha'][i]))); body.replaceChildren(...[switcher, source === 'own' ? ownPanel : haPanel].filter(Boolean)); }
     fillBody();
-    const box = h('details', {class: 'hd-accordion'}, h('summary', {}, h('span', {}, 'Add tiles'), h('small', {}, `${list.length} of ${LIMIT} tiles used`)), body);
+    const box = h('details', {class: 'hd-accordion'}, h('summary', {}, h('span', {}, 'Add tiles'), h('small', {}, `${ids().length} of ${LIMIT} tiles used`)), body);
     if (isOpen) box.setAttribute('open', '');
     box.ontoggle = () => { devicesOpen = box.open; };
     return box;
@@ -758,16 +766,11 @@
     statusArt.replaceChildren(icon, h('div', {class: 'hd-status-title'}, catalog.length ? 'Connected' : 'Not connected yet'),
       h('div', {class: 'hd-status-note'}, catalog.length ? `${catalog.length} devices found in Home Assistant` : 'Save the address and token, then reload to browse your devices.'));
     if (!layoutPane.hidden) {
-      if (!catalog.length) {
-        layoutPane.replaceChildren(h('div', {class: 'hd-group'}, h('h4', {}, 'Devices'), h('p', {class: 'cd-muted'}, 'Home Assistant is not reachable yet, so devices cannot be browsed. Enter entity IDs, separated by commas, or save the address and token first.'), entitiesLabel));
-        entitiesLabel.hidden = false;
-      } else {
         entitiesLabel.hidden = true;
         layoutPane.className = 'dd-pane hd-layout hd-two';
         LIMIT = pageLimit();
         layoutPane.replaceChildren(h('div', {class: 'hd-text'}, devices(), inspector()), h('div', {class: 'hd-side'}, preview()));
         markWide();
-      }
     }
     if (!coloursPane.hidden) coloursArt.replaceChildren(coloursPreview());
   }
