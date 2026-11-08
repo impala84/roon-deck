@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.97 Alpine — 8 November 2026
+
+- Home: on the Update and Group tiles the title sits beside the icon only when the tile is wide enough (two columns or more); on the smallest tile it goes below the icon again. Stretching the tile moves it up beside the icon. Same in the builder preview.
+
 ## 1.2.0-beta.96 Alpine — 8 November 2026
 
 - Home: new Volume tile (Add tiles > RoonDeck > Volume): a large volume number with − and + buttons that follows and changes the volume of the zone on Now Playing. It shows a dash and the buttons dim when that zone has no volume control.

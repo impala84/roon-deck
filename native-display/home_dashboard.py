@@ -138,7 +138,7 @@ class HomeDashboardMixin:
         value = self.label("—", "hs-action-value", 0); value.set_wrap(True); value.set_wrap_mode(Pango.WrapMode.WORD_CHAR); value.set_lines(2); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1); value.set_hexpand(True); value.set_xalign(0); value.set_valign(Gtk.Align.CENTER)   # the title sits beside the icon, leaving the lines below for the detail
         detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(3); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
         filler = Gtk.Box(); filler.set_vexpand(True)
-        head = Gtk.Box(spacing=10); head.append(chip); head.append(value); card.append(head); card.append(filler); card.append(detail)
+        head = Gtk.Box(spacing=10); head.append(chip); head.append(value); card.head = head; card.value_label = value; card.append(head); card.append(filler); card.append(detail)
         card.set_tooltip_text(title)
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: on_tap()); card.add_controller(tap)
         return card, value, detail
@@ -434,6 +434,9 @@ class HomeDashboardMixin:
                     self.hs_volume_row.set_margin_top(10 if tall else 0)
                 if hasattr(widget, "chip"):   # a wide action tile (Update, Group) gets larger type and icon
                     widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
+                    # The title sits beside the icon only where there is room for it: on the smallest tile it goes below the icon.
+                    widget.head.set_orientation(Gtk.Orientation.HORIZONTAL if width >= 4 else Gtk.Orientation.VERTICAL); widget.head.set_spacing(10 if width >= 4 else 8)
+                    widget.value_label.set_valign(Gtk.Align.CENTER if width >= 4 else Gtk.Align.START)
                     (widget.add_css_class if width >= 4 else widget.remove_css_class)("hs-action-wide")
                 if base_of(entity["entity_id"]) == "roondeck.network":
                     self.hs_net_wide = width >= 2

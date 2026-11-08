@@ -521,7 +521,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 
 .hs-action-chip { min-width: 44px; min-height: 44px; border-radius: 22px; background: rgba(255,255,255,.12); }
 .hs-action-icon { color: #d9d6e0; }
-.hs-action-value { font-size: 22px; font-weight: 700; color: #f4f0e6; }
+.hs-action-value { font-size: 24px; font-weight: 700; color: #f4f0e6; }
 .hs-action-detail { font-size: 15px; }
 .hs-action-wide { padding: 18px 22px; }
 .hs-action-wide .hs-action-chip { min-width: 56px; min-height: 56px; border-radius: 28px; }
