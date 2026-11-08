@@ -33,7 +33,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'download', 'upload', 'zone', 'with', 'page', 'route']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'download', 'upload', 'zone', 'with', 'page', 'route', 'border']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
@@ -228,7 +228,7 @@
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
-    if (isCard(id) && !tile.color) { node.style.background = '#232228'; node.style.borderColor = '#44414c'; }   // the standard card look, unless the owner picked a colour
+    if (isCard(id) && !tile.color) { node.style.background = '#232228'; node.style.borderColor = tile.border || '#44414c'; }   // the standard card look, unless the owner picked a colour
     for (const axis of dashColumns() ? ['x', 'y', 'w', 'n', 'se', 'sw', 'ne', 'nw'] : ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: 'Drag to resize this tile', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
@@ -563,6 +563,12 @@
       const button = h('button', {type: 'button', style: `background:${colour}`, title: colour, 'aria-label': `Colour ${colour}`, 'aria-pressed': String((tile.color || '').toLowerCase() === colour)}); button.onclick = () => patchTile(id, {color: colour}); return button;
     }), custom);
     const useDefault = h('button', {type: 'button', class: 'secondary'}, 'Use the standard colour'); useDefault.onclick = () => patchTile(id, {color: ''});
+    // A tile with no colour of its own can still have a brighter border; once a colour is chosen the border simply follows it.
+    const borderCustom = h('input', {type: 'color', value: tile.border || '#9868f9', 'aria-label': 'Custom border colour'}); borderCustom.onchange = () => patchTile(id, {border: borderCustom.value});
+    const borderSwatches = h('div', {class: 'hd-swatches', role: 'group', 'aria-label': 'Border colour'}, SWATCHES.map(colour => {
+      const button = h('button', {type: 'button', style: `background:${colour}`, title: colour, 'aria-label': `Border ${colour}`, 'aria-pressed': String((tile.border || '').toLowerCase() === colour)}); button.onclick = () => patchTile(id, {border: colour}); return button;
+    }), borderCustom);
+    const noBorder = h('button', {type: 'button', class: 'secondary'}, 'Standard border'); noBorder.onclick = () => patchTile(id, {border: ''});
     const also = tile.also || [];
     const linkSet = (next) => patchTile(id, {also: next.length ? next : ''});
     const alsoChips = h('div', {class: 'dd-chips', role: 'group', 'aria-label': 'Devices switched together'}, also.map(other => {
@@ -592,7 +598,7 @@
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
-        B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
+        B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);

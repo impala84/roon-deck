@@ -391,6 +391,8 @@ class HomeDashboardMixin:
             entity["widget"].remove_css_class(name)
             if isinstance(colour, str) and len(colour) == 7 and colour.startswith("#"):
                 entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {colour}; }}")
+            elif base_of(entity["entity_id"]) != "roondeck.bus" and isinstance(entity["tile"].get("border"), str) and len(entity["tile"]["border"]) == 7 and entity["tile"]["border"].startswith("#"):
+                entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ border-color: {entity['tile']['border']}; }}")   # a border of its own colour on a tile with no colour
         for domain, accent in (getattr(self, "home_domain_colours", None) or {}).items():
             rules.append(f".home-card.home-domain-{domain} .home-switch.on {{ background: {accent}; }}")
         def tile_of(entity): return entity.get("tile") or {}

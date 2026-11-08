@@ -11,7 +11,7 @@ SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with", "page", "route"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with", "page", "route", "border"}
 MAX_PAGES = 4
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
@@ -83,6 +83,9 @@ def validate_layout(data):
         if tile.get("color"):
             if not isinstance(tile["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", tile["color"]): raise ValueError("Tile colours must look like #fb923c")
             out["color"] = tile["color"]
+        if tile.get("border"):   # a border colour for a tile that has no colour of its own
+            if not isinstance(tile["border"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", tile["border"]): raise ValueError("Border colours must look like #fb923c")
+            out["border"] = tile["border"]
         if tile.get("route"):   # the bus route a Next-bus tile shows first
             if not isinstance(tile["route"], str) or not re.fullmatch(r"[A-Za-z0-9]{1,8}", tile["route"]): raise ValueError("Bus routes are letters and numbers, like 42 or 401")
             out["route"] = tile["route"]

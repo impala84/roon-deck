@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.101 Alpine — 8 November 2026
+
+- Home: Now Playing, Network, CPU, Memory, Update, Group and Volume tiles can have a border colour of their own (Border, in the tile's settings) without being coloured. Once you choose a Colour for the tile, the border simply follows it.
+
 ## 1.2.0-beta.100 Alpine — 8 November 2026
 
 - Builder: Add page, Duplicate page and Delete page are now icon buttons (plus, copy, bin) on the right of the page bar; hover for the name.
