@@ -100,13 +100,24 @@ class HomeDashboardMixin:
     def build_action_card(self, title, on_tap):
         """A tile you tap to do something: a small title, a big word for what a tap will do, and a line of detail."""
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-action"); card.set_hexpand(True); card.set_vexpand(True)
-        value = self.label("—", "hs-stat-value", 0); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1)
-        detail = self.label("", "hs-stat-detail", 0); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1)
+        chip = Gtk.Box(); chip.add_css_class("hs-action-chip"); chip.set_halign(Gtk.Align.START); chip.set_valign(Gtk.Align.START)
+        chip.set_size_request(44, 44); card.icon_name = None; card.chip = chip
+        value = self.label("—", "hs-action-value", 0); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1)
+        detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(2); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
         filler = Gtk.Box(); filler.set_vexpand(True)
-        heading = self.label(title, "hs-stat-title", 0); heading.set_ellipsize(Pango.EllipsizeMode.END); heading.set_max_width_chars(1)
-        card.append(heading); card.append(value); card.append(filler); card.append(detail)
+        card.append(chip); card.append(filler); card.append(value); card.append(detail)
+        card.set_tooltip_text(title)
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: on_tap()); card.add_controller(tap)
         return card, value, detail
+
+    def set_action_state(self, card, icon, state):
+        """Show an icon in the tile's chip and colour the tile for its state: ok (green), alert (orange), active (purple) or none."""
+        if card.icon_name != icon:
+            card.icon_name = icon; image = FamilyIcon(icon, 26); image.add_css_class("hs-action-icon"); image.set_halign(Gtk.Align.CENTER); image.set_valign(Gtk.Align.CENTER); image.set_hexpand(True)
+            while child := card.chip.get_first_child(): card.chip.remove(child)
+            card.chip.append(image)
+        for name in ("ok", "alert", "active"):
+            (card.add_css_class if name == state else card.remove_css_class)("is-" + name)
 
     # ---- update tile: shows whether a newer RoonDeck is out and installs it on a tap ----
     def check_updates(self, refresh=False):
@@ -132,13 +143,13 @@ class HomeDashboardMixin:
         if not self.upd_checking and now - self.upd_checked > 600: self.check_updates()
         info = self.upd_info or {}; status = self.device_status.get_text() if hasattr(self, "device_status") else ""
         if getattr(self, "update_in_progress", False):
-            self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Do not unplug")
+            self.set_action_state(self.hs_upd, "refresh", "active"); self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Please wait")
         elif info.get("update_available"):
-            self.hs_upd_value.set_text("Update"); self.hs_upd_detail.set_text(f"v{info.get('latest_version', '')} ready · tap to install")
+            self.set_action_state(self.hs_upd, "download", "alert"); self.hs_upd_value.set_text("Update"); self.hs_upd_detail.set_text(f"v{info.get('latest_version', '')} is ready. Tap to install")
         elif info:
-            self.hs_upd_value.set_text("Up to date"); self.hs_upd_detail.set_text(f"v{info.get('installed_version', '')} · tap to check")
+            self.set_action_state(self.hs_upd, "check", "ok"); self.hs_upd_value.set_text("Up to date"); self.hs_upd_detail.set_text(f"v{info.get('installed_version', '')}. Tap to check")
         elif not self.upd_checking:
-            self.hs_upd_value.set_text("Check"); self.hs_upd_detail.set_text("Tap to look for updates")
+            self.set_action_state(self.hs_upd, "refresh", None); self.hs_upd_value.set_text("Check"); self.hs_upd_detail.set_text("Tap to look for updates")
 
     # ---- zone group tiles: group one Roon zone with another, or ungroup them ----
     def zones_grouped(self, first, second):
@@ -154,10 +165,11 @@ class HomeDashboardMixin:
                 if data: GLib.idle_add(lambda: setattr(self, "group_outputs", data.get("outputs", [])) or False)
             threading.Thread(target=run, daemon=True).start()
         for key in keys:
-            _, value, detail = self.hs_groups[key]; cfg = self.hs_cfg.get(key) or {}
+            card, value, detail = self.hs_groups[key]; cfg = self.hs_cfg.get(key) or {}
             first, second = cfg.get("zone"), cfg.get("with")
-            if not first or not second: value.set_text("Set zones"); detail.set_text("Choose them in the builder"); continue
-            value.set_text("Ungroup" if self.zones_grouped(first, second) else "Group"); detail.set_text(f"{first} + {second}")
+            if not first or not second: self.set_action_state(card, "link", None); value.set_text("Set zones"); detail.set_text("Choose them in the builder"); continue
+            grouped = self.zones_grouped(first, second)
+            self.set_action_state(card, "link", "active" if grouped else None); value.set_text("Ungroup" if grouped else "Group"); detail.set_text(f"{first}\n+ {second}" if not grouped else f"{first}\n+ {second}")
 
     def tap_group_tile(self, key):
         cfg = self.hs_cfg.get(key) or {}

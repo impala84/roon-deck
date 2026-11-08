@@ -146,10 +146,13 @@
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (id === 'roondeck.update' || GROUPS.includes(id)) {
       const upd = id === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
-      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext'},
-        h('span', {class: 'hd-d-livehead'}, h('small', {}, upd ? 'SOFTWARE' : 'ZONES')),
+      const chip = h('span', {class: 'hd-d-achip'}); chip.innerHTML = upd
+        ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 10v31M19 29l13 13 13-13M11 47v7h42v-7"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+      return [h('div', {class: 'hd-d-live hd-d-action' + (upd ? ' alert' : '')}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, chip,
+        h('span', {class: 'hd-d-spacer'}),
         h('b', {class: 'hd-d-big'}, upd ? 'Update' : zones.length === 2 ? 'Group' : 'Set zones'),
-        h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready' : zones.length === 2 ? zones.join(' + ') : 'Choose them in the tile options')))];
+        h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready. Tap to install' : zones.length === 2 ? zones[0] + '\n+ ' + zones[1] : 'Choose them in the tile options')))];
     }
     if (id in LIVE) {
       const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', net = !cpu && !mem;

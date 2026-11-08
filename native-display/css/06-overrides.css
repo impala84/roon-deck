@@ -518,3 +518,16 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-clip, .home-clip > viewport { background: transparent; border: none; }
 .hs-action { padding: 14px 20px; }
 .hs-action:active { background: #2d2c34; }
+
+.hs-action-chip { min-width: 44px; min-height: 44px; border-radius: 22px; background: rgba(255,255,255,.12); }
+.hs-action-icon { color: #d9d6e0; }
+.hs-action-value { font-size: 27px; font-weight: 700; color: #f4f0e6; }
+.hs-action-detail { font-size: 15px; }
+.hs-action.is-ok .hs-action-chip { background: rgba(110,217,174,.2); }
+.hs-action.is-ok .hs-action-icon { color: #6ed9ae; }
+.hs-action.is-alert { background: #4a3520; border-color: #f59a3d; }
+.hs-action.is-alert .hs-action-chip { background: #f59a3d; }
+.hs-action.is-alert .hs-action-icon { color: #2a1a08; }
+.hs-action.is-active { background: #1f3550; border-color: #6aa8ff; }
+.hs-action.is-active .hs-action-chip { background: #6aa8ff; }
+.hs-action.is-active .hs-action-icon { color: #0c1a2c; }

@@ -235,3 +235,7 @@
 .hd-d-player.art-thumb .hd-d-spacer{display:none}.hd-d-player.art-thumb .hd-d-headrow{flex:1;align-items:center;gap:1.6cqw}.hd-d-thumb{width:11cqw;height:11cqw}
 .hd-d-bus{margin-left:-.9cqw;gap:1.1cqw}.hd-d-route b{font-size:3.4cqw}.hd-d-minutes b{font-size:5.6cqw}
 .hd-d-action .hd-d-big{font-size:2.6cqw}
+
+.hd-d-actiontext{grid-template-rows:auto 1fr auto auto}.hd-d-achip{width:4.2cqw;height:4.2cqw;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;color:#d9d6e0}.hd-d-achip svg{width:55%;height:55%}
+.hd-d-action .hd-d-livefoot{white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.hd-d-action.alert{background:#4a3520;box-shadow:inset 0 0 0 1px #f59a3d}.hd-d-action.alert .hd-d-achip{background:#f59a3d;color:#2a1a08}

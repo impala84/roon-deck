@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.80 Alpine — 8 November 2026
+
+- Home: Update and Group zones tiles are more visual and wrap properly when they are small square tiles. Each has an icon badge, a bigger headline word and a detail line that wraps to two lines (the two zone names sit on separate lines). Update turns orange when a release is ready, green with a tick when you are up to date, and blue while installing; a grouped Zones tile turns blue. The builder preview matches.
+
 ## 1.2.0-beta.79 Alpine — 8 November 2026
 
 - Playback priority is much gentler. Only the Roon Bridge gets a modest head start (slightly higher priority, and less likely to be killed under memory pressure). The touchscreen, API and Roon controller are no longer slowed down or made first in line to be killed when memory is short, which on small Pis could leave the display hung. Overrides written by earlier builds are removed the next time the setup service starts, and take effect when the services restart.
