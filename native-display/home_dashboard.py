@@ -376,7 +376,7 @@ class HomeDashboardMixin:
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(False); name.set_lines(1); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # one line, so a long scene name cannot make its tile taller
         available = entity.get("available", True)
-        status = self.label("TAP TO ACTIVATE" if available else "UNAVAILABLE", "home-state", 0)
+        status = self.label("TAP TO ACTIVATE" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
         content.append(name); content.append(status)
         button.set_child(content); button.set_sensitive(bool(available))
         button.scene_tile = button; button.scene_status_label = status

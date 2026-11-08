@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.77 Alpine — 8 November 2026
+
+- Home: a half-width scene tile (such as Study desk cycle) no longer breaks out of its cell. Its TAP TO ACTIVATE text is cut with an ellipsis instead of widening the tile.
+
 ## 1.2.0-beta.76 Alpine — 8 November 2026
 
 - Home: fixed the right-hand margin looking tighter than the left. Tiles were still reporting a minimum width to the grid, which could make the grid a few pixels wider than the screen and clip its right edge. Tiles now ask for no minimum width or height at all, so the grid is always exactly the width of the screen and margins are equal.
