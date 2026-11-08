@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.103 Alpine — 8 November 2026
+
+- Memory: updates no longer leave their working files behind. pip and npm now run without keeping their download caches (which can live in RAM), the update log is trimmed, the page cache is released once an update has finished, and the touchscreen app hands back unused memory every few minutes and keeps fewer cover thumbnails (96, not 192).
+- Now Playing: when nothing is playing there is no placeholder disc over the "Nothing playing" message; a track that simply has no cover still shows it.
+
 ## 1.2.0-beta.102 Alpine — 8 November 2026
 
 - Builder: the 2 / 3 columns choice moves from the top of the preview to just below it, so the page bar and its icons sit at the top.

@@ -43,7 +43,7 @@ def status(message):
     print(message, flush=True)
 
 
-def run(args, timeout=300):
+def run(args, timeout=300, env=None):
     # Keep dependency output in a private local log, never in HTTP responses.
     # Streaming to disk also shows progress while pip/npm are still running.
     log = STATE / "update.log"
@@ -52,7 +52,7 @@ def run(args, timeout=300):
         os.fchmod(file.fileno(), 0o600)
         file.write(f"\n{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} Starting {Path(args[0]).name}\n"); file.flush()
         try:
-            result = subprocess.run(args, stdout=file, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+            result = subprocess.run(args, stdout=file, stderr=subprocess.STDOUT, text=True, timeout=timeout, env=env)
         except subprocess.TimeoutExpired:
             file.write("Step timed out\n"); file.flush()
             raise RuntimeError("Application preparation timed out; see the private update log")
@@ -85,6 +85,19 @@ def managed_release(path, releases):
         and path.is_dir()
         and (path.name == "initial-image" or MANAGED_RELEASE.fullmatch(path.name))
     )
+
+
+def reclaim_memory():
+    """Give back what an update leaves behind: package-manager caches, an oversized log, and the page cache."""
+    for folder in ("/root/.npm", "/root/.cache/pip", "/tmp/npm-cache"):
+        shutil.rmtree(folder, ignore_errors=True)
+    log = STATE / "update.log"
+    try:
+        if log.stat().st_size > 200_000: log.write_bytes(log.read_bytes()[-100_000:])
+    except OSError: pass
+    try:
+        os.sync(); Path("/proc/sys/vm/drop_caches").write_text("1\n")
+    except OSError: pass
 
 
 def prune_releases(releases, preserve=()):
@@ -291,9 +304,10 @@ def update():
         status("Update · Creating Python environment…")
         run(["python3", "-m", "venv", "--system-site-packages", str(target / ".venv")])
         status("Update · Installing RoonDeck Python package…")
-        run([str(target / ".venv/bin/pip"), "install", "--no-build-isolation", "--no-deps", str(target)])
+        run([str(target / ".venv/bin/pip"), "install", "--no-cache-dir", "--no-build-isolation", "--no-deps", str(target)])
         status("Update · Downloading Roon dependencies…")
-        run(["npm", "--prefix", str(target / "roon-controller"), "ci", "--omit=dev", "--no-audit", "--no-fund"])
+        with tempfile.TemporaryDirectory(prefix="pi-home-npm-") as npm_cache:   # npm's download cache is thrown away with the update, not kept (it can sit in RAM)
+            run(["npm", "--prefix", str(target / "roon-controller"), "ci", "--omit=dev", "--no-audit", "--no-fund", "--cache", npm_cache])
         status("Update · Checking prepared application…")
         run([str(target / ".venv/bin/python"), "-c", "import gi; gi.require_version('Gtk', '4.0'); gi.require_foreign('cairo'); from pi_bus_time_display import __version__"])
         for path in ("native-display/roondeck_native.py", "scripts/pi-bus-cage-launch", "appliance/alpine/display-session"):
@@ -329,6 +343,7 @@ def update():
     # old inactive tree must never roll back an already healthy new release.
     try: prune_releases(releases, {target})
     except OSError: pass
+    reclaim_memory()
     status("Update installed. Alpine " + sha[:7] + "; settings and pairing preserved.")
 
 

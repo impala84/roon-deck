@@ -92,6 +92,12 @@ class ArtworkMixin:
             self.queue_thumbnail_pending.add(key); self.queue_thumbnail_jobs.put(key)
         return False
 
+    def idle_artwork(self):
+        """Nothing is playing: show no cover at all, rather than the placeholder disc over the 'Nothing playing' message."""
+        self.image_misses = 0
+        if self.artwork.get_paintable() is not None or getattr(self, "image_key", None) is not None:
+            self.artwork.set_paintable(None); self.image_key = None
+
     def note_missing_artwork(self):
         self.image_misses += 1
         if self.image_misses >= 5:

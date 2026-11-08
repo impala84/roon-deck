@@ -23,6 +23,11 @@ from screen_preview import ScreenPreviewMixin
 
 
 class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin, NowPlayingPageMixin, DiscoverPageMixin, BrowsePageMixin, ArtworkMixin, ScreenPreviewMixin, Gtk.Application):
+    def tidy_memory(self):
+        import gc
+        gc.collect()
+        return True
+
     def __init__(self):
         super().__init__(application_id="org.pihome.Native")
         self.polling = False
@@ -78,6 +83,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         self.artist_hero_cache = {}
         self.artist_hero_keys = set()
         self.preview_artwork_cache = {}
+        GLib.timeout_add_seconds(300, self.tidy_memory)   # a few minutes apart, hand back what Python no longer needs
         self.queue_pictures = {}
         self.queue_artwork_keys = []
         self.browser_state = None

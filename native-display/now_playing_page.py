@@ -339,17 +339,17 @@ class NowPlayingPageMixin:
             elif not data.get("connected"):
                 self.title.set_text("Authorise in Roon"); self.artist.set_text("Settings → Extensions → RoonDeck")
             else:
-                self.title.set_text("Nothing playing"); self.artist.set_text("No Roon zones are available")
+                self.title.set_text("Nothing playing"); self.artist.set_text("No Roon zones are available"); self.idle_artwork()
             self.prev.set_sensitive(False); self.play.set_sensitive(False); self.next.set_sensitive(False); self.seek_updating = True; self.progress.set_value(0); self.progress.set_sensitive(False); self.seek_updating = False; self.volume.set_sensitive(False); self.note_missing_artwork(); return
         if zone.get("available") is False:
             self.zone.set_text(zone.get("name") or self.settings_data.get("roon_zone_name") or "ROON")
             self.title.set_text("Nothing playing"); self.artist.set_text("Selected zone is offline")
             self.prev.set_sensitive(False); self.play.set_sensitive(False); self.next.set_sensitive(False)
             self.seek_updating = True; self.progress.set_value(0); self.progress.set_sensitive(False); self.seek_updating = False
-            self.volume.set_sensitive(False); self.mute.set_sensitive(False); self.note_missing_artwork(); return
+            self.volume.set_sensitive(False); self.mute.set_sensitive(False); self.idle_artwork(); return
         playing = zone.get("now_playing") or {}; lines = playing.get("three_line") or playing.get("two_line") or playing.get("one_line") or {}
         if not playing.get("image_key"):
-            self.note_missing_artwork()
+            self.note_missing_artwork() if lines else self.idle_artwork()   # a track with no cover gets the placeholder; no track at all gets no picture
         else:
             self.image_misses = 0
         self.zone.set_text(zone.get("name") or "ROON"); self.title.set_text(lines.get("line1") or "Nothing playing"); self.artist.set_text(playing.get("display_artist") or re.split(r"\s+/\s+|\s*;\s*", lines.get("line2") or "Roon")[0])
@@ -663,7 +663,7 @@ class NowPlayingPageMixin:
         getattr(self, "thumbnail_failures", {}).pop(key, None)
         if key in self.queue_thumbnail_order: self.queue_thumbnail_order.remove(key)
         self.queue_thumbnail_order.append(key)
-        while len(self.queue_thumbnail_order) > 192:
+        while len(self.queue_thumbnail_order) > 96:
             old = self.queue_thumbnail_order.pop(0); self.queue_thumbnail_cache.pop(old, None); self.artist_hero_cache.pop(old, None); self.queue_thumbnail_source.pop(old, None)
             getattr(self, "queue_artwork_light", {}).pop(old, None)
         for picture in self.queue_pictures.get(key, []): picture.set_paintable(texture)
