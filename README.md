@@ -118,13 +118,13 @@ Under **System → Software**, choose **Release Channel: Stable or Beta**, save,
 - Beta → Stable never silently downgrades. If the installed beta is newer than the latest Stable, it stays installed and reports that state until a newer Stable appears.
 - Failed/offline release checks report **unavailable**, not **up to date**.
 
-The new updater installs exact published GitHub release tags, not development `main`. Start it in Settings or with:
+The updater installs exact published GitHub release tags, not development `main`. Start it from the touchscreen (Settings → Update software), the Update tile on Home, or over SSH with:
 
 ```sh
-sudo pi-bus-update
+sudo pi-home-alpine-update
 ```
 
-It stashes local checkout changes for recovery, installs dependencies only when needed, retains private configuration, reapplies display settings and verifies service startup. A normal app update does not reboot the Pi. Never edit live application source as a substitute for configuration.
+It keeps your private configuration, reapplies display settings and verifies service startup. A normal app update does not reboot the Pi. Never edit live application source as a substitute for configuration.
 
 Pre-v1.0 updaters follow `main`; the first update to the baseline installs the channel-aware updater. Do not put Discover or experimental code on `main` before that transition. Downgrades/rollback require an explicit maintenance procedure and a compatible backup; automatic updates never perform them.
 
@@ -172,7 +172,7 @@ Authorise the development extension in Roon if testing against a real server. Th
 ```sh
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 npm --prefix roon-controller test
-bash -n scripts/install-pi.sh scripts/install-roon-bridge.sh scripts/pi-bus-update scripts/pi-bus-appliance-mode scripts/pi-bus-cage-launch
+bash -n scripts/install-pi.sh scripts/install-roon-bridge.sh scripts/pi-bus-appliance-mode scripts/pi-bus-cage-launch
 ```
 
 ## Licence and next phase

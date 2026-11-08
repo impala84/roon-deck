@@ -3,6 +3,8 @@
 ## 1.2.0-beta.80 Alpine — 8 November 2026
 
 - Home: Update and Group zones tiles are more visual and wrap properly when they are small square tiles. Each has an icon badge, a bigger headline word and a detail line that wraps to two lines (the two zone names sit on separate lines). Update turns orange when a release is ready, green with a tick when you are up to date, and blue while installing; a grouped Zones tile turns blue. The builder preview matches.
+- Home: tap the bus tile to cycle through the routes your stop is registered for.
+- Removed the old `pi-bus-update` command, its tests and every reference to it. Updates use the Alpine updater (`sudo pi-home-alpine-update`).
 - Home: multiple pages on the large dashboards (10-inch and other big screens). Swipe left or right to move between pages; dots at the top show where you are, and disappear when there is only one page. In the builder use Add page / Delete page above the preview, and the Page option on each tile to move it. Pages hold up to eight tiles each, and up to 32 Home Assistant devices in total. Dragging a slider never changes the page.
 
 ## 1.2.0-beta.79 Alpine — 8 November 2026

@@ -54,7 +54,6 @@ if grep -q '^ADMIN_PASSWORD=change-me-now$' /etc/pi-home/secrets.env; then
 fi
 install -m 0644 /opt/pi-home/systemd/*.service /etc/systemd/system/
 install -m 0644 /opt/pi-home/systemd/*.path /etc/systemd/system/
-install -m 0755 /opt/pi-home/scripts/pi-bus-update /usr/local/sbin/pi-bus-update
 install -m 0755 /opt/pi-home/scripts/pi-bus-system-action /usr/local/sbin/pi-bus-system-action
 install -m 0755 /opt/pi-home/scripts/pi-bus-appliance-mode /usr/local/sbin/pi-bus-appliance-mode
 desktop_home=$(getent passwd "${desktop_user}" | cut -d: -f6)
@@ -72,4 +71,3 @@ systemctl enable pi-bus-roon-controller.service
 systemctl enable --now pi-bus-system-action.path
 systemctl enable --now pi-home-leds.service
 echo "Installed RoonDeck native GTK display. Edit /etc/pi-home/config.toml and /etc/pi-home/secrets.env, then reboot."
-echo "Future application updates: sudo pi-bus-update"

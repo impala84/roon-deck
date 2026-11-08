@@ -69,6 +69,10 @@ class HomeDashboardMixin:
         self.hs_route = self.label("", "hs-route"); self.hs_then = self.label("", "hs-then"); text.append(self.hs_route); text.append(self.hs_then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         self.hs_minutes = self.label("", "hs-minutes"); self.hs_unit = self.label("min", "hs-unit"); self.hs_unit.set_valign(Gtk.Align.END); arrival.append(self.hs_minutes); arrival.append(self.hs_unit); bus.append(arrival)
+        self.hs_bus_route = None; self.hs_bus_services = []
+        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
+        self.hs_bus_route = None; self.hs_bus_services = []
+        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
         self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK")
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
@@ -248,6 +252,7 @@ class HomeDashboardMixin:
         return True
 
     def render_home_side(self, roon, status):
+        self.hs_last_side = (roon, status)
         if not self.home_dashboard_active(): return
         scale = self.home_scale()
         # The Now Playing page already works out the zone, track, controls and volume each refresh; mirror its widgets.
@@ -280,7 +285,9 @@ class HomeDashboardMixin:
         self.hs_zone.set_visible(not self.hs_short and options.get("heading") is not False); self.hs_title.set_lines(1 if self.hs_short else 2)
         self.volume_updating = False
         services = (status or {}).get("services") or []
-        chosen = next((item for item in services if str(item.get("service")) == HOME_BUS_ROUTE), services[0] if services else None)
+        self.hs_bus_services = [str(item.get("service")) for item in services]
+        wanted = self.hs_bus_route or HOME_BUS_ROUTE   # a tap on the tile picks the route; until then 42, or the stop's first route
+        chosen = next((item for item in services if str(item.get("service")) == wanted), services[0] if services else None)
         self.hs_bus.set_visible(chosen is not None)
         if chosen is None: return
         minutes = [arrival.get("minutes") for arrival in chosen.get("arrivals", []) if arrival.get("minutes") is not None]
@@ -288,6 +295,14 @@ class HomeDashboardMixin:
         self.hs_minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); self.hs_unit.set_visible(bool(minutes) and minutes[0] != 0)
         self.hs_then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else "")
         self.hs_then.set_visible(len(minutes) > 1)
+
+    def cycle_bus_route(self):
+        """Tapping the bus tile shows the next route the stop is registered for."""
+        routes = self.hs_bus_services
+        if len(routes) < 2: return
+        current = self.hs_bus_route if self.hs_bus_route in routes else (HOME_BUS_ROUTE if HOME_BUS_ROUTE in routes else routes[0])
+        self.hs_bus_route = routes[(routes.index(current) + 1) % len(routes)]
+        if getattr(self, "hs_last_side", None): self.render_home_side(*self.hs_last_side)
 
     # ---- right: the grid of device cards ----
     def render_home_dashboard(self, home, entities):

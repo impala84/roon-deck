@@ -55,7 +55,7 @@ fast() {
     "$python" -m unittest discover -s "$repo/tests"
   npm --prefix "$repo/roon-controller" test
   bash -n "$repo/scripts/install-pi.sh" "$repo/scripts/install-roon-bridge.sh" \
-    "$repo/scripts/pi-bus-update" "$repo/scripts/pi-bus-appliance-mode" \
+    "$repo/scripts/pi-bus-appliance-mode" \
     "$repo/scripts/pi-bus-cage-launch" "$repo/tools/check"
   PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/roondeck-pycache" "$python" -m py_compile \
     "$repo"/native-display/*.py "$repo/scripts/pi-bus-system-action" \

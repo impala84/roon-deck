@@ -104,14 +104,6 @@ class ReleaseTests(unittest.TestCase):
             write_config(path, Config(release_channel='main'))
             with self.assertRaises(ValueError): load_config(path)
 
-    def test_updater_uses_exact_release_tag_not_main(self):
-        script = (Path(__file__).parents[1] / 'scripts/pi-bus-update').read_text()
-        self.assertIn('releases.py', script)
-        self.assertIn('checkout --detach "refs/tags/${PI_HOME_UPDATE_TARGET}"', script)
-        self.assertNotIn('checkout -B main origin/main', script)
-        self.assertLess(script.index('if [[ -z ${release_tag} ]]'), script.index('stash push'))
-        self.assertIn('|| -z ${PI_HOME_UPDATE_TARGET:-}', script)
-
 
 if __name__ == '__main__': unittest.main()
 
