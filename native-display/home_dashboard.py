@@ -75,7 +75,7 @@ class HomeDashboardMixin:
         self.hs_bus_route = None; self.hs_bus_services = []
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
-        self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK"); self.hs_net_value.add_css_class("hs-net-value")
+        self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK"); self.hs_net_value.add_css_class("hs-net-value"); self.hs_net_value.add_css_class("hs-net-small")
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
         self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
         self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}
@@ -237,6 +237,7 @@ class HomeDashboardMixin:
         except (OSError, ValueError, KeyError, ZeroDivisionError): pass
         def rate(bits): return f"{bits / 1e6:.1f} Mb/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kb/s"
         def big_rate(bits):   # the number large and its unit small, so it fits the smallest tile on one line
+            if getattr(self, "hs_net_wide", False): return rate(bits)   # a wider tile has room for the full-size reading, as on CPU and Memory
             number, unit = rate(bits).split(" ", 1); return f"{number} <small><small>{unit}</small></small>"
         if "roondeck.cpu" in self.hs_live_shown:
             self.hs_cpu_value.set_text(f"{self.stat_cpu[-1]:.0f}%" if self.stat_cpu else "—")
@@ -392,6 +393,9 @@ class HomeDashboardMixin:
             if entity.get("widget") is not None:
                 widget = entity["widget"]
                 if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
+                if base_of(entity["entity_id"]) == "roondeck.network":
+                    self.hs_net_wide = width >= 2
+                    self.hs_net_value.remove_css_class("hs-net-small") if self.hs_net_wide else self.hs_net_value.add_css_class("hs-net-small")
             elif is_scene(entity): widget = self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale)
             else: widget = self.home_card(entity, number, rules, scale, columns == 3, is_half(entity))
             self.home_grid.attach(self.clip_cell(widget), column, row, width, height)

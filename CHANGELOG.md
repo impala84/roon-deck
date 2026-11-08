@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.91 Alpine — 8 November 2026
+
+- Home: the smaller Network speed text is used only on the smallest tile. At two columns wide or more it is the same size as CPU and Memory, with the full-size "Mb/s".
+
 ## 1.2.0-beta.90 Alpine — 8 November 2026
 
 - Home: the bus tile's bus icon and route number now take the route's colour, the same highlight colour as on the Bus Times page.

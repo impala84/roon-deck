@@ -536,7 +536,7 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-dot { min-width: 12px; min-height: 12px; border-radius: 6px; background: rgba(255,255,255,.28); }
 .hs-dot.current { background: #ffffff; }
 
-.hs-net-value { font-size: 25px; }
+.hs-net-small { font-size: 25px; }   /* only the smallest tile; wider ones use the same size as CPU and Memory */
 
 /* Route colours and their strength come from Bus settings (apply_route_tint). */
 .hs-bus { border-color: #a998e0; }
