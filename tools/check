@@ -14,13 +14,15 @@ Usage:
   tools/check screen [settings|discover|listening|layout|all] [viewport-id]
   tools/check candidate
   tools/check appliance
+  tools/check appliance-visual
   tools/check image
 
 fast       Python, controller, shell and version checks.
 screen     Cached Alpine/GTK rendering across the supported viewport matrix.
            "layout" reports real header/nav positions per page (not part of "all").
-candidate  Fast checks, all native layouts and deterministic appliance smoke tests.
-appliance  Run only the Alpine application smoke phase (native renders are separate).
+candidate  Fast and appliance safety checks, then all native layouts.
+appliance  Alpine runtime, updater and privilege safety checks; no visual checks.
+appliance-visual  Older appliance GTK smoke checks, separate from safety checks.
 image      Candidate checks plus the complete ARM64 disk image (ARM64 Linux only).
 EOF
 }
@@ -104,14 +106,19 @@ appliance() {
   docker run --rm --network none "$appliance_image" .venv/bin/python appliance/alpine/sood_smoke.py
   docker run --rm --network none "$appliance_image" .venv/bin/python appliance/alpine/network_smoke.py
   docker run --rm "$appliance_image" python3 appliance/alpine/cursor_smoke.py
+}
+
+appliance_visual() {
+  require_container_engine
+  # Reuse the image produced by appliance; no rebuild or hidden safety rerun.
   docker run --rm "$appliance_image" sh -ec \
     'apk add --no-cache xvfb-run >/dev/null && GDK_BACKEND=x11 GSK_RENDERER=cairo dbus-run-session xvfb-run -a -s "-screen 0 800x480x24" sh -ec "python3 appliance/alpine/wizard_smoke.py; python3 appliance/alpine/icon_smoke.py; python3 appliance/alpine/discover_smoke.py; python3 appliance/alpine/library_smoke.py"'
 }
 
 candidate() {
   fast
-  native all
   appliance
+  native all
 }
 
 case "$mode" in
@@ -119,6 +126,7 @@ case "$mode" in
   screen) native "$screen" "${3:-}" ;;
   candidate) candidate ;;
   appliance) appliance ;;
+  appliance-visual) appliance_visual ;;
   image)
     candidate
     bash "$repo/appliance/alpine/build-image.sh"

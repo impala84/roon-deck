@@ -106,26 +106,23 @@ the dimensions into another workflow or script.
    result. Do not add a blanket candidate or manual Alpine run.
 5. Leave Pi installation separate from publishing; it requires authorization.
 
-### Remaining release-tool findings
+### Release tooling safeguards
 
-These are identified follow-up changes, not silently altered by this policy audit:
-
-- The changelog-triggered beta publisher runs independently of baseline. It can
-  publish before baseline finishes (as beta.133 did). A future workflow change
-  should wait for the exact commit's baseline result, without running the same
-  tests a third time. `tools/release-beta` also creates releases directly and
-  would need to follow the same rule.
-- `tools/release-beta` runs checks before its pull/rebase. If that rebase adds
-  relevant code, the pre-rebase result does not cover the resulting commit.
-- `candidate` combines required appliance checks and older advisory native
-  assertions under fail-fast execution. One unrelated Discover assertion can
-  stop later checks. Keep it an explicit diagnostic sweep until its stages and
-  failures are separated; do not weaken updater/privilege tests to make it green.
-- The manual Alpine workflow does not install Pillow explicitly, unlike the
-  repaired baseline workflow. Its image tests need that dependency; verify and
-  align the environment before treating it as a reliable stable gate.
-- Native screenshots do not automatically establish that a UI is usable. Inspect
-  the affected gallery and verify interaction, rather than counting screenshots.
+- The beta publisher runs after a successful **push** baseline on `main`, checks
+  out that run's exact commit and tags that commit. Failed runs and PR runs
+  cannot publish. A changelog-only push also triggers baseline; other Markdown
+  edits remain exempt. The publisher reuses the result rather than rerunning tests.
+- `tools/release-beta` commits/rebases before its final `fast` run. If the rebase
+  changes the release version or notes it stops for review. After pushing, it
+  watches baseline and confirms the published tag resolves to the checked commit;
+  it no longer creates a release independently.
+- `appliance` contains runtime, updater and privilege checks without GTK visual
+  assertions. `appliance-visual` runs the older GTK smoke checks separately using
+  the existing appliance image. `candidate` runs safety checks before native
+  rendering, so a Discover assertion cannot prevent safety checks from running.
+- The manual Alpine workflow installs Pillow under Python 3.13, matching baseline.
+- Old Discover tooltip/alignment fixtures still need a separate layout review.
+  They have not been bypassed or silently marked passing.
 
 ## Resource priority
 

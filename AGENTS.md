@@ -28,16 +28,16 @@ workflow, including direct pushes to the beta branch and GitHub prereleases.
 2. Add a `## X.Y.Z-beta.N Alpine — <date>` entry at the top of `CHANGELOG.md`
    (N is the next number; check `gh release list --repo impala84/roon-deck`).
 3. Run `tools/release-beta` from the `main` branch.
-   It bumps the version in every file, runs `tools/check fast`, commits,
-   rebases onto the latest `origin/main`, pushes
-   (never forced), publishes the prerelease with the changelog entry as its
-   notes, and confirms it is listed. `tools/release-beta --dry-run` shows what
+   It bumps the version in every file, commits and rebases onto the latest
+   `origin/main`, then runs `tools/check fast` on that final code and pushes
+   (never forced). It watches baseline and confirms that the workflow-published
+   prerelease points to the checked commit; it does not publish independently. `tools/release-beta --dry-run` shows what
    it would do. Update affected web asset cache versions yourself first.
 
 Without a local checkout: pushing a commit to `main` that adds the next
 `## X.Y.Z-beta.N Alpine` entry to `CHANGELOG.md` (with the version files bumped
-in the same commit) makes the `Publish beta release` GitHub Action publish the
-prerelease. Claude sessions cannot run `gh release`, so this is how they
+in the same commit) makes baseline checks run. After that exact commit passes, the
+`Publish beta release` GitHub Action publishes the prerelease. Claude sessions cannot run `gh release`, so this is how they
 release. `tools/release-beta` remains the way to do it from the user's computer.
 
 ### Limits

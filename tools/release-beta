@@ -13,14 +13,15 @@ Then run:
     tools/release-beta --dry-run  # show what would happen, change nothing
 
 The script reads the version from that top entry, writes it into every file that
-carries the version, runs `tools/check fast`, commits, rebases onto the beta
-branch, pushes (never forced), creates the GitHub prerelease with the entry as
-its notes, and confirms the release is listed.
+carries the version, commits and rebases onto the beta branch, runs
+`tools/check fast` on that final code, then pushes (never forced). GitHub
+publishes only after that commit passes baseline; this helper confirms publication.
 """
 import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,6 +83,32 @@ def version_order(value):
     return tuple(int(match[i]) for i in (1, 2, 3)) + (1 if match[4] is None else 0, int(match[4] or 0))
 
 
+def wait_for_publication(tag, source_sha):
+    """Observe the existing checks/publisher; never create an unchecked release."""
+    deadline = time.monotonic() + 600
+    while time.monotonic() < deadline:
+        runs = json.loads(run("gh", "run", "list", "--repo", REPO, "--workflow", "checks.yml",
+                              "--commit", source_sha, "--event", "push", "--limit", "5",
+                              "--json", "databaseId,status,conclusion", capture=True))
+        if runs:
+            baseline = runs[0]
+            run("gh", "run", "watch", str(baseline["databaseId"]), "--repo", REPO, "--exit-status")
+            break
+        time.sleep(2)
+    else:
+        sys.exit("No baseline run appeared for this commit. Nothing was published by this helper.")
+    while time.monotonic() < deadline:
+        listing = json.loads(run("gh", "release", "list", "--repo", REPO, "--limit", "10",
+                                 "--json", "tagName", capture=True))
+        if tag in {item["tagName"] for item in listing}:
+            actual = run("gh", "api", f"repos/{REPO}/commits/{tag}", "--jq", ".sha", capture=True)
+            if actual != source_sha:
+                sys.exit(f"{tag} points at a different commit; expected {source_sha}, got {actual}.")
+            return
+        time.sleep(2)
+    sys.exit("Baseline passed, but publication was not confirmed. Check Publish beta release in GitHub Actions.")
+
+
 def main():
     dry = "--dry-run" in sys.argv
     version, notes = top_entry()
@@ -103,18 +130,17 @@ def main():
 
     if version != old:
         bump(old, version)
-    run("tools/check", "fast")
     run("git", "add", "-A", "--", ":!roon-deck")
     if run("git", "status", "--porcelain", "--untracked-files=no", capture=True):
         first_line = notes.splitlines()[2] if len(notes.splitlines()) > 2 else "changes"
         run("git", "commit", "-m", f"Release {version} Alpine: {first_line.lstrip('- ')[:70]}")
     run("git", "pull", "--rebase", "origin", BRANCH)
+    if top_entry() != (version, notes) or current_version() != version:
+        sys.exit("The rebase changed the release version or notes. Review them before releasing.")
+    run("tools/check", "fast")
+    source_sha = run("git", "rev-parse", "HEAD", capture=True)
     run("git", "push", "origin", f"HEAD:{BRANCH}")
-    run("gh", "release", "create", tag, "--repo", REPO, "--target", BRANCH, "--prerelease",
-        "--title", f"{version} Alpine", "--notes", notes)
-    listing = run("gh", "release", "list", "--repo", REPO, "--limit", "3", capture=True)
-    if tag not in listing:
-        sys.exit(f"{tag} was created but is not in the release list yet:\n{listing}")
+    wait_for_publication(tag, source_sha)
     print(f"\nPublished {tag}. Install it from Settings → Software on the Beta channel.")
 
 

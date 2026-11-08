@@ -21,10 +21,12 @@ jobs:
         run: tools/stable-release-info check
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install image test dependency
+        run: python3.13 -m pip install 'Pillow>=10,<13'
       - name: Verify backend, update safety and controller
         run: tools/check fast
       - name: Verify native layouts without building a disk image (advisory)

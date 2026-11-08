@@ -1,14 +1,11 @@
 name: Publish beta release
 
-# Publishes the GitHub prerelease for the newest "## X.Y.Z-beta.N Alpine" entry in CHANGELOG.md once a commit that
-# changes the changelog lands on main. It is what tools/release-beta does at the end, without needing a local checkout.
-# A Pi on the Beta channel installs published prereleases; pushing code alone never changes a Pi.
-
+# Reuse the completed baseline result; never publish from an unchecked push.
 on:
-  push:
+  workflow_run:
+    workflows: [Baseline checks]
+    types: [completed]
     branches: [main]
-    paths: [CHANGELOG.md]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,12 +16,20 @@ concurrency:
 
 jobs:
   release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Publish the release if this version has none yet
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           python3 - <<'PY'
           import os, re, subprocess, sys
@@ -46,7 +51,7 @@ jobs:
               if pattern % version not in open(path, encoding="utf-8").read():
                   sys.exit(f"{path} is not at {version}; not releasing.")
           open("notes.md", "w", encoding="utf-8").write(notes)
-          subprocess.run(["gh", "release", "create", tag, "--target", os.environ["GITHUB_SHA"], "--prerelease",
+          subprocess.run(["gh", "release", "create", tag, "--target", os.environ["RELEASE_SHA"], "--prerelease",
                           "--title", f"{version} Alpine", "--notes-file", "notes.md"], check=True)
           print(f"Published {tag}.")
           PY
