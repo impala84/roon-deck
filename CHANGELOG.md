@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.132 Alpine — 9 November 2026
+
+- Fixed the Baseline checks setup: install Pillow for the image tests and use the same Python version as the local check runner. This resolves the repeated missing-library failure emails.
+- Fixed serving the bundled download, link, shield and snow icons in the web controller while keeping its explicit file allowlist.
+
 ## 1.2.0-beta.131 Alpine — 8 November 2026
 
 - Fixed: changing the volume on the touchscreen itself (the Home volume tile or its slider) no longer flicks the screen to Now Playing. The jump to the volume page is only for volume changes made by a remote or dial, and now waits 20 seconds after any touch or on-screen volume change.
