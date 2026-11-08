@@ -548,6 +548,12 @@ http.createServer(async (request, response) => {
         const output = (zone.outputs || []).find(item => item.output_id === data.output_id) || selectedOutput(zone);
         if (!output?.volume) return json(response, 409, {error: 'This zone has fixed volume'});
         if (url.pathname === '/api/volume') transport.change_volume(output, 'absolute', Number(data.value));
+        else if (url.pathname === '/api/volume-step') {   // a dial turn: a few steps up or down from where the zone is now
+          const steps = Math.trunc(Number(data.steps));
+          if (!Number.isFinite(steps) || steps === 0 || Math.abs(steps) > 10) return json(response, 400, {error: 'Invalid volume step'});
+          if (output.volume.type === 'incremental') return json(response, 409, {error: 'This output only has fixed volume steps'});
+          transport.change_volume(output, 'relative_step', steps);
+        }
         else if (url.pathname === '/api/mute') transport.mute(output, output.volume.is_muted ? 'unmute' : 'mute');
         else return json(response, 404, {error: 'Unknown command'});
       }

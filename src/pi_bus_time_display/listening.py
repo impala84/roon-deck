@@ -130,7 +130,7 @@ def validate_settings(data):
         if not isinstance(bindings, list) or len(bindings) > limit or any(not isinstance(item, dict) for item in bindings):
             raise ValueError(f"{name} must be a list of up to {limit} bindings")
         def validate_binding(binding, is_press=False):
-            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps", "remote_toggle"}
+            allowed = {"none", "mode", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "roon_volume", "roon_mute", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps", "remote_toggle"}
             if not isinstance(binding.get("action", "none"), str) or binding.get("action", "none") not in allowed:
                 raise ValueError("Choose a supported control action")
             if not isinstance(binding.get("label", ""), str) or len(binding.get("label", "")) > 40:

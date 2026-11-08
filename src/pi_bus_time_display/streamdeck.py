@@ -121,6 +121,11 @@ def _dispatch(base, binding, delta=None):
         return result
     if action in {"previous", "playpause", "next"}:
         return request(base, "/roon/api/control", {"action": action})
+    if action == "roon_volume":   # the volume of the zone Roon is playing to, a few steps per click
+        steps = (delta or 0) * int(binding.get("step", 1))
+        return request(base, "/roon/api/volume-step", {"steps": max(-10, min(10, steps))}) if steps else {}
+    if action == "roon_mute":
+        return request(base, "/roon/api/mute", {})
     if action == "home_toggle":
         return request(base, "/api/device/home-toggle", {"entity_id": binding.get("entity_id")})
     if action == "remote_toggle":

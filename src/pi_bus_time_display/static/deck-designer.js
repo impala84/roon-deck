@@ -18,8 +18,8 @@
     ['none', 'Unused'], ['mode', 'Listening mode'], ['power', 'KEF power'], ['input', 'KEF input'], ['mute', 'KEF mute'],
     ['previous', 'Previous track'], ['playpause', 'Play / pause'], ['next', 'Next track'], ['home_toggle', 'Home device on / off'], ['home_scene', 'Home scene'], ['home_script', 'Home script (e.g. IR remote)'],
   ];
-  const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)'], ['remote_steps', 'IR remote steps (e.g. aircon temperature)']];
-  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script'], ['remote_toggle', 'IR remote on / off (e.g. aircon power)']];
+  const DIAL_ACTIONS = [['none', 'Unused'], ['volume_delta', 'KEF volume'], ['roon_volume', 'Roon volume (current zone)'], ['home_level', 'Home brightness / fan speed'], ['home_script_dial', 'Home scripts (e.g. IR volume)'], ['remote_steps', 'IR remote steps (e.g. aircon temperature)']];
+  const PRESS_ACTIONS = [['none', 'Unused'], ['mute', 'KEF mute'], ['roon_mute', 'Roon mute'], ['playpause', 'Play / pause'], ['home_toggle', 'Toggle a Home device'], ['home_script', 'Run a Home script'], ['remote_toggle', 'IR remote on / off (e.g. aircon power)']];
   // KEF-only actions disappear while the KEF speakers are switched off (a saved binding keeps showing its own action).
   const KEF_ACTIONS = new Set(['mode', 'power', 'input', 'mute', 'volume_delta']);
   const kefOn = () => !!SHARED().settings.enabled;
@@ -134,7 +134,7 @@
   }
   function segment(index) {
     const dial = dials[index];
-    const detail = dial.action === 'volume_delta' ? '20%' : dial.action === 'home_level' ? (dial.entity_id ? '60%' : 'Choose device') : dial.action === 'remote_steps' ? `${dial.start ?? ''}${dial.unit || ''}` : '';
+    const detail = dial.action === 'volume_delta' || dial.action === 'roon_volume' ? '20%' : dial.action === 'home_level' ? (dial.entity_id ? '60%' : 'Choose device') : dial.action === 'remote_steps' ? `${dial.start ?? ''}${dial.unit || ''}` : '';
     const node = h('button', {type: 'button', class: 'dd-segment', ...(dial.color ? {style: `background:${dial.color}`} : {}), 'aria-label': `Strip ${index + 1}: ${dial.label || 'unused'}`, 'aria-pressed': selection.type === 'dial' && selection.index === index ? 'true' : 'false'},
       h('strong', dial.text_color ? {style: `color:${dial.text_color}`} : {}, dial.label || (dial.action === 'none' ? '' : 'Dial')), h('span', dial.text_color ? {style: `color:${dial.text_color}`} : {}, detail));
     node.onclick = () => { selection = {type: 'dial', index}; render(); };
@@ -360,7 +360,7 @@
     const label = h('input', {type: 'text', maxlength: 40, placeholder: 'Shown on the strip'}); label.value = dial.label || '';
     label.oninput = () => { dial.label = label.value; markDirty(); drawStage(); };
     const turn = selectOf(available(DIAL_ACTIONS, dial.action), dial.action || 'none');
-    turn.onchange = () => { dial.action = turn.value; if (turn.value === 'volume_delta' && !dial.label) dial.label = 'KEF volume';
+    turn.onchange = () => { dial.action = turn.value; if (turn.value === 'volume_delta' && !dial.label) dial.label = 'KEF volume'; if (turn.value === 'roon_volume' && !dial.label) dial.label = 'Roon volume';
       if (turn.value === 'remote_steps') Object.assign(dial, {entity_id: dial.entity_id?.startsWith('remote.') ? dial.entity_id : 'remote.wi_fi_universal_remote', device: dial.device || 'aircon', command: dial.command || 'cool_{n}', min: dial.min ?? 16, max: dial.max ?? 30, start: dial.start ?? 24, unit: dial.unit ?? '°', label: dial.label || 'Aircon'}); markDirty(); render(); };
     const step = h('input', {type: 'range', min: 1, max: 10, step: 1, value: dial.step ?? 1}); const stepValue = h('output', {}, String(dial.step ?? 1));
     step.oninput = () => { dial.step = Number(step.value); stepValue.textContent = step.value; markDirty(); };

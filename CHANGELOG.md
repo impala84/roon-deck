@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.115 Alpine — 8 November 2026
+
+- Stream Deck dials: a new "Roon volume (current zone)" turn action changes the volume of the zone Roon is playing to, a few steps per click (the dial's step slider sets how many). A dial press can now be "Roon mute". Outputs with fixed volume are left alone.
+
 ## 1.2.0-beta.114 Alpine — 8 November 2026
 
 - Home: removed the blue outline from the Now Playing scrubber and volume slider (no focus ring, no theme edge line).
