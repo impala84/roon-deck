@@ -677,7 +677,8 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 # defaults because one early request lost that race; keep the
                 # last good settings and retry on the next two-second poll.
                 self.last_config_fetch = 0
-        if self.settings_open and (not self.system_data or self.update_in_progress or now - self.last_system_fetch >= 15):
+        # While an update runs, keep following it even from the Home page (the Update tile starts one there).
+        if (self.settings_open or self.update_in_progress) and (not self.system_data or self.update_in_progress or now - self.last_system_fetch >= 15):
             system = get_json(BUS + "/api/admin/system?diagnostics=1") or {}; self.last_system_fetch = now
         zone = (roon or {}).get("zone") or {}; key = (zone.get("now_playing") or {}).get("image_key")
         details = (roon or {}).get("details") or {}; album_detail_key = details.get("album_image_key") or details.get("image_key"); artist_detail_key = details.get("artist_image_key")

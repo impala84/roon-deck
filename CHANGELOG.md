@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.81 Alpine — 8 November 2026
+
+- Home: the Update tile now follows an update it starts. Before, the update was requested but the touchscreen only watched its progress while Settings was open, so from Home the tile never showed it running. It now shows Updating, then any failure with a Try again prompt.
+
 ## 1.2.0-beta.80 Alpine — 8 November 2026
 
 - Home: Update and Group zones tiles are more visual and wrap properly when they are small square tiles. Each has an icon badge, a bigger headline word and a detail line that wraps to two lines (the two zone names sit on separate lines). Update turns orange when a release is ready, green with a tick when you are up to date, and blue while installing; a grouped Zones tile turns blue. The builder preview matches.

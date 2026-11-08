@@ -139,7 +139,7 @@ class HomeDashboardMixin:
     def tap_update_tile(self):
         if getattr(self, "update_in_progress", False): return
         info = self.upd_info or {}
-        if info.get("update_available"): self.request_update()
+        if info.get("update_available"): self.request_update(); self.refresh_update_tile()
         else: self.hs_upd_value.set_text("Checking…"); self.check_updates(refresh=True)   # up to date (or never checked): look again now
 
     def refresh_update_tile(self):
@@ -148,6 +148,8 @@ class HomeDashboardMixin:
         info = self.upd_info or {}; status = self.device_status.get_text() if hasattr(self, "device_status") else ""
         if getattr(self, "update_in_progress", False):
             self.set_action_state(self.hs_upd, "refresh", "active"); self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Please wait")
+        elif status.startswith(("Could not", "Failed")):
+            self.set_action_state(self.hs_upd, "refresh", "alert"); self.hs_upd_value.set_text("Try again"); self.hs_upd_detail.set_text(status)
         elif info.get("update_available"):
             self.set_action_state(self.hs_upd, "download", "alert"); self.hs_upd_value.set_text("Update"); self.hs_upd_detail.set_text(f"v{info.get('latest_version', '')} is ready. Tap to install")
         elif info:
