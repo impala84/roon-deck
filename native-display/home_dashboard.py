@@ -13,6 +13,7 @@ from pathlib import Path
 from gi.repository import GLib, Gtk, Pango
 
 GAP = 18                    # the one gap used between every card, column and row on the page
+ROUTE_TINTS = ("blue", "green", "violet", "amber", "rose", "teal")
 HOME_BUS_ROUTE = "42"       # shown when the stop serves it; otherwise the stop's first route
 CLIMATE_COLOUR = "#4fc3d9"
 CARD_DOMAINS = {"light": "light", "fan": "fan", "climate": "snow"}
@@ -295,6 +296,9 @@ class HomeDashboardMixin:
         self.hs_bus.set_visible(chosen is not None)
         if chosen is None: return
         minutes = [arrival.get("minutes") for arrival in chosen.get("arrivals", []) if arrival.get("minutes") is not None]
+        colour = chosen.get("colour") or "amber"
+        for name in ROUTE_TINTS: self.hs_bus.remove_css_class("hs-bus-" + name)
+        self.hs_bus.add_css_class("hs-bus-" + (colour if colour in ROUTE_TINTS else "amber"))   # the same colour as that route on the Bus Times page
         self.hs_route.set_text(str(chosen.get("service", "")))
         self.hs_minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); self.hs_unit.set_visible(bool(minutes) and minutes[0] != 0)
         self.hs_then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else "")

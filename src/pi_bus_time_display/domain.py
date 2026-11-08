@@ -24,7 +24,21 @@ def minutes_until(value: str, now: datetime) -> int | None:
     return max(0, floor((arrival - now).total_seconds() / 60))
 
 
-def normalise(payload: dict, now: datetime, services: tuple[str, ...], walking: int) -> list[dict]:
+ROUTE_COLOURS = ("blue", "green", "violet", "amber", "rose", "teal")
+DEFAULT_ROUTE_COLOURS = {"40": "blue", "42": "green", "401": "violet"}
+
+
+def parse_route_colours(text: str) -> dict[str, str]:
+    """"40=blue, 42=green" as {"40": "blue", "42": "green"}; anything unrecognised is ignored."""
+    colours = {}
+    for part in str(text or "").split(","):
+        route, _, name = part.partition("=")
+        route, name = route.strip(), name.strip().lower()
+        if route and name in ROUTE_COLOURS: colours[route] = name
+    return colours
+
+
+def normalise(payload: dict, now: datetime, services: tuple[str, ...], walking: int, colours: dict[str, str] | None = None) -> list[dict]:
     wanted = set(services)
     output = []
     for service in payload.get("Services", []):
@@ -48,7 +62,7 @@ def normalise(payload: dict, now: datetime, services: tuple[str, ...], walking: 
         output.append({
             "service": number,
             "operator": service.get("Operator", ""),
-            "colour": {"40": "blue", "42": "green", "401": "violet"}.get(number, "amber"),
+            "colour": (colours or {}).get(number) or DEFAULT_ROUTE_COLOURS.get(number, "amber"),
             "arrivals": buses,
             "leave_in": max(0, buses[0]["minutes"] - walking) if buses else None,
         })

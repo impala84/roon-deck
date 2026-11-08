@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 from .config import Config, HOME_ASSISTANT_DOMAINS, load_config, load_env
-from .domain import normalise
+from .domain import normalise, parse_route_colours
 from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
 from . import __version__
@@ -271,7 +271,7 @@ def poll(state: State, stop: threading.Event, events: OpenObserveLogger | None =
         now = datetime.now(timezone)
         try:
             payload = simulated(now, config.services) if config.simulate else fetch(os.getenv("LTA_ACCOUNT_KEY", ""), config.bus_stop_code)
-            services = normalise(payload, now, config.services, config.walking_minutes)
+            services = normalise(payload, now, config.services, config.walking_minutes, parse_route_colours(config.service_colours))
             with state.lock:
                 state.data = {"status": "ok", "services": services, "updated_at": now.isoformat(), "error": None}
                 state.last_success = now
@@ -480,6 +480,7 @@ def write_config(path: Path, config: Config) -> None:
         f"bus_stop_code = {json.dumps(config.bus_stop_code)}",
         f"bus_stop_name = {json.dumps(config.bus_stop_name)}",
         f"services = [{services}]",
+        f"service_colours = {json.dumps(config.service_colours)}",
         f"walking_minutes = {config.walking_minutes}",
         f"poll_seconds = {config.poll_seconds}",
         f"stale_after_seconds = {config.stale_after_seconds}",
@@ -1222,7 +1223,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 config = state.config
                 body = json.dumps({
                     "bus_stop_code": config.bus_stop_code, "bus_stop_name": config.bus_stop_name,
-                    "services": list(config.services), "walking_minutes": config.walking_minutes,
+                    "services": list(config.services), "service_colours": config.service_colours, "walking_minutes": config.walking_minutes,
                     "poll_seconds": config.poll_seconds, "morning_start": config.morning_start,
                     "morning_end": config.morning_end, "scheduled_wake_enabled": config.scheduled_wake_enabled,
                     "weekend_wake_enabled": config.weekend_wake_enabled, "weekend_wake_time": config.weekend_wake_time,
@@ -1935,6 +1936,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     bus_stop_code=str(data.get("bus_stop_code", current.bus_stop_code)).strip(),
                     bus_stop_name=str(data.get("bus_stop_name", current.bus_stop_name)).strip(),
                     services=values("services", current.services),
+                    service_colours=", ".join(f"{route}={name}" for route, name in parse_route_colours(str(data.get("service_colours", current.service_colours))).items()),
                     walking_minutes=int(data.get("walking_minutes", current.walking_minutes)), poll_seconds=int(data.get("poll_seconds", current.poll_seconds)),
                     stale_after_seconds=current.stale_after_seconds,
                     morning_start=str(data.get("morning_start", current.morning_start)), morning_end=str(data.get("morning_end", current.morning_end)),

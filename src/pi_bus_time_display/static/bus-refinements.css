@@ -106,3 +106,8 @@ body[data-theme="roon"] { background: linear-gradient(120deg, #242338, #181818 6
   .bus-results .arrival { font-size: 40px; }
   .bus-results .arrival small { font-size: 8px; margin-top: 4px; }
 }
+
+.service.service-rose { border-color: rgba(224,122,149,.5); background: linear-gradient(90deg,rgba(122,59,77,.24),var(--panel) 34%); }
+.service.service-rose .service-no { color: #e07a95; }
+.service.service-teal { border-color: rgba(79,195,192,.5); background: linear-gradient(90deg,rgba(37,98,95,.24),var(--panel) 34%); }
+.service.service-teal .service-no { color: #4fc3c0; }

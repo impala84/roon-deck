@@ -214,3 +214,5 @@ body.admin-page{--admin-sidebar-width:clamp(150px,18vw,220px);position:fixed;ins
 .admin-page .device-about .about-licences{margin:28px 0 0;padding:16px 0;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:none}
 .admin-page .about-licences>summary{padding:8px 0;color:var(--ink);font-size:14px;font-weight:650;cursor:pointer}
 .admin-page .device-about .about-disclaimer{margin-top:18px}
+
+.route-colours{display:grid;gap:8px;margin:10px 0 16px}.route-colour-row{display:grid;grid-template-columns:auto 1fr minmax(120px,200px);align-items:center;gap:6px;margin:0}.route-colour-row select{margin:0}

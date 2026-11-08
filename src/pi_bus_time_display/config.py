@@ -18,6 +18,7 @@ class Config:
     bus_stop_code: str = "00000"
     bus_stop_name: str = "Bus stop"
     services: tuple[str, ...] = ()
+    service_colours: str = ""   # route=colour pairs, e.g. "40=blue, 42=green"; routes not listed keep their usual colour
     walking_minutes: int = 7
     poll_seconds: int = 20
     stale_after_seconds: int = 75

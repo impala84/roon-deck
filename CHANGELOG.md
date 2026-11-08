@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.86 Alpine — 8 November 2026
+
+- Home: the bus tile takes the colour of the route it is showing, the same colour that route has on the Bus Times page, so tapping through the routes changes the tile's colour too. A colour chosen for the tile in the builder still wins.
+- Bus settings: each route can now have its own colour (blue, green, violet, amber, rose or teal), under Services > Bus > Route colours. The Bus Times page and the Home bus tile both use it. Routes 40, 42 and 401 keep blue, green and violet unless you change them.
+- Home: the Network speed text is smaller, so "6.6 Mb/s" fits the smallest tile (this was in beta.85).
+
 ## 1.2.0-beta.85 Alpine — 8 November 2026
 
 - Home: the Network speed is set in a smaller size, so "6.6 Mb/s" fits the smallest tile in full.

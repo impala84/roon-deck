@@ -62,3 +62,6 @@ button { border: 0; box-shadow: none; background-image: none; outline: none; }
 .touch-landscape .settings-page .settings-select { min-height: 62px; padding: 5px 18px; }
 .touch-landscape .settings-page .settings-diagnostic { line-height: 1.25; }
 .touch-landscape .settings-page .settings-action { min-height: 62px; }
+
+.service-rose { border-color: #7a3b4d; background: #28131a; }.service-teal { border-color: #25625f; background: #0f2423; }
+.service-rose .service-no { color: #e07a95; }.service-teal .service-no { color: #4fc3c0; }

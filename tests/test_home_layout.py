@@ -172,3 +172,16 @@ class CopyTests(unittest.TestCase):
     def test_bad_copy_names_are_refused(self):
         for bad in ("light.lamp#0", "light.lamp#4", "light.lamp#", "light.lamp##1"):
             with self.assertRaises(ValueError): validate_layout({"tiles": {bad: {"page": 1}}})
+
+
+class RouteColourTests(unittest.TestCase):
+    def test_route_colours_override_the_defaults(self):
+        from datetime import datetime, timezone
+        from pi_bus_time_display.domain import normalise, parse_route_colours
+        self.assertEqual(parse_route_colours("40=Rose, 42 = teal, 7=pink, junk"), {"40": "rose", "42": "teal"})
+        payload = {"Services": [{"ServiceNo": "40", "Operator": "SBST"}, {"ServiceNo": "42"}, {"ServiceNo": "9"}]}
+        now = datetime(2026, 11, 8, tzinfo=timezone.utc)
+        plain = {item["service"]: item["colour"] for item in normalise(payload, now, (), 0)}
+        self.assertEqual(plain, {"40": "blue", "42": "green", "9": "amber"})
+        chosen = {item["service"]: item["colour"] for item in normalise(payload, now, (), 0, parse_route_colours("40=rose, 9=teal"))}
+        self.assertEqual(chosen, {"40": "rose", "42": "green", "9": "teal"})
