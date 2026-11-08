@@ -513,3 +513,4 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 /* Now Playing options: thumbnail artwork and the seekable scrubber */
 .hs-thumb { border-radius: 14px; }
 .hs-scrub { margin: 2px 0; }
+.home-clip, .home-clip > viewport { background: transparent; border: none; }

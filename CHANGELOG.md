@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.74 Alpine — 8 November 2026
+
+- Home: no tile can change the shape of the screen any more. Every tile now sits in a frame that ignores its contents, so a long name or tall content is clipped inside its own tile instead of stretching the grid and pushing the bottom menu off the screen. Scene names (such as Study desk cycle) also stay on one line.
+- Home: the CPU, memory and network graphs are smoothed.
+- Home: Now Playing with a thumbnail now keeps the thumbnail a fixed size (it grew to nearly half the tile), sitting level with the track and artist; the builder preview matches.
+- Home builder: a little space between the Add tiles divider and its tabs.
+
 ## 1.2.0-beta.73 Alpine — 8 November 2026
 
 - Home builder: the page heading (Home Controls by default) can now be edited right beside the Show Home on the touchscreen switch, instead of inside the Setup tab.

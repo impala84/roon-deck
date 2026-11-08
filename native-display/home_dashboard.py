@@ -41,8 +41,8 @@ class HomeDashboardMixin:
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
         self.hs_title = self.label("", "hs-title"); self.hs_title.set_wrap(True); self.hs_title.set_lines(2); self.hs_title.set_ellipsize(Pango.EllipsizeMode.END); self.hs_title.set_max_width_chars(1)
         self.hs_artist = self.label("", "hs-artist"); self.hs_artist.set_ellipsize(Pango.EllipsizeMode.END)
-        self.hs_thumb = Gtk.Picture(); self.hs_thumb.set_content_fit(Gtk.ContentFit.COVER); self.hs_thumb.set_can_shrink(True); self.hs_thumb.add_css_class("hs-thumb"); self.hs_thumb.set_overflow(Gtk.Overflow.HIDDEN); self.hs_thumb.set_valign(Gtk.Align.START); self.hs_thumb.set_visible(False)
-        words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); words.set_hexpand(True); words.set_valign(Gtk.Align.END); words.append(self.hs_title); words.append(self.hs_artist)
+        self.hs_thumb = Gtk.Image(); self.hs_thumb.add_css_class("hs-thumb"); self.hs_thumb.set_overflow(Gtk.Overflow.HIDDEN); self.hs_thumb.set_halign(Gtk.Align.START); self.hs_thumb.set_hexpand(False); self.hs_thumb.set_valign(Gtk.Align.END); self.hs_thumb.set_visible(False)   # an Image keeps the exact size asked for; a Picture grows to the artwork
+        words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); words.set_hexpand(True); words.set_valign(Gtk.Align.END); words.set_margin_bottom(2); words.append(self.hs_title); words.append(self.hs_artist)
         head = Gtk.Box(spacing=16); head.append(self.hs_thumb); head.append(words); content.append(head)
         self.hs_progress = Gtk.ProgressBar(); self.hs_progress.add_css_class("hs-progress"); content.append(self.hs_progress)
         self.hs_scrub = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 1); self.hs_scrub.add_css_class("home-slider"); self.hs_scrub.add_css_class("hs-scrub"); self.hs_scrub.set_draw_value(False); self.hs_scrub.set_visible(False)
@@ -89,10 +89,16 @@ class HomeDashboardMixin:
         for values, (red, green, blue) in series:
             if len(values) < 2: continue
             step = width / (SAMPLES - 1); first = width - step * (len(values) - 1)
-            points = [(first + index * step, height - 3 - min(value, scale) / scale * (height - 6)) for index, value in enumerate(values)]
-            cr.set_line_width(2.5); cr.set_source_rgba(red, green, blue, 1)
+            soft = [sum(values[max(0, i - 1):i + 2]) / len(values[max(0, i - 1):i + 2]) for i in range(len(values))]   # a light three-point average takes the jitter off
+            points = [(first + index * step, height - 3 - min(value, scale) / scale * (height - 6)) for index, value in enumerate(soft)]
+            cr.set_line_width(2.5); cr.set_line_join(1); cr.set_source_rgba(red, green, blue, 1)
             cr.move_to(*points[0])
-            for point in points[1:]: cr.line_to(*point)
+            for index in range(1, len(points)):   # curved between the points (Catmull-Rom as Béziers), kept inside the tile
+                before, here, there, after = points[max(0, index - 2)], points[index - 1], points[index], points[min(len(points) - 1, index + 1)]
+                low, high = 3, height - 3
+                c1 = (here[0] + (there[0] - before[0]) / 6, min(high, max(low, here[1] + (there[1] - before[1]) / 6)))
+                c2 = (there[0] - (after[0] - here[0]) / 6, min(high, max(low, there[1] - (after[1] - here[1]) / 6)))
+                cr.curve_to(*c1, *c2, *there)
             cr.stroke_preserve(); cr.line_to(points[-1][0], height); cr.line_to(points[0][0], height); cr.close_path(); cr.set_source_rgba(red, green, blue, .16); cr.fill()
 
     def start_system_sampling(self):
@@ -149,9 +155,9 @@ class HomeDashboardMixin:
         paintable = self.artwork.get_paintable()
         art = options.get("art") if options.get("art") in ("thumb", "off") else "background"
         self.hs_art.set_visible(art == "background"); self.hs_fade.set_visible(art == "background"); self.hs_thumb.set_visible(art == "thumb" and not self.hs_short)
-        self.hs_thumb.set_size_request(round(104 * scale), round(104 * scale))
-        for picture in (self.hs_art, self.hs_thumb):
-            if paintable is not picture.get_paintable(): picture.set_paintable(paintable)
+        self.hs_thumb.set_pixel_size(round(92 * scale))
+        if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
+        if paintable is not self.hs_thumb.get_paintable(): self.hs_thumb.set_from_paintable(paintable)
         adjustment = self.progress.get_adjustment(); upper = adjustment.get_upper()
         self.hs_progress.set_fraction(min(1.0, adjustment.get_value() / upper) if upper > 1 else 0.0)
         scrubber = bool(options.get("scrubber"))
@@ -248,7 +254,7 @@ class HomeDashboardMixin:
                 if entity["entity_id"] == "roondeck.player": self.hs_short = height == 1
             elif is_scene(entity): widget = self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale)
             else: widget = self.home_card(entity, number, rules, scale, columns == 3, is_half(entity))
-            self.home_grid.attach(widget, column, row, width, height)
+            self.home_grid.attach(self.clip_cell(widget), column, row, width, height)
         self.home_tile_provider.load_from_data("\n".join(rules))
         self.start_system_sampling()
 
@@ -340,6 +346,13 @@ class HomeDashboardMixin:
         card.append(inner)
         return card
 
+    def clip_cell(self, widget):
+        """Hold a tile in a frame whose size ignores what is inside it, so nothing a tile shows (a long name, a tall player) can ever change the shape of the screen; the grid decides every tile's size, and anything extra is clipped."""
+        frame = Gtk.ScrolledWindow(); frame.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
+        frame.set_propagate_natural_height(False); frame.set_min_content_height(0); frame.set_kinetic_scrolling(False); frame.set_overflow(Gtk.Overflow.HIDDEN)
+        frame.set_hexpand(True); frame.set_vexpand(True); frame.add_css_class("home-clip"); frame.clip_wrapper = True
+        frame.set_child(widget); return frame
+
     def home_scene_card(self, entity, key, rules, scale):
         domain = "scene"; entity_id = entity.get("entity_id", ""); accent = self.home_accent(entity, domain)
         button = Gtk.Button(); button.set_hexpand(True); button.set_vexpand(True)
@@ -348,7 +361,7 @@ class HomeDashboardMixin:
         chip = round(64 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip); holder.set_halign(Gtk.Align.START)
         icon = self.home_icon_for(entity, domain, True, scale, accent); icon.set_hexpand(True); holder.append(icon); content.append(holder)
         spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
-        name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(True); name.set_lines(2); name.set_ellipsize(Pango.EllipsizeMode.END)
+        name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(False); name.set_lines(1); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # one line, so a long scene name cannot make its tile taller
         available = entity.get("available", True)
         status = self.label("TAP TO ACTIVATE" if available else "UNAVAILABLE", "home-state", 0)
         content.append(name); content.append(status)

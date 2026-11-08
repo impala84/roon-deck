@@ -222,9 +222,10 @@
 .hd-d-half .hd-d-chip{width:3.6cqw;height:3.6cqw}.hd-d-half b{font-size:1.6cqw;-webkit-line-clamp:1}
 
 .hd-d-player.art-thumb,.hd-d-player.art-off{background:transparent}
-.hd-d-headrow{display:flex;gap:1.2cqw;align-items:flex-end}.hd-d-words{display:grid;flex:1;min-width:0}.hd-d-thumb{flex:none;width:7cqw;height:7cqw;border-radius:1cqw;background:linear-gradient(135deg,#a0553a,#5a3a40)}
+.hd-d-headrow{display:flex;gap:1.2cqw;align-items:flex-end}.hd-d-words{display:grid;flex:1;min-width:0}.hd-d-thumb{flex:none;width:8.2cqw;height:8.2cqw;border-radius:1cqw;background:linear-gradient(135deg,#a0553a,#5a3a40)}
 .hd-d-bar.scrub em{position:absolute;left:30%;top:50%;width:1.4cqw;height:1.4cqw;margin:-.7cqw;border-radius:50%;background:#f4f0e6}.hd-d-bar.vol{width:70%;align-self:center;margin-top:.8cqw}.hd-d-bar.vol i{width:55%}
 .hd-glyph svg{stroke-width:2.1}
 .hd-headrow-set{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;margin:6px 0 14px}.hd-headrow-set>label{margin:0}.hd-headrow-set>label:last-child{flex:1;min-width:240px;max-width:420px}.hd-headrow-set small{display:none}
 .hd-own li{cursor:default}.hd-accordion-body>.hd-seg{justify-self:start}
 .hd-accordion-body>.hd-seg button{min-height:36px;padding:0 16px;font-size:14px}
+.hd-accordion-body{padding-top:16px}

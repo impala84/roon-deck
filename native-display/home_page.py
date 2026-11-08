@@ -76,7 +76,9 @@ class HomePageMixin:
         signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "cards": home.get("cards"), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0)}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
-        while child := self.home_grid.get_first_child(): self.home_grid.remove(child)
+        while child := self.home_grid.get_first_child():
+            if getattr(child, "clip_wrapper", False): child.set_child(None)   # let the tile go before its frame, so it can be placed again
+            self.home_grid.remove(child)
         entities = home.get("entities", [])[:8]
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
