@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.88 Alpine — 8 November 2026
+
+- Bus Times: the route rows now use the same look as the Home bus tile — a brighter, more vibrant fill in the route's colour, a bright route-colour border and a bright route number — so the two pages match. Strength is still set under Services > Bus.
+
 ## 1.2.0-beta.87 Alpine — 8 November 2026
 
 - Home: "Home Assistant offline" no longer takes a line on the dashboard and pushes the tiles down; the layout stays the same whether Home Assistant is reachable or not.

@@ -25,7 +25,8 @@ class BusPageMixin:
             provider = self.route_tint_provider = Gtk.CssProvider(); Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
         rules = []
         for name, accent in ROUTE_ACCENTS.items():
-            rules.append(f".service.service-{name} {{ background: {mix_colour(accent, '#0f1114', tint * .45)}; }}")
+            rules.append(f".service.service-{name} {{ background: {mix_colour(accent, '#232228', tint)}; border-color: {accent}; }}")
+            rules.append(f".service.service-{name} .service-no {{ color: {accent}; opacity: 1; }}")
             rules.append(f".hs-bus.hs-bus-{name} {{ background: {mix_colour(accent, '#232228', tint)}; border-color: {accent}; }}")
         provider.load_from_data("\n".join(rules))
 
