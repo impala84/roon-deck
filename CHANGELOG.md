@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.93 Alpine — 8 November 2026
+
+- Home: you can add the bus tile more than once, and choose which route each one shows first (Route shown, in the tile's settings). Tapping a tile still steps through the other routes, and each tile steps on its own — so one tile can follow the 42 and another the 40.
+- Home: swiping between pages is more reliable. Once a swipe is clearly sideways the page keeps hold of it (a tile or the scroll area can no longer take it halfway), shorter and quicker flicks count, and the slide always starts on its own frame instead of sometimes jumping.
+- Home: on the Update tile the title ("Try again", "Update", "Up to date") sits beside the icon, leaving more room for the message underneath.
+- Builder: Add page, Duplicate page and Delete page sit on the right at the same height as the page buttons; the remove button now breaks out over the tile's corner and only shows when you hover over (or select) a tile; the resize handles only appear when you hover near their own edge, and sit closer to it; more room between the search box, the filter buttons and the device list.
+
 ## 1.2.0-beta.92 Alpine — 8 November 2026
 
 - Updates: checking for a new version now reads one small page of GitHub releases (30) instead of up to 100 at a time, so a check normally costs a single request. That makes the "GitHub is limiting requests from this network" message much less likely when several Pis share one network. More pages are read only if the channel has no usable release yet.

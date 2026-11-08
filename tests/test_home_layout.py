@@ -185,3 +185,14 @@ class RouteColourTests(unittest.TestCase):
         self.assertEqual(plain, {"40": "blue", "42": "green", "9": "amber"})
         chosen = {item["service"]: item["colour"] for item in normalise(payload, now, (), 0, parse_route_colours("40=rose, 9=teal"))}
         self.assertEqual(chosen, {"40": "rose", "42": "green", "9": "teal"})
+
+
+class BusRouteTests(unittest.TestCase):
+    def test_bus_tile_copies_keep_their_own_route(self):
+        layout = validate_layout({"tiles": {"roondeck.bus": {"route": "42"}, "roondeck.bus#1": {"route": "40", "col": 2}}})
+        self.assertEqual(layout["tiles"]["roondeck.bus"]["route"], "42")
+        self.assertEqual(layout["tiles"]["roondeck.bus#1"]["route"], "40")
+
+    def test_bus_route_must_be_letters_and_numbers(self):
+        with self.assertRaises(ValueError):
+            validate_layout({"tiles": {"roondeck.bus": {"route": "4 2"}}})

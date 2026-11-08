@@ -9,6 +9,7 @@ from native_common import FamilyIcon, BUS, ROON, get_json, post_json
 from home_page import tile_colour_rules
 import os
 import threading
+import types
 from pathlib import Path
 from gi.repository import GLib, Gtk, Pango
 
@@ -63,17 +64,7 @@ class HomeDashboardMixin:
         self.hs_volume.set_hexpand(True); self.hs_volume.set_draw_value(False); self.hs_volume.connect("value-changed", self.change_volume); volume.append(self.hs_volume)
         self.hs_volume_row = volume; content.append(volume)
         player.add_overlay(content)
-        bus = Gtk.Box(spacing=14); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); self.hs_bus = bus
-        chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
-        self.hs_bus_icon = FamilyIcon("bus", 44); self.hs_bus_icon.add_css_class("hs-bus-glyph"); self.hs_bus_icon.set_halign(Gtk.Align.CENTER); self.hs_bus_icon.set_valign(Gtk.Align.CENTER); self.hs_bus_icon.set_hexpand(True); chip.append(self.hs_bus_icon); bus.append(chip)
-        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
-        self.hs_route = self.label("", "hs-route"); self.hs_then = self.label("", "hs-then"); text.append(self.hs_route); text.append(self.hs_then); bus.append(text)
-        arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
-        self.hs_minutes = self.label("", "hs-minutes"); self.hs_unit = self.label("min", "hs-unit"); self.hs_unit.set_valign(Gtk.Align.END); arrival.append(self.hs_minutes); arrival.append(self.hs_unit); bus.append(arrival)
-        self.hs_bus_route = None; self.hs_bus_services = []
-        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
-        self.hs_bus_route = None; self.hs_bus_services = []
-        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route()); bus.add_controller(tap)
+        self.bus_tiles = {}; self.bus_defaults = {}; self.hs_bus_services = []; self.hs_bus = self.bus_tile("roondeck.bus").box
         self.hs_cpu, self.hs_cpu_value, self.hs_cpu_detail, self.hs_cpu_area = self.build_stat_card("CPU", corner=True)
         self.hs_net, self.hs_net_value, self.hs_net_detail, self.hs_net_area = self.build_stat_card("NETWORK"); self.hs_net_value.add_css_class("hs-net-value"); self.hs_net_value.add_css_class("hs-net-small")
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
@@ -102,15 +93,30 @@ class HomeDashboardMixin:
         card.add_overlay(content)
         return card, value, detail, area
 
+    def bus_tile(self, key):
+        """The next-bus tile for one key ("roondeck.bus", or a copy such as "roondeck.bus#1"). Each has its own widgets and route, so several can sit side by side."""
+        if key in self.bus_tiles: return self.bus_tiles[key]
+        tile = types.SimpleNamespace(key=key, choice=None, default=None)
+        bus = Gtk.Box(spacing=14); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); tile.box = bus
+        chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
+        icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.append(icon); bus.append(chip)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
+        tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
+        arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
+        tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.END); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
+        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route(tile)); bus.add_controller(tap)
+        self.bus_tiles[key] = tile
+        return tile
+
     def build_action_card(self, title, on_tap):
         """A tile you tap to do something: a small title, a big word for what a tap will do, and a line of detail."""
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-action"); card.set_hexpand(True); card.set_vexpand(True)
         chip = Gtk.Box(); chip.add_css_class("hs-action-chip"); chip.set_halign(Gtk.Align.START); chip.set_valign(Gtk.Align.START)
         chip.set_size_request(44, 44); card.icon_name = None; card.chip = chip
-        value = self.label("—", "hs-action-value", 0); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1)
-        detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(2); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
+        value = self.label("—", "hs-action-value", 0); value.set_wrap(True); value.set_wrap_mode(Pango.WrapMode.WORD_CHAR); value.set_lines(2); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1); value.set_hexpand(True); value.set_valign(Gtk.Align.CENTER)   # the title sits beside the icon, leaving the lines below for the detail
+        detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(3); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
         filler = Gtk.Box(); filler.set_vexpand(True)
-        card.append(chip); card.append(filler); card.append(value); card.append(detail)
+        head = Gtk.Box(spacing=10); head.append(chip); head.append(value); card.append(head); card.append(filler); card.append(detail)
         card.set_tooltip_text(title)
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: on_tap()); card.add_controller(tap)
         return card, value, detail
@@ -292,25 +298,28 @@ class HomeDashboardMixin:
         self.volume_updating = False
         services = (status or {}).get("services") or []
         self.hs_bus_services = [str(item.get("service")) for item in services]
-        wanted = self.hs_bus_route or HOME_BUS_ROUTE   # a tap on the tile picks the route; until then 42, or the stop's first route
-        chosen = next((item for item in services if str(item.get("service")) == wanted), services[0] if services else None)
-        self.hs_bus.set_visible(chosen is not None)
-        if chosen is None: return
-        minutes = [arrival.get("minutes") for arrival in chosen.get("arrivals", []) if arrival.get("minutes") is not None]
-        colour = chosen.get("colour") or "amber"
-        for name in ROUTE_TINTS: self.hs_bus.remove_css_class("hs-bus-" + name)
-        self.hs_bus.add_css_class("hs-bus-" + (colour if colour in ROUTE_TINTS else "amber"))   # the same colour as that route on the Bus Times page
-        self.hs_route.set_text(str(chosen.get("service", "")))
-        self.hs_minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); self.hs_unit.set_visible(bool(minutes) and minutes[0] != 0)
-        self.hs_then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else "")
-        self.hs_then.set_visible(len(minutes) > 1)
+        for tile in self.bus_tiles.values():
+            default = self.bus_defaults.get(tile.key) or None
+            if default != tile.default: tile.default, tile.choice = default, None   # a route chosen in the builder replaces whatever a tap had picked
+            wanted = tile.choice or default or HOME_BUS_ROUTE   # a tap picks the next route; until then the route set for the tile, else 42, else the stop's first
+            chosen = next((item for item in services if str(item.get("service")) == wanted), services[0] if services else None)
+            tile.box.set_visible(chosen is not None)
+            if chosen is None: continue
+            minutes = [arrival.get("minutes") for arrival in chosen.get("arrivals", []) if arrival.get("minutes") is not None]
+            colour = chosen.get("colour") or "amber"
+            for name in ROUTE_TINTS: tile.box.remove_css_class("hs-bus-" + name)
+            tile.box.add_css_class("hs-bus-" + (colour if colour in ROUTE_TINTS else "amber"))   # the same colour as that route on the Bus Times page
+            tile.route.set_text(str(chosen.get("service", "")))
+            tile.minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); tile.unit.set_visible(bool(minutes) and minutes[0] != 0)
+            tile.then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.then.set_visible(len(minutes) > 1)
 
-    def cycle_bus_route(self):
-        """Tapping the bus tile shows the next route the stop is registered for."""
+    def cycle_bus_route(self, tile):
+        """Tapping a bus tile shows the next route the stop is registered for; each bus tile steps through them on its own."""
         routes = self.hs_bus_services
         if len(routes) < 2: return
-        current = self.hs_bus_route if self.hs_bus_route in routes else (HOME_BUS_ROUTE if HOME_BUS_ROUTE in routes else routes[0])
-        self.hs_bus_route = routes[(routes.index(current) + 1) % len(routes)]
+        shown = tile.choice or tile.default or HOME_BUS_ROUTE
+        current = shown if shown in routes else routes[0]
+        tile.choice = routes[(routes.index(current) + 1) % len(routes)]
         if getattr(self, "hs_last_side", None): self.render_home_side(*self.hs_last_side)
 
     # ---- right: the grid of device cards ----
@@ -333,6 +342,8 @@ class HomeDashboardMixin:
         virtual = []
         for key, record in records.items():
             widget, rows, home_cell = widgets[base_of(key)]
+            if base_of(key) == "roondeck.bus":   # every bus tile has its own widgets and its own route
+                widget = self.bus_tile(key).box; self.bus_defaults[key] = record.get("route") or None
             if base_of(key) not in ("roondeck.player", "roondeck.bus") and not record.get("show"): continue
             tile = dict(record); tile.setdefault("rows", rows)
             if home_cell and untouched and tile.get("page", 0) == 0 and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
@@ -400,6 +411,7 @@ class HomeDashboardMixin:
             else: widget = self.home_card(entity, number, rules, scale, columns == 3, is_half(entity))
             self.home_grid.attach(self.clip_cell(widget), column, row, width, height)
         self.home_tile_provider.load_from_data("\n".join(rules))
+        if getattr(self, "hs_last_side", None): self.render_home_side(*self.hs_last_side)   # fill a bus tile that has just been added
         self.start_system_sampling()
 
     def home_accent(self, entity, domain):

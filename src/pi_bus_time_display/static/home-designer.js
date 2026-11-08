@@ -425,6 +425,13 @@
     })) : null;
     return h('div', {class: 'hd-stack'}, field('Page', move, 'Move the tile to another page. It lands in the first free place there.'), copy ? field('Also show on', copy, 'Adds a copy on that page, which you can then move, resize and restyle on its own.') : null);
   }
+  // The bus route a Next-bus tile shows first. Tapping the tile still steps through the other routes.
+  function busRoute(id) {
+    const routes = String(form.elements.services?.value || '').split(',').map(item => item.trim()).filter(Boolean), tile = tileOf(id);
+    const select = h('select', {}, h('option', {value: ''}, 'Automatic (42, or the first route)'), (tile.route && !routes.includes(tile.route) ? [tile.route, ...routes] : routes).map(route => h('option', {value: route}, `Route ${route}`)));
+    select.value = tile.route || ''; select.onchange = () => patchTile(id, {route: select.value});
+    return field('Route shown', select, 'Add the bus tile more than once to keep an eye on several routes at the same time.');
+  }
   function pageBar() {
     const count = pageCount(), here = Math.min(pageNo, count - 1), tabs = Array.from({length: count}, (_, number) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
@@ -463,7 +470,7 @@
       };
       actions.push(del);
     }
-    return h('div', {class: 'hd-pages'}, h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Home pages'}, tabs), ...actions);
+    return h('div', {class: 'hd-pages'}, h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Home pages'}, tabs), h('div', {class: 'hd-page-actions'}, ...actions));
   }
   function inspector() {
     const list = ids(), id = list[selected];
@@ -531,7 +538,7 @@
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
-        B(id) === 'roondeck.bus' ? h('p', {class: 'cd-muted'}, 'The bus tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.') : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
+        B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);
@@ -574,8 +581,8 @@
     const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
     const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
     const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
-      const here = ids().some(other => B(other) === key && (!(key in LIVE) || layout.tiles[other]?.show));
-      const add = h('button', {type: 'button', class: 'secondary hd-add'}, here ? (key in LIVE ? 'Added' : 'On screen') : 'Add'); add.disabled = here;
+      const here = ids().some(other => B(other) === key && (!(key in LIVE) || layout.tiles[other]?.show)), more = key === 'roondeck.bus' && here && !!newCopyKey(key);   // the bus tile can be added again, once per route
+      const add = h('button', {type: 'button', class: 'secondary hd-add'}, more ? 'Add another' : here ? (key in LIVE ? 'Added' : 'On screen') : 'Add'); add.disabled = here && !more;
       add.onclick = () => {
         // A tile that is already on another page is added here as a copy with its own place.
         const elsewhere = key in LIVE ? !!layout.tiles[key]?.show : true, target = elsewhere && (key in CARDS || layout.tiles[key]) ? newCopyKey(key) : key;
