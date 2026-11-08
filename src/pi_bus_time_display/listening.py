@@ -69,6 +69,8 @@ def load_settings(path: Path):
     if not path.exists():
         return {"enabled": False, "buttons": [], "dials": []}
     data = json.loads(path.read_text())
+    # Settings saved before the Roon output was required: keep them loadable, with the speaker switched off until an output is chosen.
+    if isinstance(data, dict) and data.get("enabled") is True and not data.get("kef_roon_output_id"): data["enabled"] = False
     return validate_settings(data)
 
 

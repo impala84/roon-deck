@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.135 Alpine — 9 November 2026
+
+- Fixed Settings > Controls > Listening & KEF showing only "Choose the KEF's Roon output before enabling controls" and no form, when the saved settings had the speaker enabled without a Roon output. Those settings now load with the speaker switched off, so you can pick the output and enable it.
+
 ## 1.2.0-beta.134 Alpine — 9 November 2026
 
 - KEF: removed the direct speaker connection (TCP port 50001), listening modes and the Topping controls and probe tool. The LSX is now controlled only through Roon (wake, standby, volume, mute) and a Home Assistant Broadlink remote (Wi-Fi, AUX, optical and Bluetooth input codes).

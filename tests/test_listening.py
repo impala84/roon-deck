@@ -33,7 +33,7 @@ class ListeningTests(unittest.TestCase):
 
     def test_malformed_settings_disable_controls_and_report_error(self):
         self.controls.refresh()
-        self.path.write_text('{"enabled":true,"modes":"bad"}')
+        self.path.write_text('{"enabled":true,"kef_roon_output_id":"study-output","maximum_volume":500}')
         result = self.controls.refresh()
         self.assertFalse(result["enabled"])
         self.assertFalse(result["kef"]["connected"])
@@ -87,6 +87,11 @@ class ListeningTests(unittest.TestCase):
             speaker.command("input", "wifi")
             request.assert_called_once_with("input", "wifi")
         with self.assertRaisesRegex(OSError, "Choose the KEF"): KefRoon("", 40, "").status()
+
+    def test_old_settings_without_a_roon_output_still_load_with_the_speaker_off(self):
+        self.path.write_text(json.dumps({"enabled": True, "kef_host": "10.12.0.125", "modes": [{"id": "pi", "kef_input": "aux", "volume": 20}]}))
+        loaded = load_settings(self.path)
+        self.assertFalse(loaded["enabled"]); self.assertNotIn("modes", loaded)
 
     def test_listening_modes_are_gone_and_old_mode_keys_are_migrated(self):
         saved = self.controls.save({**self.settings, "modes": [{"id": "pi"}], "buttons": [{"label": "Pi", "action": "mode", "value": "pi"}]})
