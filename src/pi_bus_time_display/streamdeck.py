@@ -338,6 +338,14 @@ class Painter:
                     nx, ny = math.cos(angle), math.sin(angle)
                     draw.polygon([(px + tx * 9, py + ty * 9), (px + nx * 5, py + ny * 5), (px - nx * 5, py - ny * 5)], fill="#a4dcc7")
                 continue
+            elif action == "roon_volume":   # the Roon zone's own volume, whatever the KEF is doing
+                roon = state.get("roon_volume") or {}
+                if roon.get("value") is None: detail = "Fixed volume" if roon.get("fixed") else "No zone"
+                else:
+                    low, high = roon.get("min", 0), roon.get("max", 100)
+                    level = round(100 * (roon["value"] - low) / (high - low)) if high > low else 0
+                    if roon.get("muted"): detail = "Muted"
+                    elif roon.get("type") == "db": detail = f"{roon['value']:g} dB"
             elif speaker.get("connected"):
                 level = speaker.get("volume")
                 if speaker.get("muted"): detail = "Muted"
@@ -467,6 +475,11 @@ def run(controls, base, stop):
                 if any(item.get("action") == "playpause" for item in buttons):
                     try: playing = request(base, "/roon/api/state").get("zone") or {}
                     except (ValueError, OSError): playing = {}
+                if any(item.get("action") == "roon_volume" for item in dials):
+                    try: volume = ((request(base, "/roon/api/state").get("zone") or {}).get("output") or {}).get("volume") or {}
+                    except (ValueError, OSError): volume = {}
+                    fixed = volume.get("type") == "fixed" or (bool(volume) and not isinstance(volume.get("value"), (int, float)))
+                    state = {**state, "roon_volume": {"value": volume.get("value") if isinstance(volume.get("value"), (int, float)) else None, "min": volume.get("min", 0), "max": volume.get("max", 100), "type": volume.get("type"), "muted": bool(volume.get("is_muted")), "fixed": fixed}}
                 track = playing.get("now_playing") or {}
                 cover_key = track.get("image_key") or ""
                 elapsed = int(playing.get("seek_position") or 0) if track else None

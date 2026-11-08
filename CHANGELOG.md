@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.118 Alpine — 8 November 2026
+
+- Stream Deck: a dial set to "Roon volume (current zone)" now shows that zone's volume (a percentage and bar, or dB for dB outputs) on the strip. It was showing the KEF's state, so it read "Offline" whenever the KEF control link was down.
+
 ## 1.2.0-beta.117 Alpine — 8 November 2026
 
 - Updates: a brief GitHub hiccup (HTTP 500/502/503/504 or a timeout) while looking up the release is now retried a few times, the updater a little longer, instead of failing the whole update straight away.
