@@ -157,7 +157,7 @@ class ReleaseChecker:
     def check(self, channel: str, installed: str, refresh: bool = False, distribution: str = "rpi") -> dict:
         with self.lock:
             key = (channel, installed, distribution)
-            if not refresh and getattr(self, "cache_key", None) == key and time.monotonic() - self.checked_at < 300:
+            if not refresh and getattr(self, "cache_key", None) == key and time.monotonic() - self.checked_at < 900:
                 return dict(self.cached)
             try:
                 result = select_release(published_releases(channel), channel, installed, distribution)

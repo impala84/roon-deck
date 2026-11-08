@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.110 Alpine — 8 November 2026
+
+- Home: more room around the bus icon (further from the left edge, and more space before the route text).
+- Fewer GitHub requests: the touchscreen's Update tile looks for updates every 30 minutes (was 10) and the controller keeps the answer for 15 minutes (was 5). Tapping the tile still checks straight away.
+
 ## 1.2.0-beta.109 Alpine — 8 November 2026
 
 - Home: the bus minutes number is larger and sits on the same baseline as "min".

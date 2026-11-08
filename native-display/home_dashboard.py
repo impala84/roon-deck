@@ -98,7 +98,7 @@ class HomeDashboardMixin:
         """The next-bus tile for one key ("roondeck.bus", or a copy such as "roondeck.bus#1"). Each has its own widgets and route, so several can sit side by side."""
         if key in self.bus_tiles: return self.bus_tiles[key]
         tile = types.SimpleNamespace(key=key, choice=None, default=None)
-        bus = Gtk.Box(spacing=14); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); tile.box = bus
+        bus = Gtk.Box(spacing=22); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); tile.box = bus
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
         icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip)   # the glyph expands inside the chip so it is centred in the circle
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
@@ -173,7 +173,7 @@ class HomeDashboardMixin:
 
     def refresh_update_tile(self):
         now = GLib.get_monotonic_time() / 1e6
-        if not self.upd_checking and now - self.upd_checked > 600: self.check_updates()
+        if not self.upd_checking and now - self.upd_checked > 1800: self.check_updates()   # a quiet look every half hour; tapping the tile checks at once
         info = self.upd_info or {}; status = self.device_status.get_text() if hasattr(self, "device_status") else ""
         if getattr(self, "update_in_progress", False):
             self.set_action_state(self.hs_upd, "refresh", "active"); self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Please wait")
