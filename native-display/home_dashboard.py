@@ -101,7 +101,7 @@ class HomeDashboardMixin:
         tile = types.SimpleNamespace(key=key, choice=None, default=None)
         bus = Gtk.Box(spacing=22); bus.add_css_class("hs-card"); bus.add_css_class("hs-bus"); bus.set_hexpand(True); bus.set_vexpand(True); tile.box = bus
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
-        icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip)   # the glyph expands inside the chip so it is centred in the circle
+        icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip); tile.glyph, tile.size = icon, ""   # the glyph expands inside the chip so it is centred in the circle
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
@@ -300,12 +300,15 @@ class HomeDashboardMixin:
         self.hs_art.set_visible(art == "background"); self.hs_fade.set_visible(art == "background"); self.hs_thumb.set_visible(art == "thumb" and not self.hs_short)
         thumb_mode = art == "thumb" and not self.hs_short
         card_w, card_h = self.hs_player.get_width(), self.hs_player.get_height()
+        split = art == "background" and not self.hs_short and card_h >= 200 and card_w >= card_h * 1.5   # a wide tile: artwork on the left half, the details on the right
+        self.hs_art.set_halign(Gtk.Align.START if split else Gtk.Align.FILL); self.hs_art.set_size_request(card_w // 2 if split else -1, -1)
+        self.hs_content.set_margin_start(card_w // 2 if split else 0); self.hs_fade.set_visible(art == "background" and not split)
         reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs
         side = round(min(card_w * .46, card_h - reserved) if card_w and card_h else 150 * scale)
         self.hs_thumb.set_pixel_size(max(96, side))
-        self.hs_spacer.set_vexpand(not thumb_mode); self.hs_head.set_vexpand(thumb_mode)   # with a thumbnail the track sits up with it, not pushed to the bottom
-        self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END)
-        left = thumb_mode or options.get("align") == "left"
+        self.hs_spacer.set_vexpand(not (thumb_mode or split)); self.hs_head.set_vexpand(thumb_mode or split)   # with a thumbnail the track sits up with it, not pushed to the bottom
+        self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode or split else Gtk.Align.END)
+        left = thumb_mode or split or options.get("align") == "left"
         for words in (self.hs_zone, self.hs_title, self.hs_artist):   # centred by default; left beside a thumbnail or when chosen
             words.set_xalign(0.0 if left else 0.5); words.set_justify(Gtk.Justification.LEFT if left else Gtk.Justification.CENTER)
         if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
@@ -333,6 +336,14 @@ class HomeDashboardMixin:
             wanted = tile.choice or default or HOME_BUS_ROUTE   # a tap picks the next route; until then the route set for the tile, else 42, else the stop's first
             chosen = next((item for item in services if str(item.get("service")) == wanted), services[0] if services else None)
             tile.box.set_visible(chosen is not None)
+            height = tile.box.get_height()
+            if height > 0:   # the bus tile grows with the room it is given: 7-inch, then the big 10-inch panels
+                size = "xl" if height >= 330 else "lg" if height >= 230 else ""
+                if size != tile.size:
+                    for name in ("lg", "xl"): tile.box.remove_css_class("hs-bus-" + name)
+                    if size: tile.box.add_css_class("hs-bus-" + size)
+                    tile.size = size; tile.box.set_spacing({"": 22, "lg": 30, "xl": 40}[size])
+                    pixels = {"": 44, "lg": 60, "xl": 80}[size]; tile.glyph.set_pixel_size(pixels); tile.glyph._refresh(getattr(tile.glyph, "_colour", None))
             if chosen is None: continue
             minutes = [arrival.get("minutes") for arrival in chosen.get("arrivals", []) if arrival.get("minutes") is not None]
             colour = chosen.get("colour") or "amber"
@@ -452,8 +463,10 @@ class HomeDashboardMixin:
                 if base_of(entity["entity_id"]) == "roondeck.network":
                     self.hs_net_wide = width >= 2
                     self.hs_net_value.remove_css_class("hs-net-small") if self.hs_net_wide else self.hs_net_value.add_css_class("hs-net-small")
-            elif is_scene(entity): widget = self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale)
-            else: widget = self.home_card(entity, number, rules, scale, columns == 3, is_half(entity))
+            else:
+                grown = scale * (1 + 0.2 * (min(height, 3) - 1) + (0.15 if width >= 4 and height >= 2 else 0))   # a taller tile gets a bigger icon and more air, so it is not a small card floating in a large one
+                if is_scene(entity): widget = self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, grown)
+                else: widget = self.home_card(entity, number, rules, grown, columns == 3, is_half(entity))
             self.home_grid.attach(self.clip_cell(widget), column, row, width, height)
         self.home_tile_provider.load_from_data("\n".join(rules))
         if getattr(self, "hs_last_side", None): self.render_home_side(*self.hs_last_side)   # fill a bus tile that has just been added

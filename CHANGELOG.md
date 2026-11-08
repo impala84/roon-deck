@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-beta.120 Alpine — 8 November 2026
+
+- Ten-inch portrait: the Home builder now allows up to 16 tiles (12 on a wide landscape display) instead of 8.
+- A full-width Now Playing tile puts the artwork on the left half and the track details on the right, left-aligned, in both the builder preview and the touchscreen.
+- Bus tiles scale up on large tiles (bigger route, minutes, icon and spacing) to use the new space; slider and scene tiles grow with their height.
+- Fixed the track/album action menu ("Play now") opening far from the finger after a search: the position is now captured before the page changes.
+- Netdata: switching it off in the backend now sticks. Its own auto-update job used to restart it; that job is parked and the service refuses to start while disabled.
+
 ## 1.2.0-beta.119 Alpine — 8 November 2026
 
 - Stream Deck: the Roon volume dial shows the number exactly as Roon does (for example 42, or -30.5 dB), not a percentage worked out from the range. "Muted" sits at the top right.

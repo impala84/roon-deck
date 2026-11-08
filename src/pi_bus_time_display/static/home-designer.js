@@ -6,7 +6,7 @@
   if (!panel || !options || !textarea) return;
   const form = textarea.form;
   const ICONS = window.DeckIcons || {};
-  const LIMIT = 8;   // tiles on one page
+  let LIMIT = 8;   // tiles on one page: more on a big screen, which has the room (set from the screen shape in pageLimit)
   const MAX_PAGES = 4;
   const DEFAULT_COLOURS = {light: '#fb923c', fan: '#60a5fa', switch: '#9868f9', scene: '#a3e635'};
   const SWATCHES = ['#fb923c', '#60a5fa', '#9868f9', '#a3e635', '#e85d3a', '#d94f8c', '#3fc7a0', '#e9e4da'];
@@ -114,6 +114,7 @@
   }
   // Landscape displays 1000px wide or more use the card dashboard, which has a choice of 2 or 3 columns.
   const dashColumns = () => { const shape = screen(); if (shape.portrait) return shape.width >= 700 && shape.height >= 1200 ? 2 : 0; return shape.width >= 1000 ? (layout.columns === 2 ? 2 : 3) : 0; };   // tall 7/10-inch panels: always two columns
+  const pageLimit = () => { const shape = screen(); return shape.portrait ? (dashColumns() ? 16 : 8) : shape.width >= 1000 && layout.columns !== 2 ? 12 : 8; };
   const isScene = id => domainOf(id) === 'scene';
   // The same placement rules as the touchscreen. Tiles the owner placed (col/row) keep their cell; the rest take the first free space.
   const hasPlace = id => Number.isInteger(tileOf(id).col) && Number.isInteger(tileOf(id).row);
@@ -417,7 +418,12 @@
     for (let row = 0; row < full.rows; row += 1) for (let column = 0; column < full.columns; column += 1) if (!full.taken.has(`${column},${row}`)) grid.append(emptySlot({column, row}));
   }
   function closeGrid() { if (snapshot) { layout = snapshot; snapshot = null; return true; } return false; }
+  // A Now Playing tile much wider than it is tall puts the artwork on its left half and the track details, left-aligned, on its right.
+  function markWide() {
+    document.querySelectorAll('.hd-d-player').forEach(node => { const box = node.getBoundingClientRect(); node.classList.toggle('split', !node.classList.contains('art-thumb') && !node.classList.contains('art-off') && box.height > 40 && box.width >= box.height * 1.5); });
+  }
   function preview() {
+    LIMIT = pageLimit();
     const shape = screen(), list = ids(), info = place(list, shape.portrait);
     const grid = h('div', {class: 'hd-grid', style: `grid-template-columns:repeat(${info.columns},minmax(0,1fr));grid-template-rows:repeat(${info.rows},minmax(0,1fr))`});
     for (const cell of info.cells) grid.append(tileView(cell, info.rowMode));
@@ -758,7 +764,9 @@
       } else {
         entitiesLabel.hidden = true;
         layoutPane.className = 'dd-pane hd-layout hd-two';
+        LIMIT = pageLimit();
         layoutPane.replaceChildren(h('div', {class: 'hd-text'}, devices(), inspector()), h('div', {class: 'hd-side'}, preview()));
+        markWide();
       }
     }
     if (!coloursPane.hidden) coloursArt.replaceChildren(coloursPreview());

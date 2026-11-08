@@ -438,12 +438,37 @@ respawn_max=0
 output_log=/var/log/pi-home/netdata.log
 error_log=/var/log/pi-home/netdata-error.log
 depend() { need localmount; after networkmanager; }
+start_pre() {
+    # Disabled in RoonDeck settings: refuse to start, whoever asks (Netdata's
+    # own auto-updater, the installer, or a stray rc-service call).
+    if [ -e /var/lib/pi-home/netdata-disabled ]; then
+        eerror "Netdata is switched off in RoonDeck settings"
+        return 1
+    fi
+}
 """
         if not service.exists() or service.read_text(errors="replace") != managed:
             backup = service.parent / "netdata.pi-home-package-backup"
             if service.exists() and not backup.exists(): shutil.copyfile(service, backup)
             atomic(service, managed, 0o755)
     return service
+
+
+def netdata_updater_jobs(root, enabled):
+    """Park (or restore) Netdata's own auto-update cron jobs.
+
+    The official installer's --auto-update job restarts the Agent outside
+    OpenRC, which silently brought a disabled Netdata (and its memory use) back.
+    """
+    root = Path(root)
+    for folder in ("etc/cron.daily", "etc/periodic/daily", "etc/cron.d"):
+        directory = root / folder
+        if not directory.is_dir(): continue
+        for job in directory.glob("netdata-updater*"):
+            if job.suffix == ".disabled":
+                if enabled: job.rename(job.with_suffix(""))
+            elif not enabled:
+                job.rename(job.with_name(job.name + ".disabled"))
 
 
 def display_power(root, powered, brightness_percent=100):
@@ -650,6 +675,7 @@ class Setup:
             environment = {**os.environ, "DISABLE_TELEMETRY": "1"}
             result = subprocess.run(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=environment, timeout=900)
             if result.returncode: raise ValueError("The official Netdata installer rejected this installation or connection command.")
+            (self.root / "var/lib/pi-home/netdata-disabled").unlink(missing_ok=True)
             ensure_netdata_service(self.root)
             preference = self.root / "var/lib/pi-home/netdata-lightweight"
             lightweight = not preference.exists() or read(preference).strip() != "no"
@@ -923,7 +949,10 @@ class Setup:
         if action in {"netdata_enable", "netdata_disable"}:
             if not state.get("complete"): raise ValueError("Finish setup before changing services.")
             ensure_netdata_service(self.root)
+            marker = self.root / "var/lib/pi-home/netdata-disabled"
+            netdata_updater_jobs(self.root, action == "netdata_enable")
             if action == "netdata_enable":
+                marker.unlink(missing_ok=True)
                 self.run(["rc-update", "add", "netdata", "default"])
                 running = False
                 try:
@@ -931,6 +960,7 @@ class Setup:
                 except OSError: pass
                 if not running: self.run(["rc-service", "netdata", "start"])
             else:
+                marker.parent.mkdir(parents=True, exist_ok=True); atomic(marker, "yes\n")
                 # Remove it from the boot list first. Stopping can fail when the
                 # Agent is not running under OpenRC (for example started by the
                 # installer); that must never leave it enabled at boot.
@@ -1014,6 +1044,8 @@ class Setup:
                 if packages:
                     atomic(operation_status, "Installing Netdata Cloud connection support…\n")
                     self.run(["apk", "add", "--no-cache", *packages])
+            (self.root / "var/lib/pi-home/netdata-disabled").unlink(missing_ok=True)
+            netdata_updater_jobs(self.root, True)
             self.run(["rc-service", "netdata", "stop"])
             try:
                 if action == "netdata_disconnect":

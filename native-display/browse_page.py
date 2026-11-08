@@ -312,6 +312,7 @@ class BrowsePageMixin:
     def open_browser_item(self, _button, item_key):
         if item_key:
             self.browser_action_anchor = _button
+            self.remember_action_point(_button)
             if (getattr(_button, "opens_page", False) or str(item_key).startswith("tidal:")) and not self.browser_loading:
                 state = self.browser_state or {}
                 self.show_browser_loading()
@@ -510,9 +511,21 @@ class BrowsePageMixin:
         press.connect("pressed", lambda _gesture, _count, x, y, widget=button: setattr(widget, "press_point", (x, y)))
         button.add_controller(press)
 
+    def remember_action_point(self, anchor):
+        """Note where the tapped row sits in window coordinates now, because showing the loading page removes the row before the menu opens."""
+        self.browser_action_point = None
+        try:
+            local = getattr(anchor, "press_point", None)
+            if local and self.root_overlay is not None:
+                point = anchor.compute_point(self.root_overlay, Graphene.Point().init(local[0], local[1]))
+                if isinstance(point, tuple): point = point[1] if point[0] else None
+                if point is not None: self.browser_action_point = (point.x, point.y)
+        except (AttributeError, TypeError, GLib.Error): pass
+
     def open_album_play_menu(self, anchor, item_key):
         if item_key:
             self.browser_action_anchor = anchor
+            self.remember_action_point(anchor)
             self.request_browser("open", item_key=item_key, menu_only=True)
 
     def load_album_notes(self, profile, slot):
@@ -615,8 +628,12 @@ class BrowsePageMixin:
         if getattr(self, "viewport_height", 0): height = min(height, self.viewport_height)
         px, py = width - 260, height // 2
         local = getattr(anchor, "press_point", None)
+        saved = getattr(self, "browser_action_point", None)
+        detached = anchor.get_root() is None
+        if detached and (saved or getattr(self, "last_tap_point", None)): px, py = saved or self.last_tap_point   # the row was removed while the page loaded: use where it was
         try:
-            if local:
+            if detached and (saved or getattr(self, "last_tap_point", None)): pass
+            elif local:
                 point = anchor.compute_point(overlay, Graphene.Point().init(local[0], local[1]))
                 if isinstance(point, tuple): point = point[1] if point[0] else None
                 if point is not None: px, py = point.x, point.y

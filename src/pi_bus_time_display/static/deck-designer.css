@@ -266,3 +266,7 @@
 .hd-preview>.hd-columns{margin:12px 0 4px;justify-content:flex-start}.hd-preview>.hd-columns .hd-seg{width:200px}.hd-preview>.hd-columns .hd-seg button{padding:8px 12px}
 .hd-preview>.hd-columns .hd-seg{width:auto;display:flex;gap:6px}.hd-preview>.hd-columns .hd-seg button{white-space:nowrap;flex:0 0 auto}
 .hd-d-player:not(.art-thumb):not(.align-left) .hd-d-words,.hd-d-player:not(.art-thumb):not(.align-left) .hd-d-zone{text-align:center}
+/* A wide Now Playing tile: artwork on the left half, the track details left-aligned on the right half. */
+.hd-d-player.split{background:linear-gradient(90deg,#8a4a35 0%,#5a3a40 50%,#232228 50%,#232228 100%);padding-left:calc(50% + 1.7cqw)}
+.hd-d-player.split .hd-d-words,.hd-d-player.split .hd-d-zone{text-align:left}
+.hd-d-player.split .hd-d-spacer{display:none}.hd-d-player.split .hd-d-headrow{flex:1;align-items:center}
