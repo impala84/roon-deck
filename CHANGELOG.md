@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.95 Alpine — 8 November 2026
+
+- Home: the bus tiles' icons now line up on the same left edge whatever the route number's width (the icon was being centred in spare space), and the icon and text sit slightly higher in the tile.
+
 ## 1.2.0-beta.94 Alpine — 8 November 2026
 
 - Home: tap a page dot on the touchscreen to go to that page (with the same slide as a swipe).
