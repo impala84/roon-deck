@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.71 Alpine — 8 November 2026
+
+- Home: tiles can be half a column wide. In the builder, drag a tile's right edge narrower than one column (or pick Half column in the tile's width options) and two half tiles share a column. Half-width cards stack the icon, toggle, name and level to fit. This replaces sharing a cell between two scenes.
+- Home: live CPU and network tiles. Add them from Add devices > Live tiles in the builder, then move and size them like any other tile. CPU shows the load, temperature and a rolling graph; Network shows download and upload speed with a graph. They are read directly from the Pi every couple of seconds and only while a live tile is on the page.
+
 ## 1.2.0-beta.70 Alpine — 8 November 2026
 
 - Home builder: the preview is now drawn to the touchscreen's proportions. Cards, text, sliders, toggles, the player, the bus, the header with clock and the tab bar all scale with the preview, so it matches the screen at any width. Long names wrap to two lines as on the display, the empty "Drop here" cells no longer run into the tab bar, and the resize bars only appear when you hover or select a tile.

@@ -82,6 +82,14 @@ class HomeDashboardLayoutTests(unittest.TestCase):
         self.assertEqual(home["cards"]["roondeck.player"]["col"], 2)
         self.assertEqual(home["cards"]["roondeck.bus"]["row"], 2)
 
+    def test_half_width_tiles_and_live_tiles_are_kept(self):
+        layout = validate_layout({"columns": 3, "tiles": {"switch.lamp": {"half": True, "sub": 1, "col": 1, "row": 0}, "roondeck.cpu": {"show": True, "col": 2, "row": 2}, "roondeck.network": {"show": True}}})
+        self.assertEqual(layout["tiles"]["switch.lamp"], {"half": True, "sub": 1, "col": 1, "row": 0})
+        home = with_layout({"entities": []}, layout)
+        self.assertTrue(home["cards"]["roondeck.cpu"]["show"]); self.assertTrue(home["cards"]["roondeck.network"]["show"])
+        for bad in ({"half": 1}, {"show": "yes"}):
+            self.assertNotIn(next(iter(bad)), validate_layout({"tiles": {"switch.lamp": {**bad, "col": 0}}})["tiles"]["switch.lamp"])
+
     def test_air_conditioner_slider_maps_to_its_own_temperature_range(self):
         from pi_bus_time_display.server import climate_percent, climate_target
         attributes = {"min_temp": 16, "max_temp": 30, "target_temp_step": 1, "temperature": 23}

@@ -10,9 +10,10 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show"}
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
+CPU, NETWORK = "roondeck.cpu", "roondeck.network"   # live tiles the owner can add
 
 
 def validate_layout(data):
@@ -39,6 +40,9 @@ def validate_layout(data):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
                 out[name] = tile[name]
+        if tile.get("half") is True: out["half"] = True   # half a column wide (dashboard only)
+        if tile.get("sub") == 1 and not isinstance(tile.get("sub"), bool): out["sub"] = 1   # the right-hand half of its column
+        if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
         if tile.get("also"):
             also = tile["also"]
             if not isinstance(also, list) or len(also) > 4 or any(not isinstance(item, str) or not ENTITY.fullmatch(item) or item == entity_id for item in also):
@@ -85,7 +89,7 @@ def with_layout(home, layout):
     tiles = (layout or {}).get("tiles", {})
     if not isinstance(home, dict): return home
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
-    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS) if key in tiles}}
+    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS, CPU, NETWORK) if key in tiles}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     return out
 

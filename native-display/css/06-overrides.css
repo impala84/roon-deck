@@ -502,3 +502,10 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-switch { min-width: 64px; min-height: 36px; border-radius: 18px; background: rgba(255,255,255,.2); }
 .home-switch-knob { min-width: 28px; min-height: 28px; margin: 4px; border-radius: 14px; background: #f6f3ee; }
 .home-scene { border-radius: 22px; }
+
+/* Live CPU and network tiles */
+.hs-stat { padding: 14px 20px; }
+.hs-stat-title { font-size: 17px; font-weight: 700; letter-spacing: .08em; color: #9fb0ab; }
+.theme-roon .hs-stat-title { color: #a29eaf; }
+.hs-stat-value { font-size: 34px; font-weight: 600; color: #f4f0e6; }
+.hs-stat-detail { font-size: 17px; color: #9fb0ab; }
