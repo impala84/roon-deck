@@ -193,18 +193,24 @@
 
 .hd-columns{display:flex;align-items:center;gap:12px;justify-content:space-between}.hd-columns>span{font-size:14px;color:var(--muted)}.hd-columns .hd-seg{width:240px}
 
-/* Home builder: the preview copies the touchscreen's dashboard cards */
-.hd-tile.hd-dash{display:flex;flex-direction:column;justify-content:center;align-items:stretch;text-align:left;gap:8px;padding:10px 12px;min-height:0}
-.hd-layout .hd-tile.hd-dash{padding:10px 14px;min-height:0;gap:8px}
-.hd-dash b{font-size:15px;font-weight:700;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}.hd-dash small{font-size:11px;opacity:.7;letter-spacing:.03em;display:block;white-space:nowrap}
-.hd-d-row{display:flex;align-items:center;gap:10px;min-width:0}.hd-d-text{display:grid;min-width:0;flex:1}
-.hd-d-chip{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12)}.hd-d-chip .hd-icon{width:24px;height:24px}.hd-glyph{display:inline-grid;place-items:center}
-.hd-d-device{display:grid;gap:10px}.hd-d-slider{height:9px;border-radius:5px;background:rgba(255,255,255,.16);position:relative}.hd-d-slider i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
-.hd-d-switch{flex:none;width:38px;height:22px;border-radius:11px;background:rgba(255,255,255,.2);position:relative}.hd-d-switch i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#f6f3ee}.hd-d-switch.on i{left:19px}
-.hd-d-scene{display:flex;flex-direction:column;justify-content:space-between;gap:10px;height:100%}
-.hd-d-player{position:absolute;inset:0;display:flex;flex-direction:column;gap:5px;padding:12px 14px;background:linear-gradient(180deg,#8a4a35 0%,#5a3a40 45%,#232228 100%)}
-.hd-d-zone{font-size:10px;font-weight:700;letter-spacing:.08em;color:#c2a3ff}.hd-d-spacer{flex:1}.hd-d-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.25);position:relative;margin-top:2px}.hd-d-bar i{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:2px;background:#9868f9}
-.hd-d-transport{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:2px}.hd-d-play{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#9868f9}
-.hd-d-bus{display:flex;align-items:center;gap:10px;width:100%}.hd-d-bus .hd-d-chip{background:rgba(255,255,255,.12)}.hd-d-route{display:grid;flex:1;min-width:0}.hd-d-route b{font-size:20px}.hd-d-minutes{display:flex;align-items:baseline;gap:3px}.hd-d-minutes b{font-size:34px;font-weight:600}
-.hd-dash-screen .hd-grid{flex:1}.hd-nav{display:flex;justify-content:space-around;padding:8px 4px 2px;font-size:12px;font-weight:600;color:#8a948f}.hd-nav .on{color:#fff;box-shadow:0 3px 0 #9868f9;padding-bottom:4px}
-.hd-d-scene .hd-d-chip{width:30px;height:30px}.hd-d-scene{gap:6px}
+/* Home builder: the preview copies the touchscreen's dashboard cards. Sizes are in cqw (1% of the screen's width), so everything scales like the real 1280-wide page. */
+.hd-dash-screen{container-type:inline-size;gap:1.1cqw;padding:1.6cqw 2cqw 1.2cqw}.hd-layout .hd-dash-screen{padding:1.6cqw 2cqw 1.2cqw;gap:1.1cqw}
+.hd-dash-screen .hd-grid,.hd-layout .hd-dash-screen .hd-grid{gap:1.4cqw}
+.hd-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 .4cqw}.hd-dash-screen .hd-title,.hd-layout .hd-dash-screen .hd-title{font-size:2.1cqw;font-weight:700}.hd-clock{font-size:2.6cqw;font-weight:300;color:#9a96a3}
+.hd-dash-screen .hd-tile.hd-dash,.hd-layout .hd-dash-screen .hd-tile.hd-dash,.hd-dash-screen .hd-empty,.hd-layout .hd-dash-screen .hd-empty{min-height:0}
+.hd-tile.hd-dash,.hd-layout .hd-tile.hd-dash{display:flex;flex-direction:column;justify-content:center;align-items:stretch;text-align:left;gap:1cqw;padding:1.1cqw 1.5cqw;border-radius:1.7cqw}
+.hd-dash-screen .hd-empty{border-radius:1.7cqw;font-size:1.4cqw}
+.hd-dash b{font-size:1.9cqw;font-weight:700;line-height:1.12;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}.hd-dash small{font-size:1.3cqw;opacity:.7;letter-spacing:.03em;display:block;white-space:nowrap;line-height:1.2}
+.hd-d-row{display:flex;align-items:center;gap:1.4cqw;min-width:0}.hd-d-text{display:grid;min-width:0;flex:1}
+.hd-d-chip{flex:none;display:grid;place-items:center;width:5cqw;height:5cqw;border-radius:50%;background:rgba(255,255,255,.12)}.hd-d-chip .hd-icon{width:3.1cqw;height:3.1cqw}
+.hd-glyph{display:inline-grid;place-items:center;width:3.1cqw;height:3.1cqw}.hd-glyph svg{width:100%;height:100%}
+.hd-d-device{display:grid;gap:1.1cqw}.hd-d-slider{height:1.25cqw;border-radius:.7cqw;background:rgba(255,255,255,.16);position:relative}.hd-d-slider i{position:absolute;left:0;top:0;bottom:0;border-radius:.7cqw}
+.hd-d-switch{flex:none;width:5cqw;height:2.8cqw;border-radius:1.4cqw;background:rgba(255,255,255,.2);position:relative}.hd-d-switch i{position:absolute;top:.35cqw;left:.35cqw;width:2.1cqw;height:2.1cqw;border-radius:50%;background:#f6f3ee}.hd-d-switch.on i{left:2.55cqw}
+.hd-d-scene{display:flex;flex-direction:column;justify-content:space-between;gap:.6cqw;height:100%}
+.hd-d-player{position:absolute;inset:0;display:flex;flex-direction:column;gap:.5cqw;padding:1.7cqw;background:linear-gradient(180deg,#8a4a35 0%,#5a3a40 45%,#232228 100%)}.hd-d-player b{font-size:2cqw}
+.hd-d-zone{font-size:1.1cqw;font-weight:700;letter-spacing:.08em;color:#c2a3ff}.hd-d-spacer{flex:1}.hd-d-bar{height:.5cqw;border-radius:.3cqw;background:rgba(255,255,255,.25);position:relative;margin-top:.4cqw}.hd-d-bar i{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:.3cqw;background:#9868f9}
+.hd-d-transport{display:flex;align-items:center;justify-content:center;gap:2.4cqw;margin-top:.3cqw}.hd-d-transport .hd-glyph{width:2cqw;height:2cqw}.hd-d-play{display:grid;place-items:center;width:5.2cqw;height:5.2cqw;border-radius:50%;background:#9868f9}.hd-d-play .hd-glyph{width:2.6cqw;height:2.6cqw}
+.hd-d-bus{display:flex;align-items:center;gap:1.4cqw;width:100%}.hd-d-route{display:grid;flex:1;min-width:0}.hd-d-route b{font-size:2.8cqw}.hd-d-minutes{display:flex;align-items:baseline;gap:.4cqw}.hd-d-minutes b{font-size:4.7cqw;font-weight:600}.hd-d-minutes small{font-size:1.7cqw}
+.hd-nav{display:grid;grid-template-columns:repeat(4,1fr);margin-top:.2cqw;font-size:1.6cqw;font-weight:600;color:#8a948f;text-align:center}.hd-nav span{padding:.7cqw 0 .8cqw}.hd-nav .on{color:#fff;border-bottom:.3cqw solid #9868f9}
+/* the resize bars show only when the tile is hovered or selected, so they do not sit on top of the card */
+.hd-dash .hd-stretch::after{opacity:0}.hd-dash:hover .hd-stretch::after,.hd-dash.selected .hd-stretch::after{opacity:.7}

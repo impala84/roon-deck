@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.70 Alpine — 8 November 2026
+
+- Home builder: the preview is now drawn to the touchscreen's proportions. Cards, text, sliders, toggles, the player, the bus, the header with clock and the tab bar all scale with the preview, so it matches the screen at any width. Long names wrap to two lines as on the display, the empty "Drop here" cells no longer run into the tab bar, and the resize bars only appear when you hover or select a tile.
+
 ## 1.2.0-beta.69 Alpine — 8 November 2026
 
 - Home: the page no longer grows wider than the screen. The next-bus card is more compact (smaller minutes and spacing), long names shrink instead of widening a column, and the page can no longer push past the display edge.

@@ -128,16 +128,16 @@
 
   /* ------------------------------------------------------------ preview */
   // A small copy of the touchscreen's cards, so the builder reads like the real Home page.
-  const svgOf = (key, colour, size) => { const span = h('span', {class: 'hd-glyph', style: `color:${colour};width:${size}px;height:${size}px`}); if (ICONS[key]) span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" ${ICON_STYLE.replace('stroke="#fff"', 'stroke="currentColor"')}>${lineArt(ICONS[key][1])}</svg>`; return span; };
+  const svgOf = (key, colour) => { const span = h('span', {class: 'hd-glyph', style: `color:${colour}`}); if (ICONS[key]) span.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" ${ICON_STYLE.replace('stroke="#fff"', 'stroke="currentColor"')}>${lineArt(ICONS[key][1])}</svg>`; return span; };
   function dashBody(id, tile, colour, lit) {
     if (id === 'roondeck.player') return [h('div', {class: 'hd-d-player'}, h('span', {class: 'hd-d-zone'}, 'ROONDECK'), h('span', {class: 'hd-d-spacer'}), h('b', {}, 'Track title'), h('small', {}, 'Artist'), h('span', {class: 'hd-d-bar'}, h('i', {})),
-      h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6', 14), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d', 16)), svgOf('next', '#f4f0e6', 14)))];
+      h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')))];
     if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     const domain = domainOf(id), info = states[id] || {}, scene = domain === 'scene';
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
     const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
     const name = tile.label || nameOf(id);
-    const chip = h('span', {class: 'hd-d-chip', style: `opacity:${lit ? 1 : .6}`}, tile.icon ? h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}) : svgOf(scene ? 'scene' : domain === 'light' ? 'bulb' : domain === 'fan' ? 'fan' : domain === 'climate' ? 'snow' : 'switch', colour, 22));
+    const chip = h('span', {class: 'hd-d-chip', style: `opacity:${lit ? 1 : .6}`}, tile.icon ? h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}) : svgOf(scene ? 'scene' : domain === 'light' ? 'bulb' : domain === 'fan' ? 'fan' : domain === 'climate' ? 'snow' : 'switch', colour));
     if (scene) return [h('div', {class: 'hd-d-scene'}, chip, h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, 'TAP TO ACTIVATE')))];
     const text = h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, level ? (lit ? `${pct}%` : 'OFF') : (lit ? 'ON' : 'OFF')));
     if (level) return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text), h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? pct : 0}%;background:${colour}`})))];
@@ -265,7 +265,7 @@
     for (const spot of free) grid.append(emptySlot(spot));
     const title = form.elements.home_assistant_title?.value;
     const navBar = dashColumns() ? h('div', {class: 'hd-nav'}, ['Now Playing', 'Discover', 'Bus Times', 'Home'].map(name => h('span', {class: name === 'Home' ? 'on' : ''}, name))) : null;
-    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, title ? h('div', {class: 'hd-title'}, title) : null, grid, navBar);
+    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, dashColumns() ? h('div', {class: 'hd-head'}, h('span', {class: 'hd-title'}, title || 'Home Controls'), h('span', {class: 'hd-clock'}, new Date().toTimeString().slice(0, 5))) : (title ? h('div', {class: 'hd-title'}, title) : null), grid, navBar);
     const dash = dashColumns();
     const columnPicker = dash ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
       const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);
