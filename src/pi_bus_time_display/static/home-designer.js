@@ -6,7 +6,8 @@
   if (!panel || !options || !textarea) return;
   const form = textarea.form;
   const ICONS = window.DeckIcons || {};
-  const LIMIT = 8;
+  const LIMIT = 8;   // tiles on one page
+  const MAX_PAGES = 4;
   const DEFAULT_COLOURS = {light: '#fb923c', fan: '#60a5fa', switch: '#9868f9', scene: '#a3e635'};
   const SWATCHES = ['#fb923c', '#60a5fa', '#9868f9', '#a3e635', '#e85d3a', '#d94f8c', '#3fc7a0', '#e9e4da'];
   const lineArt = body => body.replace(/fill="#fff"/g, 'fill="none"');
@@ -37,8 +38,16 @@
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
   const isCard = id => id in CARDS || id in LIVE;
   const liveShown = () => Object.keys(LIVE).filter(id => layout.tiles[id]?.show);
-  const deviceIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
-  const ids = () => dashColumns() ? [...Object.keys(CARDS), ...liveShown(), ...deviceIds()] : deviceIds();
+  const allDevices = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
+  // The dashboard can have several pages, swiped between on the touchscreen. The builder shows one page at a time.
+  let pageNo = 0;
+  const pageCount = () => dashColumns() ? Math.max(1, Math.min(MAX_PAGES, layout.pages || 1)) : 1;
+  const pageOf = id => Math.min(pageCount() - 1, (layout.tiles[id] || {}).page || 0);
+  const onPage = id => pageCount() < 2 || pageOf(id) === Math.min(pageNo, pageCount() - 1);
+  const deviceIds = () => allDevices().filter(onPage);
+  const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...liveShown(), ...allDevices()] : allDevices();
+  const ids = () => allIds().filter(onPage);
+  const withPage = tile => { const next = {...tile}; if (pageNo > 0 && pageCount() > 1) next.page = pageNo; else delete next.page; return next; };
   const nameOf = id => CARDS[id] || LIVE[id] || catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
   // Until the owner has placed either card, the player sits top-left and the bus under it.
   const CARD_HOME = {'roondeck.player': {col: 0, row: 0}, 'roondeck.bus': {col: 0, row: 2}};
@@ -49,7 +58,9 @@
   };
   const markDirty = () => { dirty = true; window.RoonDeckDirty?.('homelayout', 'Home layout'); };
   function setIds(list) {
-    textarea.value = list.filter(id => !isCard(id)).join(', ');
+    const mine = list.filter(id => !isCard(id)), others = allDevices().filter(id => !onPage(id) && !mine.includes(id));
+    if (pageCount() > 1) for (const id of mine) layout.tiles[id] = withPage(tileOf(id));
+    textarea.value = (pageNo > 0 ? [...others, ...mine] : [...mine, ...others]).join(', ');
     textarea.dispatchEvent(new Event('input', {bubbles: true}));
     render();
   }
@@ -267,7 +278,7 @@
   // A device dragged in from the list, dropped on a cell (cellAt) or on a tile (index to go before).
   function dropDevice(cellAt, index) {
     const list = deviceIds(), off = ids().length - list.length; const id = dragId; dragId = null;
-    if (!id || list.includes(id) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
+    if (!id || allDevices().includes(id) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
     snapshot = null;
     const info = place(ids(), screen().portrait); if (info.positioned || cellAt) pin(info.cells);
     if (cellAt) { list.push(id); const fine = dashColumns() ? 2 : 1, span = fine === 2 ? 2 : Math.min(info.columns, ({half: info.columns > 2 ? 2 : 1, full: info.columns}[tileOf(id).size]) || 1); let x = Math.min(cellAt.column, info.columns - span); if (fine === 2) x -= x % 2; layout.tiles[id] = {...tileOf(id), col: Math.floor(x / fine), row: cellAt.row}; selected = list.length - 1 + off; }
@@ -324,7 +335,9 @@
       const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);
       button.onclick = () => { if (dash === count) return; layout.columns = count; markDirty(); render(); }; return button;
     }))) : null;
-    return h('div', {class: 'hd-preview'}, columnPicker, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    const dots = pageCount() > 1 ? h('div', {class: 'hd-dots'}, Array.from({length: pageCount()}, (_, number) => h('i', {class: number === Math.min(pageNo, pageCount() - 1) ? 'on' : ''}))) : null;
+    if (dots) screenBox.insertBefore(dots, grid);
+    return h('div', {class: 'hd-preview'}, columnPicker, dash ? pageBar() : null, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -365,6 +378,39 @@
   const tools = iconTools();
   let iconCategory = 'Lights';
   const message = h('p', {class: 'cd-muted', role: 'status'});
+  // Which page a tile is on; moving it clears its position so it lands in the first free place there.
+  function pageField(id) {
+    const count = pageCount(); if (count < 2) return null;
+    const seg = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Page'}, Array.from({length: count}, (_, number) => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(pageOf(id) === number)}, `Page ${number + 1}`);
+      button.onclick = () => { if (pageOf(id) === number) return; selected = -1; patchTile(id, {page: number || '', col: '', row: '', sub: ''}); pageNo = number; render(); }; return button;
+    }));
+    return field('Page', seg, 'Move the tile to another page. It lands in the first free place there.');
+  }
+  function pageBar() {
+    const count = pageCount(), tabs = Array.from({length: count}, (_, number) => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(number === Math.min(pageNo, count - 1))}, `Page ${number + 1}`);
+      button.onclick = () => { pageNo = number; selected = -1; render(); }; return button;
+    });
+    const actions = [];
+    if (count < MAX_PAGES) { const add = h('button', {type: 'button', class: 'secondary'}, 'Add page'); add.onclick = () => { layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render(); }; actions.push(add); }
+    if (count > 1) {
+      const del = h('button', {type: 'button', class: 'secondary'}, 'Delete page');
+      del.title = 'Tiles on this page move to page 1';
+      del.onclick = () => {
+        const here = Math.min(pageNo, count - 1);
+        for (const [id, tile] of Object.entries(layout.tiles)) {
+          const page = tile.page || 0, next = {...tile};
+          if (page === here) { delete next.page; delete next.col; delete next.row; delete next.sub; } else if (page > here) { if (page - 1 > 0) next.page = page - 1; else delete next.page; } else continue;
+          layout.tiles[id] = next;
+        }
+        if (count - 1 > 1) layout.pages = count - 1; else delete layout.pages;
+        pageNo = Math.max(0, here - 1); selected = -1; markDirty(); render();
+      };
+      actions.push(del);
+    }
+    return h('div', {class: 'hd-pages'}, h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Home pages'}, tabs), ...actions);
+  }
   function inspector() {
     const list = ids(), id = list[selected];
     if (!id) return h('div', {class: 'hd-group'}, h('h4', {}, 'Selected tile'), h('p', {class: 'cd-muted'}, 'Select a tile in the preview to change its size, label, icon, image or colour.'));
@@ -432,11 +478,11 @@
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...playerFields, ...netFields, ...groupFields,
         field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
-        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
+        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
-      field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'),
+      field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'), pageField(id),
       field('Label', label), linkField, field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
@@ -454,8 +500,8 @@
       chip.onclick = () => { kind = name; chips.querySelectorAll('.dd-chip').forEach(node => node.setAttribute('aria-pressed', String(node === chip))); fillResults(); }; return chip;
     }));
     function fillResults() {
-      const needle = query.trim().toLowerCase(), current = deviceIds();
-      const matches = catalog.filter(item => !current.includes(item.entity_id) && filters[kind](item) && (!needle || item.name.toLowerCase().includes(needle) || item.entity_id.includes(needle))).slice(0, 40);
+      const needle = query.trim().toLowerCase(), current = deviceIds(), taken = allDevices();
+      const matches = catalog.filter(item => !taken.includes(item.entity_id) && filters[kind](item) && (!needle || item.name.toLowerCase().includes(needle) || item.entity_id.includes(needle))).slice(0, 40);
       results.replaceChildren(...(matches.length ? matches.map(item => {
         const add = h('button', {type: 'button', class: 'secondary hd-add', 'aria-label': `Add ${item.name}`}, 'Add'); add.disabled = current.length >= LIMIT;
         add.onclick = () => { selected = ids().length; devicesOpen = false; setIds([...deviceIds(), item.entity_id]); };
@@ -476,7 +522,7 @@
     const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
       const live = key in LIVE, shown = live ? !!layout.tiles[key]?.show : true;
       const add = h('button', {type: 'button', class: 'secondary hd-add'}, live ? (shown ? 'Added' : 'Add') : 'On screen'); add.disabled = shown;
-      if (live) add.onclick = () => { layout.tiles[key] = {...(layout.tiles[key] || {}), show: true}; devicesOpen = false; markDirty(); selected = ids().indexOf(key); render(); };
+      if (live) add.onclick = () => { layout.tiles[key] = withPage({...(layout.tiles[key] || {}), show: true}); devicesOpen = false; markDirty(); selected = ids().indexOf(key); render(); };
       return h('li', {}, h('span', {class: 'hd-label'}, name, h('small', {}, note)), add);
     }));
     let source = addSource === 'ha' || !dash ? 'ha' : 'own';
@@ -563,7 +609,7 @@
 
   window.RoonDeckSaves = window.RoonDeckSaves || {};
   window.RoonDeckSaves.homelayout = async () => {
-    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => isCard(id) || ids().includes(id))), ...(layout.columns ? {columns: layout.columns} : {})})});
+    const response = await fetch('/api/admin/home-layout', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tiles: Object.fromEntries(Object.entries(layout.tiles).filter(([id]) => isCard(id) || allIds().includes(id))), ...(layout.columns ? {columns: layout.columns} : {}), ...(pageCount() > 1 ? {pages: pageCount()} : {})})});
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the Home layout');
     layout = result.layout; dirty = false;
   };
@@ -574,7 +620,7 @@
     roonOutputs = outs?.outputs || [];
     catalog = (cat?.entities) || [];
     states = Object.fromEntries([...(status?.entities || []), ...(status?.deck_entities || [])].map(item => [item.entity_id, item]));
-    art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles, ...(saved.columns ? {columns: saved.columns} : {})}; system = sys || {};
+    art = art_?.art || []; if (saved?.tiles && !dirty) layout = {tiles: saved.tiles, ...(saved.columns ? {columns: saved.columns} : {}), ...(saved.pages ? {pages: saved.pages} : {})}; system = sys || {};
     render();
     // Icons made by earlier versions are small in their tile: redraw them at the full size.
     for (const [id, tile] of Object.entries(layout.tiles)) {

@@ -144,3 +144,17 @@ class CardOptionTests(unittest.TestCase):
         self.assertEqual(out["tiles"]["roondeck.group"], {"show": True, "zone": "Kitchen", "with": "Office"})
         saved = with_layout({}, out)
         for key in tiles: self.assertIn(key, saved["cards"])
+
+
+class PageTests(unittest.TestCase):
+    def test_pages_and_tile_pages(self):
+        out = validate_layout({"pages": 3, "tiles": {"light.a": {"page": 2, "col": 1}, "light.b": {"page": 0, "label": "B"}}})
+        self.assertEqual(out["pages"], 3)
+        self.assertEqual(out["tiles"]["light.a"], {"page": 2, "col": 1})
+        self.assertNotIn("page", out["tiles"]["light.b"])
+        self.assertEqual(with_layout({}, out)["pages"], 3)
+
+    def test_one_page_is_not_stored_and_bad_values_are_refused(self):
+        self.assertNotIn("pages", validate_layout({"pages": 1}))
+        for bad in ({"pages": 5}, {"pages": 0}, {"pages": True}, {"tiles": {"light.a": {"page": 4}}}, {"tiles": {"light.a": {"page": True}}}):
+            with self.assertRaises(ValueError): validate_layout(bad)

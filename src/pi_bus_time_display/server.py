@@ -1916,8 +1916,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     return tuple(item.strip() for item in str(value).split(",") if item.strip())
 
                 requested_home_entities = values("home_assistant_entities", current.home_assistant_entities)
-                if len(requested_home_entities) > 8:
-                    raise ValueError("Choose no more than eight Home Assistant entities")
+                if len(requested_home_entities) > 32:
+                    raise ValueError("Choose no more than 32 Home Assistant entities")
                 requested_deck_entities = values("home_assistant_deck_entities", current.home_assistant_deck_entities)
                 if len(requested_deck_entities) > 40:
                     raise ValueError("Choose no more than forty Stream Deck entities")

@@ -10,7 +10,8 @@ from pathlib import Path
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with", "page"}
+MAX_PAGES = 4
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
 CPU, NETWORK, MEMORY = "roondeck.cpu", "roondeck.network", "roondeck.memory"
@@ -19,13 +20,15 @@ GROUPS = ("roondeck.group", "roondeck.group2", "roondeck.group3")   # action til
 
 
 def validate_layout(data):
-    if not isinstance(data, dict) or set(data) - {"tiles", "columns"}:
+    if not isinstance(data, dict) or set(data) - {"tiles", "columns", "pages"}:
         raise ValueError("Invalid Home layout")
     tiles = data.get("tiles", {})
-    if not isinstance(tiles, dict) or len(tiles) > 40:
+    if not isinstance(tiles, dict) or len(tiles) > 60:
         raise ValueError("Home layout can describe up to 40 tiles")
     columns = data.get("columns")
     if columns is not None and (isinstance(columns, bool) or columns not in COLUMNS): raise ValueError("Home can use 2 or 3 columns")
+    pages = data.get("pages")
+    if pages is not None and (isinstance(pages, bool) or not isinstance(pages, int) or not 1 <= pages <= MAX_PAGES): raise ValueError(f"Home can have 1 to {MAX_PAGES} pages")
     clean = {}
     for entity_id, tile in tiles.items():
         if not isinstance(entity_id, str) or not ENTITY.fullmatch(entity_id) or not isinstance(tile, dict) or set(tile) - TILE_KEYS:
@@ -42,6 +45,9 @@ def validate_layout(data):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")
                 out[name] = tile[name]
+        if "page" in tile:   # which page of the dashboard the tile is on; the first page is the default
+            if isinstance(tile["page"], bool) or not isinstance(tile["page"], int) or not 0 <= tile["page"] < MAX_PAGES: raise ValueError("Choose a page for the tile")
+            if tile["page"] > 0: out["page"] = tile["page"]
         if tile.get("half") is True: out["half"] = True   # half a column wide (dashboard only)
         if tile.get("sub") == 1 and not isinstance(tile.get("sub"), bool): out["sub"] = 1   # the right-hand half of its column
         # Now Playing options: artwork as the background (default), a thumbnail or none; a seekable scrubber; the volume row and heading can be hidden.
@@ -70,7 +76,7 @@ def validate_layout(data):
             if not isinstance(tile["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", tile["color"]): raise ValueError("Tile colours must look like #fb923c")
             out["color"] = tile["color"]
         if out: clean[entity_id] = out
-    return {"tiles": clean, **({"columns": columns} if columns is not None else {})}
+    return {"tiles": clean, **({"columns": columns} if columns is not None else {}), **({"pages": pages} if pages and pages > 1 else {})}
 
 
 def load_layout(path):
@@ -102,6 +108,7 @@ def with_layout(home, layout):
     entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
     out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS, CPU, NETWORK, MEMORY, UPDATE, *GROUPS) if key in tiles}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
+    if isinstance((layout or {}).get("pages"), int) and layout["pages"] > 1: out["pages"] = layout["pages"]
     return out
 
 

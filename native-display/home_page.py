@@ -4,6 +4,7 @@ from __future__ import annotations
 from native_common import BUS, FamilyIcon, PORTRAIT_CONTENT_GAP, elastic_vertical_scroll, get_bytes, post_json
 import json
 import threading
+import time
 from gi.repository import Gdk, GLib, Gtk
 
 
@@ -42,8 +43,11 @@ class HomePageMixin:
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
         self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
+        self.hs_page = 0; self.hs_pages = 1; self.hs_last_home = {}; self.hs_paged_at = 0.0
+        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); page.append(self.home_dots)
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
         self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_row.append(self.home_grid); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
+        drag = Gtk.GestureDrag(); drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); drag.connect("drag-begin", self.home_drag_begin); drag.connect("drag-end", self.home_drag_end); self.home_scroll.add_controller(drag); self.hs_drag_ok = True
         elastic_vertical_scroll(self.home_scroll)
         page.append(self.navigation("home")); return page
 
@@ -70,16 +74,24 @@ class HomePageMixin:
 
     def render_home(self, home):
         portrait = self.window.has_css_class("portrait")
-        dashboard = self.home_dashboard_active()
+        dashboard = self.home_dashboard_active(); self.hs_last_home = home
+        self.hs_pages = home.get("pages") if dashboard and isinstance(home.get("pages"), int) and home.get("pages") > 1 else 1
+        self.hs_page = max(0, min(self.hs_pages - 1, self.hs_page))
         # The dashboard may scroll as a last resort, so cards that are too tall can never push the page past the screen.
         self.home_scroll.set_policy(Gtk.PolicyType.EXTERNAL if dashboard else Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC if portrait or dashboard or self.listening_box.get_visible() else Gtk.PolicyType.NEVER)
-        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "cards": home.get("cards"), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0)}, sort_keys=True, default=str)
+        signature = json.dumps({"status": home.get("status"), "entities": home.get("entities", []), "cards": home.get("cards"), "theme": self.settings_data.get("display_theme"), "portrait": portrait, "original": self.window.has_css_class("original-landscape"), "dashboard": dashboard, "columns": home.get("columns"), "width": getattr(self, "viewport_width", 0), "page": self.hs_page, "pages": home.get("pages")}, sort_keys=True, default=str)
         if signature == self.home_signature: return
         self.home_signature = signature
+        while child := self.home_dots.get_first_child(): self.home_dots.remove(child)
+        for number in range(self.hs_pages):
+            dot = Gtk.Box(); dot.add_css_class("hs-dot"); dot.set_size_request(12, 12)
+            if number == self.hs_page: dot.add_css_class("current")
+            self.home_dots.append(dot)
+        self.home_dots.set_visible(self.hs_pages > 1)
         while child := self.home_grid.get_first_child():
             if getattr(child, "clip_wrapper", False): child.set_child(None)   # let the tile go before its frame, so it can be placed again
             self.home_grid.remove(child)
-        entities = home.get("entities", [])[:8]
+        entities = home.get("entities", [])[:32 if dashboard else 8]
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
@@ -202,6 +214,18 @@ class HomePageMixin:
 
     def reset_home_scene(self, button):
         button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text("TAP TO ACTIVATE"); return False
+
+    def home_drag_begin(self, gesture, x, y):
+        # A drag that starts on a slider belongs to the slider, never to the page.
+        widget = self.home_scroll.pick(x, y, Gtk.PickFlags.DEFAULT); self.hs_drag_ok = True
+        while widget is not None:
+            if isinstance(widget, Gtk.Scale): self.hs_drag_ok = False; break
+            widget = widget.get_parent()
+
+    def home_drag_end(self, gesture, dx, dy):
+        if not self.hs_drag_ok or self.hs_pages < 2 or abs(dx) < 140 or abs(dx) < abs(dy) * 1.8: return
+        target = max(0, min(self.hs_pages - 1, self.hs_page + (1 if dx < 0 else -1)))
+        if target != self.hs_page: self.hs_page = target; self.hs_paged_at = time.monotonic(); self.home_signature = None; self.render_home(self.hs_last_home)
 
     def swipe_home_switch(self, _gesture, velocity_x, _velocity_y, entity_id):
         if entity_id and abs(velocity_x) > 80:

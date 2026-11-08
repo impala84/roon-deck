@@ -148,8 +148,8 @@ def load_config(path: Path) -> Config:
         raise ValueError("remote_wake_seconds must be between 5 and 7200")
     if not (0 <= config.daytime_inactivity_seconds <= 7200):
         raise ValueError("daytime_inactivity_seconds must be between 0 and 7200")
-    if len(config.home_assistant_entities) > 8:
-        raise ValueError("A maximum of eight Home Assistant entities can be shown")
+    if len(config.home_assistant_entities) > 32:
+        raise ValueError("A maximum of 32 Home Assistant entities can be shown")
     if len(config.home_assistant_title) > 60:
         raise ValueError("Home Assistant title must be 60 characters or fewer")
     if config.home_assistant_color_mode not in {"single", "multi"}:

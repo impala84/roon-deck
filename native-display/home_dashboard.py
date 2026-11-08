@@ -299,7 +299,7 @@ class HomeDashboardMixin:
         # The player, the next bus and any live tiles are tiles too: placed, sized and moved like the devices.
         cards = home.get("cards") or {}
         virtual = []
-        untouched = not any(isinstance((cards.get(key) or {}).get("col"), int) for key in ("roondeck.player", "roondeck.bus"))
+        untouched = self.hs_page == 0 and not any(isinstance((cards.get(key) or {}).get("col"), int) for key in ("roondeck.player", "roondeck.bus"))
         wanted = [("roondeck.player", self.hs_player, 2, (0, 0)), ("roondeck.bus", self.hs_bus, 1, (0, 2))]
         if (cards.get("roondeck.cpu") or {}).get("show"): wanted.append(("roondeck.cpu", self.hs_cpu, 1, None))
         if (cards.get("roondeck.memory") or {}).get("show"): wanted.append(("roondeck.memory", self.hs_mem, 1, None))
@@ -316,6 +316,7 @@ class HomeDashboardMixin:
             if home_cell and untouched and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)
+        entities = [entity for entity in entities if (entity.get("tile") or {}).get("page", 0) == self.hs_page or (self.hs_pages < 2 and self.hs_page == 0)]   # one page at a time
         self.hs_opts = dict(cards.get("roondeck.player") or {})
         def mix(front, back, amount):
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
