@@ -71,6 +71,7 @@ class HomeDashboardMixin:
         self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
         self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}
         self.upd_info, self.upd_checked, self.upd_checking, self.group_outputs, self.group_polled, self.hs_cfg = None, 0.0, False, [], 0.0, {}
+        self.hs_vol = self.build_volume_card()
         self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
         self.hs_cpu_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_cpu, SPARK_GREEN)], 100.0))
         self.hs_mem_area.set_draw_func(lambda area, cr, width, height, *_: self.draw_spark(cr, width, height, [(self.stat_mem, SPARK_BLUE)], 100.0))
@@ -107,6 +108,27 @@ class HomeDashboardMixin:
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route(tile)); bus.add_controller(tap)
         self.bus_tiles[key] = tile
         return tile
+
+    def build_volume_card(self):
+        """A large volume number with a minus and a plus: it follows, and changes, the volume of the zone on the Now Playing page."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0); card.add_css_class("hs-card"); card.add_css_class("hs-voltile"); card.set_hexpand(True); card.set_vexpand(True)
+        card.append(self.label("VOLUME", "hs-stat-title", 0))
+        row = Gtk.Box(spacing=12); row.set_vexpand(True); row.set_valign(Gtk.Align.CENTER)
+        minus = Gtk.Button(label="\u2212"); plus = Gtk.Button(label="+")
+        for button, step in ((minus, -2), (plus, 2)): button.add_css_class("hs-volstep"); button.set_valign(Gtk.Align.CENTER); button.connect("clicked", lambda *_, step=step: self.home_step_volume(step))
+        self.hs_vol_value = self.label("\u2014", "hs-volbig", 0); self.hs_vol_value.set_hexpand(True); self.hs_vol_value.set_halign(Gtk.Align.CENTER)
+        row.append(minus); row.append(self.hs_vol_value); row.append(plus); card.append(row); card.minus = minus; card.plus = plus
+        return card
+
+    def home_step_volume(self, step):
+        scale = self.volume
+        if not scale.get_sensitive(): return
+        adjustment = scale.get_adjustment(); scale.set_value(max(adjustment.get_lower(), min(adjustment.get_upper(), round(scale.get_value()) + step)))   # the Now Playing handler sends it
+
+    def refresh_volume_tile(self):
+        available = self.volume.get_sensitive()
+        self.hs_vol_value.set_text(str(round(self.volume.get_value())) if available else "\u2014")
+        self.hs_vol.minus.set_sensitive(available); self.hs_vol.plus.set_sensitive(available)
 
     def build_action_card(self, title, on_tap):
         """A tile you tap to do something: a small title, a big word for what a tap will do, and a line of detail."""
@@ -292,6 +314,7 @@ class HomeDashboardMixin:
         shown = self.hs_play.get_child()
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
+        if "roondeck.volume" in self.hs_live_shown: self.refresh_volume_tile()
         self.volume_updating = True
         self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible() and not self.hs_short and options.get("volume") is not False)
         self.hs_zone.set_visible(not self.hs_short and options.get("heading") is not False); self.hs_title.set_lines(1 if self.hs_short else 2)
@@ -334,7 +357,7 @@ class HomeDashboardMixin:
         def base_of(key): return key.split("#")[0]
         # The same card can be on several pages ("roondeck.cpu#2"): each copy has its own place and options, but they share one widget, which only ever shows on one page at a time.
         widgets = {"roondeck.player": (self.hs_player, 2, (0, 0)), "roondeck.bus": (self.hs_bus, 1, (0, 2)), "roondeck.cpu": (self.hs_cpu, 1, None), "roondeck.memory": (self.hs_mem, 1, None),
-                   "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}}
+                   "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), "roondeck.volume": (self.hs_vol, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}}
         records = {key: tile for key, tile in cards.items() if base_of(key) in widgets}
         for fixed in ("roondeck.player", "roondeck.bus"):
             if not any(base_of(key) == fixed for key in records): records[fixed] = {}
@@ -361,7 +384,7 @@ class HomeDashboardMixin:
         def mix(front, back, amount):
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
             return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
-        self.hs_live_shown = {base_of(entity["entity_id"]) for entity in shown if base_of(entity["entity_id"]) in ("roondeck.cpu", "roondeck.network", "roondeck.memory") + ACTION_KEYS}
+        self.hs_live_shown = {base_of(entity["entity_id"]) for entity in shown if base_of(entity["entity_id"]) in ("roondeck.cpu", "roondeck.network", "roondeck.memory", "roondeck.volume") + ACTION_KEYS}
         rules = []
         for entity in shown:                       # each card can have its own colour; without one it keeps the standard card look
             name = "hs-custom-" + base_of(entity["entity_id"]).replace(".", "-"); colour = entity["tile"].get("color")

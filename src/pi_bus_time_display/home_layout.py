@@ -16,6 +16,7 @@ MAX_PAGES = 4
 COLUMNS = (2, 3)
 PLAYER, BUS = "roondeck.player", "roondeck.bus"   # the player and next-bus cards are tiles on the Home grid too
 CPU, NETWORK, MEMORY = "roondeck.cpu", "roondeck.network", "roondeck.memory"
+VOLUME = "roondeck.volume"   # a large volume readout with minus and plus
 UPDATE = "roondeck.update"   # an action tile: check for and install the latest RoonDeck
 GROUPS = ("roondeck.group", "roondeck.group2", "roondeck.group3")   # action tiles: group / ungroup a Roon zone with another   # live tiles the owner can add
 
@@ -123,7 +124,7 @@ def with_layout(home, layout):
         entity_id = item.get("entity_id")
         entities.append({**item, "tile": tiles[entity_id]} if entity_id in tiles else item)
         entities.extend({**item, "tile": tile} for tile in copies.get(entity_id, []))
-    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, UPDATE, *GROUPS)
+    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, VOLUME, UPDATE, *GROUPS)
     out = {**home, "entities": entities, "cards": {key: tiles[key] for key in tiles if base_id(key) in cards_of}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     if isinstance((layout or {}).get("pages"), int) and layout["pages"] > 1: out["pages"] = layout["pages"]

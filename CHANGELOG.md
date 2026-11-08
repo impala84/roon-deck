@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.96 Alpine — 8 November 2026
+
+- Home: new Volume tile (Add tiles > RoonDeck > Volume): a large volume number with − and + buttons that follows and changes the volume of the zone on Now Playing. It shows a dash and the buttons dim when that zone has no volume control.
+
 ## 1.2.0-beta.95 Alpine — 8 November 2026
 
 - Home: the bus tiles' icons now line up on the same left edge whatever the route number's width (the icon was being centred in spare space), and the icon and text sit slightly higher in the tile.
