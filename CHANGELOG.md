@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.84 Alpine — 8 November 2026
+
+- Home: the page dots are now centred in the header row and are all the same round size, with the current page in white. In the builder preview too.
+- Home: changing page now slides: the new page comes in from the side you swiped towards while the old one moves out. If the display cannot draw the slide it still changes page.
+- Home: the Network tile reads "7.4 Mb/s" with a smaller unit, so it fits the smallest tile.
+- Home: the Update and Group zones headline text is a little bigger again (26px) while still fitting a square tile.
+
 ## 1.2.0-beta.83 Alpine — 8 November 2026
 
 - Home: the same tile can now be on more than one page, each copy with its own place, size and look. Use "Also show on" in a tile's options, add a device that is already on another page, or press Duplicate page to copy a whole page to a new one.

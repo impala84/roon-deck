@@ -234,7 +234,7 @@ class HomeDashboardMixin:
             total_kb = info["MemTotal"]; used_kb = total_kb - info.get("MemAvailable", info.get("MemFree", 0))
             self.stat_mem = (self.stat_mem + [100.0 * used_kb / total_kb])[-SAMPLES:]; self.mem_used_total = (used_kb, total_kb)
         except (OSError, ValueError, KeyError, ZeroDivisionError): pass
-        def rate(bits): return f"{bits / 1e6:.1f} Mbit/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kbit/s"
+        def rate(bits): return f"{bits / 1e6:.1f} Mb/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kb/s"
         def big_rate(bits):   # the number large and its unit small, so it fits the smallest tile on one line
             number, unit = rate(bits).split(" ", 1); return f"{number} <small><small>{unit}</small></small>"
         if "roondeck.cpu" in self.hs_live_shown:

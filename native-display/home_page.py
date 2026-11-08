@@ -41,12 +41,14 @@ class HomePageMixin:
 
     def build_home(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
-        self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); header_row = self.header(self.home_title, self.home_clock); page.append(header_row)
+        self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); header_row = self.header(self.home_title, self.home_clock); header_overlay = Gtk.Overlay(); header_overlay.set_child(header_row); page.append(header_overlay)
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.hs_page = 0; self.hs_pages = 1; self.hs_last_home = {}; self.hs_paged_at = 0.0
-        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); self.home_dots.set_margin_start(26); header_row.insert_child_after(self.home_dots, self.home_title)   # in the header row, so the tiles keep their place
+        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); self.home_dots.set_can_target(False); header_overlay.add_overlay(self.home_dots)   # centred in the header row, so the tiles keep their place
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
-        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_row.append(self.home_grid); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
+        self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_stack = Gtk.Stack(); self.home_stack.set_hexpand(True); self.home_stack.set_vexpand(True); self.home_stack.set_transition_duration(280); self.home_stack.set_hhomogeneous(True); self.home_stack.set_vhomogeneous(True)
+        self.home_ghost = Gtk.Picture(); self.home_ghost.set_can_shrink(True); self.home_ghost.set_content_fit(Gtk.ContentFit.FILL)   # the page just left, drawn as a picture so it can slide away
+        self.home_stack.add_named(self.home_grid, "grid"); self.home_stack.add_named(self.home_ghost, "ghost"); self.home_stack.set_visible_child(self.home_grid); self.home_row.append(self.home_stack); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
         drag = Gtk.GestureDrag(); drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); drag.connect("drag-begin", self.home_drag_begin); drag.connect("drag-end", self.home_drag_end); self.home_scroll.add_controller(drag); self.hs_drag_ok = True
         elastic_vertical_scroll(self.home_scroll)
         page.append(self.navigation("home")); return page
@@ -226,7 +228,24 @@ class HomePageMixin:
     def home_drag_end(self, gesture, dx, dy):
         if not self.hs_drag_ok or self.hs_pages < 2 or abs(dx) < 140 or abs(dx) < abs(dy) * 1.8: return
         target = max(0, min(self.hs_pages - 1, self.hs_page + (1 if dx < 0 else -1)))
-        if target != self.hs_page: self.hs_page = target; self.hs_paged_at = time.monotonic(); self.home_signature = None; self.render_home(self.hs_last_home)
+        if target == self.hs_page: return
+        ghost = self.home_snapshot()   # the page being left, taken before the new one is built
+        self.hs_page = target; self.hs_paged_at = time.monotonic(); self.home_signature = None; self.render_home(self.hs_last_home)
+        if ghost is not None:
+            # The new page slides in from the side the finger moved away from, pushing the old one out.
+            self.home_ghost.set_paintable(ghost); self.home_stack.set_transition_type(Gtk.StackTransitionType.NONE); self.home_stack.set_visible_child(self.home_ghost)
+            self.home_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if dx < 0 else Gtk.StackTransitionType.SLIDE_RIGHT); self.home_stack.set_visible_child(self.home_grid)
+
+    def home_snapshot(self):
+        try:
+            width, height = self.home_grid.get_width(), self.home_grid.get_height()
+            renderer = self.home_grid.get_native().get_renderer() if self.home_grid.get_native() else None
+            if width < 2 or height < 2 or renderer is None: return None
+            snapshot = Gtk.Snapshot(); Gtk.WidgetPaintable.new(self.home_grid).snapshot(snapshot, width, height)
+            node = snapshot.to_node()
+            return renderer.render_texture(node, None) if node is not None else None
+        except Exception:
+            return None   # no animation is better than no page change
 
     def swipe_home_switch(self, _gesture, velocity_x, _velocity_y, entity_id):
         if entity_id and abs(velocity_x) > 80:
