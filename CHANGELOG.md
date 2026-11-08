@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.106 Alpine — 8 November 2026
+
+- Home: the title and artist on the Now Playing tile are centred (they stay left-aligned beside a thumbnail), and on the tallest tile the play controls sit higher, clear of the bottom edge.
+
 ## 1.2.0-beta.105 Alpine — 8 November 2026
 
 - Home: the Now Playing scrubber's filled part is the same purple as the play/pause button.

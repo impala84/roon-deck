@@ -57,7 +57,7 @@ class HomeDashboardMixin:
         self.hs_play = self.icon_button("play", lambda *_: self.control("playpause"), "hs-play")
         self.hs_next = self.icon_button("next", lambda *_: self.control("next"), "hs-transport")
         for button in (self.hs_prev, self.hs_play, self.hs_next): transport.append(button)
-        content.append(transport)
+        content.append(transport); self.hs_transport = transport
         volume = Gtk.Box(spacing=14); volume.add_css_class("hs-volume-row")
         self.hs_volume_label = self.label("VOL", "hs-volume-label"); volume.append(self.hs_volume_label)
         self.hs_volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); self.hs_volume.add_css_class("home-slider"); self.hs_volume.add_css_class("hs-volume")
@@ -302,6 +302,8 @@ class HomeDashboardMixin:
         self.hs_thumb.set_pixel_size(max(96, side))
         self.hs_spacer.set_vexpand(not thumb_mode); self.hs_head.set_vexpand(thumb_mode)   # with a thumbnail the track sits up with it, not pushed to the bottom
         self.hs_thumb.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END); self.hs_words.set_valign(Gtk.Align.CENTER if thumb_mode else Gtk.Align.END)
+        for words in (self.hs_zone, self.hs_title, self.hs_artist):   # beside a thumbnail the words stay left; on their own they are centred
+            words.set_xalign(0.0 if thumb_mode else 0.5); words.set_justify(Gtk.Justification.LEFT if thumb_mode else Gtk.Justification.CENTER)
         if paintable is not self.hs_art.get_paintable(): self.hs_art.set_paintable(paintable)
         if paintable is not self.hs_thumb.get_paintable(): self.hs_thumb.set_from_paintable(paintable)
         adjustment = self.progress.get_adjustment(); upper = adjustment.get_upper()
@@ -434,6 +436,7 @@ class HomeDashboardMixin:
                     self.hs_content.set_spacing(8 if tall else 10)   # the title, scrubber and controls stay together at the bottom; the spare height goes to the artwork above
                     for bar in (self.hs_progress, self.hs_scrub): bar.set_margin_top(6 if tall else 0); bar.set_margin_bottom(10 if tall else 0)
                     self.hs_volume_row.set_margin_top(6 if tall else 0)
+                    self.hs_transport.set_margin_bottom(18 if tall else 0)   # lift the controls off the bottom edge
                 if hasattr(widget, "chip"):   # a wide action tile (Update, Group) gets larger type and icon
                     widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
                     # The title sits beside the icon only where there is room for it: on the smallest tile it goes below the icon.
