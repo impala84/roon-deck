@@ -846,6 +846,9 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial). Show the Roon
             # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
             target = "http://127.0.0.1:8766/"
+            # Roon playing: its Now Playing page. Nothing playing: the large HDMI/ARC volume page.
+            if ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
+            elif ((roon or {}).get("amplifier") or {}).get("active_input"): self.requested_audio_view = "source"
             if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
             print("RoonDeck showing the screen for a volume change: " + target, flush=True)
         scheduled_wake = bool(

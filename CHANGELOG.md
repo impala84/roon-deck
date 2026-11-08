@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.123 Alpine — 8 November 2026
+
+- Volume changes from a remote or dial now show Now Playing when Roon is playing, and the large HDMI/ARC volume page when nothing is playing.
+
 ## 1.2.0-beta.122 Alpine — 8 November 2026
 
 - Changing the volume from the remote or a dial now flicks the touchscreen to the Roon Now Playing page, which is the large volume page while the HDMI ARC input is active (and the playing track otherwise). It no longer goes to Home.
