@@ -410,7 +410,7 @@
     }))) : null;
     const dots = pageCount() > 1 ? h('div', {class: 'hd-dots'}, Array.from({length: pageCount()}, (_, number) => h('i', {class: number === Math.min(pageNo, pageCount() - 1) ? 'on' : ''}))) : null;
     if (dots) { const head = screenBox.querySelector('.hd-head'); if (head) head.insertBefore(dots, head.lastChild); }   // in the header row, so the tiles keep their place
-    return h('div', {class: 'hd-preview'}, columnPicker, dash ? pageBar() : null, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    return h('div', {class: 'hd-preview'}, dash ? pageBar() : null, screenBox, columnPicker, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
