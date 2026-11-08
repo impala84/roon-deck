@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.124 Alpine — 8 November 2026
+
+- Home builder: the portrait preview now scales text, icons and spacing to match the real 7-inch and 10-inch screens, so it no longer looks tiny.
+- Home layouts with tiles below the eighth row (possible since the 16-tile limit) were rejected on save; the grid now allows 16 rows.
+
 ## 1.2.0-beta.123 Alpine — 8 November 2026
 
 - Volume changes from a remote or dial now show Now Playing when Roon is playing, and the large HDMI/ARC volume page when nothing is playing.

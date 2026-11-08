@@ -441,7 +441,7 @@
     for (const spot of free) grid.append(emptySlot(spot));
     const title = form.elements.home_assistant_title?.value;
     const navBar = dashColumns() ? h('div', {class: 'hd-nav'}, ['Now Playing', 'Discover', 'Bus Times', 'Home'].map(name => h('span', {class: name === 'Home' ? 'on' : ''}, name))) : null;
-    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height}`}, dashColumns() ? h('div', {class: 'hd-head'}, h('span', {class: 'hd-title'}, title || 'Home Controls'), h('span', {class: 'hd-clock'}, new Date().toTimeString().slice(0, 5))) : (title ? h('div', {class: 'hd-title'}, title) : null), grid, navBar);
+    const screenBox = h('div', {class: `hd-screen${shape.portrait ? ' portrait' : ''}${navBar ? ' hd-dash-screen' : ''}`, style: `aspect-ratio:${shape.width} / ${shape.height};--k:${shape.portrait ? (1280 / shape.width).toFixed(3) : 1}`}, dashColumns() ? h('div', {class: 'hd-head'}, h('span', {class: 'hd-title'}, title || 'Home Controls'), h('span', {class: 'hd-clock'}, new Date().toTimeString().slice(0, 5))) : (title ? h('div', {class: 'hd-title'}, title) : null), grid, navBar);
     const dash = dashColumns();
     const columnPicker = dash && !shape.portrait ? h('div', {class: 'hd-columns'}, h('span', {}, 'Columns'), h('div', {class: 'hd-seg two', role: 'group', 'aria-label': 'Home columns'}, [2, 3].map(count => {
       const button = h('button', {type: 'button', 'aria-pressed': String(dash === count)}, `${count} columns`);

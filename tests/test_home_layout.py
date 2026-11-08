@@ -26,7 +26,7 @@ class HomeLayoutTests(unittest.TestCase):
 
     def test_tile_positions(self):
         self.assertEqual(validate_layout({"tiles": {"light.a": {"col": 0, "row": 1}}}), {"tiles": {"light.a": {"col": 0, "row": 1}}})
-        for tile in ({"col": 4}, {"row": 8}, {"col": -1}, {"col": "1"}, {"row": True}):
+        for tile in ({"col": 4}, {"row": 16}, {"col": -1}, {"col": "1"}, {"row": True}):
             with self.assertRaises(ValueError): validate_layout({"tiles": {"light.a": tile}})
 
     def test_icons_are_tinted_in_the_tile_colour(self):
