@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.126 Alpine — 8 November 2026
+
+- A wide Now Playing tile on Home now follows the 7-inch Now Playing screen: a large title (up to three lines) and artist, a bigger zone label, a thicker progress bar, large transport controls with a big play button, and more room around everything.
+
 ## 1.2.0-beta.125 Alpine — 8 November 2026
 
 - Settings: Save changes could do nothing at all (no message) when any other field on the page, even on a tab you weren't looking at, held a value the browser considered invalid. Only the fields of the sections you changed are checked now, with a visible message.

@@ -301,6 +301,8 @@ class HomeDashboardMixin:
         thumb_mode = art == "thumb" and not self.hs_short
         card_w, card_h = self.hs_player.get_width(), self.hs_player.get_height()
         split = art == "background" and not self.hs_short and card_h >= 200 and card_w >= card_h * 1.5   # a wide tile: artwork on the left half, the details on the right
+        (self.hs_player.add_css_class if split else self.hs_player.remove_css_class)("hs-split")   # a wide tile is laid out like the 7-inch Now Playing screen: big title, big controls
+        if split: self.hs_content.set_spacing(20)
         self.hs_art.set_halign(Gtk.Align.START if split else Gtk.Align.FILL); self.hs_art.set_size_request(card_w // 2 if split else -1, -1)
         self.hs_content.set_margin_start(card_w // 2 if split else 0); self.hs_fade.set_visible(art == "background" and not split)
         reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs
@@ -319,14 +321,14 @@ class HomeDashboardMixin:
         self.hs_progress.set_visible(not scrubber); self.hs_scrub.set_visible(scrubber)
         if scrubber:
             self.seek_updating = True; self.hs_scrub.set_range(0, max(1.0, upper)); self.hs_scrub.set_value(adjustment.get_value()); self.hs_scrub.set_sensitive(self.progress.get_sensitive()); self.seek_updating = False
-        current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round(46 * scale)
+        current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round((62 if split else 46) * scale)
         shown = self.hs_play.get_child()
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
         if "roondeck.volume" in self.hs_live_shown: self.refresh_volume_tile()
         self.volume_updating = True
         self.hs_volume.set_value(self.volume.get_value()); self.hs_volume.set_sensitive(self.volume.get_sensitive()); self.hs_volume_row.set_visible(self.volume.get_visible() and not self.hs_short and options.get("volume") is not False)
-        self.hs_zone.set_visible(not self.hs_short and options.get("heading") is not False); self.hs_title.set_lines(1 if self.hs_short else 2)
+        self.hs_zone.set_visible(not self.hs_short and options.get("heading") is not False); self.hs_title.set_lines(1 if self.hs_short else 3 if split else 2)
         self.volume_updating = False
         services = (status or {}).get("services") or []
         self.hs_bus_services = [str(item.get("service")) for item in services]

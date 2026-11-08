@@ -576,3 +576,12 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-bus.hs-bus-xl .hs-route { font-size: 92px; } .hs-bus.hs-bus-xl .hs-then { font-size: 32px; }
 .hs-bus.hs-bus-xl .hs-minutes { font-size: 168px; } .hs-bus.hs-bus-xl .hs-minutes.hs-minutes-due { font-size: 112px; } .hs-bus.hs-bus-xl .hs-unit { font-size: 40px; }
 .hs-bus.hs-bus-xl .home-icon-chip { min-width: 116px; min-height: 116px; border-radius: 58px; }
+
+/* A wide Now Playing tile (artwork left, details right) copies the 7-inch Now Playing screen's proportions. */
+.hs-split .hs-zone { font-size: 18px; letter-spacing: 2px; }
+.hs-split .hs-title { font-size: 44px; line-height: 1.12; }
+.hs-split .hs-artist { font-size: 28px; margin-top: 6px; }
+.hs-split .hs-progress trough, .hs-split .hs-progress progress { min-height: 10px; border-radius: 5px; }
+.hs-split .hs-transport { min-width: 76px; min-height: 76px; border-radius: 38px; }
+.hs-split .hs-play { min-width: 104px; min-height: 104px; border-radius: 52px; }
+.hs-split .hs-content { padding: 22px 28px 20px 28px; }
