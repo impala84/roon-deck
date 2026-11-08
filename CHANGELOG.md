@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.116 Alpine — 8 November 2026
+
+- Update tile: when the release check itself fails (GitHub rate limit, no connection) it now says "Couldn't check" with the reason, instead of "Up to date". A failed check is retried after about a minute rather than being remembered for 15.
+
 ## 1.2.0-beta.115 Alpine — 8 November 2026
 
 - Stream Deck dials: a new "Roon volume (current zone)" turn action changes the volume of the zone Roon is playing to, a few steps per click (the dial's step slider sets how many). A dial press can now be "Roon mute". Outputs with fixed volume are left alone.

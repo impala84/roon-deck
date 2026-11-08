@@ -180,6 +180,8 @@ class HomeDashboardMixin:
             self.set_action_state(self.hs_upd, "refresh", "active"); self.hs_upd_value.set_text("Updating…"); self.hs_upd_detail.set_text(status if status.startswith(("Update", "Failed")) else "Please wait")
         elif status.startswith(("Could not", "Failed")):
             self.set_action_state(self.hs_upd, "refresh", "alert"); self.hs_upd_value.set_text("Try again"); self.hs_upd_detail.set_text(status)
+        elif info.get("status") == "unavailable":   # the check itself failed (GitHub limit, no network): say so rather than "Up to date"
+            self.set_action_state(self.hs_upd, "refresh", None); self.hs_upd_value.set_text("Couldn't check"); self.hs_upd_detail.set_text(str(info.get("message") or "Tap to try again"))
         elif info.get("update_available"):
             self.set_action_state(self.hs_upd, "download", "alert"); self.hs_upd_value.set_text("Update"); self.hs_upd_detail.set_text(f"v{info.get('latest_version', '')} is ready. Tap to install")
         elif info:

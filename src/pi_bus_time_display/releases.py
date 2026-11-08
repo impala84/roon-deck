@@ -163,13 +163,13 @@ class ReleaseChecker:
                 result = select_release(published_releases(channel), channel, installed, distribution)
             except RateLimited as error:
                 result = {"installed_version": installed, "release_channel": channel, "latest_version": None, "update_available": False, "status": "unavailable", "message": str(error)}
-                self.cached = result; self.cache_key = key; self.checked_at = time.monotonic() - 240
+                self.cached = result; self.cache_key = key; self.checked_at = time.monotonic() - 840   # a failed check is looked at again after about a minute, not the full 15
                 return dict(result)
             except (OSError, ValueError):
                 result = {"installed_version": installed, "release_channel": channel, "latest_version": None, "update_available": False, "status": "unavailable", "message": "Could not check GitHub releases. Try again later."}
             self.cached = result
             self.cache_key = key
-            self.checked_at = time.monotonic()
+            self.checked_at = time.monotonic() - (840 if result["status"] == "unavailable" else 0)
             return dict(result)
 
 
