@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-beta.83 Alpine — 8 November 2026
+
+- Home: the same tile can now be on more than one page, each copy with its own place, size and look. Use "Also show on" in a tile's options, add a device that is already on another page, or press Duplicate page to copy a whole page to a new one.
+- Home: every tile in the builder preview has a small x to remove it from its page.
+- Home: the page dots sit in the header row, so the tiles keep the same place whether there is one page or several.
+- Home: the Network tile shows its number large and the unit small, so "7.2 Mbit/s" fits the smallest tile on one line.
+- Builder: the Home page title now comes before the "Show Home on the touchscreen" tick box.
+
 ## 1.2.0-beta.82 Alpine — 8 November 2026
 
 - Home: the headline word on the Update and Group zones tiles is a little smaller, with tighter side padding, so "Updating…" and "Up to date" fit a square tile in full.

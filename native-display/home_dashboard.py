@@ -235,6 +235,8 @@ class HomeDashboardMixin:
             self.stat_mem = (self.stat_mem + [100.0 * used_kb / total_kb])[-SAMPLES:]; self.mem_used_total = (used_kb, total_kb)
         except (OSError, ValueError, KeyError, ZeroDivisionError): pass
         def rate(bits): return f"{bits / 1e6:.1f} Mbit/s" if bits >= 1e6 else f"{bits / 1e3:.0f} kbit/s"
+        def big_rate(bits):   # the number large and its unit small, so it fits the smallest tile on one line
+            number, unit = rate(bits).split(" ", 1); return f"{number} <small><small>{unit}</small></small>"
         if "roondeck.cpu" in self.hs_live_shown:
             self.hs_cpu_value.set_text(f"{self.stat_cpu[-1]:.0f}%" if self.stat_cpu else "—")
             try: temperature = f"{int(Path('/sys/class/thermal/thermal_zone0/temp').read_text()) / 1000:.0f} °C"
@@ -248,8 +250,8 @@ class HomeDashboardMixin:
         if on_home and shown_groups: self.refresh_group_tiles(shown_groups)
         if "roondeck.network" in self.hs_live_shown:
             show_down, show_up = self.net_show
-            if show_down: self.hs_net_value.set_text(rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
-            else: self.hs_net_value.set_text(rate(self.stat_up[-1]) if self.stat_up else "—"); self.hs_net_detail.set_text("upload")
+            if show_down: self.hs_net_value.set_markup(big_rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
+            else: self.hs_net_value.set_markup(big_rate(self.stat_up[-1]) if self.stat_up else "—"); self.hs_net_detail.set_text("upload")
             self.hs_net_area.queue_draw() if on_home else None
         return True
 
@@ -315,33 +317,38 @@ class HomeDashboardMixin:
         self.home_grid.set_row_spacing(GAP); self.home_grid.set_column_spacing(GAP); self.home_grid.set_hexpand(True)
         # The player, the next bus and any live tiles are tiles too: placed, sized and moved like the devices.
         cards = home.get("cards") or {}
+        def base_of(key): return key.split("#")[0]
+        # The same card can be on several pages ("roondeck.cpu#2"): each copy has its own place and options, but they share one widget, which only ever shows on one page at a time.
+        widgets = {"roondeck.player": (self.hs_player, 2, (0, 0)), "roondeck.bus": (self.hs_bus, 1, (0, 2)), "roondeck.cpu": (self.hs_cpu, 1, None), "roondeck.memory": (self.hs_mem, 1, None),
+                   "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}}
+        records = {key: tile for key, tile in cards.items() if base_of(key) in widgets}
+        for fixed in ("roondeck.player", "roondeck.bus"):
+            if not any(base_of(key) == fixed for key in records): records[fixed] = {}
+        untouched = not any(isinstance(tile.get("col"), int) for key, tile in records.items() if key in ("roondeck.player", "roondeck.bus"))
         virtual = []
-        untouched = self.hs_page == 0 and not any(isinstance((cards.get(key) or {}).get("col"), int) for key in ("roondeck.player", "roondeck.bus"))
-        wanted = [("roondeck.player", self.hs_player, 2, (0, 0)), ("roondeck.bus", self.hs_bus, 1, (0, 2))]
-        if (cards.get("roondeck.cpu") or {}).get("show"): wanted.append(("roondeck.cpu", self.hs_cpu, 1, None))
-        if (cards.get("roondeck.memory") or {}).get("show"): wanted.append(("roondeck.memory", self.hs_mem, 1, None))
-        if (cards.get("roondeck.update") or {}).get("show"): wanted.append(("roondeck.update", self.hs_upd, 1, None))
-        for key in GROUP_KEYS:
-            if (cards.get(key) or {}).get("show"): wanted.append((key, self.hs_groups[key][0], 1, None))
-        self.hs_cfg = {key: cards.get(key) or {} for key in GROUP_KEYS}
-        net = cards.get("roondeck.network") or {}
-        self.net_show = (net.get("download") is not False, net.get("upload") is not False)   # either direction can be switched off, never both
-        if self.net_show == (False, False): self.net_show = (True, False)
-        if net.get("show"): wanted.append(("roondeck.network", self.hs_net, 1, None))
-        for key, widget, rows, home_cell in wanted:
-            tile = dict(cards.get(key) or {}); tile.setdefault("rows", rows)
-            if home_cell and untouched and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
+        for key, record in records.items():
+            widget, rows, home_cell = widgets[base_of(key)]
+            if base_of(key) not in ("roondeck.player", "roondeck.bus") and not record.get("show"): continue
+            tile = dict(record); tile.setdefault("rows", rows)
+            if home_cell and untouched and tile.get("page", 0) == 0 and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)
         entities = [entity for entity in entities if (entity.get("tile") or {}).get("page", 0) == self.hs_page or (self.hs_pages < 2 and self.hs_page == 0)]   # one page at a time
-        self.hs_opts = dict(cards.get("roondeck.player") or {})
+        shown = [entity for entity in entities if entity.get("widget") is not None]
+        self.hs_cfg = {key: {} for key in GROUP_KEYS}
+        for entity in shown:
+            if base_of(entity["entity_id"]) in GROUP_KEYS: self.hs_cfg[base_of(entity["entity_id"])] = entity["tile"]
+        self.hs_opts = next((dict(entity["tile"]) for entity in shown if base_of(entity["entity_id"]) == "roondeck.player"), {})
+        net = next((entity["tile"] for entity in shown if base_of(entity["entity_id"]) == "roondeck.network"), {})
+        self.net_show = (net.get("download") is not False, net.get("upload") is not False)   # either direction can be switched off, never both
+        if self.net_show == (False, False): self.net_show = (True, False)
         def mix(front, back, amount):
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
             return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
-        self.hs_live_shown = {key for key, *_ in wanted if key in ("roondeck.cpu", "roondeck.network", "roondeck.memory") + ACTION_KEYS}
+        self.hs_live_shown = {base_of(entity["entity_id"]) for entity in shown if base_of(entity["entity_id"]) in ("roondeck.cpu", "roondeck.network", "roondeck.memory") + ACTION_KEYS}
         rules = []
-        for entity in virtual:                     # each card can have its own colour; without one it keeps the standard card look
-            name = "hs-custom-" + entity["entity_id"].replace(".", "-"); colour = entity["tile"].get("color")
+        for entity in shown:                       # each card can have its own colour; without one it keeps the standard card look
+            name = "hs-custom-" + base_of(entity["entity_id"]).replace(".", "-"); colour = entity["tile"].get("color")
             entity["widget"].remove_css_class(name)
             if isinstance(colour, str) and len(colour) == 7 and colour.startswith("#"):
                 entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {mix(colour, '#44414c', .58)}; }}")
@@ -380,7 +387,7 @@ class HomeDashboardMixin:
             width, height = size_of(entity); column, row = placed[number]
             if entity.get("widget") is not None:
                 widget = entity["widget"]
-                if entity["entity_id"] == "roondeck.player": self.hs_short = height == 1
+                if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
             elif is_scene(entity): widget = self.home_scene_card(entity, f"{number}-{entity.get('entity_id')}", rules, scale)
             else: widget = self.home_card(entity, number, rules, scale, columns == 3, is_half(entity))
             self.home_grid.attach(self.clip_cell(widget), column, row, width, height)

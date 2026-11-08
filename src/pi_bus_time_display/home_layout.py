@@ -9,7 +9,8 @@ from pathlib import Path
 
 SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
-ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}")
+ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
+BASE = re.compile(r"#[1-3]$")
 TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "download", "upload", "zone", "with", "page"}
 MAX_PAGES = 4
 COLUMNS = (2, 3)
@@ -19,12 +20,17 @@ UPDATE = "roondeck.update"   # an action tile: check for and install the latest 
 GROUPS = ("roondeck.group", "roondeck.group2", "roondeck.group3")   # action tiles: group / ungroup a Roon zone with another   # live tiles the owner can add
 
 
+def base_id(entity_id):
+    """The device or card a tile copy belongs to: light.lamp#2 is a copy of light.lamp."""
+    return BASE.sub("", entity_id)
+
+
 def validate_layout(data):
     if not isinstance(data, dict) or set(data) - {"tiles", "columns", "pages"}:
         raise ValueError("Invalid Home layout")
     tiles = data.get("tiles", {})
-    if not isinstance(tiles, dict) or len(tiles) > 60:
-        raise ValueError("Home layout can describe up to 40 tiles")
+    if not isinstance(tiles, dict) or len(tiles) > 120:
+        raise ValueError("Home layout can describe up to 120 tiles")
     columns = data.get("columns")
     if columns is not None and (isinstance(columns, bool) or columns not in COLUMNS): raise ValueError("Home can use 2 or 3 columns")
     pages = data.get("pages")
@@ -62,7 +68,7 @@ def validate_layout(data):
         if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
         if tile.get("also"):
             also = tile["also"]
-            if not isinstance(also, list) or len(also) > 4 or any(not isinstance(item, str) or not ENTITY.fullmatch(item) or item == entity_id for item in also):
+            if not isinstance(also, list) or len(also) > 4 or any(not isinstance(item, str) or not ENTITY.fullmatch(item) or item == entity_id or "#" in item for item in also):
                 raise ValueError("A tile can switch up to four other devices with it")
             out["also"] = list(dict.fromkeys(also))
         if tile.get("label"):
@@ -105,8 +111,16 @@ def with_layout(home, layout):
     """The Home data the touchscreen draws, with each device's saved tile look attached."""
     tiles = (layout or {}).get("tiles", {})
     if not isinstance(home, dict): return home
-    entities = [{**item, "tile": tiles[item["entity_id"]]} if item.get("entity_id") in tiles else item for item in home.get("entities", [])]
-    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in (PLAYER, BUS, CPU, NETWORK, MEMORY, UPDATE, *GROUPS) if key in tiles}}
+    copies = {}
+    for key, tile in tiles.items():
+        if "#" in key: copies.setdefault(base_id(key), []).append(tile)   # the same device on other pages
+    entities = []
+    for item in home.get("entities", []):
+        entity_id = item.get("entity_id")
+        entities.append({**item, "tile": tiles[entity_id]} if entity_id in tiles else item)
+        entities.extend({**item, "tile": tile} for tile in copies.get(entity_id, []))
+    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, UPDATE, *GROUPS)
+    out = {**home, "entities": entities, "cards": {key: tiles[key] for key in tiles if base_id(key) in cards_of}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     if isinstance((layout or {}).get("pages"), int) and layout["pages"] > 1: out["pages"] = layout["pages"]
     return out

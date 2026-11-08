@@ -158,3 +158,17 @@ class PageTests(unittest.TestCase):
         self.assertNotIn("pages", validate_layout({"pages": 1}))
         for bad in ({"pages": 5}, {"pages": 0}, {"pages": True}, {"tiles": {"light.a": {"page": 4}}}, {"tiles": {"light.a": {"page": True}}}):
             with self.assertRaises(ValueError): validate_layout(bad)
+
+
+class CopyTests(unittest.TestCase):
+    def test_a_tile_can_be_copied_onto_another_page(self):
+        layout = validate_layout({"pages": 2, "tiles": {"light.lamp": {"col": 0}, "light.lamp#1": {"page": 1, "col": 2, "label": "Lamp"}, "roondeck.player#1": {"page": 1}, "roondeck.cpu#2": {"show": True, "page": 1}}})
+        home = with_layout({"entities": [{"entity_id": "light.lamp"}, {"entity_id": "fan.study"}]}, layout)
+        lamps = [item for item in home["entities"] if item["entity_id"] == "light.lamp"]
+        self.assertEqual([item.get("tile", {}).get("page", 0) for item in lamps], [0, 1])
+        self.assertEqual(len(home["entities"]), 3)
+        self.assertEqual({"roondeck.player#1", "roondeck.cpu#2"} & set(home["cards"]), {"roondeck.player#1", "roondeck.cpu#2"})
+
+    def test_bad_copy_names_are_refused(self):
+        for bad in ("light.lamp#0", "light.lamp#4", "light.lamp#", "light.lamp##1"):
+            with self.assertRaises(ValueError): validate_layout({"tiles": {bad: {"page": 1}}})

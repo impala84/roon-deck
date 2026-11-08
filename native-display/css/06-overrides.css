@@ -532,6 +532,6 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-action.is-active .hs-action-chip { background: #6aa8ff; }
 .hs-action.is-active .hs-action-icon { color: #0c1a2c; }
 
-.hs-dots { margin: 2px 0 4px; }
+.hs-dots { margin-top: 0; }
 .hs-dot { min-width: 12px; min-height: 12px; border-radius: 6px; background: rgba(255,255,255,.28); }
 .hs-dot.current { background: #f4f0e6; min-width: 28px; }

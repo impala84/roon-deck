@@ -1528,7 +1528,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                         raise ValueError("JSON request required")
                     length = int(self.headers.get("Content-Length", "0"))
-                    if not 0 < length <= 30000: raise ValueError("Home layout is too large")
+                    if not 0 < length <= 90000: raise ValueError("Home layout is too large")
                     saved = save_layout(state.state_dir / "home-layout.json", json.loads(self.rfile.read(length)))
                     self.send_json(200, json.dumps({"ok": True, "layout": saved}).encode())
                 except (ValueError, TypeError, OSError) as error:

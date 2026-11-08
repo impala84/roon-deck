@@ -36,19 +36,26 @@
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const LIVE = {'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
-  const isCard = id => id in CARDS || id in LIVE;
-  const liveShown = () => Object.keys(LIVE).filter(id => layout.tiles[id]?.show);
-  const allDevices = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
+  // The same device or card can be on several pages: the copies are kept as "light.lamp#2" and behave as tiles of their own.
+  const B = id => id.split('#')[0];
+  const isCard = id => B(id) in CARDS || B(id) in LIVE;
+  const liveShown = () => Object.keys(layout.tiles).filter(key => B(key) in LIVE && layout.tiles[key].show);
+  const textIds = () => textarea.value.split(',').map(item => item.trim()).filter(Boolean);
+  const copiesOf = base => Object.keys(layout.tiles).filter(key => key !== base && B(key) === base).sort();
+  const instancesOf = base => [base, ...copiesOf(base)];
+  const newCopyKey = base => { for (let n = 1; n <= 3; n += 1) if (!(`${base}#${n}` in layout.tiles)) return `${base}#${n}`; return null; };
+  const allDevices = () => dashColumns() ? textIds().flatMap(id => [id, ...copiesOf(id)]) : textIds();
   // The dashboard can have several pages, swiped between on the touchscreen. The builder shows one page at a time.
   let pageNo = 0;
   const pageCount = () => dashColumns() ? Math.max(1, Math.min(MAX_PAGES, layout.pages || 1)) : 1;
   const pageOf = id => Math.min(pageCount() - 1, (layout.tiles[id] || {}).page || 0);
   const onPage = id => pageCount() < 2 || pageOf(id) === Math.min(pageNo, pageCount() - 1);
   const deviceIds = () => allDevices().filter(onPage);
-  const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...liveShown(), ...allDevices()] : allDevices();
+  const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...Object.keys(layout.tiles).filter(key => key.includes('#') && B(key) in CARDS), ...liveShown(), ...allDevices()] : allDevices();
   const ids = () => allIds().filter(onPage);
+  const hasOnPage = (base, page) => instancesOf(base).some(key => pageOf(key) === page && (key in layout.tiles || textIds().includes(key) || key in CARDS));
   const withPage = tile => { const next = {...tile}; if (pageNo > 0 && pageCount() > 1) next.page = pageNo; else delete next.page; return next; };
-  const nameOf = id => CARDS[id] || LIVE[id] || catalog.find(item => item.entity_id === id)?.name || states[id]?.name || id;
+  const nameOf = id => CARDS[B(id)] || LIVE[B(id)] || catalog.find(item => item.entity_id === B(id))?.name || states[B(id)]?.name || B(id);
   // Until the owner has placed either card, the player sits top-left and the bus under it.
   const CARD_HOME = {'roondeck.player': {col: 0, row: 0}, 'roondeck.bus': {col: 0, row: 2}};
   const tileOf = id => {
@@ -58,11 +65,29 @@
   };
   const markDirty = () => { dirty = true; window.RoonDeckDirty?.('homelayout', 'Home layout'); };
   function setIds(list) {
-    const mine = list.filter(id => !isCard(id)), others = allDevices().filter(id => !onPage(id) && !mine.includes(id));
-    if (pageCount() > 1) for (const id of mine) layout.tiles[id] = withPage(tileOf(id));
-    textarea.value = (pageNo > 0 ? [...others, ...mine] : [...mine, ...others]).join(', ');
+    const before = allDevices(), kept = [];
+    for (const entry of list.filter(id => !isCard(id))) {
+      // A device already on another page is added here as a copy.
+      const key = before.includes(entry) && !onPage(entry) ? newCopyKey(entry) : entry;
+      if (!key) continue;
+      if (!before.includes(key) && pageCount() > 1) layout.tiles[key] = withPage(layout.tiles[key] || {});
+      kept.push(key);
+    }
+    const others = before.filter(key => !onPage(key) && !kept.includes(key));
+    const keys = pageNo > 0 ? [...others, ...kept] : [...kept, ...others];
+    textarea.value = [...new Set(keys.map(B))].join(', ');
     textarea.dispatchEvent(new Event('input', {bubbles: true}));
     render();
+  }
+  // Takes one tile off its page. A copy simply goes; the main tile hands over to a copy on another page, so the device stays in the list.
+  function removeTile(id) {
+    selected = -1;
+    const others = copiesOf(B(id)).filter(key => key !== id);
+    if (id.includes('#')) delete layout.tiles[id];
+    else if (others.length) { layout.tiles[id] = layout.tiles[others[0]]; delete layout.tiles[others[0]]; }
+    else if (B(id) in LIVE) delete layout.tiles[id];
+    else { markDirty(); setIds(ids().filter(other => other !== id)); return; }
+    markDirty(); render();
   }
   function patchTile(id, patch) {
     const next = {...tileOf(id), ...patch};
@@ -70,7 +95,7 @@
     if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
     markDirty(); render();
   }
-  const rowsPatch = (id, rows) => id === 'roondeck.player' ? {rows} : {rows: rows > 1 ? rows : ''};
+  const rowsPatch = (id, rows) => B(id) === 'roondeck.player' ? {rows} : {rows: rows > 1 ? rows : ''};
   const domainOf = id => { const d = id.split('.')[0]; return d === 'script' || d === 'scene' ? 'scene' : d === 'input_boolean' ? 'switch' : d; };
   const accent = id => {
     if (tileOf(id).color) return tileOf(id).color;
@@ -106,7 +131,7 @@
     const taken = new Set(), at = new Map();
     const isHalf = id => !!dash && !!tileOf(id).half;
     const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
-    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: Math.min(dash ? 3 : 2, Math.max(1, tileOf(id).rows || (id === 'roondeck.player' ? 2 : 1)))});
+    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: Math.min(dash ? 3 : 2, Math.max(1, tileOf(id).rows || (B(id) === 'roondeck.player' ? 2 : 1)))});
     const startOf = id => tileOf(id).col * fine + (isHalf(id) && tileOf(id).sub ? 1 : 0);
     for (const id of list) {
       const {span, height} = dims(id), tile = tileOf(id), x = startOf(id);
@@ -137,7 +162,7 @@
     for (const cell of cells) {
       const half = fine === 2 && tileOf(cell.id).half, next = {...tileOf(cell.id), col: Math.floor(cell.column / fine), row: cell.row}; delete next.rows;
       if (half && cell.column % 2) next.sub = 1; else delete next.sub;
-      if (cell.height !== (cell.id === 'roondeck.player' ? 2 : 1)) next.rows = cell.height;
+      if (cell.height !== (B(cell.id) === 'roondeck.player' ? 2 : 1)) next.rows = cell.height;
       layout.tiles[cell.id] = next;
     }
   }
@@ -146,7 +171,7 @@
   // A small copy of the touchscreen's cards, so the builder reads like the real Home page.
   const svgOf = (key, colour) => { const span = h('span', {class: 'hd-glyph', style: `color:${colour}`}); if (ICONS[key]) span.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" ${ICON_STYLE.replace('stroke="#fff"', 'stroke="currentColor"')}>${lineArt(ICONS[key][1])}</svg>`; return span; };
   function dashBody(id, tile, colour, lit, height) {
-    if (id === 'roondeck.player') {
+    if (B(id) === 'roondeck.player') {
       const art = tile.art || 'background', short = height === 1, bar = tile.scrubber ? h('span', {class: 'hd-d-bar scrub'}, h('i', {}), h('em', {})) : h('span', {class: 'hd-d-bar'}, h('i', {}));
       return [h('div', {class: `hd-d-player art-${art}`},
         tile.heading === false || short ? null : h('span', {class: 'hd-d-zone'}, (tile.label || 'ROONDECK').toUpperCase()), h('span', {class: 'hd-d-spacer'}),
@@ -154,9 +179,9 @@
         h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
         tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
     }
-    if (id === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
-    if (id === 'roondeck.update' || GROUPS.includes(id)) {
-      const upd = id === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
+    if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
+    if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
+      const upd = B(id) === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
       const chip = h('span', {class: 'hd-d-achip'}); chip.innerHTML = upd
         ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 10v31M19 29l13 13 13-13M11 47v7h42v-7"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
@@ -165,8 +190,8 @@
         h('b', {class: 'hd-d-big'}, upd ? 'Update' : zones.length === 2 ? 'Group' : 'Set zones'),
         h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready. Tap to install' : zones.length === 2 ? zones[0] + '\n+ ' + zones[1] : 'Choose them in the tile options')))];
     }
-    if (id in LIVE) {
-      const cpu = id === 'roondeck.cpu', mem = id === 'roondeck.memory', net = !cpu && !mem;
+    if (B(id) in LIVE) {
+      const cpu = B(id) === 'roondeck.cpu', mem = B(id) === 'roondeck.memory', net = !cpu && !mem;
       const values = mem ? [48, 49, 49, 50, 50, 51, 51, 51, 52, 52, 52, 53, 53, 53, 54] : cpu ? [22, 30, 26, 41, 35, 28, 52, 44, 31, 24, 38, 29, 33, 47, 36] : [8, 12, 30, 22, 55, 40, 18, 62, 35, 20, 44, 28, 16, 38, 24];
       const line = values.map((value, i) => `${(i * 100 / (values.length - 1)).toFixed(1)},${(37 - value * .24).toFixed(1)}`).join(' ');
       const tint = cpu ? '#6ed9ae' : '#6aa8ff';
@@ -177,7 +202,7 @@
         h('b', {class: 'hd-d-big'}, mem ? '54%' : cpu ? '36%' : (down ? '12.4 Mbit/s' : '0.3 Mbit/s')),
         net ? h('small', {class: 'hd-d-livefoot'}, down ? (tile.upload === false ? '' : 'up 0.3 Mbit/s') : 'upload') : null))];
     }
-    const domain = domainOf(id), info = states[id] || {}, scene = domain === 'scene';
+    const domain = domainOf(id), info = states[B(id)] || {}, scene = domain === 'scene';
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
     const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
     const name = tile.label || nameOf(id);
@@ -193,7 +218,7 @@
     return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text, h('span', {class: `hd-d-switch${lit ? ' on' : ''}`, style: lit ? `background:${colour}` : ''}, h('i', {}))))];
   }
   function tileView(cell, rowMode) {
-    const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[id] ? ['on', 'open', 'playing'].includes(states[id].state) : true, scene = domainOf(id) === 'scene';
+    const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[B(id)] ? ['on', 'open', 'playing'].includes(states[B(id)].state) : true, scene = domainOf(id) === 'scene';
     const lit = on || scene;
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
       style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
@@ -208,6 +233,12 @@
       handle.onpointerdown = event => stretch(event, id, axis, node);
       handle.ondragstart = event => event.preventDefault();
       node.append(handle);
+    }
+    if (!(id in CARDS)) {   // a small x to take the tile off this page; the two main cards stay
+      const x = h('button', {type: 'button', class: 'hd-x', 'aria-label': `Remove ${tile.label || nameOf(id)}`, title: 'Remove tile', draggable: 'false'}, '\u00d7');
+      x.onclick = event => { event.stopPropagation(); removeTile(id); };
+      x.onpointerdown = event => event.stopPropagation(); x.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+      node.append(x);
     }
     const open = () => { selected = ids().indexOf(id); devicesOpen = false; render(); };
     node.onclick = open;
@@ -277,8 +308,9 @@
   }
   // A device dragged in from the list, dropped on a cell (cellAt) or on a tile (index to go before).
   function dropDevice(cellAt, index) {
-    const list = deviceIds(), off = ids().length - list.length; const id = dragId; dragId = null;
-    if (!id || allDevices().includes(id) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
+    const list = deviceIds(), off = ids().length - list.length; const dropped = dragId; dragId = null;
+    const id = dropped && allDevices().includes(dropped) && !onPage(dropped) ? newCopyKey(dropped) : dropped;   // a device already on another page is dropped as a copy
+    if (!id || deviceIds().includes(dropped) || list.length >= LIMIT) { if (closeGrid()) render(); return; }
     snapshot = null;
     const info = place(ids(), screen().portrait); if (info.positioned || cellAt) pin(info.cells);
     if (cellAt) { list.push(id); const fine = dashColumns() ? 2 : 1, span = fine === 2 ? 2 : Math.min(info.columns, ({half: info.columns > 2 ? 2 : 1, full: info.columns}[tileOf(id).size]) || 1); let x = Math.min(cellAt.column, info.columns - span); if (fine === 2) x -= x % 2; layout.tiles[id] = {...tileOf(id), col: Math.floor(x / fine), row: cellAt.row}; selected = list.length - 1 + off; }
@@ -336,7 +368,7 @@
       button.onclick = () => { if (dash === count) return; layout.columns = count; markDirty(); render(); }; return button;
     }))) : null;
     const dots = pageCount() > 1 ? h('div', {class: 'hd-dots'}, Array.from({length: pageCount()}, (_, number) => h('i', {class: number === Math.min(pageNo, pageCount() - 1) ? 'on' : ''}))) : null;
-    if (dots) screenBox.insertBefore(dots, grid);
+    if (dots) { const head = screenBox.querySelector('.hd-head'); if (head) head.insertBefore(dots, head.lastChild); }   // in the header row, so the tiles keep their place
     return h('div', {class: 'hd-preview'}, columnPicker, dash ? pageBar() : null, screenBox, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
@@ -378,32 +410,54 @@
   const tools = iconTools();
   let iconCategory = 'Lights';
   const message = h('p', {class: 'cd-muted', role: 'status'});
-  // Which page a tile is on; moving it clears its position so it lands in the first free place there.
+  // Which page a tile is on, and which other pages it can be copied to. Copies are tiles of their own, so each keeps its own place and look.
   function pageField(id) {
     const count = pageCount(); if (count < 2) return null;
-    const seg = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Page'}, Array.from({length: count}, (_, number) => {
+    const base = B(id), free = Array.from({length: count}, (_, number) => number).filter(number => !hasOnPage(base, number));
+    const move = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Page'}, Array.from({length: count}, (_, number) => {
       const button = h('button', {type: 'button', 'aria-pressed': String(pageOf(id) === number)}, `Page ${number + 1}`);
+      button.disabled = pageOf(id) !== number && !free.includes(number);
       button.onclick = () => { if (pageOf(id) === number) return; selected = -1; patchTile(id, {page: number || '', col: '', row: '', sub: ''}); pageNo = number; render(); }; return button;
     }));
-    return field('Page', seg, 'Move the tile to another page. It lands in the first free place there.');
+    const copy = free.length && newCopyKey(base) ? h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Copy to page'}, free.map(number => {
+      const button = h('button', {type: 'button'}, `Page ${number + 1}`);
+      button.onclick = () => { const key = newCopyKey(base); if (!key) return; layout.tiles[key] = {...tileOf(id), page: number || undefined}; if (!number) delete layout.tiles[key].page; pageNo = number; selected = -1; markDirty(); render(); selected = ids().indexOf(key); render(); }; return button;
+    })) : null;
+    return h('div', {class: 'hd-stack'}, field('Page', move, 'Move the tile to another page. It lands in the first free place there.'), copy ? field('Also show on', copy, 'Adds a copy on that page, which you can then move, resize and restyle on its own.') : null);
   }
   function pageBar() {
-    const count = pageCount(), tabs = Array.from({length: count}, (_, number) => {
-      const button = h('button', {type: 'button', 'aria-pressed': String(number === Math.min(pageNo, count - 1))}, `Page ${number + 1}`);
+    const count = pageCount(), here = Math.min(pageNo, count - 1), tabs = Array.from({length: count}, (_, number) => {
+      const button = h('button', {type: 'button', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
       button.onclick = () => { pageNo = number; selected = -1; render(); }; return button;
     });
     const actions = [];
-    if (count < MAX_PAGES) { const add = h('button', {type: 'button', class: 'secondary'}, 'Add page'); add.onclick = () => { layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render(); }; actions.push(add); }
+    if (count < MAX_PAGES) {
+      const add = h('button', {type: 'button', class: 'secondary'}, 'Add page'); add.onclick = () => { layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render(); }; actions.push(add);
+      // A copy of this page: every tile on it is copied onto a new page, where each can be changed on its own.
+      const dup = h('button', {type: 'button', class: 'secondary'}, 'Duplicate page');
+      dup.onclick = () => {
+        const copies = {};
+        for (const key of ids()) { const target = newCopyKey(B(key)); if (!target) continue; layout.tiles[target] = {...tileOf(key), page: count}; copies[target] = true; }
+        layout.pages = count + 1; pageNo = count; selected = -1; markDirty(); render();
+      };
+      actions.push(dup);
+    }
     if (count > 1) {
       const del = h('button', {type: 'button', class: 'secondary'}, 'Delete page');
-      del.title = 'Tiles on this page move to page 1';
+      del.title = 'Tiles that are only on this page move to page 1';
       del.onclick = () => {
-        const here = Math.min(pageNo, count - 1);
-        for (const [id, tile] of Object.entries(layout.tiles)) {
-          const page = tile.page || 0, next = {...tile};
-          if (page === here) { delete next.page; delete next.col; delete next.row; delete next.sub; } else if (page > here) { if (page - 1 > 0) next.page = page - 1; else delete next.page; } else continue;
-          layout.tiles[id] = next;
+        for (const id of [...textIds(), ...Object.keys(CARDS)]) if (!(id in layout.tiles)) layout.tiles[id] = {};   // tiles on the first page have no record until now
+        const groups = {};
+        for (const key of Object.keys(layout.tiles)) (groups[B(key)] = groups[B(key)] || []).push(key);
+        const result = {};
+        for (const [base, keys] of Object.entries(groups)) {
+          const stay = keys.filter(key => (layout.tiles[key].page || 0) !== here).map(key => ({key, tile: {...layout.tiles[key]}}));
+          for (const item of stay) { const page = item.tile.page || 0; if (page > here) { if (page - 1 > 0) item.tile.page = page - 1; else delete item.tile.page; } }
+          if (!stay.length) { const tile = {...layout.tiles[keys[0]]}; for (const name of ['page', 'col', 'row', 'sub']) delete tile[name]; stay.push({key: keys[0], tile}); }   // the only copy moves to page 1
+          if (!stay.some(item => item.key === base)) stay[0].key = base;   // the main tile is always the one without a number
+          for (const item of stay) result[item.key] = item.tile;
         }
+        layout.tiles = result;
         if (count - 1 > 1) layout.pages = count - 1; else delete layout.pages;
         pageNo = Math.max(0, here - 1); selected = -1; markDirty(); render();
       };
@@ -454,24 +508,24 @@
       const chip = h('button', {type: 'button', class: 'dd-chip', 'aria-label': `Stop switching ${nameOf(other)} with this tile`}, `${nameOf(other)} \u00d7`); chip.onclick = () => linkSet(also.filter(item => item !== other)); return chip;
     }));
     const alsoPick = h('select', {'aria-label': 'Switch another device together with this tile'}, h('option', {value: ''}, also.length >= 4 ? 'Four is the most' : 'Add a device\u2026'),
-      ...(also.length >= 4 ? [] : catalog.filter(item => ['switch', 'input_boolean', 'light', 'fan', 'climate'].includes(item.domain) && item.entity_id !== id && !also.includes(item.entity_id) && !ids().includes(item.entity_id)).map(item => h('option', {value: item.entity_id}, item.name))));
+      ...(also.length >= 4 ? [] : catalog.filter(item => ['switch', 'input_boolean', 'light', 'fan', 'climate'].includes(item.domain) && item.entity_id !== B(id) && !also.includes(item.entity_id) && !ids().includes(item.entity_id)).map(item => h('option', {value: item.entity_id}, item.name))));
     alsoPick.onchange = () => { if (alsoPick.value) linkSet([...also, alsoPick.value]); };
     const linkField = isScene(id) ? null : field('Switch together with', h('div', {class: 'hd-stack'}, alsoChips, alsoPick), 'One tap switches this device and the ones added here on or off together, for example two Pi-holes. The tile shows how many are on.');
     if (isCard(id)) {
-      const drop = id in LIVE ? h('button', {type: 'button', class: 'secondary'}, 'Remove tile') : null;
-      if (drop) drop.onclick = () => { delete layout.tiles[id]; selected = -1; markDirty(); render(); };
+      const drop = id in CARDS ? null : h('button', {type: 'button', class: 'secondary'}, 'Remove tile');
+      if (drop) drop.onclick = () => removeTile(id);
       const check = (text, checked, patch) => { const box = h('input', {type: 'checkbox'}); box.checked = checked; box.onchange = () => patchTile(id, patch(box.checked)); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
       const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
         const button = h('button', {type: 'button', 'aria-pressed': String((tile.art || 'background') === value)}, text); button.onclick = () => patchTile(id, {art: value === 'background' ? '' : value}); return button;
       }));
-      const playerFields = id !== 'roondeck.player' ? [] : [field('Title', label, 'Shown above the track. Leave it blank to show the zone name.'), check('Show the title', tile.heading !== false, on => ({heading: on ? '' : false})),
+      const playerFields = B(id) !== 'roondeck.player' ? [] : [field('Title', label, 'Shown above the track. Leave it blank to show the zone name.'), check('Show the title', tile.heading !== false, on => ({heading: on ? '' : false})),
         field('Artwork', artwork), check('Track scrubber (drag to seek)', !!tile.scrubber, on => ({scrubber: on ? true : ''})), check('Volume slider', tile.volume !== false, on => ({volume: on ? '' : false}))];
-      const netFields = id !== 'roondeck.network' ? [] : (() => {
+      const netFields = B(id) !== 'roondeck.network' ? [] : (() => {
         const down = tile.download !== false, up = tile.upload !== false;
         const one = (text, on, other, key) => { const box = h('input', {type: 'checkbox'}); box.checked = on; box.disabled = on && !other; box.onchange = () => patchTile(id, {[key]: box.checked ? '' : false}); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
         return [field('Show', h('div', {class: 'hd-stack'}, one('Download', down, up, 'download'), one('Upload', up, down, 'upload')), 'Switch either direction off. One must stay on.')];
       })();
-      const groupFields = !GROUPS.includes(id) ? [] : (() => {
+      const groupFields = !GROUPS.includes(B(id)) ? [] : (() => {
         const names = [...new Set(roonOutputs.map(item => item.name))];
         const pick = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), names.concat(tile[key] && !names.includes(tile[key]) ? [tile[key]] : []).map(name => h('option', {value: name}, name))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
@@ -480,7 +534,7 @@
         field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
-    const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => { const next = ids().filter(other => other !== id); selected = -1; setIds(next); };
+    const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
       field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'), pageField(id),
       field('Label', label), linkField, field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
@@ -500,7 +554,7 @@
       chip.onclick = () => { kind = name; chips.querySelectorAll('.dd-chip').forEach(node => node.setAttribute('aria-pressed', String(node === chip))); fillResults(); }; return chip;
     }));
     function fillResults() {
-      const needle = query.trim().toLowerCase(), current = deviceIds(), taken = allDevices();
+      const needle = query.trim().toLowerCase(), current = deviceIds(), taken = deviceIds().map(B);
       const matches = catalog.filter(item => !taken.includes(item.entity_id) && filters[kind](item) && (!needle || item.name.toLowerCase().includes(needle) || item.entity_id.includes(needle))).slice(0, 40);
       results.replaceChildren(...(matches.length ? matches.map(item => {
         const add = h('button', {type: 'button', class: 'secondary hd-add', 'aria-label': `Add ${item.name}`}, 'Add'); add.disabled = current.length >= LIMIT;
@@ -520,9 +574,15 @@
     const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
     const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
     const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.map(([key, name, note]) => {
-      const live = key in LIVE, shown = live ? !!layout.tiles[key]?.show : true;
-      const add = h('button', {type: 'button', class: 'secondary hd-add'}, live ? (shown ? 'Added' : 'Add') : 'On screen'); add.disabled = shown;
-      if (live) add.onclick = () => { layout.tiles[key] = withPage({...(layout.tiles[key] || {}), show: true}); devicesOpen = false; markDirty(); selected = ids().indexOf(key); render(); };
+      const here = ids().some(other => B(other) === key && (!(key in LIVE) || layout.tiles[other]?.show));
+      const add = h('button', {type: 'button', class: 'secondary hd-add'}, here ? (key in LIVE ? 'Added' : 'On screen') : 'Add'); add.disabled = here;
+      add.onclick = () => {
+        // A tile that is already on another page is added here as a copy with its own place.
+        const elsewhere = key in LIVE ? !!layout.tiles[key]?.show : true, target = elsewhere && (key in CARDS || layout.tiles[key]) ? newCopyKey(key) : key;
+        if (!target) return;
+        layout.tiles[target] = withPage({...(target === key ? layout.tiles[key] || {} : {}), ...(key in LIVE ? {show: true} : {})});
+        devicesOpen = false; markDirty(); render(); selected = ids().indexOf(target); render();
+      };
       return h('li', {}, h('span', {class: 'hd-label'}, name, h('small', {}, note)), add);
     }));
     let source = addSource === 'ha' || !dash ? 'ha' : 'own';
@@ -576,9 +636,9 @@
   const tabs = h('nav', {class: 'dd-tabs', role: 'tablist', 'aria-label': 'Home sections'}, buttons);
   const card = h('div', {class: 'cd-card dd-card hd-card'}, tabs, h('div', {class: 'dd-body'}, layoutPane, coloursPane, settingsPane));
   options.prepend(card);
-  // The page heading sits beside the "Show Home on the touchscreen" switch, where it is easy to find.
+  // The page heading sits before the "Show Home on the touchscreen" switch, where it is easy to find.
   const enabledLabel = labelOf('home_assistant_enabled'), titleLabel = labelOf('home_assistant_title');
-  if (enabledLabel && titleLabel) { const row = h('div', {class: 'hd-headrow-set'}); enabledLabel.before(row); row.append(enabledLabel, titleLabel); }
+  if (enabledLabel && titleLabel) { const row = h('div', {class: 'hd-headrow-set'}); enabledLabel.before(row); row.append(titleLabel, enabledLabel); }
   // The old introduction under the heading is replaced by the cards below it.
   for (const small of [...options.children].filter(node => node.tagName === 'SMALL')) small.hidden = true;
 

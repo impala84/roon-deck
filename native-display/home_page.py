@@ -41,10 +41,10 @@ class HomePageMixin:
 
     def build_home(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); page.add_css_class("page"); page.add_css_class("home-page")
-        self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); page.append(self.header(self.home_title, self.home_clock))
+        self.home_title = self.label("Home Controls", "page-title"); self.home_clock = self.label("--:--", "clock", 1); header_row = self.header(self.home_title, self.home_clock); page.append(header_row)
         self.home_status = self.label("Connecting to Home Assistant…", "muted", .5); page.append(self.home_status)
         self.hs_page = 0; self.hs_pages = 1; self.hs_last_home = {}; self.hs_paged_at = 0.0
-        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); page.append(self.home_dots)
+        self.home_dots = Gtk.Box(spacing=10); self.home_dots.set_halign(Gtk.Align.CENTER); self.home_dots.add_css_class("hs-dots"); self.home_dots.set_visible(False); self.home_dots.set_valign(Gtk.Align.CENTER); self.home_dots.set_margin_start(26); header_row.insert_child_after(self.home_dots, self.home_title)   # in the header row, so the tiles keep their place
         self.home_grid = Gtk.Grid(column_spacing=18, row_spacing=18); self.home_grid.add_css_class("home-grid"); self.home_grid.set_column_homogeneous(True); self.home_grid.set_row_homogeneous(True); self.home_grid.set_vexpand(True)
         self.home_scroll = Gtk.ScrolledWindow(); self.home_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); self.home_scroll.set_propagate_natural_height(False); self.home_scroll.set_min_content_height(1); self.home_scroll.set_vexpand(True); home_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); self.listening_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); self.listening_box.add_css_class("listening-controls"); self.listening_box.set_visible(False); home_content.append(self.listening_box); self.home_side = self.build_home_side(); self.home_row = Gtk.Box(spacing=18); self.home_grid.set_hexpand(True); self.home_row.append(self.home_side); self.home_row.append(self.home_grid); home_content.append(self.home_row); self.home_scroll.set_child(home_content); page.append(self.home_scroll)
         drag = Gtk.GestureDrag(); drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE); drag.connect("drag-begin", self.home_drag_begin); drag.connect("drag-end", self.home_drag_end); self.home_scroll.add_controller(drag); self.hs_drag_ok = True
@@ -91,7 +91,8 @@ class HomePageMixin:
         while child := self.home_grid.get_first_child():
             if getattr(child, "clip_wrapper", False): child.set_child(None)   # let the tile go before its frame, so it can be placed again
             self.home_grid.remove(child)
-        entities = home.get("entities", [])[:32 if dashboard else 8]
+        entities = home.get("entities", []) if dashboard else [entity for entity in home.get("entities", []) if not (entity.get("tile") or {}).get("page")]   # small screens have no pages
+        entities = entities[:64 if dashboard else 8]
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)
         self.home_status.set_text("Home Assistant offline" if home.get("status") == "offline" else ("Choose Home Assistant devices in web settings" if not entities else ""))
