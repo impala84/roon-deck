@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.89 Alpine — 8 November 2026
+
+- Home: Now Playing, Network, CPU and Memory tiles that have a colour chosen in the builder now get the same bright border as the other coloured tiles (the builder preview already showed it). Tiles left on the standard colour keep the standard look.
+
 ## 1.2.0-beta.88 Alpine — 8 November 2026
 
 - Bus Times: the route rows now use the same look as the Home bus tile — a brighter, more vibrant fill in the route's colour, a bright route-colour border and a bright route number — so the two pages match. Strength is still set under Services > Bus.

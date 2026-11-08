@@ -355,7 +355,7 @@ class HomeDashboardMixin:
             name = "hs-custom-" + base_of(entity["entity_id"]).replace(".", "-"); colour = entity["tile"].get("color")
             entity["widget"].remove_css_class(name)
             if isinstance(colour, str) and len(colour) == 7 and colour.startswith("#"):
-                entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {mix(colour, '#44414c', .58)}; }}")
+                entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {colour}; }}")
         for domain, accent in (getattr(self, "home_domain_colours", None) or {}).items():
             rules.append(f".home-card.home-domain-{domain} .home-switch.on {{ background: {accent}; }}")
         def tile_of(entity): return entity.get("tile") or {}
