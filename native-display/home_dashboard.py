@@ -309,10 +309,14 @@ class HomeDashboardMixin:
         (self.hs_player.add_css_class if split else self.hs_player.remove_css_class)("hs-split")   # a wide tile is laid out like the 7-inch Now Playing screen: big title, big controls
         if split: self.hs_content.set_spacing(20)
         if split:   # a framed square of artwork centred in the left half, with room round it, not full bleed
-            pad = 24; side = max(120, min(card_w // 2, card_h) - 2 * pad)
-            self.hs_art.set_halign(Gtk.Align.START); self.hs_art.set_valign(Gtk.Align.CENTER); self.hs_art.set_size_request(side, side); self.hs_art.set_margin_start((card_w // 2 - side) // 2)
+            # Margins, not a size request: a Picture grows to its image's own size when it is not made to fill, so the margins decide the square.
+            pad = 24; half = card_w // 2; side = max(120, min(half, card_h) - 2 * pad)
+            across, down = (half - side) // 2, (card_h - side) // 2
+            self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1)
+            self.hs_art.set_margin_start(across); self.hs_art.set_margin_end(card_w - half + across); self.hs_art.set_margin_top(down); self.hs_art.set_margin_bottom(down)
         else:
-            self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1); self.hs_art.set_margin_start(0)
+            self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1)
+            for margin in ("start", "end", "top", "bottom"): getattr(self.hs_art, "set_margin_" + margin)(0)
         self.hs_art.set_overflow(Gtk.Overflow.HIDDEN); (self.hs_art.add_css_class if split else self.hs_art.remove_css_class)("hs-art-framed")
         self.hs_content.set_margin_start(card_w // 2 if split else 0); self.hs_fade.set_visible(art == "background" and not split)
         reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs

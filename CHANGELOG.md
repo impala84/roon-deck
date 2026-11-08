@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.129 Alpine — 8 November 2026
+
+- Fixed the wide Now Playing tile on Home: the framed artwork grew to its own size and covered the track details. Its square is now set with margins, so it stays in the left half.
+
 ## 1.2.0-beta.128 Alpine — 8 November 2026
 
 - Home: the wide Now Playing tile no longer flicks between its wide and narrow layouts while the grid is being laid out again (for example around an update); it keeps its last layout until the tile has a measured size.
