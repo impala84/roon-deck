@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.130 Alpine — 8 November 2026
+
+- Wide Now Playing tile: the artwork has the same inset on the top, left and bottom, the track details line up with the sliders in the tiles below, and the previous/next buttons are larger.
+- Tall portrait tiles (7- and 10-inch): scene tiles and the fan/lamp tiles now use a large icon with larger text beside it, like the bus tile, instead of a small icon top-left with the name at the bottom.
+
 ## 1.2.0-beta.129 Alpine — 8 November 2026
 
 - Fixed the wide Now Playing tile on Home: the framed artwork grew to its own size and covered the track details. Its square is now set with margins, so it stays in the left half.

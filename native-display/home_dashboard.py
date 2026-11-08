@@ -26,6 +26,10 @@ SPARK_GREEN, SPARK_BLUE = (0.43, 0.85, 0.68), (0.42, 0.66, 1.0)
 
 
 class HomeDashboardMixin:
+    def home_big_tiles(self):
+        """A tall portrait panel has tiles about 270px high: give their icon and text the size the bus tile has."""
+        return self.window.has_css_class("portrait") and getattr(self, "viewport_width", 800) >= 700 and getattr(self, "viewport_height", 480) >= 1200
+
     def home_dashboard_active(self):
         if self.window.has_css_class("original-landscape"): return False
         if self.window.has_css_class("portrait"): return getattr(self, "viewport_width", 800) >= 700 and getattr(self, "viewport_height", 480) >= 1200   # a tall 7/10-inch panel: two columns, more rows
@@ -310,15 +314,14 @@ class HomeDashboardMixin:
         if split: self.hs_content.set_spacing(20)
         if split:   # a framed square of artwork centred in the left half, with room round it, not full bleed
             # Margins, not a size request: a Picture grows to its image's own size when it is not made to fill, so the margins decide the square.
-            pad = 24; half = card_w // 2; side = max(120, min(half, card_h) - 2 * pad)
-            across, down = (half - side) // 2, (card_h - side) // 2
+            pad = 22; side = max(120, card_h - 2 * pad); split_edge = pad + side
             self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1)
-            self.hs_art.set_margin_start(across); self.hs_art.set_margin_end(card_w - half + across); self.hs_art.set_margin_top(down); self.hs_art.set_margin_bottom(down)
+            self.hs_art.set_margin_start(pad); self.hs_art.set_margin_end(card_w - split_edge); self.hs_art.set_margin_top(pad); self.hs_art.set_margin_bottom(pad)
         else:
             self.hs_art.set_halign(Gtk.Align.FILL); self.hs_art.set_valign(Gtk.Align.FILL); self.hs_art.set_size_request(-1, -1)
             for margin in ("start", "end", "top", "bottom"): getattr(self.hs_art, "set_margin_" + margin)(0)
         self.hs_art.set_overflow(Gtk.Overflow.HIDDEN); (self.hs_art.add_css_class if split else self.hs_art.remove_css_class)("hs-art-framed")
-        self.hs_content.set_margin_start(card_w // 2 if split else 0); self.hs_fade.set_visible(art == "background" and not split)
+        self.hs_content.set_margin_start((22 + max(120, card_h - 44) + 12) if split else 0); self.hs_fade.set_visible(art == "background" and not split)
         reserved = 40 + 80 + 14 + (24 if options.get("heading") is not False else 0) + (50 if options.get("volume") is not False else 0) + 10 * 4   # what the rest of the card needs
         side = round(min(card_w * .46, card_h - reserved) if card_w and card_h else 150 * scale)
         self.hs_thumb.set_pixel_size(max(96, side))
@@ -336,6 +339,9 @@ class HomeDashboardMixin:
         if scrubber:
             self.seek_updating = True; self.hs_scrub.set_range(0, max(1.0, upper)); self.hs_scrub.set_value(adjustment.get_value()); self.hs_scrub.set_sensitive(self.progress.get_sensitive()); self.seek_updating = False
         current = self.play.get_child(); icon_name = current.icon_name if isinstance(current, FamilyIcon) else "play"; glyph = round((62 if split else 46) * scale)
+        for mine in (self.hs_prev, self.hs_next):   # the skip buttons are larger on a wide tile
+            wanted_glyph = round((54 if split else 34) * scale); held = mine.get_child()
+            if isinstance(held, FamilyIcon) and held.get_pixel_size() != wanted_glyph: mine.set_child(FamilyIcon(held.icon_name, wanted_glyph))
         shown = self.hs_play.get_child()
         if not isinstance(shown, FamilyIcon) or shown.icon_name != icon_name or shown.get_pixel_size() != glyph: self.hs_play.set_child(FamilyIcon(icon_name, glyph))
         for mine, theirs in ((self.hs_prev, self.prev), (self.hs_play, self.play), (self.hs_next, self.next)): mine.set_sensitive(theirs.get_sensitive())
@@ -539,8 +545,10 @@ class HomeDashboardMixin:
         self.home_card_classes(card, entity, domain, number, rules, on)
         inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=round(16 * scale)); inner.set_valign(Gtk.Align.CENTER); inner.set_vexpand(True)
         top = Gtk.Box(spacing=round(20 * scale))
-        icon = self.home_icon_for(entity, domain, on, scale, accent)
-        chip = round((48 if half else 58) * scale); button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
+        big = self.home_big_tiles() and not half
+        if big: card.add_css_class("home-big")
+        icon = self.home_icon_for(entity, domain, on, scale * (1.5 if big else 1), accent)
+        chip = 88 if big else round((48 if half else 58) * scale); button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
         button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)
@@ -563,6 +571,7 @@ class HomeDashboardMixin:
             top.append(text)
             if switch is not None: top.append(switch)
         if compact and not half: inner.set_spacing(round(14 * scale)); top.set_spacing(round(16 * scale))
+        if big: inner.set_spacing(22); top.set_spacing(22); inner.set_margin_start(14); inner.set_margin_end(10)
         inner.append(top)
         if half: inner.append(text)
         if has_level:
@@ -586,14 +595,21 @@ class HomeDashboardMixin:
         domain = "scene"; entity_id = entity.get("entity_id", ""); accent = self.home_accent(entity, domain)
         button = Gtk.Button(); button.set_hexpand(True); button.set_vexpand(True)
         self.home_card_classes(button, entity, domain, key, rules, True); button.add_css_class("home-scene"); button.add_css_class("scene-action")
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        chip = round(64 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip); holder.set_halign(Gtk.Align.START)
-        icon = self.home_icon_for(entity, domain, True, scale, accent); icon.set_hexpand(True); holder.append(icon); content.append(holder)
-        spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer)
+        big = self.home_big_tiles()
+        if big: button.add_css_class("home-big")
+        chip = 88 if big else round(64 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
+        icon = self.home_icon_for(entity, domain, True, scale * (1.5 if big else 1), accent); icon.set_hexpand(True); holder.append(icon)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(False); name.set_lines(1); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # one line, so a long scene name cannot make its tile taller
         available = entity.get("available", True)
         status = self.label("TAP TO ACTIVATE" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
-        content.append(name); content.append(status)
+        if big:
+            # Like the bus tile: the icon on the left, centred, with the name and its caption beside it.
+            content = Gtk.Box(spacing=22); content.set_valign(Gtk.Align.CENTER); content.set_margin_start(14); content.set_margin_end(10)
+            holder.set_valign(Gtk.Align.CENTER); holder.set_halign(Gtk.Align.START); content.append(holder)
+            words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); words.set_valign(Gtk.Align.CENTER); words.set_hexpand(True); words.append(name); words.append(status); content.append(words)
+        else:
+            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); holder.set_halign(Gtk.Align.START); content.append(holder)
+            spacer = Gtk.Box(); spacer.set_vexpand(True); content.append(spacer); content.append(name); content.append(status)
         button.set_child(content); button.set_sensitive(bool(available))
         button.scene_tile = button; button.scene_status_label = status
         button.connect("clicked", self.activate_home_scene, entity_id)
