@@ -91,6 +91,28 @@
     else { markDirty(); setIds(ids().filter(other => other !== id)); return; }
     markDirty(); render();
   }
+  // Copy and paste a tile, with its options, onto another page (or the same one): select a tile, press Cmd/Ctrl+C, change page, press Cmd/Ctrl+V.
+  let clip = null;
+  function pasteTile() {
+    if (!clip || ids().length >= pageLimit()) return false;
+    const target = newCopyKey(clip.base);
+    if (!target) return false;
+    const {col, row, page, ...rest} = clip.tile;   // the copy takes the first free place on this page
+    layout.tiles[target] = withPage({...rest, ...(clip.base in LIVE ? {show: true} : {})});
+    if (isCard(target)) { markDirty(); render(); } else setIds([...ids(), target]);
+    selected = ids().indexOf(target); markDirty(); render();
+    return true;
+  }
+  document.addEventListener('keydown', event => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || !['c', 'v'].includes(event.key.toLowerCase())) return;
+    const el = document.activeElement;
+    if (!options.offsetParent || (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable)) || String(window.getSelection?.() || '')) return;   // leave ordinary text copy and paste alone
+    if (event.key.toLowerCase() === 'c') {
+      const id = selected >= 0 ? ids()[selected] : null;
+      if (!id) return;
+      clip = {base: B(id), tile: {...(layout.tiles[id] || {})}}; event.preventDefault();
+    } else if (clip && pasteTile()) event.preventDefault();
+  });
   function patchTile(id, patch) {
     const next = {...tileOf(id), ...patch};
     for (const key of Object.keys(next)) if (next[key] === '' || next[key] === undefined || next[key] === null) delete next[key];
@@ -664,7 +686,7 @@
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields, ...inputFields,
         B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
-        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
+        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height. To copy it to another page, press Cmd/Ctrl+C, change page, then Cmd/Ctrl+V.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),

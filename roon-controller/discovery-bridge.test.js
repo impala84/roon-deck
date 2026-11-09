@@ -10,9 +10,11 @@ test('mix tracks open direct play and queue controls without searching editions'
   const result=await openDiscovery(browser,'isolated',track);
   assert.equal(result.action_menu,true);assert.equal(result.discovery_track_actions,true);assert.deepEqual(result.items.map(item=>item.title),['Play Now','Queue']);assert.equal(calls.length,0);
 });
-test('ambiguous editions remain a manual choice and never auto-open or play',async()=>{
-  let calls=0;const album={kind:'album',title:'Album',artist:'Artist'};const result=await openDiscovery({run:async()=>{calls++;return {items:[1,2].map(id=>({title:'Album',subtitle:'Artist',result_type:'albums',item_key:String(id)}))};}},'s',album);
-  assert.equal(calls,1);assert.equal(result.discovery_ambiguous,true);
+test('several matching editions open the first and never play; no match stays a manual choice',async()=>{
+  const album={kind:'album',title:'Album',artist:'Artist'};const calls=[];
+  const result=await openDiscovery({run:async(s,action,data)=>{calls.push(action);return action==='search'?{items:[1,2].map(id=>({title:'Album',subtitle:'Artist',result_type:'albums',item_key:String(id)}))}:{opened:data.item_key};}},'s',album);
+  assert.equal(result.opened,'1');assert.deepEqual(calls,['search','open']);
+  const none=await openDiscovery({run:async()=>({items:[]})},'s',album);assert.equal(none.discovery_ambiguous,true);
 });
 test('expired selections fail before any official API call',async()=>{
   await assert.rejects(()=>openDiscovery({run:()=>{throw new Error('Must not call');}},'s',null),/no longer available/);

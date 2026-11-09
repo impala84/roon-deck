@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.145 Alpine — 9 November 2026
+
+- **Recent albums open straight away:** when Roon has several editions of the same album, tapping it under Recent opens the first one instead of asking you to choose (it never starts playing).
+- **Copy and paste tiles in the Home builder:** select a tile and press Cmd/Ctrl+C, change page, then Cmd/Ctrl+V. The copy keeps the tile's options and takes the first free place on the page.
+
 ## 1.2.0-beta.144 Alpine — 9 November 2026
 
 - **Tapping a Recent album opens that album:** the lookup searched Roon for the title alone, so a short title like "Lull" found the artist Lull and a page of lullabies instead of the album you played. It now searches for the title and artist together first, matches the exact album, and only falls back to the title alone.

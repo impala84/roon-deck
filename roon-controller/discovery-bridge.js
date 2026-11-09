@@ -19,7 +19,8 @@ async function openDiscovery(browser, session, item) {
     candidates = (result.items || []).filter(candidate => matches(item, candidate));
     if (candidates.length) { found = result; break; }
   }
-  if (candidates.length !== 1) return {...found, message: candidates.length ? 'Several editions match. Choose the version you want.' : 'Roon could not uniquely match this item. Choose a result below.', discovery_ambiguous: true};
+  // Several identical title-and-artist matches are editions of the same album: open the one Roon ranks first (opening never plays). Nothing matching still shows the search results.
+  if (!candidates.length) return {...found, message: 'Roon could not uniquely match this item. Choose a result below.', discovery_ambiguous: true};
   let opened = await browser.run(session,'open',{item_key:candidates[0].item_key});
   // Only unwrap a verified view-only action-list preview. Never choose Play.
   if (item.kind === 'track' && opened.items?.length === 1 && opened.items[0].hint === 'action_list' && !opened.items[0].action && normal(opened.items[0].title) === normal(item.title)) {
