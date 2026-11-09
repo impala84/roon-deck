@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.155 Alpine — 9 November 2026
+
+- Fixes beta.154 failing its release checks: the Roon controller did not list the new "input" icon as servable, so beta.154 was never published. beta.155 carries everything from beta.154.
+
 ## 1.2.0-beta.154 Alpine — 9 November 2026
 
 - **The whole KEF input tile now takes the input's colour** (Wi-Fi white, AUX green, Bluetooth blue, optical purple). Before, only the icon chip changed because a tile colour set in the Home builder painted over it.
