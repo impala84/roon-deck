@@ -119,7 +119,9 @@ class SettingsPageMixin(AccessoriesPageMixin, WifiPageMixin):
         else:
             target_height = 26 if width < 1000 else 32
         accent = "#9868F9" if self.settings_data.get("display_theme") == "roon" else "#6ED9AE"
-        paintable, target_width = wordmark_paintable_tinted(target_height, accent)
+        try: paintable, target_width = wordmark_paintable_tinted(target_height, accent)
+        except Exception as error:   # the image loader can fail under a resource squeeze; keep the wordmark we have rather than abort the screen update
+            print(f"RoonDeck could not draw the wordmark ({error}); keeping the current one", flush=True); return
         self.settings_wordmark.set_paintable(paintable)
         self.settings_wordmark.set_size_request(target_width, target_height)
         self.settings_wordmark_frame.set_size_request(target_width, target_height)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.159 Alpine — 10 November 2026
+
+- **A failed image load can no longer blank the native screen:** the Settings wordmark is drawn by GDK's SVG loader, which can fail under a resource squeeze ("failed to spawn thread"). That error was uncaught in the theme step, so the whole screen update was abandoned and the screen stayed black. The wordmark is now rendered once per size and kept, and a failure there or in the theme step is logged and skipped.
+
 ## 1.2.0-beta.158 Alpine — 9 November 2026
 
 - **The KEF input tile no longer falls back to grey "Unknown":** the input you last chose is now remembered across restarts and updates (before, every update erased it), and Wi-Fi counts as a known input when it was the last one chosen (before, only Roon reporting Wi-Fi counted, and Roon often does not).

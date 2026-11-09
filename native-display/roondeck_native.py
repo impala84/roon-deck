@@ -729,7 +729,9 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         if background is not None:
             if background == "black": self.window.add_css_class("background-black")
             else: self.window.remove_css_class("background-black")
-        if status and "display_theme" in status and config is None: self.apply_theme(status["display_theme"])
+        if status and "display_theme" in status and config is None:
+            try: self.apply_theme(status["display_theme"])
+            except Exception as error: print(f"RoonDeck could not apply the theme ({error}); carrying on", flush=True)   # one failed step must not blank the rest of the screen update
         if isinstance(config, dict) and config:
             grid_changed = self.settings_data.get("portrait_discovery_columns", 2) != config.get("portrait_discovery_columns", 2)
             previous_interface_size = (self.settings_data or {}).get("interface_size", "standard")

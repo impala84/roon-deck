@@ -46,8 +46,17 @@ TZ = ZoneInfo("Asia/Singapore")
 BRAND_ASSETS = Path(__file__).resolve().parent / "assets" / "brand"
 
 
+_WORDMARKS = {}   # (height, accent) -> (texture, width): the SVG loader runs once per size, not on every theme apply
+
+
 def wordmark_paintable_tinted(target_height, accent="#9868F9"):
     """Render the tightly bounded supplied wordmark at an explicit height."""
+    key = (target_height, accent)
+    if key not in _WORDMARKS: _WORDMARKS[key] = _render_wordmark(target_height, accent)
+    return _WORDMARKS[key]
+
+
+def _render_wordmark(target_height, accent):
     source_svg = (BRAND_ASSETS / "roondeck-wordmark.svg").read_text(encoding="utf-8")
     loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
     loader.write(source_svg.replace("#9868F9", accent).encode("utf-8")); loader.close()
