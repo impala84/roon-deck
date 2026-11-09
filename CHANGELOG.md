@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.162 Alpine — 10 November 2026
+
+- **KEF input tile shows "Off" when the speaker is off:** a plain dark tile reading "Off" with "Tap to turn on", instead of a grey "Unknown". Tapping wakes the speaker onto the input chosen for the tile, and the tile then takes that input's colour.
+- **The Wi-Fi tile is now clearly white:** a white outline with a light grey-tinted fill, in line with the other coloured tiles (before, a near-white fill with a grey outline looked dull next to them).
+- **The speaker name sits next to the icon even when short** ("LSX" was centred in the space), and the input arrow icon moved left so it sits in the middle of its circle.
+
 ## 1.2.0-beta.161 Alpine — 10 November 2026
 
 - **Restarting Roon Bridge now really restarts it:** stopping the service only stopped the launcher script, leaving the old helper processes running with their old settings (and thousands of threads). The service now kills any leftover bridge processes when it stops, so a restart or update always starts a fresh, thread-capped bridge.

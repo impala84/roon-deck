@@ -612,10 +612,10 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-kefnarrow .hs-kefbtn { font-size: 15px; padding: 4px 2px; }
 .hs-kefvol .hs-volbig { min-width: 0; }
 /* The KEF input tile takes the colour of the speaker's own LED for the input it is on: Wi-Fi white, AUX green, Bluetooth blue, optical purple. */
-.hs-card.hs-action.is-light { background: #f7f5f0; border-color: #c9c7cf; }
+.hs-card.hs-action.is-light { background: #c9ccd4; border-color: #ffffff; }
 .hs-card.hs-action.is-light .hs-action-value, .hs-card.hs-action.is-light .hs-action-input { color: #1b1a20; }
-.hs-card.hs-action.is-light .hs-action-detail { color: #55525c; }
-.hs-card.hs-action.is-light .hs-action-chip { background: rgba(0,0,0,.08); }
+.hs-card.hs-action.is-light .hs-action-detail { color: #3b3a43; }
+.hs-card.hs-action.is-light .hs-action-chip { background: rgba(255,255,255,.55); }
 .hs-card.hs-action.is-light .hs-action-icon { color: #1b1a20; }
 .hs-action-input { font-size: 30px; font-weight: 700; color: #f4f0e6; }
 .hs-card.hs-action.is-green { background: #24472f; border-color: #5fd08a; }

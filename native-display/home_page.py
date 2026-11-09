@@ -332,7 +332,7 @@ class HomePageMixin:
         if kind == "_input":
             # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
             card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
-            card.insert_child_after(card.input_label, card.head); card.value_label.set_lines(1)
+            card.insert_child_after(card.input_label, card.head); card.value_label.set_wrap(False); card.value_label.set_lines(1); card.value_label.set_xalign(0); card.value_label.set_halign(Gtk.Align.FILL); card.value_label.set_justify(Gtk.Justification.LEFT)
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 
@@ -352,9 +352,13 @@ class HomePageMixin:
             card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose the input in the tile options" if not primary else "Choose the Broadlink remote in Settings"))
             self.set_action_state(card, "input", "alert"); return
         current = self.kef_current_input(data)
+        standby = speaker.get("powered") is not True   # in standby, or Roon cannot see it: either way it is off as far as anyone can tell
+        if standby:
+            card.input_label.set_text("Off")
+            card.detail_label.set_text(note or "Tap to turn on")
+            self.set_action_state(card, "input", None); return
         card.input_label.set_text(self.KEF_INPUT_NAMES.get(current, "Unknown"))   # what the speaker is on now
-        standby = connected and speaker.get("powered") is False
-        card.detail_label.set_text(note or ("Tap to wake and switch" if standby else "Tap to cycle" if (getattr(card, "tile", None) or {}).get("input_alt") else "Tap to switch"))
+        card.detail_label.set_text(note or ("Tap to cycle" if (getattr(card, "tile", None) or {}).get("input_alt") else "Tap to switch"))
         self.set_action_state(card, "input", {"wifi": "light", "aux": "green", "bluetooth": "blue", "optical": "purple"}.get(current))
 
     def kef_tile(self, key):
