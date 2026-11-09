@@ -10,8 +10,15 @@ function matches(item, candidate) {
 async function openDiscovery(browser, session, item) {
   if (!item || !['album', 'track'].includes(item.kind)) throw new Error('This discovery item is no longer available');
   if (item.kind === 'track') return {status:'ready',layout:'list',action_menu:true,discovery_track_actions:true,items:[{title:'Play Now',action:true,item_key:'play'},{title:'Queue',action:true,item_key:'queue'}]};
-  const found = await browser.run(session, 'search', {query:item.title,source:'all'});
-  const candidates = (found.items || []).filter(candidate => matches(item,candidate));
+  // Search by artist and title together first, so "Lull" by Antix is not buried under every artist and lullaby with "lull" in the name; then by title alone.
+  const queries = [...new Set([`${item.title} ${item.artist || ''}`.trim(), item.title])];
+  let found = null, candidates = [];
+  for (const query of queries) {
+    const result = await browser.run(session, 'search', {query, source: 'all'});
+    if (!found) found = result;
+    candidates = (result.items || []).filter(candidate => matches(item, candidate));
+    if (candidates.length) { found = result; break; }
+  }
   if (candidates.length !== 1) return {...found, message: candidates.length ? 'Several editions match. Choose the version you want.' : 'Roon could not uniquely match this item. Choose a result below.', discovery_ambiguous: true};
   let opened = await browser.run(session,'open',{item_key:candidates[0].item_key});
   // Only unwrap a verified view-only action-list preview. Never choose Play.

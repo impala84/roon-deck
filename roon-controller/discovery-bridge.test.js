@@ -17,3 +17,15 @@ test('ambiguous editions remain a manual choice and never auto-open or play',asy
 test('expired selections fail before any official API call',async()=>{
   await assert.rejects(()=>openDiscovery({run:()=>{throw new Error('Must not call');}},'s',null),/no longer available/);
 });
+test('an album is searched by title and artist first, then by title alone',async()=>{
+  const queries=[];const album={kind:'album',title:'Lull',artist:'Antix'};
+  const browser={run:async(session,action,data)=>{queries.push(data.query||action);
+    if(action==='search'&&data.query==='Lull Antix')return {items:[{title:'Lull',subtitle:'Antix',result_type:'albums',item_key:'7'}]};
+    if(action==='search')return {items:[{title:'Lullabies',subtitle:'Other',result_type:'albums',item_key:'1'}]};
+    return {opened:data.item_key};}};
+  const result=await openDiscovery(browser,'s',album);
+  assert.deepEqual(queries,['Lull Antix','open']);assert.equal(result.opened,'7');
+  const fallback=[];
+  const second=await openDiscovery({run:async(session,action,data)=>{fallback.push(data.query||action);return data.query==='Lull'?{items:[{title:'Lull',subtitle:'Antix',result_type:'albums',item_key:'9'}]}:action==='search'?{items:[]}:{opened:data.item_key};}},'s',album);
+  assert.deepEqual(fallback,['Lull Antix','Lull','open']);assert.equal(second.opened,'9');
+});
