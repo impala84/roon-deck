@@ -89,6 +89,9 @@ def _home_entities(home):
 
 def dispatch(base, binding, delta=None):
     """Run a binding, then its optional "also" follow-up (pause/play Roon or run a Home script)."""
+    if binding.get("action") in {"volume", "volume_delta", "mute", "roon_volume", "roon_mute"}:
+        try: request(base, "/api/listening/command", {"action": "deck_volume"})   # tells the touchscreen this volume change came from the deck
+        except Exception: pass
     result = _dispatch(base, binding, delta)
     steps = binding.get("also") or []
     for also in (steps if isinstance(steps, list) else [steps]):

@@ -697,6 +697,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 self.detail_signature = None
             self.load_detail_artist_profile_async(detail_artist)
         target = target_response.get("target") if isinstance(target_response, dict) else None
+        deck_ago = target_response.get("deck_volume_ago") if isinstance(target_response, dict) else None
         GLib.idle_add(self.apply, target, status, roon, config, system, device, key, None)
         if capture_id and capture_id != getattr(self, "last_capture_id", None):
             self.last_capture_id = capture_id
@@ -842,7 +843,8 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         elif (not asleep and previous_volume is not None and volume_signature != previous_volume
                 and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")
                 and not self.settings_open
-                and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20):
+                and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20
+                and not (isinstance(deck_ago, (int, float)) and deck_ago < 10)):   # a Stream Deck turn changes the volume quietly
             # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial). Show the Roon
             # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
             target = "http://127.0.0.1:8766/"

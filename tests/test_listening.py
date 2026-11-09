@@ -259,6 +259,14 @@ class ListeningTests(unittest.TestCase):
         with self.assertRaises(ValueError): dispatch("http://localhost", {"action": "https://example.com"})
 
     @patch("pi_bus_time_display.streamdeck.request")
+    def test_deck_volume_changes_are_tagged_so_the_screen_stays_put(self, request):
+        dispatch("http://localhost", {"action": "roon_volume", "step": 1}, 2)
+        self.assertEqual(request.call_args_list[0].args[1:], ("/api/listening/command", {"action": "deck_volume"}))
+        request.reset_mock()
+        dispatch("http://localhost", {"action": "next"})
+        self.assertEqual(request.call_count, 1)
+
+    @patch("pi_bus_time_display.streamdeck.request")
     def test_home_scripts_run_once_per_click_and_dials_choose_a_script_by_direction(self, request):
         dial = {"action": "home_script_dial", "entity_id": "script.topping_vol_up", "entity_id_ccw": "script.topping_vol_down"}
         dispatch("http://localhost", dial, 3)

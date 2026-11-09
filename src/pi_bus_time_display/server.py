@@ -1212,7 +1212,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
             if self.path.startswith("/login.html?"):
                 self.path = "/login.html"
             if self.path == "/api/display-target":
-                self.send_json(200, json.dumps({"target": automatic_display_target(state, mode_path, roon_status()), "screen_powered": state.screen_powered}).encode())
+                self.send_json(200, json.dumps({"target": automatic_display_target(state, mode_path, roon_status()), "screen_powered": state.screen_powered,
+                    "deck_volume_ago": round(time.monotonic() - state.deck_volume_at, 1) if getattr(state, "deck_volume_at", None) else None}).encode())
                 return
             if self.path == "/display":
                 self.send_response(302)
@@ -1602,6 +1603,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         if data.get("save") is True:
                             saved = state.listening.settings(); saved["streamdeck_brightness"] = value
                             state.listening.save(saved)
+                        result = {"ok": True}
+                    elif data.get("action") == "deck_volume":
+                        # A Stream Deck volume change: the touchscreen should not jump to Now Playing for it, as it does for the remote.
+                        state.deck_volume_at = time.monotonic()
                         result = {"ok": True}
                     elif data.get("action") == "remote":
                         value = data.get("value")
