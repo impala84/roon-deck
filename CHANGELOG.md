@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.147 Alpine — 9 November 2026
+
+- **Discover › Recent › Listened shows far more albums:** it read only the last 16 plays, which is about 8 albums once tracks from the same album are merged. It now reads the last 200 plays and lists up to 40 albums, newest first.
+
 ## 1.2.0-beta.146 Alpine — 9 November 2026
 
 - **KEF volume and KEF speaker tiles redesigned:** the leftover control-strip styling is gone. KEF volume is a headline and a large number with a small minus and plus either side; tap the number to mute. KEF speaker is the same with Wake/Standby and the input button beneath. The builder preview and the web Home page match.
