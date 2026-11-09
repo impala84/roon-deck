@@ -109,6 +109,7 @@ class ListeningTests(unittest.TestCase):
         self.settings["kef_ir_remote"] = "remote.study"
         self.write()
         send = Mock()
+        self.speaker.status.return_value = {"connected": True, "powered": True, "input": "wifi", "volume": 20, "muted": False}
         controls = ListeningControls(self.path, lambda *args: self.speaker, ir_sender=send)
         result = controls.command("input", "aux")
         send.assert_called_once_with("remote.study", "aux")
@@ -135,6 +136,18 @@ class ListeningTests(unittest.TestCase):
         self.assertEqual(send.call_args.args, ("remote.study", "wifi"))
         controls.command("preset", tile)
         self.assertEqual(send.call_args.args, ("remote.study", "aux"))
+        self.assertEqual(self.speaker.command.call_count, 1)
+
+    @patch("pi_bus_time_display.listening.time.sleep")
+    def test_a_kef_not_on_wifi_is_woken_unless_an_input_was_sent_recently(self, _sleep):
+        self.settings.update(kef_ir_remote="remote.study")
+        self.write()
+        send = Mock()
+        self.speaker.status.return_value = {"connected": True, "powered": True, "input": "unknown", "volume": 20, "muted": False}
+        controls = ListeningControls(self.path, lambda *args: self.speaker, ir_sender=send)
+        controls.command("input", "aux")
+        self.speaker.command.assert_called_once_with("power", True)
+        controls.command("input", "optical")
         self.assertEqual(self.speaker.command.call_count, 1)
 
     def test_settings_saved_by_beta_136_with_preset_keys_still_load(self):

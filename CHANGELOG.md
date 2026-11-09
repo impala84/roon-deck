@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.140 Alpine — 9 November 2026
+
+- **KEF input tile wakes a sleeping speaker:** Roon does not always report a sleeping KEF as "standby" (it can look the same as being on AUX), so the tile now wakes the speaker through Roon unless it is on Wi-Fi or an input was sent in the last 10 minutes. The wake is followed by a short pause, then the infrared input.
+
 ## 1.2.0-beta.139 Alpine — 9 November 2026
 
 - **Fixed "Unknown listening setting" on Listening & KEF:** settings saved by beta.136 (which stored the input presets on that page) were rejected by beta.137/138. Those old keys are now ignored on load; set the input on the KEF input tile.

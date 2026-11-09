@@ -184,6 +184,7 @@ class ListeningControls:
         self.state = {"enabled": False, "kef": {"connected": False},
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
                       "error": "", "notice": "", "ir_available": False, "presets": {"last": ""}}
+        self.last_ir = -1e9   # when an input was last sent by infrared
         self.wake_delay = 3.0   # the LSX needs a moment after wake before it listens to infrared
 
     def settings(self):
@@ -260,15 +261,18 @@ class ListeningControls:
                     if value not in INPUTS: raise ValueError("Choose a supported KEF input")
                     if self.ir_sender is None: raise ValueError("Home Assistant infrared control is unavailable")
                     woke = False
-                    try: powered = speaker.status().get("powered")
-                    except OSError: powered = None
-                    if powered is False:
-                        # Infrared is ignored in standby: wake the speaker through Roon first.
+                    try: status = speaker.status()
+                    except OSError: status = {}
+                    # Roon only reports "selected" while the KEF is on its Wi-Fi input; on AUX or in a light sleep it can look the same as "on".
+                    # So wake unless the KEF is on Wi-Fi, or we sent it an input a few minutes ago (it has not had time to doze off).
+                    recent = time.monotonic() - self.last_ir < 600
+                    if status.get("powered") is False or (status.get("input") != "wifi" and not recent):
                         speaker.command("power", True)
                         self.confirm(speaker, lambda status: status.get("powered") is True, "The KEF did not wake up")
                         woke = True
                         time.sleep(self.wake_delay)
                     self.ir_sender(settings["kef_ir_remote"], value)
+                    self.last_ir = time.monotonic()
                     self.state["ir_available"] = True
                     self.state.setdefault("presets", {})["last"] = value
                     label = value.upper() if value == "aux" else value.title()
