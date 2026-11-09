@@ -154,7 +154,7 @@ class HomeDashboardMixin:
             card.icon_name = icon; image = FamilyIcon(icon, 26); image.add_css_class("hs-action-icon"); image.set_halign(Gtk.Align.CENTER); image.set_valign(Gtk.Align.CENTER); image.set_hexpand(True)
             while child := card.chip.get_first_child(): card.chip.remove(child)
             card.chip.append(image)
-        for name in ("ok", "alert", "active", "light", "green", "purple"):
+        for name in ("ok", "alert", "active", "light", "green", "purple", "blue"):
             (card.add_css_class if name == state else card.remove_css_class)("is-" + name)
 
     # ---- update tile: shows whether a newer RoonDeck is out and installs it on a tap ----
@@ -608,7 +608,7 @@ class HomeDashboardMixin:
         if big: button.add_css_class("home-big")
         chip = 88 if big else round(64 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
         icon = self.home_icon_for(entity, domain, True, scale * (1.5 if big else 1), accent); icon.set_hexpand(True); holder.append(icon)
-        name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(False); name.set_lines(1); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # one line, so a long scene name cannot make its tile taller
+        name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(True); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR); name.set_lines(2); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # up to two lines now that the caption line is gone
         available = entity.get("available", True)
         status = self.label("" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
         if big:

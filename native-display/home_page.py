@@ -345,13 +345,13 @@ class HomePageMixin:
         if not enabled or not primary or not data.get("ir_available"):
             card.value_label.set_text("KEF input")
             card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose the input in the tile options" if not primary else "Choose the Broadlink remote in Settings"))
-            self.set_action_state(card, "link", "alert"); return
+            self.set_action_state(card, "input", "alert"); return
         current = self.kef_current_input(data)
         card.value_label.set_text(self.KEF_INPUT_NAMES.get(current, "KEF input"))   # what the speaker is on now; the line below says where a tap goes
         standby = connected and speaker.get("powered") is False
         target = self.KEF_INPUT_NAMES.get(nxt, nxt)
         card.detail_label.set_text(note or (f"Wakes the KEF, then switches to {target}" if standby else (getattr(card, "tile", None) or {}).get("label") or f"Tap to switch to {target}"))
-        self.set_action_state(card, "link", {"wifi": "light", "aux": "green", "bluetooth": "active", "optical": "purple"}.get(current))
+        self.set_action_state(card, "input", {"wifi": "light", "aux": "green", "bluetooth": "blue", "optical": "purple"}.get(current))
 
     def kef_tile(self, key):
         if key in self.kef_tiles: return self.kef_tiles[key]

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.154 Alpine — 9 November 2026
+
+- **The whole KEF input tile now takes the input's colour** (Wi-Fi white, AUX green, Bluetooth blue, optical purple). Before, only the icon chip changed because a tile colour set in the Home builder painted over it.
+- The KEF input tile has its own "input" icon instead of the link icon.
+- Scene tiles such as "Study desk cycle" can use two lines for the name now that the caption line is gone.
+
 ## 1.2.0-beta.153 Alpine — 9 November 2026
 
 - The display's "could not start a poll thread" log line now carries the time and the display's thread count, so the cause of any recurrence can be traced.
