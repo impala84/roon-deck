@@ -78,7 +78,7 @@ def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
     for retired in ("kef_input_preset", "kef_input_alt"): data.pop(retired, None)   # beta.136 saved these here; the input now belongs to the Home tile
-    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "off_label", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     data.pop("modes", None)   # listening modes were removed: input is switched by infrared, volume by Roon
     host = data.get("kef_host", "")
@@ -92,6 +92,7 @@ def validate_settings(data):
     remote = data.get("kef_ir_remote", "")
     if not isinstance(remote, str) or (remote and not re.fullmatch(r"remote\.[a-z0-9_]{1,100}", remote)):
         raise ValueError("Choose a Broadlink remote entity")
+    if not isinstance(data.get("off_label", ""), str) or len(data.get("off_label", "")) > 30: raise ValueError("The speaker-off text must be 30 characters or fewer")
     maximum = data.get("maximum_volume", 50)
     if type(maximum) is not int or not 0 <= maximum <= 100:
         raise ValueError("maximum_volume must be between 0 and 100")
@@ -135,11 +136,18 @@ def validate_settings(data):
             if "level_entity" in binding and (not isinstance(binding["level_entity"], str) or not re.fullmatch(r"(light|fan)\.[a-z0-9_]{1,100}", binding["level_entity"])):
                 raise ValueError("Choose a light or fan to show the level of")
             if "also" in binding:
-                also = binding["also"]
-                if not isinstance(also, dict) or set(also) - {"action", "entity_id"} or also.get("action", "none") not in {"none", "pause", "play", "home_script"}:
-                    raise ValueError("Choose a supported follow-up action")
-                if also.get("action") == "home_script" and not (isinstance(also.get("entity_id"), str) and also["entity_id"].startswith("script.") and len(also["entity_id"]) <= 200):
-                    raise ValueError("Choose a Home Assistant script")
+                # Follow-up steps run after the key's own action: one step, or a list of up to four.
+                steps = binding["also"] if isinstance(binding["also"], list) else [binding["also"]]
+                if len(steps) > 4: raise ValueError("A key can run up to four follow-up steps")
+                for also in steps:
+                    if not isinstance(also, dict) or set(also) - {"action", "entity_id", "zone", "value"} or also.get("action", "none") not in {"none", "pause", "play", "home_script", "kef_input"}:
+                        raise ValueError("Choose a supported follow-up action")
+                    if also.get("action") == "home_script" and not (isinstance(also.get("entity_id"), str) and also["entity_id"].startswith("script.") and len(also["entity_id"]) <= 200):
+                        raise ValueError("Choose a Home Assistant script")
+                    if also.get("action") == "kef_input" and also.get("value") not in INPUTS:
+                        raise ValueError("Choose a KEF input for the follow-up step")
+                    if "zone" in also and (not isinstance(also["zone"], str) or len(also["zone"]) > 80):
+                        raise ValueError("Choose a Roon zone")
             if "press" in binding:
                 if is_press or not isinstance(binding["press"], dict): raise ValueError("Invalid dial press binding")
                 validate_binding(binding["press"], True)
@@ -267,8 +275,14 @@ class ListeningControls:
                     # So wake unless the KEF is on Wi-Fi, or we sent it an input a few minutes ago (it has not had time to doze off).
                     recent = time.monotonic() - self.last_ir < 600
                     if status.get("powered") is False or (status.get("input") != "wifi" and not recent):
-                        speaker.command("power", True)
-                        self.confirm(speaker, lambda status: status.get("powered") is True, "The KEF did not wake up")
+                        # Roon can take longer than its own timeout to confirm the wake (the speaker is on, but its reply is late): do not let that stop the input change.
+                        try: speaker.command("power", True)
+                        except OSError: pass
+                        for _attempt in range(10):
+                            try:
+                                if speaker.status().get("powered") is True: break
+                            except OSError: pass
+                            time.sleep(.5)
                         woke = True
                         time.sleep(self.wake_delay)
                     self.ir_sender(settings["kef_ir_remote"], value)
@@ -323,7 +337,8 @@ def referenced_entities(settings):
         if not isinstance(binding, dict): continue
         add(binding.get("entity_id")); add(binding.get("entity_id_ccw")); add(binding.get("level_entity"))
         if isinstance(binding.get("press"), dict): add(binding["press"].get("entity_id"))
-        if isinstance(binding.get("also"), dict): add(binding["also"].get("entity_id"))
+        for step in (binding.get("also") if isinstance(binding.get("also"), list) else [binding.get("also")]):
+            if isinstance(step, dict): add(step.get("entity_id"))
     if isinstance(settings.get("on_play"), dict): add(settings["on_play"].get("script"))
     return found
 

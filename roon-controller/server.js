@@ -518,7 +518,10 @@ http.createServer(async (request, response) => {
       if (url.pathname === '/api/accessory/control') {
         return json(response, 200, await accessoryControl.run(await body(request)));
       }
-      const data = await body(request); const zone = selectedZone();
+      const data = await body(request);
+      // A Stream Deck key can pause or play a named zone rather than the selected one.
+      const named = url.pathname === '/api/control' && typeof data.zone === 'string' && data.zone ? [...zones.values()].find(item => item.display_name === data.zone || (item.outputs || []).some(output => output.display_name === data.zone)) : null;
+      const zone = named || selectedZone();
       if (url.pathname === '/api/bluos/input') {
         await bluos.selectInput(data.input_id); return json(response, 200, {ok: true});
       }

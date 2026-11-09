@@ -382,12 +382,30 @@
   }
 
   let onPlay = {};
+  // Roon zone names for the pause/play follow-up steps; blank means "the zone Roon is using".
+  let roonZoneNames = [];
+  fetch('/roon/api/accessory/outputs').then(response => response.ok ? response.json() : {outputs: []}).then(data => { roonZoneNames = [...new Set((data.outputs || []).map(item => item.zone).filter(Boolean))]; }).catch(() => {});
   function alsoFields(binding) {
-    const also = binding.also || (binding.also = {action: 'none'});
-    const choice = selectOf([['none', 'Nothing'], ['pause', 'Pause Roon'], ['play', 'Play Roon'], ['home_script', 'Run a Home script']], also.action || 'none');
-    choice.onchange = () => { also.action = choice.value; if (choice.value !== 'home_script') delete also.entity_id; markDirty(); render(); };
-    return h('div', {class: 'dd-group'}, field('Also do this when pressed', choice, 'For example pause Roon when you switch to the Mac.'),
-      also.action === 'home_script' ? entityPicker(also, markDirty, item => item.domain === 'script', 'Script to run') : null);
+    // Follow-up steps run, in order, after the key's own action (up to four): pause or play a Roon zone, set a KEF input, or run a Home script.
+    const steps = Array.isArray(binding.also) ? binding.also : (binding.also = binding.also && binding.also.action && binding.also.action !== 'none' ? [binding.also] : []);
+    const rows = steps.map((step, index) => {
+      const choice = selectOf([['pause', 'Pause Roon'], ['play', 'Play Roon'], ['kef_input', 'Switch the KEF input'], ['home_script', 'Run a Home script']], step.action || 'pause');
+      choice.onchange = () => { step.action = choice.value; delete step.entity_id; delete step.zone; delete step.value; if (choice.value === 'kef_input') step.value = 'aux'; markDirty(); render(); };
+      const extra = [];
+      if (step.action === 'home_script') extra.push(entityPicker(step, markDirty, item => item.domain === 'script', 'Script to run'));
+      if (step.action === 'kef_input') { const input = selectOf(SOURCES, step.value || 'aux'); input.onchange = () => { step.value = input.value; markDirty(); }; extra.push(field('KEF input', input)); }
+      if (step.action === 'pause' || step.action === 'play') {
+        const names = roonZoneNames.concat(step.zone && !roonZoneNames.includes(step.zone) ? [step.zone] : []);
+        const zone = selectOf([['', 'The zone Roon is using'], ...names.map(name => [name, name])], step.zone || '');
+        zone.onchange = () => { if (zone.value) step.zone = zone.value; else delete step.zone; markDirty(); };
+        extra.push(field('Roon zone', zone, 'Choose a zone to pause or play it directly, even when it is not the selected one.'));
+      }
+      const remove = h('button', {type: 'button', class: 'cd-quiet'}, 'Remove this step'); remove.onclick = () => { steps.splice(index, 1); markDirty(); render(); };
+      return h('div', {class: 'dd-group'}, field(`Then (step ${index + 1})`, choice), ...extra, remove);
+    });
+    const add = h('button', {type: 'button', class: 'cd-quiet'}, steps.length ? 'Add another step' : 'Also do something when pressed');
+    add.onclick = () => { if (steps.length < 4) { steps.push({action: 'pause'}); markDirty(); render(); } };
+    return h('div', {class: 'dd-group'}, ...rows, steps.length < 4 ? add : null, h('small', {class: 'cd-muted'}, 'For example, on a Mac key: switch the KEF input, pause Roon, then run the Topping input script.'));
   }
   const deckBrightness = h('input', {type: 'range', min: 10, max: 100, step: 5, 'aria-label': 'Stream Deck brightness'});
   const deckBrightnessValue = h('output', {}, '');
@@ -457,7 +475,7 @@
         settings.streamdeck_awake_seconds = Math.max(5, Math.min(3600, Math.round(Number(wake.awake.value) || 30)));
         settings.streamdeck_brightness = Number(deckBrightness.value);
         settings.on_play = Object.fromEntries(Object.entries(onPlay).filter(([, value]) => value));
-        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.level_entity) { delete out.level_entity; delete out.level_color; } else if (!out.level_color || out.level_color.toLowerCase() === GLOW) delete out.level_color; if (!out.also || out.also.action === 'none') delete out.also; return out; });
+        settings.buttons = buttons.map(item => { const out = {...item}; if (!out.label) delete out.label; if (!out.image) delete out.image; if (!out.color) delete out.color; if (!out.active_color) delete out.active_color; if (!out.level_entity) { delete out.level_entity; delete out.level_color; } else if (!out.level_color || out.level_color.toLowerCase() === GLOW) delete out.level_color; const steps = (Array.isArray(out.also) ? out.also : out.also ? [out.also] : []).filter(step => step && step.action && step.action !== 'none').map(step => ({...step})); if (steps.length) out.also = steps; else delete out.also; return out; });
         settings.dials = dials.map(item => ({label: item.label || '', action: item.action, entity_id: item.entity_id || '', ...(item.action === 'home_script_dial' ? {entity_id_ccw: item.entity_id_ccw || ''} : {}), step: item.step || 1, ...(item.action === 'remote_steps' ? {device: item.device || '', command: item.command || '', min: item.min, max: item.max, start: item.start, unit: item.unit || ''} : {}), ...(item.color ? {color: item.color} : {}), ...(item.text_color ? {text_color: item.text_color} : {}),
           press: {action: item.press.action, ...(['home_toggle', 'home_script'].includes(item.press.action) ? {entity_id: item.press.entity_id || ''} : {}), ...(item.press.action === 'remote_toggle' ? {entity_id: item.press.entity_id || '', device: item.press.device || '', command_on: item.press.command_on || '', command_off: item.press.command_off || '', initial_on: !!item.press.initial_on, off_only: !!item.press.off_only} : {})}}));
         await SHARED().save();

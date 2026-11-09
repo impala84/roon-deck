@@ -376,6 +376,33 @@ class StreamDeckExtrasTests(unittest.TestCase):
         self.assertEqual(calls[1], ("/roon/api/control", {"action": "pause"}))
         self.assertEqual(calls[3], ("/api/listening/command", {"action": "scene", "value": "script.lamp"}))
 
+    def test_a_key_runs_several_follow_up_steps_in_order(self):
+        from unittest import mock
+        from pi_bus_time_display import streamdeck
+        calls = []
+        key = {"action": "input", "value": "aux", "also": [{"action": "pause", "zone": "Study"}, {"action": "home_script", "entity_id": "script.topping_mac"}, {"action": "kef_input", "value": "optical"}]}
+        with mock.patch.object(streamdeck, "request", lambda base, path, payload=None: calls.append((path, payload)) or {}):
+            streamdeck.dispatch("b", key)
+        self.assertEqual(calls[1:], [("/roon/api/control", {"action": "pause", "zone": "Study"}), ("/api/listening/command", {"action": "scene", "value": "script.topping_mac"}), ("/api/listening/command", {"action": "input", "value": "optical"})])
+        from pi_bus_time_display.listening import validate_settings
+        validate_settings({"buttons": [key]})
+        with self.assertRaises(ValueError): validate_settings({"buttons": [{**key, "also": [{"action": "pause"}] * 5}]})
+        with self.assertRaises(ValueError): validate_settings({"buttons": [{**key, "also": [{"action": "kef_input", "value": "hdmi"}]}]})
+
+    @patch("pi_bus_time_display.listening.time.sleep")
+    def test_a_roon_wake_timeout_does_not_stop_the_input_change(self, _sleep):
+        import tempfile, json
+        from pathlib import Path
+        folder = Path(tempfile.mkdtemp()); path = folder / "listening.json"
+        path.write_text(json.dumps({"enabled": True, "kef_roon_output_id": "o", "kef_ir_remote": "remote.study"}))
+        speaker = Mock(); send = Mock()
+        speaker.status.side_effect = [{"connected": True, "powered": False}, {"connected": True, "powered": True}]
+        speaker.command.side_effect = OSError("Roon KEF control timed out.")
+        controls = ListeningControls(path, lambda *args: speaker, ir_sender=send)
+        result = controls.command("input", "aux")
+        send.assert_called_once_with("remote.study", "aux")
+        self.assertIn("Woke the KEF", result["notice"])
+
     def test_also_follow_up_is_validated(self):
         from pi_bus_time_display.listening import validate_settings
         validate_settings({"buttons": [{"action": "home_script", "entity_id": "script.a", "also": {"action": "pause"}}]})

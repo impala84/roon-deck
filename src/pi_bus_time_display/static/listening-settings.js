@@ -65,6 +65,7 @@
       } catch (error) { irHint.textContent = `Could not search Home Assistant (${error.message}). Type the entity id below.`; }
     })();
     irRemote.onchange = () => { irManual.value = irRemote.value; };
+    const offLabel = h('input', {type: 'text', maxlength: 30, placeholder: 'Speakers off'}); offLabel.value = settings.off_label || '';
     const maximum = h('input' , {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
 
     const speakers = h('section', {class: 'cd-card'},
@@ -74,6 +75,7 @@
         labelled('KEF output in Roon', roonOutput, 'Choose the KEF speaker itself (not the Pi). Roon handles wake, standby, volume and mute.'),
         labelled('Broadlink input remote', irRemote, 'Pick the Broadlink remote Home Assistant found. It needs a clear infrared path to the speaker.'),
         labelled('…or enter it manually', irManual, 'Fallback if the search finds nothing, for example remote.wi_fi_universal_remote.'),
+        labelled('Text when the speaker is off', offLabel, 'Shown on the Stream Deck volume dial when Roon has no volume to show because the speaker is off. Leave blank for "Speakers off".'),
         labelled('Maximum volume (%)', maximum, 'The highest volume the touchscreen, Stream Deck and remote can set')),
       irHint, connection);
 
@@ -82,6 +84,7 @@
       settings.enabled = enabled.checked;
       settings.kef_roon_output_id = roonOutput.value;
       settings.kef_ir_remote = (irManual.value.trim() || irRemote.value).trim();   // a typed id wins; otherwise the remote picked from the list
+      settings.off_label = offLabel.value.trim();
       settings.maximum_volume = Number(maximum.value);
     });
 

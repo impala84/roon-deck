@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.141 Alpine — 9 November 2026
+
+- **KEF input no longer stops after waking the speaker:** Roon can reply late to the wake ("timed out") even though the speaker is on. The tile now carries on and sends the infrared input anyway.
+- **Stream Deck keys can run several follow-up steps** (up to four), in order: pause or play Roon, switch the KEF input, or run a Home script. A Mac key can now switch the KEF input, pause Roon and run the Topping input script.
+- **Pause/play can target a named Roon zone** instead of whichever zone is selected.
+- **Speaker-off text:** the Stream Deck volume dial shows "Speakers off" (editable under Listening & KEF) instead of "No zone" when the speaker is off.
+
 ## 1.2.0-beta.140 Alpine — 9 November 2026
 
 - **KEF input tile wakes a sleeping speaker:** Roon does not always report a sleeping KEF as "standby" (it can look the same as being on AUX), so the tile now wakes the speaker through Roon unless it is on Wi-Fi or an input was sent in the last 10 minutes. The wake is followed by a short pause, then the infrared input.

@@ -90,11 +90,19 @@ def _home_entities(home):
 def dispatch(base, binding, delta=None):
     """Run a binding, then its optional "also" follow-up (pause/play Roon or run a Home script)."""
     result = _dispatch(base, binding, delta)
-    also = binding.get("also") or {}
-    if also.get("action") in {"pause", "play"}:
-        request(base, "/roon/api/control", {"action": also["action"]})
-    elif also.get("action") == "home_script" and also.get("entity_id"):
-        request(base, "/api/listening/command", {"action": "scene", "value": also["entity_id"]})
+    steps = binding.get("also") or []
+    for also in (steps if isinstance(steps, list) else [steps]):
+        try:
+            if also.get("action") in {"pause", "play"}:
+                body = {"action": also["action"]}
+                if also.get("zone"): body["zone"] = also["zone"]   # a named Roon zone, instead of whichever is selected
+                request(base, "/roon/api/control", body)
+            elif also.get("action") == "home_script" and also.get("entity_id"):
+                request(base, "/api/listening/command", {"action": "scene", "value": also["entity_id"]})
+            elif also.get("action") == "kef_input" and also.get("value"):
+                request(base, "/api/listening/command", {"action": "input", "value": also["value"]})
+        except Exception:
+            continue   # one failed step must not stop the ones after it
     return result
 
 
@@ -338,7 +346,7 @@ class Painter:
                 continue
             elif action == "roon_volume":   # the Roon zone's own volume, shown as Roon shows it (a plain number, or dB), whatever the KEF is doing
                 roon = state.get("roon_volume") or {}
-                if roon.get("value") is None: detail = "Fixed volume" if roon.get("fixed") else "No zone"
+                if roon.get("value") is None: detail = "Fixed volume" if roon.get("fixed") else (roon.get("off_label") or "Speakers off")
                 else:
                     value, low, high = roon["value"], roon.get("min", 0), roon.get("max", 100)
                     shown = f"{value:g} dB" if roon.get("type") == "db" else f"{value:g}"
@@ -481,7 +489,7 @@ def run(controls, base, stop):
                     try: volume = ((request(base, "/roon/api/state").get("zone") or {}).get("output") or {}).get("volume") or {}
                     except (ValueError, OSError): volume = {}
                     fixed = volume.get("type") == "fixed" or (bool(volume) and not isinstance(volume.get("value"), (int, float)))
-                    state = {**state, "roon_volume": {"value": volume.get("value") if isinstance(volume.get("value"), (int, float)) else None, "min": volume.get("min", 0), "max": volume.get("max", 100), "type": volume.get("type"), "muted": bool(volume.get("is_muted")), "fixed": fixed}}
+                    state = {**state, "roon_volume": {"value": volume.get("value") if isinstance(volume.get("value"), (int, float)) else None, "min": volume.get("min", 0), "max": volume.get("max", 100), "type": volume.get("type"), "muted": bool(volume.get("is_muted")), "fixed": fixed, "off_label": settings.get("off_label") or "Speakers off"}}
                 track = playing.get("now_playing") or {}
                 cover_key = track.get("image_key") or ""
                 elapsed = int(playing.get("seek_position") or 0) if track else None
