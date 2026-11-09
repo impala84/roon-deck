@@ -222,10 +222,15 @@
       const INPUT_NAMES = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
       const input = B(id) === 'roondeck.kef_input', ready = input && !!tile.input, chip = h('span', {class: 'hd-nk-chip'});
       chip.innerHTML = input
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+        ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 32h11 M15 23h13a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H15Z M31 27h14v10H31 M38 27v10 M45 29h13v6H45"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? ({wifi: 'light', aux: 'green', bluetooth: 'blue', optical: 'purple'}[tile.input] || '') : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
-        h('small', {}, tile.label || (input ? (ready ? `Tap to switch to ${INPUT_NAMES[tile.input_alt] || INPUT_NAMES[tile.input]}` : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
+      if (input) {
+        // Icon and speaker name, the current input in large type, then a small hint: the same three lines as the touchscreen.
+        const hint = ready ? (tile.input_alt ? 'Tap to cycle' : 'Tap to switch') : 'Choose the input in the tile options';
+        return [h('div', {class: `hd-nk hd-nk-action hd-nk-in ${ready ? ({wifi: 'light', aux: 'green', bluetooth: 'blue', optical: 'purple'}[tile.input] || '') : 'alert'}`},
+          h('span', {class: 'hd-nk-head'}, chip, h('b', {}, tile.label || 'KEF')), h('strong', {}, ready ? INPUT_NAMES[tile.input] : '\u2014'), h('small', {}, hint))];
+      }
+      return [h('div', {class: 'hd-nk hd-nk-action active'}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, 'Standby')), h('small', {}, 'KEF is on \u00b7 tap for standby'))];
     }
     if (B(id) in KEF) {
       // KEF volume and KEF speaker, at the touchscreen's real pixel sizes. Plus and minus need a wide tile; a half column shows the number alone.

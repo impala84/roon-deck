@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.156 Alpine — 9 November 2026
+
+- **KEF input tile redesigned:** the icon and the speaker's name (the tile's label in the Home builder, e.g. "LSX") on top, the input it is on in large type underneath, and a small "Tap to cycle" hint at the bottom. A new audio-jack icon replaces the arrow-in-a-box.
+- **Wi-Fi is now a proper white tile:** a near-white panel with a light grey border and dark text, no longer a muted grey.
+- **A two-line scene name stays inside its tile:** the empty caption line no longer takes height, and the icon is a little smaller, so "Study desk cycle" is not clipped at the bottom.
+- The builder preview shows the same three-line KEF input layout.
+
 ## 1.2.0-beta.155 Alpine — 9 November 2026
 
 - Fixes beta.154 failing its release checks: the Roon controller did not list the new "input" icon as servable, so beta.154 was never published. beta.155 carries everything from beta.154.

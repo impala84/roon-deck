@@ -606,11 +606,11 @@ class HomeDashboardMixin:
         self.home_card_classes(button, entity, domain, key, rules, True); button.add_css_class("home-scene"); button.add_css_class("scene-action")
         big = self.home_big_tiles()
         if big: button.add_css_class("home-big")
-        chip = 88 if big else round(64 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
+        chip = 88 if big else round(52 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
         icon = self.home_icon_for(entity, domain, True, scale * (1.5 if big else 1), accent); icon.set_hexpand(True); holder.append(icon)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(True); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR); name.set_lines(2); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # up to two lines now that the caption line is gone
         available = entity.get("available", True)
-        status = self.label("" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
+        status = self.label("" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile; status.set_visible(bool(status.get_text()))   # an empty caption must not take height: a two-line name needs the room
         if big:
             # Like the bus tile: the icon on the left, centred, with the name and its caption beside it.
             content = Gtk.Box(spacing=22); content.set_valign(Gtk.Align.CENTER); content.set_margin_start(14); content.set_margin_end(10)

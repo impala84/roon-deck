@@ -200,7 +200,7 @@ class HomePageMixin:
             box.append(control_row)
             name = self.label(tile.get("label") or entity.get("name", "Device"), "home-name", 0 if row_mode else .5); name.set_wrap(True); name.set_lines(2); name.set_justify(Gtk.Justification.LEFT if row_mode else Gtk.Justification.CENTER); (details if row_mode else box).append(name)
             state_label = self.label(detail, "home-state", 0 if row_mode else .5); (details if row_mode else box).append(state_label)
-            if scene: button.scene_status_label = state_label
+            if scene: button.scene_status_label = state_label; state_label.set_visible(bool(detail))
             if row_mode: box.append(details)
             if custom:
                 span, height = size_of(entity); column, row = placed[index]
@@ -219,18 +219,18 @@ class HomePageMixin:
 
     def activate_home_scene(self, button, entity_id):
         if not entity_id: return
-        button.add_css_class("activated"); button.scene_tile.add_css_class("activated"); button.set_sensitive(False); button.scene_status_label.set_text("ACTIVATING…")
+        button.add_css_class("activated"); button.scene_tile.add_css_class("activated"); button.set_sensitive(False); button.scene_status_label.set_text("ACTIVATING…"); button.scene_status_label.set_visible(True)
         def send():
             result = post_json(BUS + "/api/device/home-toggle", {"entity_id": entity_id})
             def finish():
-                button.scene_status_label.set_text("ACTIVATED" if result and not result.get("error") else "COULD NOT ACTIVATE")
+                button.scene_status_label.set_text("ACTIVATED" if result and not result.get("error") else "COULD NOT ACTIVATE"); button.scene_status_label.set_visible(True)
                 GLib.timeout_add(900, self.reset_home_scene, button)
                 return False
             GLib.idle_add(finish)
         threading.Thread(target=send, daemon=True).start()
 
     def reset_home_scene(self, button):
-        button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text(""); return False
+        button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text(""); button.scene_status_label.set_visible(False); return False
 
     def home_drag_begin(self, gesture, x, y):
         # A drag that starts on a slider belongs to the slider, never to the page.
@@ -330,6 +330,10 @@ class HomePageMixin:
         """The KEF input and power tiles are ordinary tap tiles, like Update and Group."""
         card, _value, _detail = self.build_action_card("KEF input" if kind == "_input" else "KEF power", (lambda: self.tap_kef_input(key)) if kind == "_input" else self.tap_kef_power)
         card.feedback = card.detail_label; card.kef_kind = kind
+        if kind == "_input":
+            # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
+            card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
+            card.insert_child_after(card.input_label, card.head)
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 
@@ -342,15 +346,16 @@ class HomePageMixin:
             self.set_action_state(card, "power", "active" if on else "alert" if not connected else "ok")
             return
         primary, nxt = self.kef_next_input(card, data)
+        speaker_name = (getattr(card, "tile", None) or {}).get("label") or "KEF"   # the speaker's name is the tile's label, set in the Home builder
+        card.value_label.set_text(speaker_name)
         if not enabled or not primary or not data.get("ir_available"):
-            card.value_label.set_text("KEF input")
+            card.input_label.set_text("—")
             card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose the input in the tile options" if not primary else "Choose the Broadlink remote in Settings"))
             self.set_action_state(card, "input", "alert"); return
         current = self.kef_current_input(data)
-        card.value_label.set_text(self.KEF_INPUT_NAMES.get(current, "KEF input"))   # what the speaker is on now; the line below says where a tap goes
+        card.input_label.set_text(self.KEF_INPUT_NAMES.get(current, "Unknown"))   # what the speaker is on now
         standby = connected and speaker.get("powered") is False
-        target = self.KEF_INPUT_NAMES.get(nxt, nxt)
-        card.detail_label.set_text(note or (f"Wakes the KEF, then switches to {target}" if standby else (getattr(card, "tile", None) or {}).get("label") or f"Tap to switch to {target}"))
+        card.detail_label.set_text(note or ("Tap to wake and switch" if standby else "Tap to cycle" if (getattr(card, "tile", None) or {}).get("input_alt") else "Tap to switch"))
         self.set_action_state(card, "input", {"wifi": "light", "aux": "green", "bluetooth": "blue", "optical": "purple"}.get(current))
 
     def kef_tile(self, key):
