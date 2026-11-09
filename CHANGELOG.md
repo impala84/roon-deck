@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.152 Alpine — 9 November 2026
+
+- **The native screen no longer freezes for good after a brief resource squeeze:** if the display could not start a poll thread ("can't start new thread"), the error removed its refresh timer and the screen never updated again until the service restarted (stale KEF volume and notices). It now logs it and tries again two seconds later.
+
 ## 1.2.0-beta.151 Alpine — 9 November 2026
 
 - **KEF input tile colours follow the speaker's own LED:** Wi-Fi white, AUX green, Bluetooth blue, optical purple, each as a full coloured tile (builder preview included). KEF's manual confirms white for Wi-Fi and blue for Bluetooth; AUX green and optical purple are as you described, as the manual does not list them.

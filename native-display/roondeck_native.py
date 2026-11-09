@@ -649,7 +649,13 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             self.polling = False
         if not self.polling:
             self.polling = True; self.poll_started_at = time.monotonic()
-            threading.Thread(target=self.poll, daemon=True).start()
+            try:
+                threading.Thread(target=self.poll, daemon=True).start()
+            except RuntimeError as error:
+                # "can't start new thread" under a brief resource squeeze. Raising here made GTK delete this
+                # timer, so the screen stopped updating for good; keep the timer and try again in two seconds.
+                self.polling = False
+                print(f"RoonDeck could not start a poll thread ({error}); retrying", flush=True)
         return True
 
     def poll(self):
