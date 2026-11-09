@@ -52,7 +52,22 @@
       }
       roonOutput.value = settings.kef_roon_output_id || '';
     } catch (_) { if (settings.kef_roon_output_id) roonOutput.add(new Option('Saved output', settings.kef_roon_output_id)); roonOutput.value = settings.kef_roon_output_id || ''; }
-    const irRemote = h('input', {type:'text', placeholder:'remote.study'}); irRemote.value = settings.kef_ir_remote || '';
+    // Remotes found in Home Assistant; typing the entity id by hand stays available as a fallback.
+    const irRemote = h('select'); irRemote.add(new Option('Search Home Assistant…', ''));
+    const irManual = h('input', {type: 'text', placeholder: 'remote.study (or type any remote entity)'}); irManual.value = settings.kef_ir_remote || '';
+    const irHint = h('small', {class: 'cd-muted'}, 'Looking for remotes in Home Assistant…');
+    (async () => {
+      try {
+        const data = await api.call('GET', undefined, '/api/admin/home-remotes');
+        for (const remote of data.remotes || []) irRemote.add(new Option(`${remote.name} (${remote.entity_id})`, remote.entity_id));
+        irHint.textContent = (data.remotes || []).length ? `Found ${data.remotes.length} remote${data.remotes.length === 1 ? '' : 's'} in Home Assistant.` : 'No remotes found in Home Assistant. Type the entity id below.';
+        if ([...irRemote.options].some(option => option.value === irManual.value)) irRemote.value = irManual.value;
+      } catch (error) { irHint.textContent = `Could not search Home Assistant (${error.message}). Type the entity id below.`; }
+    })();
+    irRemote.onchange = () => { if (irRemote.value) irManual.value = irRemote.value; };
+    const inputNames = [['wifi', 'Wi-Fi'], ['bluetooth', 'Bluetooth'], ['aux', 'AUX'], ['optical', 'Optical']];
+    const presetMain = selectOf([['', 'Not set'], ...inputNames], settings.kef_input_preset || '');
+    const presetAlt = selectOf([['', 'None (always use the main input)'], ...inputNames], settings.kef_input_alt || '');
     const maximum = h('input' , {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
 
     const speakers = h('section', {class: 'cd-card'},
@@ -60,15 +75,20 @@
       h('p', {class: 'cd-muted'}, 'Roon controls power, volume, mute and playback. A Broadlink remote in Home Assistant switches the speaker input with its infrared codes.'),
       h('div', {class: 'cd-grid two'},
         labelled('KEF output in Roon', roonOutput, 'Choose the KEF speaker itself (not the Pi). Roon handles wake, standby, volume and mute.'),
-        labelled('Broadlink input remote', irRemote, 'Home Assistant remote entity in this room, for example remote.wi_fi_universal_remote. Sends the Wi-Fi, AUX, optical and Bluetooth codes; it needs a clear infrared path to the speaker.'),
+        labelled('Broadlink input remote', irRemote, 'Pick the Broadlink remote Home Assistant found. It needs a clear infrared path to the speaker.'),
+        labelled('…or enter it manually', irManual, 'Fallback if the search finds nothing, for example remote.wi_fi_universal_remote.'),
+        labelled('Input preset', presetMain, 'The home screen KEF input tile switches to this input with one tap. If the speaker is in standby it is woken first.'),
+        labelled('Alternate preset (optional)', presetAlt, 'Set this to make the tile toggle between the two inputs instead.'),
         labelled('Maximum volume (%)', maximum, 'The highest volume the touchscreen, Stream Deck and remote can set')),
-      connection);
+      irHint, connection);
 
     api.collectors.push(() => {
       const taken = new Set();
       settings.enabled = enabled.checked;
       settings.kef_roon_output_id = roonOutput.value;
-      settings.kef_ir_remote = irRemote.value.trim();
+      settings.kef_ir_remote = irManual.value.trim();
+      settings.kef_input_preset = presetMain.value;
+      settings.kef_input_alt = presetAlt.value;
       settings.maximum_volume = Number(maximum.value);
     });
 

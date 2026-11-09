@@ -2,6 +2,8 @@
   "enabled": false,
   "kef_roon_output_id": "",
   "kef_ir_remote": "remote.wi_fi_universal_remote",
+  "kef_input_preset": "aux",
+  "kef_input_alt": "wifi",
   "maximum_volume": 50,
   "streamdeck_enabled": false,
   "buttons": [

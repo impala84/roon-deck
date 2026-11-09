@@ -305,8 +305,46 @@ class HomePageMixin:
         for card in self.kef_tiles.values(): card.feedback.set_text(text)
         return False
 
+    KEF_INPUT_NAMES = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "aux": "AUX", "optical": "Optical"}
+
+    def kef_next_input(self, data):
+        """The input a tap on the KEF input tile will select: the preset, or the other one of two presets."""
+        presets = data.get("presets") or {}; primary, alt, last = presets.get("primary") or "", presets.get("alt") or "", presets.get("last") or ""
+        return primary, (alt if alt and last == primary else primary)
+
+    def tap_kef_power(self):
+        speaker = (self.listening_data or {}).get("kef") or {}
+        self.listening_command("power", not speaker.get("powered"))
+
+    def kef_action_tile(self, key, kind):
+        """The KEF input and power tiles are ordinary tap tiles, like Update and Group."""
+        card, _value, _detail = self.build_action_card("KEF input" if kind == "_input" else "KEF power", (lambda: self.listening_command("preset")) if kind == "_input" else self.tap_kef_power)
+        card.feedback = card.detail_label; card.kef_kind = kind
+        self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
+        return card
+
+    def populate_kef_action_tile(self, card, data):
+        speaker = data.get("kef") or {}; enabled = bool(data.get("enabled")); connected = enabled and bool(speaker.get("connected")); note = data.get("error") or data.get("notice") or ""
+        if card.kef_kind == "_power":
+            on = connected and bool(speaker.get("powered"))
+            card.value_label.set_text("Standby" if on else "Wake" if connected else "KEF")
+            card.detail_label.set_text(note or ("KEF is on · tap for standby" if on else "KEF is in standby · tap to wake" if connected else "Not enabled" if not enabled else "KEF is offline"))
+            self.set_action_state(card, "power", "active" if on else "alert" if not connected else "ok")
+            return
+        primary, nxt = self.kef_next_input(data)
+        if not enabled or not primary or not data.get("ir_available"):
+            card.value_label.set_text("KEF input")
+            card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose an input preset in Settings" if not primary else "Choose the Broadlink remote in Settings"))
+            self.set_action_state(card, "link", "alert"); return
+        card.value_label.set_text(self.KEF_INPUT_NAMES.get(nxt, nxt))
+        standby = connected and speaker.get("powered") is False
+        card.detail_label.set_text(note or ("Wakes the KEF, then switches" if standby else "Tap to switch KEF input"))
+        self.set_action_state(card, "link", "ok")
+
     def kef_tile(self, key):
         if key in self.kef_tiles: return self.kef_tiles[key]
+        kind = key.split("#")[0].removeprefix("roondeck.kef")
+        if kind in ("_input", "_power"): return self.kef_action_tile(key, kind)
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-kef"); card.set_vexpand(True)
         card.title = self.label("KEF speaker", "home-name"); card.append(card.title)
         scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_min_content_height(0); scroll.set_propagate_natural_height(False); scroll.set_vexpand(True)
@@ -316,9 +354,11 @@ class HomePageMixin:
         return card
 
     def style_kef_tile(self, card, tile):
+        if hasattr(card, "kef_kind"): card.set_tooltip_text(tile.get("label") or ("KEF input" if card.kef_kind == "_input" else "KEF power")); return
         card.title.set_text(tile.get("label") or card.default_title)
 
     def populate_kef_tile(self, key, card, data):
+        if hasattr(card, "kef_kind"): self.populate_kef_action_tile(card, data); return
         kind = key.split("#")[0].removeprefix("roondeck.kef"); speaker = data.get("kef") or {}; connected = bool(data.get("enabled") and speaker.get("connected"))
         card.default_title = {"": "KEF speaker", "_power": "KEF power", "_input": "KEF input", "_volume": "KEF volume"}[kind]
         card.title.set_text(card.default_title)

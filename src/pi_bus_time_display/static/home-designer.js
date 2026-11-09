@@ -193,6 +193,15 @@
         h('small', {class: 'hd-d-livefoot'}, upd ? 'v1.2.0 is ready. Tap to install' : zones.length === 2 ? zones[0] + '\n+ ' + zones[1] : 'Choose them in the tile options')))];
     }
     if (B(id) === 'roondeck.volume') return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, 'VOLUME'), h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '42'), h('i', {}, '+')))];
+    if (B(id) === 'roondeck.kef_input' || B(id) === 'roondeck.kef_power') {
+      const input = B(id) === 'roondeck.kef_input', chip = h('span', {class: 'hd-d-achip'});
+      chip.innerHTML = input
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || (input ? 'AUX' : 'Standby'))),
+        h('span', {class: 'hd-d-spacer'}),
+        h('small', {class: 'hd-d-livefoot'}, input ? 'Tap to switch KEF input' : 'KEF is on \u00b7 tap for standby')))];
+    }
     if (B(id) in KEF) {
       const kind = B(id), full = kind === 'roondeck.kef';
       return [h('div', {class: 'hd-d-live'}, h('b', {}, tile.label || KEF[kind]), h('small', {}, 'On · Wi-Fi · 20%'),
@@ -689,7 +698,7 @@
     // Two sources of tiles, switched at the top: RoonDeck's own (first, as they are the quickest to add) and Home Assistant devices.
     const dash = !!dashColumns();
     const haPanel = h('div', {class: 'hd-add-panel'}, search, chips, results, h('p', {class: 'cd-muted'}, 'Drag a device onto the preview, or press Add.'));
-    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key in KEF ? (key === 'roondeck.kef' ? 'Power, input and volume together' : key === 'roondeck.kef_power' ? 'Wake for Roon or put the speaker in standby' : key === 'roondeck.kef_input' ? 'Wi-Fi, AUX, optical and Bluetooth' : 'Speaker volume and mute') : key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.volume' ? 'A large volume number with minus and plus' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
+    const OWN = [['roondeck.player', 'Now Playing', 'Artwork, track, transport and volume'], ['roondeck.bus', 'Bus times', 'Next arrivals for your stop'], ...Object.entries(LIVE).map(([key, name]) => [key, name, key in KEF ? (key === 'roondeck.kef' ? 'Power, input and volume together' : key === 'roondeck.kef_power' ? 'Wake for Roon or put the speaker in standby' : key === 'roondeck.kef_input' ? 'One tap switches to your preset input (or toggles two)' : 'Speaker volume and mute') : key === 'roondeck.cpu' ? 'Load, temperature and a live graph' : key === 'roondeck.memory' ? 'RAM in use, with a live graph' : key === 'roondeck.volume' ? 'A large volume number with minus and plus' : key === 'roondeck.update' ? 'Check for and install the latest RoonDeck' : GROUPS.includes(key) ? 'Group or ungroup one Roon zone with another' : 'Throughput with a live graph'])];
     const ownPanel = h('ul', {class: 'hd-results hd-own'}, OWN.filter(([key]) => dash || key in KEF).map(([key, name, note]) => {
       const here = ids().some(other => B(other) === key && (!(key in LIVE) || layout.tiles[other]?.show)), more = key === 'roondeck.bus' && here && !!newCopyKey(key);   // the bus tile can be added again, once per route
       const add = h('button', {type: 'button', class: 'secondary hd-add'}, more ? 'Add another' : here ? (key in LIVE ? 'Added' : 'On screen') : 'Add'); add.disabled = here && !more;

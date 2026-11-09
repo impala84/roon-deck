@@ -113,11 +113,36 @@ class ListeningTests(unittest.TestCase):
         result = controls.command("input", "aux")
         send.assert_called_once_with("remote.study", "aux")
         self.speaker.command.assert_not_called()
-        self.assertIn("readback is unavailable", result["notice"])
+        self.assertIn("Sent AUX via infrared", result["notice"])
         self.assertTrue(result["ir_available"])
         self.assertFalse(result["kef"]["connected"])
         self.settings["kef_ir_remote"] = "light.desk"
         with self.assertRaises(ValueError): controls.save(self.settings)
+
+    @patch("pi_bus_time_display.listening.time.sleep")
+    def test_preset_wakes_a_standby_speaker_then_toggles_between_two_inputs(self, _sleep):
+        self.settings.update(kef_ir_remote="remote.study", kef_input_preset="aux", kef_input_alt="wifi")
+        self.write()
+        send = Mock()
+        self.speaker.status.side_effect = [{"connected": True, "powered": False}, {"connected": True, "powered": True}] + [{"connected": True, "powered": True}] * 10
+        controls = ListeningControls(self.path, lambda *args: self.speaker, ir_sender=send)
+        result = controls.command("preset")
+        self.speaker.command.assert_called_once_with("power", True)
+        send.assert_called_once_with("remote.study", "aux")
+        self.assertIn("Woke the KEF", result["notice"])
+        controls.command("preset")
+        self.assertEqual(send.call_args.args, ("remote.study", "wifi"))
+        controls.command("preset")
+        self.assertEqual(send.call_args.args, ("remote.study", "aux"))
+        self.assertEqual(self.speaker.command.call_count, 1)
+
+    def test_preset_needs_a_chosen_input_and_the_two_must_differ(self):
+        self.settings.update(kef_ir_remote="remote.study")
+        self.write()
+        with self.assertRaisesRegex(ValueError, "input preset"):
+            ListeningControls(self.path, lambda *args: self.speaker, ir_sender=Mock()).command("preset")
+        for bad in ({"kef_input_alt": "aux"}, {"kef_input_preset": "aux", "kef_input_alt": "aux"}, {"kef_input_preset": "hdmi"}):
+            with self.assertRaises(ValueError): self.controls.save({**self.settings, **bad})
 
     @patch("pi_bus_time_display.server.home_assistant_request")
     def test_infrared_control_uses_home_assistant_and_only_the_fixed_kef_input_codes(self, home):

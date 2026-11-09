@@ -1374,6 +1374,20 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
                     self.send_json(502, json.dumps({"error": str(exc)[:160]}).encode())
                 return
+            if self.path == "/api/admin/home-remotes":
+                # Home Assistant remotes (Broadlink and similar) for the KEF infrared setting; the catalog above leaves them out.
+                if not state.config.home_assistant_enabled:
+                    self.send_json(200, b'{"remotes":[]}')
+                    return
+                try:
+                    raw = home_assistant_request(state.config, "/api/states")
+                    remotes = sorted(({"entity_id": item["entity_id"], "name": (item.get("attributes") or {}).get("friendly_name") or item["entity_id"]}
+                                      for item in (raw if isinstance(raw, list) else []) if str(item.get("entity_id", "")).startswith("remote.")),
+                                     key=lambda item: item["name"].lower())
+                    self.send_json(200, json.dumps({"remotes": remotes}).encode())
+                except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
+                    self.send_json(502, json.dumps({"error": str(exc)[:160]}).encode())
+                return
             if self.path == "/api/listening/status":
                 self.send_json(200, json.dumps(state.listening.snapshot()).encode())
                 return

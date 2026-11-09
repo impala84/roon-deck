@@ -30,6 +30,8 @@ remote** to the Home Assistant remote entity in the room (here
 
 Roon commands wait for Roon's readback before reporting success. Waking the
 speaker does not start music. The infrared path needs a clear line to the LSX.
+**Input preset:** under Listening & KEF choose an input preset (and optionally an alternate). The **KEF input** Home tile and a `preset` Stream Deck action then switch to it in one tap, or toggle between the two. A speaker in standby is woken through Roon first, because infrared is ignored in standby. The Broadlink remote is picked from a list found in Home Assistant, with manual entry as a fallback.
+
 Volume over infrared is not implemented; add it only after its codes have been
 captured and checked.
 

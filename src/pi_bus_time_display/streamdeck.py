@@ -103,7 +103,7 @@ def _dispatch(base, binding, delta=None):
     action = binding.get("action")
     if action in {None, "none"}:
         return {}
-    if action in {"power", "input", "volume", "volume_delta", "mute"}:
+    if action in {"power", "input", "preset", "volume", "volume_delta", "mute"}:
         value = binding.get("value")
         if action == "volume_delta" and delta is not None:
             value = delta * int(binding.get("step", 1))

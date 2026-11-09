@@ -77,7 +77,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "kef_input_preset", "kef_input_alt", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     data.pop("modes", None)   # listening modes were removed: input is switched by infrared, volume by Roon
     host = data.get("kef_host", "")
@@ -91,6 +91,10 @@ def validate_settings(data):
     remote = data.get("kef_ir_remote", "")
     if not isinstance(remote, str) or (remote and not re.fullmatch(r"remote\.[a-z0-9_]{1,100}", remote)):
         raise ValueError("Choose a Broadlink remote entity")
+    for name in ("kef_input_preset", "kef_input_alt"):
+        if data.get(name, "") not in ("", *INPUTS): raise ValueError("Choose wifi, bluetooth, aux or optical for the input presets")
+    if data.get("kef_input_alt") and not data.get("kef_input_preset"): raise ValueError("Choose the main input preset before the alternate")
+    if data.get("kef_input_alt") and data.get("kef_input_alt") == data.get("kef_input_preset"): raise ValueError("The two input presets must differ")
     maximum = data.get("maximum_volume", 50)
     if type(maximum) is not int or not 0 <= maximum <= 100:
         raise ValueError("maximum_volume must be between 0 and 100")
@@ -119,7 +123,7 @@ def validate_settings(data):
             raise ValueError(f"{name} must be a list of up to {limit} bindings")
         def validate_binding(binding, is_press=False):
             if binding.get("action") == "mode": binding["action"] = "none"   # a saved listening-mode button: that action no longer exists
-            allowed = {"none", "power", "input", "volume", "volume_delta", "mute", "previous", "playpause", "next", "roon_volume", "roon_mute", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps", "remote_toggle"}
+            allowed = {"none", "power", "input", "preset", "volume", "volume_delta", "mute", "previous", "playpause", "next", "roon_volume", "roon_mute", "home_toggle", "home_level", "home_scene", "home_script", "home_script_dial", "remote_steps", "remote_toggle"}
             if not isinstance(binding.get("action", "none"), str) or binding.get("action", "none") not in allowed:
                 raise ValueError("Choose a supported control action")
             if not isinstance(binding.get("label", ""), str) or len(binding.get("label", "")) > 40:
@@ -182,7 +186,8 @@ class ListeningControls:
         self.brightness_preview = None   # a slider move waiting for the Stream Deck thread to show it
         self.state = {"enabled": False, "kef": {"connected": False},
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
-                      "error": "", "notice": "", "ir_available": False}
+                      "error": "", "notice": "", "ir_available": False, "presets": {"primary": "", "alt": "", "last": ""}}
+        self.wake_delay = 3.0   # the LSX needs a moment after wake before it listens to infrared
 
     def settings(self):
         return load_settings(self.path)
@@ -214,6 +219,8 @@ class ListeningControls:
                 settings = self.settings()
                 self.state["enabled"] = bool(settings.get("enabled"))
                 self.state["ir_available"] = bool(settings.get("kef_ir_remote") and self.ir_sender)
+                self.state["presets"] = {"primary": settings.get("kef_input_preset", ""), "alt": settings.get("kef_input_alt", ""),
+                                         "last": self.state.get("presets", {}).get("last", "")}
                 self.state["kef"] = self.speaker(settings).status() if self.state["enabled"] else {"connected": False}
                 self.state["error"] = ""
             except (OSError, ValueError, TypeError) as error:
@@ -245,13 +252,30 @@ class ListeningControls:
             speaker = self.speaker(settings)
             try:
                 self.state["notice"] = ""
+                if action == "preset":
+                    # One tap: the main input, or toggle between the two presets when an alternate is set.
+                    primary, alt = settings.get("kef_input_preset", ""), settings.get("kef_input_alt", "")
+                    if not primary: raise ValueError("Choose the KEF input preset under Listening & KEF")
+                    last = self.state.get("presets", {}).get("last", "")
+                    action, value = "input", (alt if alt and last == primary else primary)
                 if action == "input" and settings.get("kef_ir_remote"):
                     # Inputs are switched with the KEF's own infrared codes, sent by a Home Assistant Broadlink remote.
                     if value not in INPUTS: raise ValueError("Choose a supported KEF input")
                     if self.ir_sender is None: raise ValueError("Home Assistant infrared control is unavailable")
+                    woke = False
+                    try: powered = speaker.status().get("powered")
+                    except OSError: powered = None
+                    if powered is False:
+                        # Infrared is ignored in standby: wake the speaker through Roon first.
+                        speaker.command("power", True)
+                        self.confirm(speaker, lambda status: status.get("powered") is True, "The KEF did not wake up")
+                        woke = True
+                        time.sleep(self.wake_delay)
                     self.ir_sender(settings["kef_ir_remote"], value)
                     self.state["ir_available"] = True
-                    self.state["notice"] = f"Sent {value.upper() if value == 'aux' else value.title()} via infrared. Input readback is unavailable."
+                    self.state.setdefault("presets", {})["last"] = value
+                    label = value.upper() if value == "aux" else value.title()
+                    self.state["notice"] = f"{'Woke the KEF and sent' if woke else 'Sent'} {label} via infrared."
                     self.state["error"] = ""
                     # An IR transmission has no device acknowledgement. Do not invent input feedback.
                     return self.snapshot_unlocked()

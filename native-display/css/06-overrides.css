@@ -598,9 +598,9 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-volstep { min-width: 76px; min-height: 76px; border-radius: 38px; font-size: 42px; }
 
 /* KEF controls live inside ordinary Home cards. */
-.hs-card.hs-kef { padding: 7px; }
-.hs-kef button { min-height: 32px; padding: 3px 7px; border-radius: 9px; border: 1px solid #595565; color: #f5f5f5; background: #302c3c; }
+.hs-card.hs-kef { padding: 12px; }
+.hs-kef button { min-height: 44px; padding: 4px 10px; font-size: 18px; border-radius: 9px; border: 1px solid #595565; color: #f5f5f5; background: #302c3c; }
 .hs-kef button:disabled, .hs-kef dropdown:disabled { color: #aaa5b3; opacity: .55; }
-.hs-kef .home-name { font-size: 15px; }
-.hs-kef .muted { font-size: 11px; }
+.hs-kef .home-name { font-size: 20px; font-weight: 600; }
+.hs-kef .muted { font-size: 15px; }
 .hs-kef dropdown { color: #f5f5f5; }
