@@ -438,6 +438,7 @@ class HomeDashboardMixin:
         for entity in shown:                       # each card can have its own colour; without one it keeps the standard card look
             name = "hs-custom-" + base_of(entity["entity_id"]).replace(".", "-"); colour = entity["tile"].get("color")
             entity["widget"].remove_css_class(name)
+            if base_of(entity["entity_id"]) == "roondeck.kef_input": continue   # its colour follows the input the speaker is on; a colour set in the builder must not paint over it
             if isinstance(colour, str) and len(colour) == 7 and colour.startswith("#"):
                 entity["widget"].add_css_class(name); rules.append(f".hs-card.{name} {{ background: {mix(colour, '#232228', .34)}; border-color: {colour}; }}")
             elif base_of(entity["entity_id"]) != "roondeck.bus" and isinstance(entity["tile"].get("border"), str) and len(entity["tile"]["border"]) == 7 and entity["tile"]["border"].startswith("#"):
@@ -488,8 +489,9 @@ class HomeDashboardMixin:
                     widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
                     widget.detail_label.set_lines(3 if width >= 4 and height >= 2 else 2)   # a small tile has room for two lines, so a long status never pushes past its border
                     # The title sits beside the icon only where there is room for it: on the smallest tile it goes below the icon.
-                    widget.head.set_orientation(Gtk.Orientation.HORIZONTAL if width >= 4 else Gtk.Orientation.VERTICAL); widget.head.set_spacing(10 if width >= 4 else 8)
-                    widget.value_label.set_valign(Gtk.Align.CENTER if width >= 4 else Gtk.Align.START)
+                    beside = width >= 4 or getattr(widget, "kef_kind", None) == "_input"   # the KEF input tile always has the speaker name next to the icon
+                    widget.head.set_orientation(Gtk.Orientation.HORIZONTAL if beside else Gtk.Orientation.VERTICAL); widget.head.set_spacing(10 if beside else 8)
+                    widget.value_label.set_valign(Gtk.Align.CENTER if beside else Gtk.Align.START)
                     (widget.add_css_class if width >= 4 else widget.remove_css_class)("hs-action-wide")
                 if base_of(entity["entity_id"]) == "roondeck.network":
                     self.hs_net_wide = width >= 2
@@ -606,7 +608,7 @@ class HomeDashboardMixin:
         self.home_card_classes(button, entity, domain, key, rules, True); button.add_css_class("home-scene"); button.add_css_class("scene-action")
         big = self.home_big_tiles()
         if big: button.add_css_class("home-big")
-        chip = 88 if big else round(52 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
+        chip = 88 if big else round(44 * scale); holder = Gtk.Box(); holder.add_css_class("home-icon-chip"); holder.set_size_request(chip, chip)
         icon = self.home_icon_for(entity, domain, True, scale * (1.5 if big else 1), accent); icon.set_hexpand(True); holder.append(icon)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(True); name.set_wrap_mode(Pango.WrapMode.WORD_CHAR); name.set_lines(2); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # up to two lines now that the caption line is gone
         available = entity.get("available", True)

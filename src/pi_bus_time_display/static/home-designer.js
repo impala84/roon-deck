@@ -222,7 +222,7 @@
       const INPUT_NAMES = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
       const input = B(id) === 'roondeck.kef_input', ready = input && !!tile.input, chip = h('span', {class: 'hd-nk-chip'});
       chip.innerHTML = input
-        ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 32h11 M15 23h13a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H15Z M31 27h14v10H31 M38 27v10 M45 29h13v6H45"/></svg>'
+        ? '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M34 9h18a4 4 0 0 1 4 4v38a4 4 0 0 1-4 4H34 M8 32h31 M27 19l13 13-13 13"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
       if (input) {
         // Icon and speaker name, the current input in large type, then a small hint: the same three lines as the touchscreen.

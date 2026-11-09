@@ -7,7 +7,7 @@ from gi.repository import Gdk, GLib, Gtk
 
 ASSETS = Path(__file__).resolve().parents[1] / 'roon-controller/static/icons'
 TOUCH_CONTROL_STROKE = 3
-TOUCH_CONTROLS = {'play', 'pause', 'previous', 'next', 'add', 'remove', 'heart', 'settings', 'refresh', 'shuffle', 'input'}
+TOUCH_CONTROLS = {'play', 'pause', 'previous', 'next', 'add', 'remove', 'heart', 'settings', 'refresh', 'shuffle'}
 ALIASES = {
     'media-playback-start-symbolic': 'play', 'media-playback-pause-symbolic': 'pause',
     'media-skip-backward-symbolic': 'previous', 'media-skip-forward-symbolic': 'next',

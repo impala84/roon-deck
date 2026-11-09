@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.157 Alpine — 9 November 2026
+
+- **KEF input tile:** the speaker name now sits next to the icon (it dropped below it on a narrow tile, which pushed the last line out of the tile). A colour set on this tile in the Home builder no longer paints over the input colour, so Wi-Fi shows white, AUX green, Bluetooth blue and optical purple.
+- The arrow-into-a-box input icon is back (the audio jack is gone).
+- Scene tiles such as "Study desk cycle" are more compact so a two-line name stays inside the tile.
+
 ## 1.2.0-beta.156 Alpine — 9 November 2026
 
 - **KEF input tile redesigned:** the icon and the speaker's name (the tile's label in the Home builder, e.g. "LSX") on top, the input it is on in large type underneath, and a small "Tap to cycle" hint at the bottom. A new audio-jack icon replaces the arrow-in-a-box.

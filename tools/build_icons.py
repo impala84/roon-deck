@@ -58,7 +58,7 @@ ICONS = {
     'discover': '<circle cx="32" cy="32" r="24"/><path d="m42 22-6 14-14 6 6-14Z"/>',
     'overflow': '<circle cx="15" cy="32" r="2"/><circle cx="32" cy="32" r="2"/><circle cx="49" cy="32" r="2"/>',
     'power': '<path d="M32 6v23 M20 12a23 23 0 1 0 24 0"/>',
-    'input': '<path d="M4 32h11 M15 23h13a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H15Z M31 27h14v10H31 M38 27v10 M45 29h13v6H45"/>',
+    'input': '<path d="M34 9h18a4 4 0 0 1 4 4v38a4 4 0 0 1-4 4H34 M8 32h31 M27 19l13 13-13 13"/>',
     'orientation': '<rect x="19" y="8" width="26" height="48" rx="3"/><path d="M8 24a25 25 0 0 1 9-13 M8 14v10h10 M56 40a25 25 0 0 1-9 13 M56 50V40H46"/>',
     'check': '<path d="m14 32 12 12 25-25"/>',
     'erase': '<path d="M24 15h34v34H24L7 32Z M32 24l16 16 M32 40l16-16"/>',

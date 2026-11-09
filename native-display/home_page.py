@@ -333,7 +333,7 @@ class HomePageMixin:
         if kind == "_input":
             # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
             card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
-            card.insert_child_after(card.input_label, card.head)
+            card.insert_child_after(card.input_label, card.head); card.value_label.set_lines(1)
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 
