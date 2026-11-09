@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.149 Alpine — 9 November 2026
+
+- **More accurate Home builder preview for the KEF tiles:** KEF volume, KEF speaker, KEF input and KEF power are now drawn at the touchscreen's real pixel sizes (padding, text, number, buttons), scaled to the preview, so what you see in the builder matches the screen far more closely, including when something would not fit.
+
 ## 1.2.0-beta.148 Alpine — 9 November 2026
 
 - **KEF tiles no longer spill out of their space:** a half-column KEF volume tile (and KEF speaker) shows just the headline and a larger number; plus and minus appear once the tile is a full column or wider.

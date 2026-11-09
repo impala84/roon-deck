@@ -218,22 +218,21 @@
     }
     if (B(id) === 'roondeck.volume') return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, 'VOLUME'), h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '42'), h('i', {}, '+')))];
     if (B(id) === 'roondeck.kef_input' || B(id) === 'roondeck.kef_power') {
+      // Mirrors the touchscreen's action tile at its real pixel sizes (see .hd-nk in deck-designer.css).
       const INPUT_NAMES = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
-      const input = B(id) === 'roondeck.kef_input', chip = h('span', {class: 'hd-d-achip'});
+      const input = B(id) === 'roondeck.kef_input', ready = input && !!tile.input, chip = h('span', {class: 'hd-nk-chip'});
       chip.innerHTML = input
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, input ? INPUT_NAMES[tile.input] || 'Choose input' : 'Standby')),
-        h('span', {class: 'hd-d-spacer'}),
-        h('small', {class: 'hd-d-livefoot'}, tile.label || (input ? (tile.input ? 'Tap to switch' : 'Set the input in options') : 'Tap for standby'))))];
+      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? 'ok' : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
+        h('small', {}, tile.label || (input ? (ready ? 'Tap to switch KEF input' : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
     }
     if (B(id) in KEF) {
-      // KEF volume: a headline and a large number with a small minus and plus; the combined KEF speaker tile adds power and input buttons.
-      const full = B(id) === 'roondeck.kef';
-      const pill = text => h('span', {class: 'hd-d-pill'}, text);
-      return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, (tile.label || KEF[B(id)]).toUpperCase()),
-        h('span', {class: 'hd-d-volrow'}, ...(tile.half ? [h('b', {}, '20')] : [h('i', {}, '\u2212'), h('b', {}, '20'), h('i', {}, '+')])),
-        full ? h('span', {class: 'hd-d-pills'}, pill('Standby'), pill(INPUT_NAMES_PREVIEW[tile.input] || 'Input')) : null)];
+      // KEF volume and KEF speaker, at the touchscreen's real pixel sizes. Plus and minus need a wide tile; a half column shows the number alone.
+      const full = B(id) === 'roondeck.kef', narrow = !!tile.half, names = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
+      return [h('div', {class: `hd-nk hd-nk-vol${narrow ? ' narrow' : ''}`}, h('span', {class: 'hd-nk-title'}, (tile.label || KEF[B(id)]).toUpperCase()),
+        h('span', {class: 'hd-nk-row'}, ...(narrow ? [] : [h('i', {}, '\u2212')]), h('b', {}, '20'), ...(narrow ? [] : [h('i', {}, '+')])),
+        full ? h('span', {class: 'hd-nk-pills'}, h('span', {}, 'Standby'), h('span', {}, names[tile.input] || 'Input')) : null)];
     }
     if (B(id) in LIVE) {
       const cpu = B(id) === 'roondeck.cpu', mem = B(id) === 'roondeck.memory', net = !cpu && !mem;

@@ -1,6 +1,6 @@
 {
   "name": "roon-deck-controller",
-  "version": "1.2.0-beta.148",
+  "version": "1.2.0-beta.149",
   "private": true,
   "description": "Touch-first Roon controller for RoonDeck",
   "main": "server.js",
