@@ -121,28 +121,28 @@ class ListeningTests(unittest.TestCase):
 
     @patch("pi_bus_time_display.listening.time.sleep")
     def test_preset_wakes_a_standby_speaker_then_toggles_between_two_inputs(self, _sleep):
-        self.settings.update(kef_ir_remote="remote.study", kef_input_preset="aux", kef_input_alt="wifi")
+        self.settings.update(kef_ir_remote="remote.study")
+        tile = {"primary": "aux", "alt": "wifi"}
         self.write()
         send = Mock()
         self.speaker.status.side_effect = [{"connected": True, "powered": False}, {"connected": True, "powered": True}] + [{"connected": True, "powered": True}] * 10
         controls = ListeningControls(self.path, lambda *args: self.speaker, ir_sender=send)
-        result = controls.command("preset")
+        result = controls.command("preset", tile)
         self.speaker.command.assert_called_once_with("power", True)
         send.assert_called_once_with("remote.study", "aux")
         self.assertIn("Woke the KEF", result["notice"])
-        controls.command("preset")
+        controls.command("preset", tile)
         self.assertEqual(send.call_args.args, ("remote.study", "wifi"))
-        controls.command("preset")
+        controls.command("preset", tile)
         self.assertEqual(send.call_args.args, ("remote.study", "aux"))
         self.assertEqual(self.speaker.command.call_count, 1)
 
-    def test_preset_needs_a_chosen_input_and_the_two_must_differ(self):
+    def test_preset_needs_a_chosen_input(self):
         self.settings.update(kef_ir_remote="remote.study")
         self.write()
-        with self.assertRaisesRegex(ValueError, "input preset"):
-            ListeningControls(self.path, lambda *args: self.speaker, ir_sender=Mock()).command("preset")
-        for bad in ({"kef_input_alt": "aux"}, {"kef_input_preset": "aux", "kef_input_alt": "aux"}, {"kef_input_preset": "hdmi"}):
-            with self.assertRaises(ValueError): self.controls.save({**self.settings, **bad})
+        controls = ListeningControls(self.path, lambda *args: self.speaker, ir_sender=Mock())
+        for bad in (None, {}, {"primary": "hdmi"}, {"primary": "aux", "alt": "hdmi"}):
+            with self.assertRaisesRegex(ValueError, "tile's options"): controls.command("preset", bad)
 
     @patch("pi_bus_time_display.server.home_assistant_request")
     def test_infrared_control_uses_home_assistant_and_only_the_fixed_kef_input_codes(self, home):

@@ -33,7 +33,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'page', 'route', 'border']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const KEF = {'roondeck.kef': 'KEF speaker', 'roondeck.kef_power': 'KEF power', 'roondeck.kef_input': 'KEF input', 'roondeck.kef_volume': 'KEF volume'};
   const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
@@ -194,13 +194,14 @@
     }
     if (B(id) === 'roondeck.volume') return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, 'VOLUME'), h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '42'), h('i', {}, '+')))];
     if (B(id) === 'roondeck.kef_input' || B(id) === 'roondeck.kef_power') {
+      const INPUT_NAMES = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
       const input = B(id) === 'roondeck.kef_input', chip = h('span', {class: 'hd-d-achip'});
       chip.innerHTML = input
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || (input ? 'AUX' : 'Standby'))),
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || (input ? INPUT_NAMES[tile.input] || 'Choose input' : 'Standby'))),
         h('span', {class: 'hd-d-spacer'}),
-        h('small', {class: 'hd-d-livefoot'}, input ? 'Tap to switch KEF input' : 'KEF is on \u00b7 tap for standby')))];
+        h('small', {class: 'hd-d-livefoot'}, input ? (tile.input ? 'Tap to switch KEF input' : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
     }
     if (B(id) in KEF) {
       const kind = B(id), full = kind === 'roondeck.kef';
@@ -656,7 +657,12 @@
         const pick = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), names.concat(tile[key] && !names.includes(tile[key]) ? [tile[key]] : []).map(name => h('option', {value: name}, name))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
         return [field('Zone', pick('zone', names.length ? 'Choose a zone' : 'No Roon zones found'), 'The zone that joins the group.'), field('Group with', pick('with', 'Choose a zone'), 'The zone to group it with. Tap the tile to group; tap again to ungroup.')];
       })();
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields,
+      const INPUTS = [['wifi', 'Wi-Fi'], ['bluetooth', 'Bluetooth'], ['aux', 'AUX'], ['optical', 'Optical']];
+      const inputFields = B(id) !== 'roondeck.kef_input' ? [] : (() => {
+        const pickInput = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), INPUTS.map(([value, text]) => h('option', {value}, text))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
+        return [field('Input', pickInput('input', 'Choose an input'), 'One tap on the tile switches the KEF to this input. If the speaker is in standby it is woken first.'), field('Alternate input (optional)', pickInput('input_alt', 'None'), 'Set a second input and the tile toggles between the two.')];
+      })();
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields, ...inputFields,
         B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
     }

@@ -65,9 +65,6 @@
       } catch (error) { irHint.textContent = `Could not search Home Assistant (${error.message}). Type the entity id below.`; }
     })();
     irRemote.onchange = () => { if (irRemote.value) irManual.value = irRemote.value; };
-    const inputNames = [['wifi', 'Wi-Fi'], ['bluetooth', 'Bluetooth'], ['aux', 'AUX'], ['optical', 'Optical']];
-    const presetMain = selectOf([['', 'Not set'], ...inputNames], settings.kef_input_preset || '');
-    const presetAlt = selectOf([['', 'None (always use the main input)'], ...inputNames], settings.kef_input_alt || '');
     const maximum = h('input' , {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
 
     const speakers = h('section', {class: 'cd-card'},
@@ -77,8 +74,6 @@
         labelled('KEF output in Roon', roonOutput, 'Choose the KEF speaker itself (not the Pi). Roon handles wake, standby, volume and mute.'),
         labelled('Broadlink input remote', irRemote, 'Pick the Broadlink remote Home Assistant found. It needs a clear infrared path to the speaker.'),
         labelled('…or enter it manually', irManual, 'Fallback if the search finds nothing, for example remote.wi_fi_universal_remote.'),
-        labelled('Input preset', presetMain, 'The home screen KEF input tile switches to this input with one tap. If the speaker is in standby it is woken first.'),
-        labelled('Alternate preset (optional)', presetAlt, 'Set this to make the tile toggle between the two inputs instead.'),
         labelled('Maximum volume (%)', maximum, 'The highest volume the touchscreen, Stream Deck and remote can set')),
       irHint, connection);
 
@@ -87,8 +82,6 @@
       settings.enabled = enabled.checked;
       settings.kef_roon_output_id = roonOutput.value;
       settings.kef_ir_remote = irManual.value.trim();
-      settings.kef_input_preset = presetMain.value;
-      settings.kef_input_alt = presetAlt.value;
       settings.maximum_volume = Number(maximum.value);
     });
 

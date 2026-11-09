@@ -307,18 +307,22 @@ class HomePageMixin:
 
     KEF_INPUT_NAMES = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "aux": "AUX", "optical": "Optical"}
 
-    def kef_next_input(self, data):
+    def kef_next_input(self, card, data):
         """The input a tap on the KEF input tile will select: the preset, or the other one of two presets."""
-        presets = data.get("presets") or {}; primary, alt, last = presets.get("primary") or "", presets.get("alt") or "", presets.get("last") or ""
+        tile = getattr(card, "tile", None) or {}; primary, alt, last = tile.get("input") or "", tile.get("input_alt") or "", (data.get("presets") or {}).get("last") or ""
         return primary, (alt if alt and last == primary else primary)
 
     def tap_kef_power(self):
         speaker = (self.listening_data or {}).get("kef") or {}
         self.listening_command("power", not speaker.get("powered"))
 
+    def tap_kef_input(self, key):
+        tile = getattr(self.kef_tiles.get(key), "tile", None) or {}
+        self.listening_command("preset", {"primary": tile.get("input") or "", "alt": tile.get("input_alt") or ""})
+
     def kef_action_tile(self, key, kind):
         """The KEF input and power tiles are ordinary tap tiles, like Update and Group."""
-        card, _value, _detail = self.build_action_card("KEF input" if kind == "_input" else "KEF power", (lambda: self.listening_command("preset")) if kind == "_input" else self.tap_kef_power)
+        card, _value, _detail = self.build_action_card("KEF input" if kind == "_input" else "KEF power", (lambda: self.tap_kef_input(key)) if kind == "_input" else self.tap_kef_power)
         card.feedback = card.detail_label; card.kef_kind = kind
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
@@ -331,10 +335,10 @@ class HomePageMixin:
             card.detail_label.set_text(note or ("KEF is on · tap for standby" if on else "KEF is in standby · tap to wake" if connected else "Not enabled" if not enabled else "KEF is offline"))
             self.set_action_state(card, "power", "active" if on else "alert" if not connected else "ok")
             return
-        primary, nxt = self.kef_next_input(data)
+        primary, nxt = self.kef_next_input(card, data)
         if not enabled or not primary or not data.get("ir_available"):
             card.value_label.set_text("KEF input")
-            card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose an input preset in Settings" if not primary else "Choose the Broadlink remote in Settings"))
+            card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose the input in the tile options" if not primary else "Choose the Broadlink remote in Settings"))
             self.set_action_state(card, "link", "alert"); return
         card.value_label.set_text(self.KEF_INPUT_NAMES.get(nxt, nxt))
         standby = connected and speaker.get("powered") is False
@@ -354,7 +358,10 @@ class HomePageMixin:
         return card
 
     def style_kef_tile(self, card, tile):
-        if hasattr(card, "kef_kind"): card.set_tooltip_text(tile.get("label") or ("KEF input" if card.kef_kind == "_input" else "KEF power")); return
+        if hasattr(card, "kef_kind"):
+            changed = getattr(card, "tile", None) != tile; card.tile = tile
+            if changed: self.populate_kef_action_tile(card, self.listening_data)
+            card.set_tooltip_text(tile.get("label") or ("KEF input" if card.kef_kind == "_input" else "KEF power")); return
         card.title.set_text(tile.get("label") or card.default_title)
 
     def populate_kef_tile(self, key, card, data):

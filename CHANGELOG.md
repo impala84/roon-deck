@@ -1,11 +1,15 @@
 # Changelog
 
+## 1.2.0-beta.137 Alpine — 9 November 2026
+
+- **KEF input presets moved to the tile:** choose the input (and an optional alternate to toggle with) in the KEF input tile's options in Settings → Home → Layout. Listening & KEF no longer has preset fields, so there is one place to edit it.
+
 ## 1.2.0-beta.136 Alpine — 9 November 2026
 
-- **KEF input tile:** now a normal tap tile (like Update and Group) with a large input name, instead of a cramped dropdown. One tap switches to the preset input set under Settings → Controls → Listening & KEF, or toggles between two presets when an alternate is set.
+- **KEF input tile:** now a normal tap tile (like Update and Group) with a large input name, instead of a cramped dropdown. The input (and an optional second input to toggle between) is chosen in the tile's own options in the layout builder, so there is one place to set it.
 - **Works from standby:** if the KEF is in standby, the tile wakes it through Roon first, then sends the infrared input.
 - **KEF power tile** restyled to match; the remaining KEF tiles have larger, legible text and buttons. The builder preview matches.
-- **Listening & KEF settings:** pick the Broadlink remote from a search of Home Assistant devices (manual entry remains as a fallback), and choose the input preset and optional alternate. Stream Deck gets a matching `preset` action.
+- **Listening & KEF settings:** the page is now just configuration: pick the Broadlink remote from a search of Home Assistant devices (manual entry remains as a fallback).
 
 ## 1.2.0-beta.135 Alpine — 9 November 2026
 

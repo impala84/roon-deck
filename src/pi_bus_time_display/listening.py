@@ -77,7 +77,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
-    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "kef_input_preset", "kef_input_alt", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
+    if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     data.pop("modes", None)   # listening modes were removed: input is switched by infrared, volume by Roon
     host = data.get("kef_host", "")
@@ -91,10 +91,6 @@ def validate_settings(data):
     remote = data.get("kef_ir_remote", "")
     if not isinstance(remote, str) or (remote and not re.fullmatch(r"remote\.[a-z0-9_]{1,100}", remote)):
         raise ValueError("Choose a Broadlink remote entity")
-    for name in ("kef_input_preset", "kef_input_alt"):
-        if data.get(name, "") not in ("", *INPUTS): raise ValueError("Choose wifi, bluetooth, aux or optical for the input presets")
-    if data.get("kef_input_alt") and not data.get("kef_input_preset"): raise ValueError("Choose the main input preset before the alternate")
-    if data.get("kef_input_alt") and data.get("kef_input_alt") == data.get("kef_input_preset"): raise ValueError("The two input presets must differ")
     maximum = data.get("maximum_volume", 50)
     if type(maximum) is not int or not 0 <= maximum <= 100:
         raise ValueError("maximum_volume must be between 0 and 100")
@@ -186,7 +182,7 @@ class ListeningControls:
         self.brightness_preview = None   # a slider move waiting for the Stream Deck thread to show it
         self.state = {"enabled": False, "kef": {"connected": False},
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
-                      "error": "", "notice": "", "ir_available": False, "presets": {"primary": "", "alt": "", "last": ""}}
+                      "error": "", "notice": "", "ir_available": False, "presets": {"last": ""}}
         self.wake_delay = 3.0   # the LSX needs a moment after wake before it listens to infrared
 
     def settings(self):
@@ -219,8 +215,6 @@ class ListeningControls:
                 settings = self.settings()
                 self.state["enabled"] = bool(settings.get("enabled"))
                 self.state["ir_available"] = bool(settings.get("kef_ir_remote") and self.ir_sender)
-                self.state["presets"] = {"primary": settings.get("kef_input_preset", ""), "alt": settings.get("kef_input_alt", ""),
-                                         "last": self.state.get("presets", {}).get("last", "")}
                 self.state["kef"] = self.speaker(settings).status() if self.state["enabled"] else {"connected": False}
                 self.state["error"] = ""
             except (OSError, ValueError, TypeError) as error:
@@ -254,8 +248,10 @@ class ListeningControls:
                 self.state["notice"] = ""
                 if action == "preset":
                     # One tap: the main input, or toggle between the two presets when an alternate is set.
-                    primary, alt = settings.get("kef_input_preset", ""), settings.get("kef_input_alt", "")
-                    if not primary: raise ValueError("Choose the KEF input preset under Listening & KEF")
+                    # The presets belong to the Home tile (set in the layout builder) and arrive with the tap.
+                    value = value if isinstance(value, dict) else {}
+                    primary, alt = value.get("primary") or "", value.get("alt") or ""
+                    if primary not in INPUTS or alt not in ("", *INPUTS): raise ValueError("Choose the KEF input in the tile's options")
                     last = self.state.get("presets", {}).get("last", "")
                     action, value = "input", (alt if alt and last == primary else primary)
                 if action == "input" and settings.get("kef_ir_remote"):
