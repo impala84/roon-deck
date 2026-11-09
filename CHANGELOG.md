@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.161 Alpine — 10 November 2026
+
+- **Restarting Roon Bridge now really restarts it:** stopping the service only stopped the launcher script, leaving the old helper processes running with their old settings (and thousands of threads). The service now kills any leftover bridge processes when it stops, so a restart or update always starts a fresh, thread-capped bridge.
+
 ## 1.2.0-beta.160 Alpine — 10 November 2026
 
 - **Roon Bridge can no longer starve the Pi:** the .NET build of Roon Bridge running on Alpine was piling up thousands of idle worker threads and crash-looping every 5 seconds, which used up the Pi's thread allowance and broke the screen, image loading and the Stream Deck. The bridge service now runs with a worker-thread cap and no background GC thread, and restarts at most 10 times per 10 minutes. The service file is refreshed every time the setup service starts, so existing Pis pick this up after the update.

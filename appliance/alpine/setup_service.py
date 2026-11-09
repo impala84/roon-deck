@@ -333,6 +333,8 @@ export DOTNET_ThreadPool_ForceMaxWorkerThreads=C8
 export DOTNET_ThreadPool_ForceMinWorkerThreads=4
 export DOTNET_gcConcurrent=0
 depend() { need localmount; after networkmanager; }
+# supervise-daemon only stops start.sh; the helper processes it launched survive and keep the old settings.
+stop_post() { pkill -9 -f /opt/RoonBridge/ 2>/dev/null; return 0; }
 """
 
 

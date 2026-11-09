@@ -547,6 +547,7 @@ class AlpineSetupTests(unittest.TestCase):
         text = service.read_text()
         self.assertIn("DOTNET_ThreadPool_ForceMaxWorkerThreads=C8", text)
         self.assertIn("respawn_max=10", text)
+        self.assertIn("stop_post()", text)
         self.assertNotIn("respawn_max=0", text)
         self.assertEqual(service.stat().st_mode & 0o777, 0o755)
 
