@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.153 Alpine — 9 November 2026
+
+- The display's "could not start a poll thread" log line now carries the time and the display's thread count, so the cause of any recurrence can be traced.
+
 ## 1.2.0-beta.152 Alpine — 9 November 2026
 
 - **The native screen no longer freezes for good after a brief resource squeeze:** if the display could not start a poll thread ("can't start new thread"), the error removed its refresh timer and the screen never updated again until the service restarted (stale KEF volume and notices). It now logs it and tries again two seconds later.

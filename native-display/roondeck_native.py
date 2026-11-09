@@ -655,7 +655,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 # "can't start new thread" under a brief resource squeeze. Raising here made GTK delete this
                 # timer, so the screen stopped updating for good; keep the timer and try again in two seconds.
                 self.polling = False
-                print(f"RoonDeck could not start a poll thread ({error}); retrying", flush=True)
+                print(f"{datetime.now(TZ):%Y-%m-%d %H:%M:%S} RoonDeck could not start a poll thread ({error}); {len(os.listdir('/proc/self/task'))} threads in the display; retrying", flush=True)
         return True
 
     def poll(self):
