@@ -539,6 +539,17 @@ class AlpineSetupTests(unittest.TestCase):
         self.setup.handle({"action": "roon_restart"})
         self.run.assert_any_call(["rc-service", "roonbridge", "restart"])
 
+    def test_roon_bridge_service_caps_threads_and_restarts_and_is_refreshed(self):
+        start = self.root / "opt/RoonBridge/start.sh"; start.parent.mkdir(parents=True); start.touch()
+        service = self.root / "etc/init.d/roonbridge"; service.parent.mkdir(parents=True)
+        service.write_text("old\nrespawn_max=0\n")
+        module.ensure_roon_bridge_service(self.root)
+        text = service.read_text()
+        self.assertIn("DOTNET_ThreadPool_ForceMaxWorkerThreads=C8", text)
+        self.assertIn("respawn_max=10", text)
+        self.assertNotIn("respawn_max=0", text)
+        self.assertEqual(service.stat().st_mode & 0o777, 0o755)
+
     def test_playback_priority_is_a_mild_bridge_boost_and_is_idempotent(self):
         start = self.root / "opt/RoonBridge/start.sh"; start.parent.mkdir(parents=True); start.touch()
         gov = self.root / "sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"; gov.parent.mkdir(parents=True); gov.write_text("ondemand\n")

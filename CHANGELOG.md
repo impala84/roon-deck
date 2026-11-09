@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.160 Alpine — 10 November 2026
+
+- **Roon Bridge can no longer starve the Pi:** the .NET build of Roon Bridge running on Alpine was piling up thousands of idle worker threads and crash-looping every 5 seconds, which used up the Pi's thread allowance and broke the screen, image loading and the Stream Deck. The bridge service now runs with a worker-thread cap and no background GC thread, and restarts at most 10 times per 10 minutes. The service file is refreshed every time the setup service starts, so existing Pis pick this up after the update.
+
 ## 1.2.0-beta.159 Alpine — 10 November 2026
 
 - **A failed image load can no longer blank the native screen:** the Settings wordmark is drawn by GDK's SVG loader, which can fail under a resource squeeze ("failed to spawn thread"). That error was uncaught in the theme step, so the whole screen update was abandoned and the screen stayed black. The wordmark is now rendered once per size and kept, and a failure there or in the theme step is logged and skipped.

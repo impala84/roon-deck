@@ -317,27 +317,37 @@ def run_netdata_claim_helper(root, token, rooms, url="https://app.netdata.cloud"
     return True
 
 
+ROON_BRIDGE_SERVICE = """#!/sbin/openrc-run
+description=\"Roon Bridge audio endpoint\"
+supervisor=supervise-daemon
+command=/opt/RoonBridge/start.sh
+directory=/opt/RoonBridge
+respawn_delay=10
+respawn_max=10
+respawn_period=600
+output_log=/var/log/pi-home/roonbridge.log
+error_log=/var/log/pi-home/roonbridge-error.log
+export ROON_DATAROOT=/var/roon
+export ROON_ID_DIR=/var/roon
+export DOTNET_ThreadPool_ForceMaxWorkerThreads=C8
+export DOTNET_ThreadPool_ForceMinWorkerThreads=4
+export DOTNET_gcConcurrent=0
+depend() { need localmount; after networkmanager; }
+"""
+
+
 def ensure_roon_bridge_service(root):
     root = Path(root)
     start = root / "opt/RoonBridge/start.sh"
     if not start.is_file():
         raise ValueError("Roon Bridge is not installed on this appliance.")
     service = root / "etc/init.d/roonbridge"
-    if not service.exists():
-        service.parent.mkdir(parents=True, exist_ok=True)
-        atomic(service, """#!/sbin/openrc-run
-description=\"Roon Bridge audio endpoint\"
-supervisor=supervise-daemon
-command=/opt/RoonBridge/start.sh
-directory=/opt/RoonBridge
-respawn_delay=5
-respawn_max=0
-output_log=/var/log/pi-home/roonbridge.log
-error_log=/var/log/pi-home/roonbridge-error.log
-export ROON_DATAROOT=/var/roon
-export ROON_ID_DIR=/var/roon
-depend() { need localmount; after networkmanager; }
-""", 0o755)
+    service.parent.mkdir(parents=True, exist_ok=True)
+    # Rewritten whenever it differs, so existing appliances get fixes. The .NET build of Roon Bridge on musl/gcompat
+    # can pile up thousands of idle thread-pool workers and then crash; cap the pool and the restart loop so it
+    # cannot starve the display and the rest of the Pi.
+    if not service.exists() or service.read_text() != ROON_BRIDGE_SERVICE:
+        atomic(service, ROON_BRIDGE_SERVICE, 0o755)
     return service
 
 # Keep resource preferences explicit and reversible; neither profile stops audio.
@@ -1269,6 +1279,9 @@ def serve():
     install_clock_support()
     ensure_daily_update_check()
     app = Setup()
+    if Path("/opt/RoonBridge/start.sh").is_file():
+        try: ensure_roon_bridge_service(Path("/"))
+        except Exception: pass
     try: ensure_playback_priority(Path("/"), app.run)
     except Exception: pass
     app.network_control = NetworkControl()
