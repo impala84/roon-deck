@@ -14,6 +14,12 @@ function fixture() {
   const control = new KefRoonControl({zones:()=>[{outputs:[output]}],transport:()=>transport,delay:async()=>{}});
   return {control,output,transport,calls};
 }
+test('a speaker Roon can no longer read a volume from is reported as off',()=>{
+  const {control,output}=fixture(); output.source_controls[0].status='selected';
+  assert.equal(control.status('kef').powered,true);
+  delete output.volume; const off=control.status('kef');
+  assert.equal(off.powered,false); assert.equal(off.volume,null);
+});
 test('wake and standby target the saved output without starting playback',async()=>{
   const {control,calls}=fixture();
   assert.equal((await control.command('kef','input','wifi',50)).input,'wifi');

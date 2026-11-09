@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.163 Alpine — 10 November 2026
+
+- **A switched-off KEF now reads as off:** Roon keeps listing a powered-down LSX as "selected" but can no longer read its volume, so a speaker with no volume is now reported as off. The input tile then shows "Off / Tap to turn on", the volume tile shows "Off" instead of a dash, and a tap on the input tile wakes the speaker before switching input (before, it sent the input code to a speaker that was off).
+- **KEF power tile:** reads "On / Tap to turn off" or "Off / Tap to turn on", green when on.
+- **Speaker name beside the icon:** no longer squeezed to "Ke…" or pushed to the right.
+- **White tile a touch darker** to sit with the other panels.
+
 ## 1.2.0-beta.162 Alpine — 10 November 2026
 
 - **KEF input tile shows "Off" when the speaker is off:** a plain dark tile reading "Off" with "Tap to turn on", instead of a grey "Unknown". Tapping wakes the speaker onto the input chosen for the tile, and the tile then takes that input's colour.

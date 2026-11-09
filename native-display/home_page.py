@@ -332,17 +332,18 @@ class HomePageMixin:
         if kind == "_input":
             # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
             card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
-            card.insert_child_after(card.input_label, card.head); card.value_label.set_wrap(False); card.value_label.set_lines(1); card.value_label.set_xalign(0); card.value_label.set_halign(Gtk.Align.FILL); card.value_label.set_justify(Gtk.Justification.LEFT)
+            card.insert_child_after(card.input_label, card.head); card.value_label.set_wrap(False); card.value_label.set_lines(1); card.value_label.set_xalign(0); card.value_label.set_hexpand(False); card.value_label.set_halign(Gtk.Align.START); card.value_label.set_max_width_chars(14)   # as wide as the name, right beside the icon
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 
     def populate_kef_action_tile(self, card, data):
         speaker = data.get("kef") or {}; enabled = bool(data.get("enabled")); connected = enabled and bool(speaker.get("connected")); note = data.get("error") or data.get("notice") or ""
         if card.kef_kind == "_power":
-            on = connected and bool(speaker.get("powered"))
-            card.value_label.set_text("Standby" if on else "Wake" if connected else "KEF")
-            card.detail_label.set_text(note or ("KEF is on · tap for standby" if on else "KEF is in standby · tap to wake" if connected else "Not enabled" if not enabled else "KEF is offline"))
-            self.set_action_state(card, "power", "active" if on else "alert" if not connected else "ok")
+            on = enabled and speaker.get("powered") is True
+            speaker_name = (getattr(card, "tile", None) or {}).get("label") or "KEF"
+            card.value_label.set_text(("On" if on else "Off") if enabled else speaker_name)
+            card.detail_label.set_text((data.get("notice") or "Tap to turn on") if enabled and not on else note or ("Tap to turn off" if on else "Not enabled"))
+            self.set_action_state(card, "power", "ok" if on else None)
             return
         primary, nxt = self.kef_next_input(card, data)
         speaker_name = (getattr(card, "tile", None) or {}).get("label") or "KEF"   # the speaker's name is the tile's label, set in the Home builder
@@ -355,7 +356,7 @@ class HomePageMixin:
         standby = speaker.get("powered") is not True   # in standby, or Roon cannot see it: either way it is off as far as anyone can tell
         if standby:
             card.input_label.set_text("Off")
-            card.detail_label.set_text(note or "Tap to turn on")
+            card.detail_label.set_text(data.get("notice") or "Tap to turn on")   # a "cannot see the speaker" error is just what off looks like
             self.set_action_state(card, "input", None); return
         card.input_label.set_text(self.KEF_INPUT_NAMES.get(current, "Unknown"))   # what the speaker is on now
         card.detail_label.set_text(note or ("Tap to cycle" if (getattr(card, "tile", None) or {}).get("input_alt") else "Tap to switch"))
@@ -406,11 +407,12 @@ class HomePageMixin:
         if hasattr(card, "kef_kind"): self.populate_kef_action_tile(card, data); return
         speaker = data.get("kef") or {}; enabled = bool(data.get("enabled")); connected = enabled and bool(speaker.get("connected"))
         volume = speaker.get("volume") if connected and isinstance(speaker.get("volume"), (int, float)) else None
-        card.value.set_text("\u2014" if volume is None else str(round(volume)))
+        off = enabled and speaker.get("powered") is not True
+        card.value.set_text("Off" if off else "\u2014" if volume is None else str(round(volume)))
         (card.value.add_css_class if connected and speaker.get("muted") else card.value.remove_css_class)("is-muted")
         narrow = card.has_css_class("hs-kefnarrow")
-        for button in (card.minus, card.plus): button.set_sensitive(connected); button.set_visible(not narrow)
-        note = data.get("error") or data.get("notice") or ("Not enabled" if not enabled else "Offline" if not connected else "Standby" if speaker.get("powered") is False else "Muted" if speaker.get("muted") else "")
+        for button in (card.minus, card.plus): button.set_sensitive(connected and not off); button.set_visible(not narrow)
+        note = (data.get("notice") or "") if off else data.get("error") or data.get("notice") or ("Not enabled" if not enabled else "" if off else "Muted" if speaker.get("muted") else "")
         card.feedback.set_text(note); card.feedback.set_visible(bool(note))
         if hasattr(card, "input_button"):
             on = connected and bool(speaker.get("powered"))

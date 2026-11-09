@@ -17,8 +17,10 @@ class KefRoonControl {
     const selected = controls.some(control => control.status === 'selected');
     const standby = controls.every(control => control.status === 'standby');
     const volume = output.volume;
-    return {connected: true, powered: !standby, input: selected ? 'wifi' : 'unknown',
-      volume: volume?.type === 'number' ? volume.value : null, muted: !!volume?.is_muted,
+    const hasVolume = volume?.type === 'number' && Number.isFinite(volume.value);
+    // Roon still lists a switched-off KEF as selected, but it can no longer read its volume: no volume means off.
+    return {connected: true, powered: !standby && hasVolume, input: selected ? 'wifi' : 'unknown',
+      volume: hasVolume ? volume.value : null, muted: !!volume?.is_muted,
       control_path: 'roon', direct_inputs_available: false};
   }
   invoke(fn) {
