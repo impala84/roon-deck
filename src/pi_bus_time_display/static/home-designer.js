@@ -206,6 +206,7 @@
         h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
         tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
     }
+    if (B(id) === 'roondeck.bus' && height === 1 && (tile.half || !tile.size || tile.size === 'quarter' || tile.size === 'auto')) return [h('div', {class: 'hd-d-bus hd-d-sq'}, h('span', {class: 'hd-d-numchip'}, tileOf(id).route || '42'), h('span', {class: 'hd-d-sqmin'}, h('b', {}, '7'), h('small', {}, 'min')), h('small', {class: 'hd-d-sqthen'}, 'then 11 min'))];   // the square bus tile
     if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, tileOf(id).route || '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
       const upd = B(id) === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);

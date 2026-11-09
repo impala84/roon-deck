@@ -26,7 +26,7 @@ class BusPageMixin:
         rules = []
         for name, accent in ROUTE_ACCENTS.items():
             rules.append(f".service.service-{name} {{ background: {mix_colour(accent, '#232228', tint)}; border-color: {accent}; }}")
-            rules.append(f".hs-bus.hs-bus-{name} .hs-route, .hs-bus.hs-bus-{name} .hs-bus-glyph {{ color: {accent}; }}")
+            rules.append(f".hs-bus.hs-bus-{name} .hs-route, .hs-bus.hs-bus-{name} .hs-bus-glyph, .hs-bus.hs-bus-{name} .hs-bus-num {{ color: {accent}; }}")
             rules.append(f".service.service-{name} .service-no {{ color: {accent}; opacity: 1; }}")
             rules.append(f".hs-bus.hs-bus-{name} {{ background: {mix_colour(accent, '#232228', tint)}; border-color: {accent}; }}")
         provider.load_from_data("\n".join(rules))

@@ -110,6 +110,15 @@ class HomeDashboardMixin:
         tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.BASELINE); tile.minutes.set_valign(Gtk.Align.BASELINE); arrival.set_baseline_position(Gtk.BaselinePosition.CENTER); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
+        # The square version, for a one-column, one-row tile: the route number in the circle where the icon would be, the next arrival in the middle, "then" below.
+        small = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); small.set_hexpand(True); small.set_vexpand(True); small.set_visible(False)
+        numchip = Gtk.Box(); numchip.add_css_class("hs-bus-numchip"); numchip.set_halign(Gtk.Align.START); numchip.set_valign(Gtk.Align.START); numchip.set_size_request(44, 44)
+        tile.cnum = self.label("", "hs-bus-num", 0); tile.cnum.set_halign(Gtk.Align.CENTER); tile.cnum.set_valign(Gtk.Align.CENTER); tile.cnum.set_hexpand(True); numchip.append(tile.cnum)
+        middle = Gtk.Box(spacing=6); middle.set_halign(Gtk.Align.CENTER); middle.set_valign(Gtk.Align.CENTER); middle.set_vexpand(True); middle.set_baseline_position(Gtk.BaselinePosition.CENTER)
+        tile.cmin = self.label("", "hs-bus-cmin", 0); tile.cunit = self.label("min", "hs-unit", 0); tile.cmin.set_valign(Gtk.Align.BASELINE); tile.cunit.set_valign(Gtk.Align.BASELINE); middle.append(tile.cmin); middle.append(tile.cunit)
+        tile.cthen = self.label("", "hs-then", 0); tile.cthen.set_halign(Gtk.Align.CENTER); tile.cthen.set_ellipsize(Pango.EllipsizeMode.END)
+        small.append(numchip); small.append(middle); small.append(tile.cthen)
+        bus.append(small); tile.small, tile.normal, tile.compact = small, [chip, text, arrival], False
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route(tile)); bus.add_controller(tap)
         self.bus_tiles[key] = tile
         return tile
@@ -363,7 +372,7 @@ class HomeDashboardMixin:
             chosen = next((item for item in services if str(item.get("service")) == wanted), services[0] if services else None)
             tile.box.set_visible(chosen is not None)
             height = tile.box.get_height()
-            if height > 0:   # the bus tile grows with the room it is given: 7-inch, then the big 10-inch panels
+            if height > 0 and not tile.compact:   # the bus tile grows with the room it is given: 7-inch, then the big 10-inch panels
                 size = "xl" if height >= 330 else "lg" if height >= 230 else ""
                 if size != tile.size:
                     for name in ("lg", "xl"): tile.box.remove_css_class("hs-bus-" + name)
@@ -379,6 +388,20 @@ class HomeDashboardMixin:
             tile.minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); tile.unit.set_visible(bool(minutes) and minutes[0] != 0)
             (tile.minutes.add_css_class if minutes and minutes[0] == 0 else tile.minutes.remove_css_class)("hs-minutes-due")   # the word "Due" is set smaller than a number so it fits the tile
             tile.then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.then.set_visible(len(minutes) > 1)
+            due = bool(minutes) and minutes[0] == 0
+            tile.cnum.set_text(str(chosen.get("service", ""))); (tile.cnum.add_css_class if len(str(chosen.get("service", ""))) > 3 else tile.cnum.remove_css_class)("is-long")
+            tile.cmin.set_text("—" if not minutes else "Due" if due else str(minutes[0])); (tile.cmin.add_css_class if due else tile.cmin.remove_css_class)("is-due"); tile.cunit.set_visible(bool(minutes) and not due)
+            tile.cthen.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.cthen.set_visible(len(minutes) > 1)
+
+    def set_bus_compact(self, tile, compact):
+        """A one-column, one-row bus tile uses the square layout; anything bigger keeps the wide one."""
+        if tile is None or compact == tile.compact: return
+        tile.compact = compact
+        for part in tile.normal: part.set_visible(not compact)
+        tile.small.set_visible(compact)
+        (tile.box.add_css_class if compact else tile.box.remove_css_class)("hs-bus-compact")
+        if compact: tile.box.set_spacing(0); [tile.box.remove_css_class("hs-bus-" + name) for name in ("lg", "xl")]; tile.size = ""
+        else: tile.size = None   # the next refresh picks the size class again
 
     def cycle_bus_route(self, tile):
         """Tapping a bus tile shows the next route the stop is registered for; each bus tile steps through them on its own."""
@@ -478,6 +501,7 @@ class HomeDashboardMixin:
             width, height = size_of(entity); column, row = placed[number]
             if entity.get("widget") is not None:
                 widget = entity["widget"]
+                if base_of(entity["entity_id"]) == "roondeck.bus": self.set_bus_compact(self.bus_tiles.get(entity["entity_id"]), width <= 2 and height == 1)
                 if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
                 if base_of(entity["entity_id"]) == "roondeck.player":
                     tall = height >= 3   # a full-height player has room to spare, so the slider and controls are given some
