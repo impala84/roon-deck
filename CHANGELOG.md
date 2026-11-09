@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.150 Alpine — 9 November 2026
+
+- **KEF input tile shows what the speaker is on, not where a tap goes:** the big word is the current input and the line below says "Tap to switch to Wi-Fi". The tile is coloured for the current input: Wi-Fi white, AUX green, Bluetooth blue, optical amber. The current input is Wi-Fi when Roon says it is selected, otherwise the last input sent by infrared.
+- **Scene tiles no longer say "TAP TO ACTIVATE"** (they still show Activating / Activated / Unavailable). 
+- **"Sent AUX via infrared" fades after a few seconds** instead of staying on the KEF tiles.
+
 ## 1.2.0-beta.149 Alpine — 9 November 2026
 
 - **More accurate Home builder preview for the KEF tiles:** KEF volume, KEF speaker, KEF input and KEF power are now drawn at the touchscreen's real pixel sizes (padding, text, number, buttons), scaled to the preview, so what you see in the builder matches the screen far more closely, including when something would not fit.

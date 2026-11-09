@@ -192,6 +192,7 @@ class ListeningControls:
         self.state = {"enabled": False, "kef": {"connected": False},
                       "streamdeck": {"enabled": False, "connected": False, "error": ""},
                       "error": "", "notice": "", "ir_available": False, "presets": {"last": ""}}
+        self.notice_at = -1e9   # when the current notice was set
         self.last_ir = -1e9   # when an input was last sent by infrared
         self.wake_delay = 3.0   # the LSX needs a moment after wake before it listens to infrared
 
@@ -226,6 +227,7 @@ class ListeningControls:
                 self.state["enabled"] = bool(settings.get("enabled"))
                 self.state["ir_available"] = bool(settings.get("kef_ir_remote") and self.ir_sender)
                 self.state["kef"] = self.speaker(settings).status() if self.state["enabled"] else {"connected": False}
+                if self.state["kef"].get("input") == "wifi": self.state.setdefault("presets", {})["last"] = "wifi"   # Roon reports Wi-Fi only while it is selected
                 self.state["error"] = ""
             except (OSError, ValueError, TypeError) as error:
                 self.state["kef"] = {"connected": False}
@@ -235,13 +237,17 @@ class ListeningControls:
             return self.snapshot_unlocked()
 
     def snapshot_unlocked(self):
-        return json.loads(json.dumps(self.state))
+        snap = json.loads(json.dumps(self.state))
+        # A notice such as "Sent AUX via infrared" is feedback for a few seconds, not a permanent line on the tile.
+        if snap.get("notice") and time.monotonic() - self.notice_at > 8: snap["notice"] = ""
+        return snap
 
     def snapshot(self):
         # Poll/command serialization must never stall the native display's
         # short HTTP timeout when an unreachable speaker takes seconds to fail.
         # Values are replaced, never mutated in place; take a shallow copy first.
         snap = json.loads(json.dumps(dict(self.state)))
+        if snap.get("notice") and time.monotonic() - self.notice_at > 8: snap["notice"] = ""
         try: snap["streamdeck_brightness"] = int(self.settings().get("streamdeck_brightness", 70))
         except Exception: snap["streamdeck_brightness"] = 70
         return snap
@@ -290,7 +296,7 @@ class ListeningControls:
                     self.state["ir_available"] = True
                     self.state.setdefault("presets", {})["last"] = value
                     label = value.upper() if value == "aux" else value.title()
-                    self.state["notice"] = f"{'Woke the KEF and sent' if woke else 'Sent'} {label} via infrared."
+                    self.state["notice"] = f"{'Woke the KEF and sent' if woke else 'Sent'} {label} via infrared."; self.notice_at = time.monotonic()
                     self.state["error"] = ""
                     # An IR transmission has no device acknowledgement. Do not invent input feedback.
                     return self.snapshot_unlocked()

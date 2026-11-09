@@ -154,7 +154,7 @@ class HomeDashboardMixin:
             card.icon_name = icon; image = FamilyIcon(icon, 26); image.add_css_class("hs-action-icon"); image.set_halign(Gtk.Align.CENTER); image.set_valign(Gtk.Align.CENTER); image.set_hexpand(True)
             while child := card.chip.get_first_child(): card.chip.remove(child)
             card.chip.append(image)
-        for name in ("ok", "alert", "active"):
+        for name in ("ok", "alert", "active", "light"):
             (card.add_css_class if name == state else card.remove_css_class)("is-" + name)
 
     # ---- update tile: shows whether a newer RoonDeck is out and installs it on a tap ----
@@ -610,7 +610,7 @@ class HomeDashboardMixin:
         icon = self.home_icon_for(entity, domain, True, scale * (1.5 if big else 1), accent); icon.set_hexpand(True); holder.append(icon)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Scene"), "home-name", 0); name.set_wrap(False); name.set_lines(1); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(1)   # one line, so a long scene name cannot make its tile taller
         available = entity.get("available", True)
-        status = self.label("TAP TO ACTIVATE" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
+        status = self.label("" if available else "UNAVAILABLE", "home-state", 0); status.set_ellipsize(Pango.EllipsizeMode.END); status.set_max_width_chars(1)   # let the tile narrow the text, never the text widen the tile
         if big:
             # Like the bus tile: the icon on the left, centred, with the name and its caption beside it.
             content = Gtk.Box(spacing=22); content.set_valign(Gtk.Align.CENTER); content.set_margin_start(14); content.set_margin_end(10)

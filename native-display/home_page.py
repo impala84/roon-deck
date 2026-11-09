@@ -173,7 +173,7 @@ class HomePageMixin:
             if tile.get("color"):
                 name = f"home-custom-{index}"; tile_widget.add_css_class(name); tile_rules += tile_colour_rules(("light", "fan", "switch", "scene"), name, tile["color"])
             scene = domain == "scene"
-            if scene: detail = "TAP TO ACTIVATE" if entity.get("available", True) else "UNAVAILABLE"
+            if scene: detail = "" if entity.get("available", True) else "UNAVAILABLE"
             icon_size = 108 if self.window.has_css_class("high-resolution") else 82
             if original: icon_size = 82 if (len(entities) == 6 and index < 2) else 50
             if row_mode: icon_size = max(64, min(240, round((self.window.get_height() - 190) / max(4, len(entities)) * .7)))
@@ -230,7 +230,7 @@ class HomePageMixin:
         threading.Thread(target=send, daemon=True).start()
 
     def reset_home_scene(self, button):
-        button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text("TAP TO ACTIVATE"); return False
+        button.remove_css_class("activated"); button.scene_tile.remove_css_class("activated"); button.set_sensitive(True); button.scene_status_label.set_text(""); return False
 
     def home_drag_begin(self, gesture, x, y):
         # A drag that starts on a slider belongs to the slider, never to the page.
@@ -307,10 +307,16 @@ class HomePageMixin:
 
     KEF_INPUT_NAMES = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "aux": "AUX", "optical": "Optical"}
 
+    def kef_current_input(self, data):
+        """The input the KEF is on: Roon says so when it is on Wi-Fi; otherwise the last input sent by infrared."""
+        last = (data.get("presets") or {}).get("last") or ""
+        if (data.get("kef") or {}).get("input") == "wifi": return "wifi"
+        return last if last != "wifi" else ""
+
     def kef_next_input(self, card, data):
         """The input a tap on the KEF input tile will select: the preset, or the other one of two presets."""
-        tile = getattr(card, "tile", None) or {}; primary, alt, last = tile.get("input") or "", tile.get("input_alt") or "", (data.get("presets") or {}).get("last") or ""
-        return primary, (alt if alt and last == primary else primary)
+        tile = getattr(card, "tile", None) or {}; primary, alt = tile.get("input") or "", tile.get("input_alt") or ""
+        return primary, (alt if alt and self.kef_current_input(data) == primary else primary)
 
     def tap_kef_power(self):
         speaker = (self.listening_data or {}).get("kef") or {}
@@ -340,10 +346,12 @@ class HomePageMixin:
             card.value_label.set_text("KEF input")
             card.detail_label.set_text(note or ("Not enabled" if not enabled else "Choose the input in the tile options" if not primary else "Choose the Broadlink remote in Settings"))
             self.set_action_state(card, "link", "alert"); return
-        card.value_label.set_text(self.KEF_INPUT_NAMES.get(nxt, nxt))
+        current = self.kef_current_input(data)
+        card.value_label.set_text(self.KEF_INPUT_NAMES.get(current, "KEF input"))   # what the speaker is on now; the line below says where a tap goes
         standby = connected and speaker.get("powered") is False
-        card.detail_label.set_text(note or ("Wakes the KEF, then switches" if standby else (getattr(card, "tile", None) or {}).get("label") or "Tap to switch KEF input"))
-        self.set_action_state(card, "link", "ok")
+        target = self.KEF_INPUT_NAMES.get(nxt, nxt)
+        card.detail_label.set_text(note or (f"Wakes the KEF, then switches to {target}" if standby else (getattr(card, "tile", None) or {}).get("label") or f"Tap to switch to {target}"))
+        self.set_action_state(card, "link", {"wifi": "light", "aux": "ok", "bluetooth": "active", "optical": "alert"}.get(current))
 
     def kef_tile(self, key):
         if key in self.kef_tiles: return self.kef_tiles[key]

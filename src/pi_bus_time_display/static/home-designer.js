@@ -224,8 +224,8 @@
       chip.innerHTML = input
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? 'ok' : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
-        h('small', {}, tile.label || (input ? (ready ? 'Tap to switch KEF input' : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
+      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? ({wifi: 'light', aux: 'ok', bluetooth: 'active', optical: 'alert'}[tile.input] || '') : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
+        h('small', {}, tile.label || (input ? (ready ? `Tap to switch to ${INPUT_NAMES[tile.input_alt] || INPUT_NAMES[tile.input]}` : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
     }
     if (B(id) in KEF) {
       // KEF volume and KEF speaker, at the touchscreen's real pixel sizes. Plus and minus need a wide tile; a half column shows the number alone.
@@ -251,7 +251,7 @@
     const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
     const name = tile.label || nameOf(id);
     const chip = h('span', {class: 'hd-d-chip', style: `opacity:${lit ? 1 : .6}`}, tile.icon ? h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}) : svgOf(scene ? 'scene' : domain === 'light' ? 'bulb' : domain === 'fan' ? 'fan' : domain === 'climate' ? 'snow' : 'switch', colour));
-    if (scene) return [h('div', {class: 'hd-d-scene'}, chip, h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, 'TAP TO ACTIVATE')))];
+    if (scene) return [h('div', {class: 'hd-d-scene'}, chip, h('span', {class: 'hd-d-text'}, h('b', {}, name)))];
     const text = h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, level ? (lit ? `${pct}%` : 'OFF') : (lit ? 'ON' : 'OFF')));
     if (tile.half) {
       const switchOf = !level ? h('span', {class: `hd-d-switch${lit ? ' on' : ''}`, style: lit ? `background:${colour}` : ''}, h('i', {})) : null;
