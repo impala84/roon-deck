@@ -608,3 +608,6 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-kefbtn { min-height: 44px; padding: 4px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); color: #f4f0e6; background: rgba(255,255,255,.1); font-size: 17px; font-weight: 600; }
 .hs-kefbtn:active { background: rgba(255,255,255,.24); }
 .hs-kefbtn:disabled { opacity: .4; }
+.hs-kefnarrow .hs-volbig { font-size: 64px; }
+.hs-kefnarrow .hs-kefbtn { font-size: 15px; padding: 4px 2px; }
+.hs-kefvol .hs-volbig { min-width: 0; }

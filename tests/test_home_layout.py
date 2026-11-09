@@ -7,6 +7,12 @@ from pi_bus_time_display.home_layout import load_layout, save_layout, validate_l
 
 
 class HomeLayoutTests(unittest.TestCase):
+    def test_the_combined_kef_tile_is_never_a_single_row(self):
+        saved = validate_layout({"tiles": {"roondeck.kef": {"show": True}, "roondeck.kef#1": {"show": True, "rows": 1}, "roondeck.kef_volume": {"show": True}}})
+        self.assertEqual(saved["tiles"]["roondeck.kef"]["rows"], 2)
+        self.assertEqual(saved["tiles"]["roondeck.kef#1"]["rows"], 2)
+        self.assertNotIn("rows", saved["tiles"]["roondeck.kef_volume"])
+
     def test_valid_layout_round_trips(self):
         folder = Path(tempfile.mkdtemp()); path = folder / "home-layout.json"
         saved = save_layout(path, {"tiles": {"light.study_uplight": {"size": "full", "label": "Uplight", "icon": "icon-bulb-hd5.png", "image": "wood.png", "color": "#fb923c"}}})

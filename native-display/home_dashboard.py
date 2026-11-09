@@ -417,6 +417,7 @@ class HomeDashboardMixin:
                 widget = self.bus_tile(key).box; self.bus_defaults[key] = record.get("route") or None
             if base_of(key) not in ("roondeck.player", "roondeck.bus") and not record.get("show"): continue
             tile = dict(record); tile.setdefault("rows", rows)
+            if base_of(key) == "roondeck.kef": tile["rows"] = max(2, tile.get("rows") or 2)   # the combined KEF tile needs two rows
             if home_cell and untouched and tile.get("page", 0) == 0 and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)

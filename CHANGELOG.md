@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.148 Alpine — 9 November 2026
+
+- **KEF tiles no longer spill out of their space:** a half-column KEF volume tile (and KEF speaker) shows just the headline and a larger number; plus and minus appear once the tile is a full column or wider.
+- **The combined KEF speaker tile is always at least two rows tall** (in the builder, when saved, and on the screen), because its number and buttons do not fit in one row. The builder will not let it shrink to one.
+
 ## 1.2.0-beta.147 Alpine — 9 November 2026
 
 - **Discover › Recent › Listened shows far more albums:** it read only the last 16 plays, which is about 8 albums once tracks from the same album are merged. It now reads the last 200 plays and lists up to 40 albums, newest first.

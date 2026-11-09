@@ -120,6 +120,7 @@
     if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
     markDirty(); render();
   }
+  const minRows = id => B(id) === 'roondeck.kef' ? 2 : 1;   // the combined KEF tile does not fit in one row
   const rowsPatch = (id, rows) => B(id) === 'roondeck.player' ? {rows} : {rows: rows > 1 ? rows : ''};
   const domainOf = id => { const d = id.split('.')[0]; return d === 'script' || d === 'scene' ? 'scene' : d === 'input_boolean' ? 'switch' : d; };
   const accent = id => {
@@ -157,7 +158,7 @@
     const taken = new Set(), at = new Map();
     const isHalf = id => !!dash && !!tileOf(id).half;
     const spots = (column, row, span, height) => { const out = []; for (let dx = 0; dx < span; dx += 1) for (let dy = 0; dy < height; dy += 1) out.push(`${column + dx},${row + dy}`); return out; };
-    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: Math.min(dash ? 3 : 2, Math.max(1, tileOf(id).rows || (B(id) === 'roondeck.player' ? 2 : 1)))});
+    const dims = id => ({span: isHalf(id) ? 1 : Math.min(columns, spans[tileOf(id).size] || (dash ? 2 : 1)), height: Math.min(dash ? 3 : 2, Math.max(minRows(id), tileOf(id).rows || (B(id) === 'roondeck.player' || B(id) === 'roondeck.kef' ? 2 : 1)))});
     const startOf = id => tileOf(id).col * fine + (isHalf(id) && tileOf(id).sub ? 1 : 0);
     for (const id of list) {
       const {span, height} = dims(id), tile = tileOf(id), x = startOf(id);
@@ -188,7 +189,7 @@
     for (const cell of cells) {
       const half = fine === 2 && tileOf(cell.id).half, next = {...tileOf(cell.id), col: Math.floor(cell.column / fine), row: cell.row}; delete next.rows;
       if (half && cell.column % 2) next.sub = 1; else delete next.sub;
-      if (cell.height !== (B(cell.id) === 'roondeck.player' ? 2 : 1)) next.rows = cell.height;
+      if (cell.height !== (B(cell.id) === 'roondeck.player' || B(cell.id) === 'roondeck.kef' ? 2 : 1)) next.rows = cell.height;
       layout.tiles[cell.id] = next;
     }
   }
@@ -231,7 +232,7 @@
       const full = B(id) === 'roondeck.kef';
       const pill = text => h('span', {class: 'hd-d-pill'}, text);
       return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, (tile.label || KEF[B(id)]).toUpperCase()),
-        h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '20'), h('i', {}, '+')),
+        h('span', {class: 'hd-d-volrow'}, ...(tile.half ? [h('b', {}, '20')] : [h('i', {}, '\u2212'), h('b', {}, '20'), h('i', {}, '+')])),
         full ? h('span', {class: 'hd-d-pills'}, pill('Standby'), pill(INPUT_NAMES_PREVIEW[tile.input] || 'Input')) : null)];
     }
     if (B(id) in LIVE) {
@@ -312,14 +313,14 @@
         let patch = null;
         if (east && dash) { const units = snap(cell.span + dxu); if (units !== cell.span) patch = widthPatch(units); }
         else if (east) { const size = sizeFor(Math.max(1, Math.min(columns, Math.round(cell.span + dxu)))); if (size !== current()) patch = {size}; }
-        if (south) { const rows = Math.max(1, Math.min(maxRows, Math.round(cell.height + dyu))); if (rows !== cell.height) patch = {...(patch || {}), ...rowsPatch(id, rows)}; }
+        if (south) { const rows = Math.max(minRows(id), Math.min(maxRows, Math.round(cell.height + dyu))); if (rows !== cell.height) patch = {...(patch || {}), ...rowsPatch(id, rows)}; }
         if (!patch || !fitsAfter(id, patch)) return;   // a neighbour is in the way: the tile stays as it is
         selected = ids().indexOf(id); patchTile(id, patch);
       } else {
         // The edge opposite the one being dragged stays put; the tile grows towards the finger, pushing neighbours down if they are in the way.
         let units = cell.span, rows = cell.height;
         if (east) units = snap(cell.span + dxu); else if (west) units = snap(cell.span - dxu);
-        if (south) rows = Math.max(1, Math.min(maxRows, Math.round(cell.height + dyu))); else if (north) rows = Math.max(1, Math.min(maxRows, Math.round(cell.height - dyu)));
+        if (south) rows = Math.max(minRows(id), Math.min(maxRows, Math.round(cell.height + dyu))); else if (north) rows = Math.max(minRows(id), Math.min(maxRows, Math.round(cell.height - dyu)));
         const column = west ? cell.column + cell.span - units : cell.column, row = north ? cell.row + cell.height - rows : cell.row;
         if (units === cell.span && rows === cell.height) return;
         if (column < 0 || row < 0) return;

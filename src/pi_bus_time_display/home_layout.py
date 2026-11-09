@@ -50,6 +50,7 @@ def validate_layout(data):
             if tile["rows"] not in (1, 2, 3) or isinstance(tile["rows"], bool): raise ValueError("Tiles can be one, two or three rows tall")
             # The player is two rows tall unless the owner makes it one; every other tile is one row unless it is two.
             if tile["rows"] in (2, 3) or (tile["rows"] == 1 and entity_id == PLAYER): out["rows"] = tile["rows"]
+        if entity_id.split("#")[0] == "roondeck.kef" and out.get("rows", 1) < 2: out["rows"] = 2   # the combined KEF tile needs two rows for its number and buttons
         for name, top in (("col", 3), ("row", 15)):
             if name in tile:
                 if isinstance(tile[name], bool) or not isinstance(tile[name], int) or not 0 <= tile[name] <= top: raise ValueError("Tile positions must be on the screen grid")

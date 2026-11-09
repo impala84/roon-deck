@@ -381,7 +381,10 @@ class HomePageMixin:
             card.set_tooltip_text(tile.get("label") or ("KEF input" if card.kef_kind == "_input" else "KEF power")); return
         changed = getattr(card, "tile", None) != tile; card.tile = tile
         card.title.set_text(tile.get("label") or card.default_title)
-        if changed and hasattr(card, "input_button"): self.populate_kef_tile("", card, self.listening_data)
+        if changed:
+            # Plus and minus need a wide tile; a half-column tile shows the number alone, a little larger.
+            narrow = bool(tile.get("half")); (card.add_css_class if narrow else card.remove_css_class)("hs-kefnarrow")
+            self.populate_kef_tile("", card, self.listening_data)
 
     def populate_kef_tile(self, key, card, data):
         if hasattr(card, "kef_kind"): self.populate_kef_action_tile(card, data); return
@@ -389,7 +392,8 @@ class HomePageMixin:
         volume = speaker.get("volume") if connected and isinstance(speaker.get("volume"), (int, float)) else None
         card.value.set_text("\u2014" if volume is None else str(round(volume)))
         (card.value.add_css_class if connected and speaker.get("muted") else card.value.remove_css_class)("is-muted")
-        for button in (card.minus, card.plus): button.set_sensitive(connected)
+        narrow = card.has_css_class("hs-kefnarrow")
+        for button in (card.minus, card.plus): button.set_sensitive(connected); button.set_visible(not narrow)
         note = data.get("error") or data.get("notice") or ("Not enabled" if not enabled else "Offline" if not connected else "Standby" if speaker.get("powered") is False else "Muted" if speaker.get("muted") else "")
         card.feedback.set_text(note); card.feedback.set_visible(bool(note))
         if hasattr(card, "input_button"):
