@@ -24,24 +24,29 @@
       card.style.cssText='display:flex;flex-direction:column;gap:8px;min-width:0;overflow:auto;padding:14px';
       if (tile.color) { card.style.background=tile.color+'44'; card.style.borderColor=tile.color; }
       else if (tile.border) card.style.borderColor=tile.border;
-      const title=document.createElement('strong'); title.textContent=tile.label || names[kind]; card.append(title);
       const speaker=state.kef || {}, connected=!!(state.enabled && speaker.connected), full=kind==='roondeck.kef';
-      const status=document.createElement('small'); status.textContent=!state.enabled?'Not enabled':connected?`${speaker.powered?'On':'Standby'} · ${speaker.volume}%`:'Offline'; card.append(status);
-      function button(row,label,action,value,enabled=connected) {
-        const node=document.createElement('button'); node.type='button'; node.textContent=label; node.style.cssText='min-height:44px;flex:1;padding:6px'; node.disabled=busy || !enabled;
-        node.onclick=()=>command(action,value); row.append(node);
+      const names2={wifi:'Wi-Fi',bluetooth:'Bluetooth',aux:'AUX',optical:'Optical'};
+      const button=(text,onclick,enabled=true,style='')=>{ const node=document.createElement('button'); node.type='button'; node.textContent=text; node.disabled=busy||!enabled; node.style.cssText='min-height:44px;padding:4px 12px;border-radius:12px;font-weight:600;'+style; node.onclick=onclick; return node; };
+      const last=state.presets?.last||'', primary=tile.input||'', next=tile.input_alt&&last===primary?tile.input_alt:primary;
+      const inputReady=!!(state.enabled&&primary&&state.ir_available);
+      const pressInput=()=>command('preset',{primary,alt:tile.input_alt||''});
+      const note=error||state.error||state.notice||(!state.enabled?'Not enabled':!connected?'Offline':speaker.powered===false?'Standby':'');
+      const small=document.createElement('small'); small.setAttribute('role','status'); small.textContent=note; small.style.opacity='.7';
+      if (kind==='roondeck.kef_input' || kind==='roondeck.kef_power') {
+        // A tap tile: the input it will switch to, or the power state it will switch.
+        const power=kind==='roondeck.kef_power', on=connected&&!!speaker.powered;
+        const big=document.createElement('strong'); big.style.cssText='font-size:1.8rem;line-height:1.1'; big.textContent=power?(on?'Standby':connected?'Wake':'KEF'):(inputReady?(names2[next]||next):'KEF input');
+        const tap=button('',power?()=>command('power',!on):pressInput,power?connected:inputReady,'text-align:left;display:grid;gap:4px;min-height:96px;width:100%'); tap.replaceChildren(big,(()=>{const d=document.createElement('small'); d.style.opacity='.75'; d.textContent=tile.label||(power?(on?'KEF is on · tap for standby':'KEF is in standby · tap to wake'):(inputReady?'Tap to switch KEF input':'Set the input in the tile options')); return d;})());
+        card.append(tap); if (note) card.append(small);
+        grid.append(card); continue;
       }
-      function row() { const node=document.createElement('div'); node.style.cssText='display:flex;gap:6px'; card.append(node); return node; }
-      if (full || kind.endsWith('_power')) { const controls=row(); button(controls,'On','power',true); button(controls,'Standby','power',false); }
-      if (full || kind.endsWith('_input')) {
-        const pick=document.createElement('select'); pick.setAttribute('aria-label','KEF input'); pick.style.minHeight='44px';
-        const choices=[['','Choose input…'],['wifi','Wi-Fi / Roon']];
-        if (state.ir_available || speaker.direct_inputs_available!==false) choices.push(['aux','AUX'],['optical','Optical'],['bluetooth','Bluetooth']);
-        for (const [value,label] of choices) { const option=document.createElement('option'); option.value=value; option.textContent=label; pick.append(option); }
-        pick.disabled=busy || !state.enabled || !(connected || state.ir_available); pick.onchange=()=>{ if(pick.value) command('input',pick.value); }; card.append(pick);
-      }
-      if (full || kind.endsWith('_volume')) { const controls=row(); button(controls,'−','volume_delta',-2); button(controls,'+','volume_delta',2); button(controls,speaker.muted?'Unmute':'Mute','mute',null); }
-      const message=document.createElement('small'); message.setAttribute('role','status'); message.textContent=error || state.error || state.notice || ''; card.append(message);
+      const head=document.createElement('strong'); head.textContent=tile.label||names[kind]; head.style.cssText='font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7'; card.append(head);
+      const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1';
+      const number=document.createElement('strong'); number.textContent=connected&&Number.isFinite(speaker.volume)?String(Math.round(speaker.volume)):'\u2014'; number.style.cssText='font-size:3rem;line-height:1;cursor:pointer;'+(speaker.muted?'opacity:.4':''); number.title='Tap to mute or unmute'; number.onclick=()=>connected&&command('mute',null);
+      const step=(text,value)=>button(text,()=>command('volume_delta',value),connected,'width:44px;height:44px;border-radius:22px;padding:0;font-size:1.4rem');
+      row.append(step('\u2212',-2),number,step('+',2)); card.append(row);
+      if (full) { const pills=document.createElement('div'); pills.style.cssText='display:flex;gap:8px'; pills.append(button(connected&&speaker.powered?'Standby':'Wake',()=>command('power',!(connected&&speaker.powered)),connected,'flex:1'),button(inputReady?(names2[next]||next):'Input',pressInput,inputReady,'flex:1')); card.append(pills); }
+      if (note) card.append(small);
       grid.append(card);
     }
   }

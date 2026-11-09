@@ -6,6 +6,7 @@
   if (!panel || !options || !textarea) return;
   const form = textarea.form;
   const ICONS = window.DeckIcons || {};
+  const INPUT_NAMES_PREVIEW = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', aux: 'AUX', optical: 'Optical'};
   let LIMIT = 8;   // tiles on one page: more on a big screen, which has the room (set from the screen shape in pageLimit)
   const MAX_PAGES = 4;
   const DEFAULT_COLOURS = {light: '#fb923c', fan: '#60a5fa', switch: '#9868f9', scene: '#a3e635'};
@@ -221,16 +222,17 @@
       chip.innerHTML = input
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || (input ? INPUT_NAMES[tile.input] || 'Choose input' : 'Standby'))),
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, input ? INPUT_NAMES[tile.input] || 'Choose input' : 'Standby')),
         h('span', {class: 'hd-d-spacer'}),
-        h('small', {class: 'hd-d-livefoot'}, input ? (tile.input ? 'Tap to switch KEF input' : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
+        h('small', {class: 'hd-d-livefoot'}, tile.label || (input ? (tile.input ? 'Tap to switch' : 'Set the input in options') : 'Tap for standby'))))];
     }
     if (B(id) in KEF) {
-      const kind = B(id), full = kind === 'roondeck.kef';
-      return [h('div', {class: 'hd-d-live'}, h('b', {}, tile.label || KEF[kind]), h('small', {}, 'On · Wi-Fi · 20%'),
-        full || kind.endsWith('_power') ? h('span', {}, 'On   ·   Standby') : null,
-        full || kind.endsWith('_input') ? h('span', {}, 'Choose input ▾') : null,
-        full || kind.endsWith('_volume') ? h('span', {}, '−   20   +   Mute') : null)];
+      // KEF volume: a headline and a large number with a small minus and plus; the combined KEF speaker tile adds power and input buttons.
+      const full = B(id) === 'roondeck.kef';
+      const pill = text => h('span', {class: 'hd-d-pill'}, text);
+      return [h('div', {class: 'hd-d-live hd-d-volume'}, h('span', {class: 'hd-d-title'}, (tile.label || KEF[B(id)]).toUpperCase()),
+        h('span', {class: 'hd-d-volrow'}, h('i', {}, '\u2212'), h('b', {}, '20'), h('i', {}, '+')),
+        full ? h('span', {class: 'hd-d-pills'}, pill('Standby'), pill(INPUT_NAMES_PREVIEW[tile.input] || 'Input')) : null)];
     }
     if (B(id) in LIVE) {
       const cpu = B(id) === 'roondeck.cpu', mem = B(id) === 'roondeck.memory', net = !cpu && !mem;

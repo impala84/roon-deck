@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.146 Alpine — 9 November 2026
+
+- **KEF volume and KEF speaker tiles redesigned:** the leftover control-strip styling is gone. KEF volume is a headline and a large number with a small minus and plus either side; tap the number to mute. KEF speaker is the same with Wake/Standby and the input button beneath. The builder preview and the web Home page match.
+- **KEF input tile** shows its custom title as the line under the input name, and the builder preview no longer crowds the text.
+
 ## 1.2.0-beta.145 Alpine — 9 November 2026
 
 - **Recent albums open straight away:** when Roon has several editions of the same album, tapping it under Recent opens the first one instead of asking you to choose (it never starts playing).

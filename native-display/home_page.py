@@ -6,7 +6,7 @@ from pi_bus_time_display.home_layout import KEF_CARDS
 import json
 import threading
 import time
-from gi.repository import Gdk, GLib, Gtk
+from gi.repository import Gdk, GLib, Gtk, Pango
 
 
 def tile_colour_rules(selector_domains, name, accent):
@@ -342,18 +342,35 @@ class HomePageMixin:
             self.set_action_state(card, "link", "alert"); return
         card.value_label.set_text(self.KEF_INPUT_NAMES.get(nxt, nxt))
         standby = connected and speaker.get("powered") is False
-        card.detail_label.set_text(note or ("Wakes the KEF, then switches" if standby else "Tap to switch KEF input"))
+        card.detail_label.set_text(note or ("Wakes the KEF, then switches" if standby else (getattr(card, "tile", None) or {}).get("label") or "Tap to switch KEF input"))
         self.set_action_state(card, "link", "ok")
 
     def kef_tile(self, key):
         if key in self.kef_tiles: return self.kef_tiles[key]
         kind = key.split("#")[0].removeprefix("roondeck.kef")
         if kind in ("_input", "_power"): return self.kef_action_tile(key, kind)
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-kef"); card.set_vexpand(True)
-        card.title = self.label("KEF speaker", "home-name"); card.append(card.title)
-        scroll = Gtk.ScrolledWindow(); scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC); scroll.set_min_content_height(0); scroll.set_propagate_natural_height(False); scroll.set_vexpand(True)
-        card.body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5); scroll.set_child(card.body); card.append(scroll)
-        card.feedback = self.label("", "muted"); card.feedback.set_wrap(True); card.body.append(card.feedback)
+        return self.kef_volume_tile(key, kind)
+
+    def kef_volume_tile(self, key, kind):
+        """KEF volume: a headline and a large number with a small minus and plus. The combined KEF speaker tile adds power and input buttons below."""
+        full = kind == ""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-voltile"); card.add_css_class("hs-kefvol"); card.set_hexpand(True); card.set_vexpand(True)
+        card.kef_vol = True; card.default_title = "KEF speaker" if full else "KEF volume"
+        card.title = self.label(card.default_title, "hs-stat-title", 0); card.title.set_xalign(0); card.title.set_ellipsize(Pango.EllipsizeMode.END); card.append(card.title)
+        row = Gtk.Box(spacing=8); row.set_vexpand(True); row.set_valign(Gtk.Align.CENTER)
+        card.minus = Gtk.Button(label="\u2212"); card.plus = Gtk.Button(label="+")
+        for button, step in ((card.minus, -2), (card.plus, 2)):
+            button.add_css_class("hs-volstep"); button.set_valign(Gtk.Align.CENTER); button.connect("clicked", lambda *_, step=step: self.listening_command("volume_delta", step))
+        card.value = self.label("\u2014", "hs-volbig", 0); card.value.set_hexpand(True); card.value.set_halign(Gtk.Align.CENTER)
+        tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.listening_command("mute", None)); card.value.add_controller(tap)   # tap the number to mute or unmute
+        row.append(card.minus); row.append(card.value); row.append(card.plus); card.append(row)
+        if full:
+            buttons = Gtk.Box(spacing=8); buttons.set_homogeneous(True)
+            card.power = Gtk.Button(label="Power"); card.power.connect("clicked", lambda *_: self.tap_kef_power())
+            card.input_button = Gtk.Button(label="Input"); card.input_button.connect("clicked", lambda *_, key=key: self.tap_kef_input(key))
+            for button in (card.power, card.input_button): button.add_css_class("hs-kefbtn"); buttons.append(button)
+            card.append(buttons)
+        card.feedback = self.label("", "hs-stat-detail", 0); card.feedback.set_xalign(0); card.feedback.set_ellipsize(Pango.EllipsizeMode.END); card.feedback.set_visible(False); card.append(card.feedback)
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 
@@ -362,37 +379,25 @@ class HomePageMixin:
             changed = getattr(card, "tile", None) != tile; card.tile = tile
             if changed: self.populate_kef_action_tile(card, self.listening_data)
             card.set_tooltip_text(tile.get("label") or ("KEF input" if card.kef_kind == "_input" else "KEF power")); return
+        changed = getattr(card, "tile", None) != tile; card.tile = tile
         card.title.set_text(tile.get("label") or card.default_title)
+        if changed and hasattr(card, "input_button"): self.populate_kef_tile("", card, self.listening_data)
 
     def populate_kef_tile(self, key, card, data):
         if hasattr(card, "kef_kind"): self.populate_kef_action_tile(card, data); return
-        kind = key.split("#")[0].removeprefix("roondeck.kef"); speaker = data.get("kef") or {}; connected = bool(data.get("enabled") and speaker.get("connected"))
-        card.default_title = {"": "KEF speaker", "_power": "KEF power", "_input": "KEF input", "_volume": "KEF volume"}[kind]
-        card.title.set_text(card.default_title)
-        while child := card.body.get_first_child(): card.body.remove(child)
-        detail = "Not enabled" if not data.get("enabled") else "Offline"
-        if connected: detail = f"{'On' if speaker.get('powered') else 'Standby'} · {speaker.get('volume', 0)}%"
-        status = self.label(detail, "muted"); status.set_wrap(True); card.body.append(status)
-        def row():
-            box = Gtk.Box(spacing=5); box.set_homogeneous(True); card.body.append(box); return box
-        def button(box, text, action, value, available=connected):
-            control = self.button(text, lambda _button, a=action, v=value: self.listening_command(a, v), "")
-            control.set_sensitive(available); control.set_hexpand(True); control.set_size_request(-1, 42); box.append(control)
-        if kind in ("", "_power"):
-            box = row(); button(box, "On", "power", True); button(box, "Standby", "power", False)
-        if kind in ("", "_input"):
-            choices = [("Choose input…", None), ("Wi-Fi / Roon", "wifi")]
-            if data.get("ir_available"):   # the other inputs are sent as infrared through Home Assistant
-                choices += [("AUX", "aux"), ("Optical", "optical"), ("Bluetooth", "bluetooth")]
-            pick = Gtk.DropDown.new_from_strings([name for name, _ in choices]); pick.set_size_request(-1, 42); pick.set_sensitive(bool(data.get("enabled") and (connected or data.get("ir_available"))))
-            def changed(control, _param):
-                selected = control.get_selected()
-                if 0 < selected < len(choices):
-                    self.listening_command("input", choices[selected][1]); control.set_selected(0)
-            pick.connect("notify::selected", changed); card.body.append(pick); card.input_pick = pick
-        if kind in ("", "_volume"):
-            box = row(); button(box, "−", "volume_delta", -2); button(box, "+", "volume_delta", 2); button(box, "Unmute" if speaker.get("muted") else "Mute", "mute", None)
-        card.feedback = self.label(data.get("error") or data.get("notice") or "", "muted"); card.feedback.set_wrap(True); card.body.append(card.feedback)
+        speaker = data.get("kef") or {}; enabled = bool(data.get("enabled")); connected = enabled and bool(speaker.get("connected"))
+        volume = speaker.get("volume") if connected and isinstance(speaker.get("volume"), (int, float)) else None
+        card.value.set_text("\u2014" if volume is None else str(round(volume)))
+        (card.value.add_css_class if connected and speaker.get("muted") else card.value.remove_css_class)("is-muted")
+        for button in (card.minus, card.plus): button.set_sensitive(connected)
+        note = data.get("error") or data.get("notice") or ("Not enabled" if not enabled else "Offline" if not connected else "Standby" if speaker.get("powered") is False else "Muted" if speaker.get("muted") else "")
+        card.feedback.set_text(note); card.feedback.set_visible(bool(note))
+        if hasattr(card, "input_button"):
+            on = connected and bool(speaker.get("powered"))
+            card.power.set_label("Standby" if on else "Wake"); card.power.set_sensitive(connected)
+            primary, nxt = self.kef_next_input(card, data)
+            ready = enabled and bool(primary) and bool(data.get("ir_available"))
+            card.input_button.set_label(self.KEF_INPUT_NAMES.get(nxt, nxt) if ready else "Input"); card.input_button.set_sensitive(ready)
 
     def render_listening(self, data):
         signature = json.dumps(data, sort_keys=True)
