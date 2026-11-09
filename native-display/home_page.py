@@ -375,6 +375,7 @@ class HomePageMixin:
         card.kef_vol = True; card.default_title = "KEF speaker" if full else "KEF volume"
         card.title = self.label(card.default_title, "hs-stat-title", 0); card.title.set_xalign(0); card.title.set_ellipsize(Pango.EllipsizeMode.END); card.append(card.title)
         row = Gtk.Box(spacing=8); row.set_vexpand(True); row.set_valign(Gtk.Align.CENTER)
+        if not full: row.set_margin_bottom(18); row.set_margin_end(12)   # the title sits above, so lift and nudge the number to the middle of the whole tile
         card.minus = Gtk.Button(label="\u2212"); card.plus = Gtk.Button(label="+")
         for button, step in ((card.minus, -2), (card.plus, 2)):
             button.add_css_class("hs-volstep"); button.set_valign(Gtk.Align.CENTER); button.connect("clicked", lambda *_, step=step: self.listening_command("volume_delta", step))
@@ -413,7 +414,7 @@ class HomePageMixin:
         narrow = card.has_css_class("hs-kefnarrow")
         for button in (card.minus, card.plus): button.set_sensitive(connected and not off); button.set_visible(not narrow)
         note = (data.get("notice") or "") if off else data.get("error") or data.get("notice") or ("Not enabled" if not enabled else "" if off else "Muted" if speaker.get("muted") else "")
-        card.feedback.set_text(note); card.feedback.set_visible(bool(note))
+        card.feedback.set_text(note); card.feedback.set_visible(bool(note) and hasattr(card, "input_button"))   # only the combined KEF tile has room for a notice line; on the volume tile it pushed the number about
         if hasattr(card, "input_button"):
             on = connected and bool(speaker.get("powered"))
             card.power.set_label("Standby" if on else "Wake"); card.power.set_sensitive(connected)
