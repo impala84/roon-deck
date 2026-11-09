@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.143 Alpine — 9 November 2026
+
+- **Fixed the display crashing on a volume change in beta.142** (an undefined name in the new Stream Deck volume check). The display also ignores Stream Deck volume changes as intended.
+
 ## 1.2.0-beta.142 Alpine — 9 November 2026
 
 - **Stream Deck volume no longer moves the screen:** turning a Stream Deck volume dial or pressing a volume or mute key changes the volume quietly. The screen still jumps to Now Playing (or the large volume page) for the remote, the TV or the Surface Dial.
