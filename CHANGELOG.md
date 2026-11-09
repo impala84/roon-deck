@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.139 Alpine — 9 November 2026
+
+- **Fixed "Unknown listening setting" on Listening & KEF:** settings saved by beta.136 (which stored the input presets on that page) were rejected by beta.137/138. Those old keys are now ignored on load; set the input on the KEF input tile.
+
 ## 1.2.0-beta.138 Alpine — 9 November 2026
 
 - **Broadlink remote now saves when picked from the list:** choosing a remote from the Home Assistant search was not stored (only the manual box was), so the KEF input tile stayed inactive with "add a Broadlink remote". The picked remote is now saved.

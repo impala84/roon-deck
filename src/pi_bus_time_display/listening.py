@@ -77,6 +77,7 @@ def load_settings(path: Path):
 def validate_settings(data):
     if not isinstance(data, dict):
         raise ValueError("Listening configuration must be an object")
+    for retired in ("kef_input_preset", "kef_input_alt"): data.pop(retired, None)   # beta.136 saved these here; the input now belongs to the Home tile
     if set(data) - {"enabled", "kef_host", "kef_roon_output_id", "kef_ir_remote", "maximum_volume", "streamdeck_enabled", "streamdeck_sleep_with_display", "streamdeck_sleep_mode", "streamdeck_sleep_start", "streamdeck_sleep_end", "streamdeck_awake_seconds", "streamdeck_brightness", "on_play", "modes", "buttons", "dials"}:
         raise ValueError("Unknown listening setting")
     data.pop("modes", None)   # listening modes were removed: input is switched by infrared, volume by Roon

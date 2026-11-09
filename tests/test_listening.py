@@ -137,6 +137,13 @@ class ListeningTests(unittest.TestCase):
         self.assertEqual(send.call_args.args, ("remote.study", "aux"))
         self.assertEqual(self.speaker.command.call_count, 1)
 
+    def test_settings_saved_by_beta_136_with_preset_keys_still_load(self):
+        self.settings.update(kef_ir_remote="remote.study", kef_input_preset="aux", kef_input_alt="wifi")
+        self.write()
+        loaded = load_settings(self.path)
+        self.assertNotIn("kef_input_preset", loaded)
+        self.assertEqual(loaded["kef_ir_remote"], "remote.study")
+
     def test_preset_needs_a_chosen_input(self):
         self.settings.update(kef_ir_remote="remote.study")
         self.write()
