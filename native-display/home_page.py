@@ -351,7 +351,7 @@ class HomePageMixin:
         standby = connected and speaker.get("powered") is False
         target = self.KEF_INPUT_NAMES.get(nxt, nxt)
         card.detail_label.set_text(note or (f"Wakes the KEF, then switches to {target}" if standby else (getattr(card, "tile", None) or {}).get("label") or f"Tap to switch to {target}"))
-        self.set_action_state(card, "link", {"wifi": "light", "aux": "ok", "bluetooth": "active", "optical": "alert"}.get(current))
+        self.set_action_state(card, "link", {"wifi": "light", "aux": "green", "bluetooth": "active", "optical": "purple"}.get(current))
 
     def kef_tile(self, key):
         if key in self.kef_tiles: return self.kef_tiles[key]

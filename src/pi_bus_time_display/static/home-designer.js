@@ -224,7 +224,7 @@
       chip.innerHTML = input
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>';
-      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? ({wifi: 'light', aux: 'ok', bluetooth: 'active', optical: 'alert'}[tile.input] || '') : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
+      return [h('div', {class: `hd-nk hd-nk-action ${input ? (ready ? ({wifi: 'light', aux: 'green', bluetooth: 'active', optical: 'purple'}[tile.input] || '') : 'alert') : 'active'}`}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, input ? (ready ? INPUT_NAMES[tile.input] : 'KEF input') : 'Standby')),
         h('small', {}, tile.label || (input ? (ready ? `Tap to switch to ${INPUT_NAMES[tile.input_alt] || INPUT_NAMES[tile.input]}` : 'Choose the input in the tile options') : 'KEF is on \u00b7 tap for standby')))];
     }
     if (B(id) in KEF) {

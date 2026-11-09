@@ -611,9 +611,15 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-kefnarrow .hs-volbig { font-size: 64px; }
 .hs-kefnarrow .hs-kefbtn { font-size: 15px; padding: 4px 2px; }
 .hs-kefvol .hs-volbig { min-width: 0; }
-/* The KEF input tile takes the colour of the input the speaker is on: Wi-Fi white, AUX green, Bluetooth blue, optical amber. */
+/* The KEF input tile takes the colour of the speaker's own LED for the input it is on: Wi-Fi white, AUX green, Bluetooth blue, optical purple. */
 .hs-action.is-light { background: #e9e4da; border-color: #ffffff; }
 .hs-action.is-light .hs-action-value { color: #1b1a20; }
 .hs-action.is-light .hs-action-detail { color: #4d4a55; }
 .hs-action.is-light .hs-action-chip { background: rgba(0,0,0,.1); }
 .hs-action.is-light .hs-action-icon { color: #1b1a20; }
+.hs-action.is-green { background: #24472f; border-color: #5fd08a; }
+.hs-action.is-green .hs-action-chip { background: #5fd08a; }
+.hs-action.is-green .hs-action-icon { color: #0d2616; }
+.hs-action.is-purple { background: #3a2a62; border-color: #a78bfa; }
+.hs-action.is-purple .hs-action-chip { background: #a78bfa; }
+.hs-action.is-purple .hs-action-icon { color: #1c1233; }

@@ -154,7 +154,7 @@ class HomeDashboardMixin:
             card.icon_name = icon; image = FamilyIcon(icon, 26); image.add_css_class("hs-action-icon"); image.set_halign(Gtk.Align.CENTER); image.set_valign(Gtk.Align.CENTER); image.set_hexpand(True)
             while child := card.chip.get_first_child(): card.chip.remove(child)
             card.chip.append(image)
-        for name in ("ok", "alert", "active", "light"):
+        for name in ("ok", "alert", "active", "light", "green", "purple"):
             (card.add_css_class if name == state else card.remove_css_class)("is-" + name)
 
     # ---- update tile: shows whether a newer RoonDeck is out and installs it on a tap ----

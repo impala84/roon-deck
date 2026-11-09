@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.151 Alpine — 9 November 2026
+
+- **KEF input tile colours follow the speaker's own LED:** Wi-Fi white, AUX green, Bluetooth blue, optical purple, each as a full coloured tile (builder preview included). KEF's manual confirms white for Wi-Fi and blue for Bluetooth; AUX green and optical purple are as you described, as the manual does not list them.
+
 ## 1.2.0-beta.150 Alpine — 9 November 2026
 
 - **KEF input tile shows what the speaker is on, not where a tap goes:** the big word is the current input and the line below says "Tap to switch to Wi-Fi". The tile is coloured for the current input: Wi-Fi white, AUX green, Bluetooth blue, optical amber. The current input is Wi-Fi when Roon says it is selected, otherwise the last input sent by infrared.
