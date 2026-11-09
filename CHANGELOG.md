@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.138 Alpine — 9 November 2026
+
+- **Broadlink remote now saves when picked from the list:** choosing a remote from the Home Assistant search was not stored (only the manual box was), so the KEF input tile stayed inactive with "add a Broadlink remote". The picked remote is now saved.
+
 ## 1.2.0-beta.137 Alpine — 9 November 2026
 
 - **KEF input presets moved to the tile:** choose the input (and an optional alternate to toggle with) in the KEF input tile's options in Settings → Home → Layout. Listening & KEF no longer has preset fields, so there is one place to edit it.

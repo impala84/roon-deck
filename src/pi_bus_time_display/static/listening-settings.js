@@ -64,7 +64,7 @@
         if ([...irRemote.options].some(option => option.value === irManual.value)) irRemote.value = irManual.value;
       } catch (error) { irHint.textContent = `Could not search Home Assistant (${error.message}). Type the entity id below.`; }
     })();
-    irRemote.onchange = () => { if (irRemote.value) irManual.value = irRemote.value; };
+    irRemote.onchange = () => { irManual.value = irRemote.value; };
     const maximum = h('input' , {type: 'number', min: 0, max: 100}); maximum.value = settings.maximum_volume ?? 50;
 
     const speakers = h('section', {class: 'cd-card'},
@@ -81,7 +81,7 @@
       const taken = new Set();
       settings.enabled = enabled.checked;
       settings.kef_roon_output_id = roonOutput.value;
-      settings.kef_ir_remote = irManual.value.trim();
+      settings.kef_ir_remote = (irManual.value.trim() || irRemote.value).trim();   // a typed id wins; otherwise the remote picked from the list
       settings.maximum_volume = Number(maximum.value);
     });
 
