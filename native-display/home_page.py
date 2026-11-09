@@ -308,10 +308,9 @@ class HomePageMixin:
     KEF_INPUT_NAMES = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "aux": "AUX", "optical": "Optical"}
 
     def kef_current_input(self, data):
-        """The input the KEF is on: Roon says so when it is on Wi-Fi; otherwise the last input sent by infrared."""
-        last = (data.get("presets") or {}).get("last") or ""
+        """The input the KEF is on: Roon says so when it is on Wi-Fi; otherwise the last input chosen (kept across restarts)."""
         if (data.get("kef") or {}).get("input") == "wifi": return "wifi"
-        return last if last != "wifi" else ""
+        return (data.get("presets") or {}).get("last") or ""
 
     def kef_next_input(self, card, data):
         """The input a tap on the KEF input tile will select: the preset, or the other one of two presets."""

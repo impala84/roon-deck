@@ -195,9 +195,18 @@ class ListeningControls:
         self.notice_at = -1e9   # when the current notice was set
         self.last_ir = -1e9   # when an input was last sent by infrared
         self.wake_delay = 3.0   # the LSX needs a moment after wake before it listens to infrared
+        self.last_input_path = self.path.with_name("listening-last-input.json")   # the input last chosen survives a restart or an update
+        try:
+            remembered = json.loads(self.last_input_path.read_text()).get("last", "")
+            if remembered in INPUTS: self.state["presets"]["last"] = remembered
+        except (OSError, ValueError, AttributeError): pass
 
     def settings(self):
         return load_settings(self.path)
+
+    def remember_input(self, value):
+        try: self.last_input_path.write_text(json.dumps({"last": value}))
+        except OSError: pass
 
     def save(self, data):
         data = validate_settings(data)
@@ -227,7 +236,7 @@ class ListeningControls:
                 self.state["enabled"] = bool(settings.get("enabled"))
                 self.state["ir_available"] = bool(settings.get("kef_ir_remote") and self.ir_sender)
                 self.state["kef"] = self.speaker(settings).status() if self.state["enabled"] else {"connected": False}
-                if self.state["kef"].get("input") == "wifi": self.state.setdefault("presets", {})["last"] = "wifi"   # Roon reports Wi-Fi only while it is selected
+                if self.state["kef"].get("input") == "wifi" and self.state.setdefault("presets", {}).get("last") != "wifi": self.state["presets"]["last"] = "wifi"; self.remember_input("wifi")   # Roon reports Wi-Fi only while it is selected
                 self.state["error"] = ""
             except (OSError, ValueError, TypeError) as error:
                 self.state["kef"] = {"connected": False}
@@ -295,6 +304,7 @@ class ListeningControls:
                     self.last_ir = time.monotonic()
                     self.state["ir_available"] = True
                     self.state.setdefault("presets", {})["last"] = value
+                    self.remember_input(value)
                     label = value.upper() if value == "aux" else value.title()
                     self.state["notice"] = f"{'Woke the KEF and sent' if woke else 'Sent'} {label} via infrared."; self.notice_at = time.monotonic()
                     self.state["error"] = ""

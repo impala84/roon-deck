@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.158 Alpine — 9 November 2026
+
+- **The KEF input tile no longer falls back to grey "Unknown":** the input you last chose is now remembered across restarts and updates (before, every update erased it), and Wi-Fi counts as a known input when it was the last one chosen (before, only Roon reporting Wi-Fi counted, and Roon often does not).
+
 ## 1.2.0-beta.157 Alpine — 9 November 2026
 
 - **KEF input tile:** the speaker name now sits next to the icon (it dropped below it on a narrow tile, which pushed the last line out of the tile). A colour set on this tile in the Home builder no longer paints over the input colour, so Wi-Fi shows white, AUX green, Bluetooth blue and optical purple.

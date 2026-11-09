@@ -296,6 +296,25 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class RememberedInputTests(unittest.TestCase):
+    def test_last_chosen_input_survives_a_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "listening.json"
+            first = ListeningControls(path)
+            self.assertEqual(first.state["presets"]["last"], "")
+            first.remember_input("wifi")
+            second = ListeningControls(path)   # a restart or an update builds a new controller
+            self.assertEqual(second.state["presets"]["last"], "wifi")
+
+    def test_a_corrupt_or_unknown_remembered_input_is_ignored(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "listening.json"
+            (Path(folder) / "listening-last-input.json").write_text('{"last": "hdmi"}')
+            self.assertEqual(ListeningControls(path).state["presets"]["last"], "")
+            (Path(folder) / "listening-last-input.json").write_text("not json")
+            self.assertEqual(ListeningControls(path).state["presets"]["last"], "")
+
+
 class StreamDeckDisplayHelpersTests(unittest.TestCase):
     def test_elapsed_time_is_minutes_and_seconds(self):
         from pi_bus_time_display import streamdeck
