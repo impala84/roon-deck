@@ -563,12 +563,12 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-minutes.hs-minutes-due { font-size: 56px; }
 
 /* The square bus tile: route number in the circle, next arrival in the middle, "then" underneath. */
-.hs-bus.hs-bus-compact { padding: 12px 14px; }
+.hs-bus.hs-bus-compact { padding: 10px 14px 8px 14px; overflow: hidden; }
 .hs-bus-numchip { min-width: 44px; min-height: 44px; border-radius: 22px; background: rgba(255,255,255,.12); padding: 0; }
 .hs-bus-name { font-size: 24px; font-weight: 700; color: #f4f0e6; }   /* the same as the KEF speaker name */
 .hs-bus-num { font-size: 20px; font-weight: 700; }
 .hs-bus-num.is-long { font-size: 14px; }
-.hs-bus-cmin { font-size: 58px; font-weight: 600; color: #f4f0e6; font-variant-numeric: tabular-nums; }
+.hs-bus-cmin { font-size: 50px; font-weight: 600; color: #f4f0e6; font-variant-numeric: tabular-nums; }
 .hs-bus-cmin.is-due { font-size: 40px; }
 .hs-bus-compact .hs-unit { font-size: 18px; }
 .hs-bus-compact .hs-then { font-size: 15px; }

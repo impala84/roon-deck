@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.177 Alpine — 11 November 2026
+
+- **Square bus tile fits its tile:** the minutes line is shorter and the gap under it smaller, so "then N min" no longer pushes the bottom edge out of the tile; the tile now clips nothing.
+
 ## 1.2.0-beta.176 Alpine — 11 November 2026
 
 - **Reorder Home pages by dragging:** drag a page tab (Page 1, Page 2…) onto another to move that page there. Tiles stay on their page; the builder renumbers them, and you stay on the page you moved. Save to apply to the touchscreen.
