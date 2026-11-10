@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.174 Alpine — 11 November 2026
+
+- **Square bus tile spacing is now fixed, not nudged:** the minutes line has a set height and "then N min" a set gap below it, so "Due" and "9 min" lay out identically, "then" no longer touches the digits, and nothing clips at the bottom.
+
 ## 1.2.0-beta.173 Alpine — 11 November 2026
 
 - **"Bus" now sits beside the route circle** on the square bus tile (it was being pushed to the right edge), and "then N min" has more room above the bottom edge.

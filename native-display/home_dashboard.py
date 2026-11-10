@@ -114,10 +114,10 @@ class HomeDashboardMixin:
         small = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); small.set_hexpand(True); small.set_vexpand(True); small.set_visible(False)
         numchip = Gtk.Box(); numchip.add_css_class("hs-bus-numchip"); numchip.set_halign(Gtk.Align.START); numchip.set_valign(Gtk.Align.START); numchip.set_hexpand(False); numchip.set_size_request(44, 44)
         tile.cnum = self.label("", "hs-bus-num", 0); tile.cnum.set_halign(Gtk.Align.CENTER); tile.cnum.set_valign(Gtk.Align.CENTER); tile.cnum.set_hexpand(True); numchip.append(tile.cnum)
-        middle = Gtk.Box(spacing=6); middle.set_halign(Gtk.Align.CENTER); middle.set_halign(Gtk.Align.CENTER); middle.set_baseline_position(Gtk.BaselinePosition.CENTER)
+        middle = Gtk.Box(spacing=6); middle.set_halign(Gtk.Align.CENTER); middle.set_halign(Gtk.Align.CENTER); middle.set_baseline_position(Gtk.BaselinePosition.CENTER); middle.set_size_request(-1, 64); middle.set_valign(Gtk.Align.CENTER)   # a fixed-height line, so "Due" and "9 min" sit in the same place
         tile.cmin = self.label("", "hs-bus-cmin", 0); tile.cunit = self.label("min", "hs-unit", 0); tile.cmin.set_valign(Gtk.Align.BASELINE); tile.cunit.set_valign(Gtk.Align.BASELINE); middle.append(tile.cmin); middle.append(tile.cunit)
-        tile.cthen = self.label("", "hs-then", 0); tile.cthen.set_halign(Gtk.Align.CENTER); tile.cthen.set_ellipsize(Pango.EllipsizeMode.END)
-        group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); group.set_valign(Gtk.Align.CENTER); group.set_vexpand(True); group.set_margin_bottom(26)   # minutes and "then" as one block, lifted a little above the middle
+        tile.cthen = self.label("", "hs-then", 0); tile.cthen.set_halign(Gtk.Align.CENTER); tile.cthen.set_ellipsize(Pango.EllipsizeMode.END); tile.cthen.set_margin_top(8); tile.cthen.set_size_request(-1, 22)
+        group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); group.set_valign(Gtk.Align.CENTER); group.set_vexpand(True); group.set_margin_bottom(6)   # minutes and "then" as one block, lifted a little above the middle
         group.append(middle); group.append(tile.cthen)
         top = Gtk.Box(spacing=10); top.append(numchip); name = self.label("Bus", "hs-bus-name", 0); name.set_valign(Gtk.Align.CENTER); name.set_halign(Gtk.Align.START); name.set_hexpand(False); name.set_xalign(0); top.append(name)   # "Bus" beside the route circle, as the speaker name sits beside the KEF icon
         small.append(top); small.append(group)
