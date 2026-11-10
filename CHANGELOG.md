@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.166 Alpine — 10 November 2026
+
+- **The square bus tile is only for the half-column size:** beta.165 also switched ordinary one-column bus tiles to the square layout. Those now look as they did before; only a half-column, one-row bus tile is square.
+
 ## 1.2.0-beta.165 Alpine — 10 November 2026
 
-- **Square bus tile:** a Next-bus tile set to one column wide and one row tall now uses a compact layout like the KEF input tile: the route number sits in the circle where an icon would be (in that route's colour), the next arrival is large in the middle ("5 min", or "Due"), and "then 23 min" sits underneath. Tapping still steps through your routes, and the tile keeps the route's colour. Wider or taller bus tiles look as before. The Home builder preview shows the same layout.
+- **Square bus tile:** a Next-bus tile set to half a column wide and one row tall now uses a compact layout like the KEF input tile: the route number sits in the circle where an icon would be (in that route's colour), the next arrival is large in the middle ("5 min", or "Due"), and "then 23 min" sits underneath. Tapping still steps through your routes, and the tile keeps the route's colour. Wider or taller bus tiles look as before. The Home builder preview shows the same layout.
 
 ## 1.2.0-beta.164 Alpine — 10 November 2026
 

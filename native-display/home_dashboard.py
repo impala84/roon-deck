@@ -110,7 +110,7 @@ class HomeDashboardMixin:
         tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.BASELINE); tile.minutes.set_valign(Gtk.Align.BASELINE); arrival.set_baseline_position(Gtk.BaselinePosition.CENTER); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
-        # The square version, for a one-column, one-row tile: the route number in the circle where the icon would be, the next arrival in the middle, "then" below.
+        # The square version, for a half-column, one-row tile: the route number in the circle where the icon would be, the next arrival in the middle, "then" below.
         small = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); small.set_hexpand(True); small.set_vexpand(True); small.set_visible(False)
         numchip = Gtk.Box(); numchip.add_css_class("hs-bus-numchip"); numchip.set_halign(Gtk.Align.START); numchip.set_valign(Gtk.Align.START); numchip.set_size_request(44, 44)
         tile.cnum = self.label("", "hs-bus-num", 0); tile.cnum.set_halign(Gtk.Align.CENTER); tile.cnum.set_valign(Gtk.Align.CENTER); tile.cnum.set_hexpand(True); numchip.append(tile.cnum)
@@ -394,7 +394,7 @@ class HomeDashboardMixin:
             tile.cthen.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.cthen.set_visible(len(minutes) > 1)
 
     def set_bus_compact(self, tile, compact):
-        """A one-column, one-row bus tile uses the square layout; anything bigger keeps the wide one."""
+        """A half-column, one-row bus tile uses the square layout; anything wider keeps the wide one."""
         if tile is None or compact == tile.compact: return
         tile.compact = compact
         for part in tile.normal: part.set_visible(not compact)
@@ -501,7 +501,7 @@ class HomeDashboardMixin:
             width, height = size_of(entity); column, row = placed[number]
             if entity.get("widget") is not None:
                 widget = entity["widget"]
-                if base_of(entity["entity_id"]) == "roondeck.bus": self.set_bus_compact(self.bus_tiles.get(entity["entity_id"]), width <= 2 and height == 1)
+                if base_of(entity["entity_id"]) == "roondeck.bus": self.set_bus_compact(self.bus_tiles.get(entity["entity_id"]), width == 1 and height == 1)   # half a column wide: the square tile
                 if base_of(entity["entity_id"]) == "roondeck.player": self.hs_short = height == 1
                 if base_of(entity["entity_id"]) == "roondeck.player":
                     tall = height >= 3   # a full-height player has room to spare, so the slider and controls are given some
