@@ -107,14 +107,45 @@
     if (!isCard(id) && !textIds().includes(B(id)) && !id.includes('#')) setIds([...ids(), id]);
     selected = ids().indexOf(id); markDirty(); render();
   }
+  // A parked tile is drawn as it will look on the screen (colour, size, label, icon), so several versions of one kind of tile can be told apart.
+  let dragPen = null;
+  function penTile(id) {
+    const shape = screen(), full = place(ids(), shape.portrait), cell = {...place([id], shape.portrait).cells[0], column: 0, row: 0};
+    const k = shape.portrait ? 1280 / shape.width : 1, M = 560, gap = 0.014 * M * k, Hg = M * shape.height / shape.width * (shape.portrait ? 0.8 : 0.69);
+    const colW = (M - (full.columns - 1) * gap) / full.columns, rowH = (Hg - (full.rows - 1) * gap) / full.rows;
+    const width = colW * cell.span + gap * (cell.span - 1), height = rowH * cell.height + gap * (cell.height - 1);
+    const node = tileView(cell, false);
+    node.classList.remove('selected'); node.removeAttribute('draggable'); node.removeAttribute('tabindex'); node.onclick = null; node.onkeydown = null; node.ondragstart = null;
+    node.querySelectorAll('.hd-x,.hd-stretch').forEach(part => part.remove());
+    const mini = h('div', {class: 'hd-screen hd-dash-screen hd-penmini', style: `width:${M}px;height:${Hg}px;--k:${k}`}, h('div', {class: 'hd-grid', style: `grid-template-columns:repeat(${full.columns},minmax(0,1fr));grid-template-rows:repeat(${full.rows},minmax(0,1fr))`}, node));
+    return h('div', {class: 'hd-pentile', style: `width:${width.toFixed(0)}px;height:${height.toFixed(0)}px`}, mini);
+  }
+  function dropPen(spot) {
+    const id = dragPen; dragPen = null;
+    if (!id || !isParked(id) || ids().length >= pageLimit()) { render(); return; }
+    const {parked, col, row, page, ...rest} = layout.tiles[id] || {};
+    layout.tiles[id] = withPage(rest);
+    const info = place(ids(), screen().portrait), me = info.cells.find(item => item.id === id);
+    if (me) {
+      let column = Math.min(spot.column, info.columns - me.span); if (dashColumns() && !tileOf(id).half) column -= column % 2;
+      const placed = displace(info.cells, id, {column, row: spot.row}, info) || makeRoom(info.cells, id, {column, row: spot.row}, info);
+      if (placed) pin(placed);
+    }
+    selected = ids().indexOf(id); markDirty(); render();
+  }
   function penView() {
-    const keys = parkedIds(), pen = h('div', {class: 'hd-pen'}, h('h4', {}, `Holding pen${keys.length ? ` · ${keys.length}` : ''}`));
+    const keys = parkedIds(), pen = h('div', {class: 'hd-pen'}, h('h4', {}, `Holding pen${keys.length ? ` \u00b7 ${keys.length}` : ''}`));
     const full = ids().length >= pageLimit();
     pen.append(h('div', {class: 'hd-penrow'}, keys.length ? keys.map(id => {
-      const tile = layout.tiles[id] || {}, chip = h('button', {type: 'button', class: 'hd-penchip', title: full ? 'This page is full' : `Place ${tile.label || nameOf(id)} on page ${pageNo + 1}`, disabled: full},
-        h('span', {class: 'hd-pendot', style: `background:${accent(id)}`}), h('span', {}, tile.label || nameOf(id)), h('small', {}, 'Place here'));
-      chip.onclick = () => placeTile(id); return chip;
-    }) : h('p', {class: 'cd-muted'}, 'Nothing set aside. Drag a tile here, or use "Move to holding pen", to keep it and its settings off every page. It stays here while you change page, so you can place it on another one.')));
+      const tile = layout.tiles[id] || {}, name = tile.label || nameOf(id);
+      const item = h('div', {class: `hd-penitem${full ? ' full' : ''}`, draggable: full ? 'false' : 'true', role: 'button', tabindex: '0', title: full ? 'This page is full' : `${name}: click to place on page ${pageNo + 1}, or drag it to a spot`},
+        penTile(id), h('small', {}, full ? 'Page full' : 'Drag, or click to place here'));
+      item.onclick = () => placeTile(id);
+      item.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); placeTile(id); } };
+      item.ondragstart = event => { dragPen = id; dragTile = null; dragId = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); dragGhost(event, item.firstChild); };
+      item.ondragend = () => { dragPen = null; document.querySelectorAll('.hd-empty.over').forEach(node => node.classList.remove('over')); };
+      return item;
+    }) : h('p', {class: 'cd-muted'}, 'Nothing set aside. Drag a tile here, or use "Move to holding pen", to keep it and its settings off every page. It stays here while you change page, so you can drag it onto another one.')));
     pen.ondragover = event => { if (dragTile) { event.preventDefault(); pen.classList.add('over'); } };
     pen.ondragleave = () => pen.classList.remove('over');
     pen.ondrop = event => { event.preventDefault(); pen.classList.remove('over'); const id = dragTile; if (!id) return; closeGrid(); dragTile = null; live = null; parkTile(id); };
@@ -479,9 +510,9 @@
   }
   function emptySlot(spot) {
     const slot = h('div', {class: 'hd-empty', 'data-col': spot.column, 'data-row': spot.row, style: `grid-column:${spot.column + 1} / span ${spot.span || 1};grid-row:${spot.row + 1}`}, spot.span === 1 && dashColumns() ? '' : 'Drop here');
-    slot.ondragover = event => { if (dragTile) { event.preventDefault(); liveTo(spot, null); } else if (dragId && deviceIds().length < LIMIT) { event.preventDefault(); slot.classList.add('over'); } };
+    slot.ondragover = event => { if (dragPen) { if (ids().length < pageLimit()) { event.preventDefault(); slot.classList.add('over'); } } else if (dragTile) { event.preventDefault(); liveTo(spot, null); } else if (dragId && deviceIds().length < LIMIT) { event.preventDefault(); slot.classList.add('over'); } };
     slot.ondragleave = () => slot.classList.remove('over');
-    slot.ondrop = event => { event.preventDefault(); slot.classList.remove('over'); if (dragTile) commitLive(); else dropDevice(spot, null); };
+    slot.ondrop = event => { event.preventDefault(); slot.classList.remove('over'); if (dragPen) dropPen(spot); else if (dragTile) commitLive(); else dropDevice(spot, null); };
     return slot;
   }
   // The first time a tile or device is picked up, the whole screen becomes the grid: every free cell is a place to drop.

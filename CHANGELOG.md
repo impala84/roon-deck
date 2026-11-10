@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.172 Alpine — 11 November 2026
+
+- **Holding pen keeps each tile's look:** parked tiles are shown as small copies of the real tile (colour, size, label), so several versions of a similar tile are easy to tell apart. Drag one from the pen onto an empty slot to place it; clicking it still places it on the current page.
+- **"Bus" word matches "KEF LSX":** same size (24 px bold), white, left-aligned beside the route circle.
+- **KEF input word ("Off", "Wi-Fi", "AUX")** lined up with "Group" and "Up to date".
+
 ## 1.2.0-beta.171 Alpine — 11 November 2026
 
 - **Holding pen in the Home builder:** a tray under the preview for tiles you are not using. Drag a tile onto it, or press "Move to holding pen" on the selected tile, and the tile comes off the page with its options kept (colour, size, label, route, KEF inputs and the rest). The pen is the same on every page, so you can park a tile on one page and place it on another with one click ("Place here"). Parked tiles are not drawn on the touchscreen.

@@ -119,7 +119,7 @@ class HomeDashboardMixin:
         tile.cthen = self.label("", "hs-then", 0); tile.cthen.set_halign(Gtk.Align.CENTER); tile.cthen.set_ellipsize(Pango.EllipsizeMode.END)
         group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); group.set_valign(Gtk.Align.CENTER); group.set_vexpand(True); group.set_margin_bottom(16)   # minutes and "then" as one block, lifted a little above the middle
         group.append(middle); group.append(tile.cthen)
-        top = Gtk.Box(spacing=10); top.append(numchip); name = self.label("Bus", "hs-bus-name", 0); name.set_valign(Gtk.Align.CENTER); top.append(name)   # "Bus" beside the route circle, as the speaker name sits beside the KEF icon
+        top = Gtk.Box(spacing=10); top.append(numchip); name = self.label("Bus", "hs-bus-name", 0); name.set_valign(Gtk.Align.CENTER); name.set_halign(Gtk.Align.START); name.set_hexpand(False); name.set_xalign(0); top.append(name)   # "Bus" beside the route circle, as the speaker name sits beside the KEF icon
         small.append(top); small.append(group)
         bus.append(small); tile.small, tile.normal, tile.compact = small, [chip, text, arrival], False
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.cycle_bus_route(tile)); bus.add_controller(tap)
