@@ -111,7 +111,7 @@
   let dragPen = null;
   function penTile(id) {
     const shape = screen(), full = place(ids(), shape.portrait), cell = {...place([id], shape.portrait).cells[0], column: 0, row: 0};
-    const k = shape.portrait ? 1280 / shape.width : 1, M = 560, gap = 0.014 * M * k, Hg = M * shape.height / shape.width * (shape.portrait ? 0.8 : 0.69);
+    const k = shape.portrait ? 1280 / shape.width : 1, M = 560, gap = 0.014 * M * k, Hg = M * shape.height / shape.width * (shape.portrait ? 0.8 : 0.74);
     const colW = (M - (full.columns - 1) * gap) / full.columns, rowH = (Hg - (full.rows - 1) * gap) / full.rows;
     const width = colW * cell.span + gap * (cell.span - 1), height = rowH * cell.height + gap * (cell.height - 1);
     const node = tileView(cell, false);
@@ -139,7 +139,7 @@
     pen.append(h('div', {class: 'hd-penrow'}, keys.length ? keys.map(id => {
       const tile = layout.tiles[id] || {}, name = tile.label || nameOf(id);
       const item = h('div', {class: `hd-penitem${full ? ' full' : ''}`, draggable: full ? 'false' : 'true', role: 'button', tabindex: '0', title: full ? 'This page is full' : `${name}: click to place on page ${pageNo + 1}, or drag it to a spot`},
-        penTile(id), h('small', {}, full ? 'Page full' : 'Drag, or click to place here'));
+        penTile(id), h('small', {}, full ? 'Page full' : 'Drag or click'));
       item.onclick = () => placeTile(id);
       item.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); placeTile(id); } };
       item.ondragstart = event => { dragPen = id; dragTile = null; dragId = null; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); dragGhost(event, item.firstChild); };

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.175 Alpine — 11 November 2026
+
+- **Builder: Update and Group tiles no longer overlap their text** in the preview and holding pen (smaller chip, tighter note). Holding-pen tiles use the same proportions as the layout, with an even gap and a short "Drag or click" caption.
+
 ## 1.2.0-beta.174 Alpine — 11 November 2026
 
 - **Square bus tile spacing is now fixed, not nudged:** the minutes line has a set height and "then N min" a set gap below it, so "Due" and "9 min" lay out identically, "then" no longer touches the digits, and nothing clips at the bottom.
