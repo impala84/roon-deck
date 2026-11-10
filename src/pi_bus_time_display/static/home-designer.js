@@ -182,7 +182,15 @@
   const minRows = id => B(id) === 'roondeck.kef' ? 2 : 1;   // the combined KEF tile does not fit in one row
   const rowsPatch = (id, rows) => B(id) === 'roondeck.player' ? {rows} : {rows: rows > 1 ? rows : ''};
   const domainOf = id => { const d = id.split('.')[0]; return d === 'script' || d === 'scene' ? 'scene' : d === 'input_boolean' ? 'switch' : d; };
+  const ROUTE_ACCENTS = {blue: '#55a9d7', green: '#61c68f', violet: '#a998e0', amber: '#d4a85f', rose: '#e07a95', teal: '#4fc3c0'};
+  const busRouteNumber = id => tileOf(id).route || String(form.elements.services?.value || '').split(',')[0].trim() || '42';
+  const busAccent = id => {   // the colour chosen for the route under Services > Bus, as the Pi uses it
+    const map = {}; for (const part of String(form.elements.service_colours?.value || '').split(',')) { const [r, n] = part.split('=').map(x => x.trim()); if (r && n) map[r] = n.toLowerCase(); }
+    return ROUTE_ACCENTS[map[busRouteNumber(id)] || ({'40': 'blue', '42': 'green', '401': 'violet'})[busRouteNumber(id)]] || '#9868f9';
+  };
+  const busTint = () => { const t = parseInt(form.elements.route_tint?.value, 10); return Number.isFinite(t) ? Math.max(0, Math.min(100, t)) / 100 : .2; };
   const accent = id => {
+    if (B(id) === 'roondeck.bus') return busAccent(id);
     if (tileOf(id).color) return tileOf(id).color;
     const single = form.elements.home_assistant_color_mode?.value === 'single';
     return (single ? form.elements.home_assistant_single_color?.value : form.elements[`home_assistant_${domainOf(id)}_color`]?.value) || DEFAULT_COLOURS[domainOf(id)] || '#9868f9';
@@ -265,7 +273,7 @@
         h('span', {class: 'hd-d-transport'}, svgOf('previous', '#f4f0e6'), h('span', {class: 'hd-d-play'}, svgOf('play', '#17151d')), svgOf('next', '#f4f0e6')),
         tile.volume === false || short ? null : h('span', {class: 'hd-d-bar vol'}, h('i', {})))];
     }
-    if (B(id) === 'roondeck.bus' && height === 1 && !!tile.half) return [h('div', {class: 'hd-d-bus hd-d-sq'}, h('span', {class: 'hd-d-sqtop'}, h('span', {class: 'hd-d-numchip'}, tileOf(id).route || '42'), h('b', {class: 'hd-d-sqname'}, 'Bus')), h('span', {class: 'hd-d-sqmin'}, h('b', {}, '7'), h('small', {}, 'min')), h('small', {class: 'hd-d-sqthen'}, 'then 11 min'))];   // the square bus tile
+    if (B(id) === 'roondeck.bus' && height === 1 && !!tile.half) return [h('div', {class: 'hd-d-bus hd-d-sq'}, h('span', {class: 'hd-d-sqtop'}, h('span', {class: 'hd-d-numchip', style: `color:${busAccent(id)}`}, busRouteNumber(id)), h('b', {class: 'hd-d-sqname'}, 'Bus')), h('span', {class: 'hd-d-sqmin'}, h('b', {}, '7'), h('small', {}, 'min')), h('small', {class: 'hd-d-sqthen'}, 'then 11 min'))];   // the square bus tile
     if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, tileOf(id).route || '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
     if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
       const upd = B(id) === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
@@ -330,7 +338,7 @@
     const id = cell.id, tile = tileOf(id), colour = accent(id), on = states[B(id)] ? ['on', 'open', 'playing'].includes(states[B(id)].state) : true, scene = domainOf(id) === 'scene';
     const lit = on || scene;
     const node = h('div', {class: `hd-tile${selected === ids().indexOf(id) ? ' selected' : ''}${rowMode ? ' row' : ''}`, draggable: 'true', tabindex: '0', role: 'button', 'data-id': id, 'aria-label': `${tile.label || nameOf(id)}, ${tile.size || 'quarter'}${tile.rows === 2 ? ', tall' : ''}`,
-      style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', lit ? .34 : .18)};border-color:${lit ? colour : blend(colour, '#44414c', .58)}`});
+      style: `grid-column:${cell.column + 1} / span ${cell.span};grid-row:${cell.row + 1} / span ${cell.height};background:${blend(colour, '#232228', B(id) === 'roondeck.bus' ? busTint() : lit ? .34 : .18)};border-color:${lit || B(id) === 'roondeck.bus' ? colour : blend(colour, '#44414c', .58)}`});
     if (tile.image) node.append(h('img', {class: 'hd-art', src: artUrl(tile.image), alt: ''}));
     if (dashColumns() || B(id) in KEF) { node.classList.add('hd-dash'); if (cell.span >= 4) node.classList.add('hd-wide'); node.append(...dashBody(id, tile, colour, lit, cell.height)); }
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));

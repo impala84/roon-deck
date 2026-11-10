@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.173 Alpine — 11 November 2026
+
+- **"Bus" now sits beside the route circle** on the square bus tile (it was being pushed to the right edge), and "then N min" has more room above the bottom edge.
+- **Builder bus preview uses the route's colour** chosen under Services > Bus (and the colour strength), and its second line no longer runs off the tile.
+
 ## 1.2.0-beta.172 Alpine — 11 November 2026
 
 - **Holding pen keeps each tile's look:** parked tiles are shown as small copies of the real tile (colour, size, label), so several versions of a similar tile are easy to tell apart. Drag one from the pen onto an empty slot to place it; clicking it still places it on the current page.
