@@ -167,7 +167,7 @@ class HomeDashboardMixin:
         """Put the tile's title right beside its icon (a fresh label, so nothing about the old one can push it under the icon or off the tile)."""
         old = card.value_label; card.head.remove(old)
         name = self.label("", "hs-action-value", 0); name.set_xalign(0); name.set_halign(Gtk.Align.START); name.set_valign(Gtk.Align.CENTER); name.set_hexpand(False); name.set_wrap(False); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(14)
-        card.chip.set_hexpand(False); card.head.append(name); card.value_label = name
+        card.chip.set_hexpand(False); card.head.append(name); card.value_label = name; card.inline_title = True
         return name
 
     def set_action_state(self, card, icon, state):
@@ -605,7 +605,7 @@ class HomeDashboardMixin:
                     widget.chip.set_size_request(*((56, 56) if width >= 4 else (44, 44)))
                     widget.detail_label.set_lines(3 if width >= 4 and height >= 2 else 2)   # a small tile has room for two lines, so a long status never pushes past its border
                     # The title sits beside the icon only where there is room for it: on the smallest tile it goes below the icon.
-                    beside = width >= 4 or getattr(widget, "kef_kind", None) == "_input"   # the KEF input tile always has the speaker name next to the icon
+                    beside = width >= 4 or getattr(widget, "inline_title", False)   # the KEF tiles and listening modes always have their title next to the icon
                     widget.head.set_orientation(Gtk.Orientation.HORIZONTAL if beside else Gtk.Orientation.VERTICAL); widget.head.set_spacing(10 if beside else 8)
                     widget.value_label.set_valign(Gtk.Align.CENTER if beside else Gtk.Align.START)
                     (widget.add_css_class if width >= 4 else widget.remove_css_class)("hs-action-wide")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.181 Alpine — 11 November 2026
+
+- **Titles really beside the icon:** the layout step that puts a small tile's title under its icon exempted only the KEF input tile. The KEF power tile (LSX) and listening-mode tiles (Mac) are exempted too, so their titles sit inline with the icon.
+
 ## 1.2.0-beta.180 Alpine — 11 November 2026
 
 - **Listening modes now get past "KEF on":** Roon is slow to confirm a wake, which the controller reported as an error and stopped the sequence on step 1. The mode now waits for the speaker to report itself on (up to 12 s) and carries on, skips a power step if the KEF is already in that state, and shows the step and reason on the tile if something does fail (it stays up for 12 s). Each step is also logged.
