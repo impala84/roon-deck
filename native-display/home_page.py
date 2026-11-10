@@ -329,7 +329,7 @@ class HomePageMixin:
         """The KEF input and power tiles are ordinary tap tiles, like Update and Group."""
         card, _value, _detail = self.build_action_card("KEF input" if kind == "_input" else "KEF power", (lambda: self.tap_kef_input(key)) if kind == "_input" else self.tap_kef_power)
         card.feedback = card.detail_label; card.kef_kind = kind
-        if kind == "_input":
+        if True:   # the power tile has the same three lines as the input tile
             # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
             card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
             card.insert_child_after(card.input_label, card.head); card.input_label.set_margin_top(4); card.input_label.set_valign(Gtk.Align.CENTER); card.value_label.set_wrap(False); card.value_label.set_lines(1); card.value_label.set_xalign(0); card.value_label.set_hexpand(False); card.value_label.set_halign(Gtk.Align.START); card.value_label.set_max_width_chars(14)   # as wide as the name, right beside the icon
@@ -340,10 +340,10 @@ class HomePageMixin:
         speaker = data.get("kef") or {}; enabled = bool(data.get("enabled")); connected = enabled and bool(speaker.get("connected")); note = data.get("error") or data.get("notice") or ""
         if card.kef_kind == "_power":
             on = enabled and speaker.get("powered") is True
-            speaker_name = (getattr(card, "tile", None) or {}).get("label") or "KEF"
-            card.value_label.set_text(("On" if on else "Off") if enabled else speaker_name)
+            card.value_label.set_text((getattr(card, "tile", None) or {}).get("label") or "KEF")   # the speaker's name, beside the icon
+            card.input_label.set_text(("On" if on else "Off") if enabled else "\u2014")
             card.detail_label.set_text((data.get("notice") or "Tap to turn on") if enabled and not on else note or ("Tap to turn off" if on else "Not enabled"))
-            self.set_action_state(card, "power", "ok" if on else None)
+            self.set_action_state(card, "power", "green" if on else None)
             return
         primary, nxt = self.kef_next_input(card, data)
         speaker_name = (getattr(card, "tile", None) or {}).get("label") or "KEF"   # the speaker's name is the tile's label, set in the Home builder

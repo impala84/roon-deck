@@ -298,7 +298,7 @@
         return [h('div', {class: `hd-nk hd-nk-action hd-nk-in ${ready ? ({wifi: 'light', aux: 'green', bluetooth: 'blue', optical: 'purple'}[tile.input] || '') : 'alert'}`},
           h('span', {class: 'hd-nk-head'}, chip, h('b', {}, tile.label || 'KEF')), h('strong', {}, ready ? INPUT_NAMES[tile.input] : '\u2014'), h('small', {}, hint))];
       }
-      return [h('div', {class: 'hd-nk hd-nk-action active'}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, 'Standby')), h('small', {}, 'KEF is on \u00b7 tap for standby'))];
+      return [h('div', {class: 'hd-nk hd-nk-action hd-nk-in green'}, h('span', {class: 'hd-nk-head'}, chip, h('b', {}, tile.label || 'KEF')), h('strong', {}, 'On'), h('small', {}, 'Tap to turn off'))];   // the same three lines as the input tile; the whole tile is green while the speaker is on
     }
     if (B(id) in KEF) {
       // KEF volume and KEF speaker, at the touchscreen's real pixel sizes. Plus and minus need a wide tile; a half column shows the number alone.

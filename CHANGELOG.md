@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.178 Alpine — 11 November 2026
+
+- **KEF input tile:** the title now sits left, beside the icon (the icon was taking the spare width and pushing it to the right edge).
+- **KEF power tile:** laid out like the input tile — icon and your title (e.g. "LSX") on top, "On" / "Off" in large type, a hint underneath — and the whole tile turns green while the speaker is on. The builder preview matches.
+
 ## 1.2.0-beta.177 Alpine — 11 November 2026
 
 - **Square bus tile fits its tile:** the minutes line is shorter and the gap under it smaller, so "then N min" no longer pushes the bottom edge out of the tile; the tile now clips nothing.

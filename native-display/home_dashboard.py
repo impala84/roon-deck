@@ -150,7 +150,7 @@ class HomeDashboardMixin:
     def build_action_card(self, title, on_tap):
         """A tile you tap to do something: a small title, a big word for what a tap will do, and a line of detail."""
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class("hs-card"); card.add_css_class("hs-action"); card.set_hexpand(True); card.set_vexpand(True)
-        chip = Gtk.Box(); chip.add_css_class("hs-action-chip"); chip.set_halign(Gtk.Align.START); chip.set_valign(Gtk.Align.START)
+        chip = Gtk.Box(); chip.add_css_class("hs-action-chip"); chip.set_halign(Gtk.Align.START); chip.set_valign(Gtk.Align.START); chip.set_hexpand(False)   # the icon inside expands, which would otherwise push the title to the right
         chip.set_size_request(44, 44); card.icon_name = None; card.chip = chip
         value = self.label("—", "hs-action-value", 0); value.set_wrap(True); value.set_wrap_mode(Pango.WrapMode.WORD_CHAR); value.set_lines(2); value.set_ellipsize(Pango.EllipsizeMode.END); value.set_max_width_chars(1); value.set_hexpand(True); value.set_xalign(0); value.set_valign(Gtk.Align.CENTER)   # the title sits beside the icon, leaving the lines below for the detail
         detail = self.label("", "hs-stat-detail", 0); detail.add_css_class("hs-action-detail"); detail.set_wrap(True); detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR); detail.set_lines(3); detail.set_ellipsize(Pango.EllipsizeMode.END); detail.set_max_width_chars(1); detail.set_valign(Gtk.Align.END)
