@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.2.0-beta.167 Alpine — 10 November 2026
+## 1.2.0-beta.168 Alpine — 10 November 2026
 
-- **The screen follows what the BluOS player is on:** when the BluOS player is playing one of its own inputs (the TV over HDMI ARC, for example), turning the volume now shows the large TV volume page and the screen stays there while that input is active, instead of flashing Now Playing and dropping back to Bus Times. When the input stops, the screen returns to Bus Times after the usual "return after playback" delay. The Now Playing track page is only chosen for a volume change when the player is not on one of its own inputs.
+- **TV volume keeps its own page and still sleeps:** turning the volume while the BluOS player is on one of its own inputs (the TV) wakes the screen onto the large TV volume page and keeps it there for the short wake, then the screen sleeps again as before. A volume change while you are already on that page leaves it alone instead of jumping to Now Playing. (beta.167 held the Roon page up whenever the player was on an input, which stopped the screen sleeping between volume changes; that is removed.)
 
 ## 1.2.0-beta.166 Alpine — 10 November 2026
 

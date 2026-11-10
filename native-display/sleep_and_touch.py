@@ -157,11 +157,11 @@ class SleepAndTouchMixin:
             self.stack.set_visible_child_name(self.last_mode or "bus")
         return False
 
-    def wake(self, *_, remote=False):
+    def wake(self, *_, remote=False, view=None):
         now = time.monotonic()
         source = _[0] if _ else "input"
         self.manual_sleep_pending = False; self.sleep_entered_at = 0.0; self.last_interaction = now; self.inactivity_sleeping = False; print(f"RoonDeck waking after fresh touchscreen {source}", flush=True); self.set_screen_power(True, force=True); self.stack.set_visible_child_name(self.last_mode or "bus")
-        payload = {"view": self.last_mode or "bus"}
+        payload = {"view": view or self.last_mode or "bus"}
         if remote:
             payload["source"] = "remote"
             # Idle-timeout sleep is local: back-date the last touch so the panel sleeps again after the short remote wake time.

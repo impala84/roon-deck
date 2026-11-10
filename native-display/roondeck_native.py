@@ -841,28 +841,38 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         previous_volume = getattr(self, "volume_signature", None)
         self.volume_signature = volume_signature
         asleep = self.inactivity_sleeping or target == "/sleep.html" or self.stack.get_visible_child_name() == "sleep"
+        amplifier_now = (roon or {}).get("amplifier") or {}
+        on_player_input = bool(amplifier_now.get("connected") and amplifier_now.get("active_input"))   # the BluOS player is on one of its own inputs, the TV for one
+        on_tv_page = self.stack.get_visible_child_name() == "roon" and self.roon_views.get_visible_child_name() == "source"
         if (asleep and previous_volume is not None and volume_signature != previous_volume
                 and any(item is not None for item in volume_signature) and target is not None):
-            # Wake to whatever was showing before it slept (Bus Times, Home or a Roon page), not Now Playing.
-            self.wake("volume change", remote=True)
-            # The controller still reports sleep until it has seen the wake request; show the previous screen meanwhile.
-            target = {"home": "/home", "roon": "http://127.0.0.1:8766/"}.get(self.last_mode, "/")
-            print("RoonDeck waking for a volume change", flush=True)
+            if on_player_input or on_tv_page:
+                # Watching TV: wake onto the large TV volume page, and let the controller hold it for the short wake, then sleep again.
+                self.requested_audio_view = "source"; self.set_roon_view("source")
+                self.wake("volume change", remote=True, view="roon")
+                target = "http://127.0.0.1:8766/"
+                print("RoonDeck waking for a volume change on the TV page", flush=True)
+            else:
+                # Wake to whatever was showing before it slept (Bus Times, Home or a Roon page), not Now Playing.
+                self.wake("volume change", remote=True)
+                # The controller still reports sleep until it has seen the wake request; show the previous screen meanwhile.
+                target = {"home": "/home", "roon": "http://127.0.0.1:8766/"}.get(self.last_mode, "/")
+                print("RoonDeck waking for a volume change", flush=True)
         elif (not asleep and previous_volume is not None and volume_signature != previous_volume
                 and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")
                 and not self.settings_open
                 and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20
                 and not (isinstance(getattr(self, "deck_volume_ago", None), (int, float)) and self.deck_volume_ago < 10)):   # a Stream Deck turn changes the volume quietly
-            # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial). Show the Roon
-            # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
-            target = "http://127.0.0.1:8766/"
-            # Roon playing: its Now Playing page. Nothing playing: the large HDMI/ARC volume page.
-            amplifier_now = (roon or {}).get("amplifier") or {}
-            # What the BluOS player is on decides the page: its own input (the TV) gets the large volume page, whatever Roon is doing; otherwise the track.
-            if amplifier_now.get("connected") and amplifier_now.get("active_input"): self.requested_audio_view = "source"
-            elif ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
-            if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
-            print("RoonDeck showing the screen for a volume change: " + target, flush=True)
+            # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial).
+            if on_tv_page: pass   # already on the TV volume page: stay there
+            else:
+                target = "http://127.0.0.1:8766/"
+                # What the BluOS player is on decides the page: its own input (the TV) gets the large volume page, whatever Roon is doing; otherwise the track.
+                if on_player_input: self.requested_audio_view = "source"; self.set_roon_view("source")
+                else:
+                    if ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
+                    if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
+                print("RoonDeck showing the screen for a volume change: " + target, flush=True)
         scheduled_wake = bool(
             target is not None
             and target != "/sleep.html"
