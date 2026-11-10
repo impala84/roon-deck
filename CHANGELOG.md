@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.180 Alpine — 11 November 2026
+
+- **Listening modes now get past "KEF on":** Roon is slow to confirm a wake, which the controller reported as an error and stopped the sequence on step 1. The mode now waits for the speaker to report itself on (up to 12 s) and carries on, skips a power step if the KEF is already in that state, and shows the step and reason on the tile if something does fail (it stays up for 12 s). Each step is also logged.
+- **Titles beside the icon:** the listening-mode tile, the KEF power tile and the KEF input tile all put their title right next to the icon, which also stops the KEF power tile overflowing its bottom edge.
+- **Description line:** listening-mode tiles can have an optional line under the title (set in the builder).
+
 ## 1.2.0-beta.179 Alpine — 11 November 2026
 
 - **Listening-mode tiles:** a new tile (up to four, "Listening mode" in Add tiles) that runs a list of steps with one tap. Add steps yourself, in any order and mix: KEF power on/off, KEF input, KEF volume, turn a Home Assistant device on or off, run a script or scene, or press an infrared button (your Broadlink remote, device and button). Each step has its own "then wait N seconds", so a DAC has time to power up before the next step. The tile shows progress ("2/5 · KEF input AUX") and stops with the problem if a step fails. Steps with no device chosen are left out on save.

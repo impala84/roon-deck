@@ -642,3 +642,6 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .home-scene:not(.home-big) { padding: 12px 16px; }
 .home-scene:not(.home-big) .home-icon-chip { min-width: 44px; min-height: 44px; border-radius: 22px; }
 .home-scene:not(.home-big) .home-name { font-size: 21px; }
+
+.hs-action-note { font-size: 16px; color: #c9c5d2; }
+.hs-card.hs-action.is-light .hs-action-note { color: #3b3a43; }

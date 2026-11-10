@@ -77,7 +77,7 @@ class HomeDashboardMixin:
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
         self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
         self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}
-        self.hs_modes = {key: self.build_action_card("MODE", lambda key=key: self.tap_mode_tile(key)) for key in MODE_KEYS}; self.mode_running = {}
+        self.hs_modes = {key: self.build_mode_card(key) for key in MODE_KEYS}; self.mode_running = {}
         self.upd_info, self.upd_checked, self.upd_checking, self.group_outputs, self.group_polled, self.hs_cfg = None, 0.0, False, [], 0.0, {}
         self.hs_vol = self.build_volume_card()
         self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
@@ -163,6 +163,13 @@ class HomeDashboardMixin:
         tap = Gtk.GestureClick(); tap.connect("released", lambda *_: on_tap()); card.add_controller(tap)
         return card, value, detail
 
+    def inline_action_title(self, card):
+        """Put the tile's title right beside its icon (a fresh label, so nothing about the old one can push it under the icon or off the tile)."""
+        old = card.value_label; card.head.remove(old)
+        name = self.label("", "hs-action-value", 0); name.set_xalign(0); name.set_halign(Gtk.Align.START); name.set_valign(Gtk.Align.CENTER); name.set_hexpand(False); name.set_wrap(False); name.set_ellipsize(Pango.EllipsizeMode.END); name.set_max_width_chars(14)
+        card.chip.set_hexpand(False); card.head.append(name); card.value_label = name
+        return name
+
     def set_action_state(self, card, icon, state):
         """Show an icon in the tile's chip and colour the tile for its state: ok (green), alert (orange), active (purple) or none."""
         if card.icon_name != icon:
@@ -228,6 +235,13 @@ class HomeDashboardMixin:
             grouped = self.zones_grouped(first, second)
             self.set_action_state(card, "link", "active" if grouped else None); value.set_text("Ungroup" if grouped else "Group"); detail.set_text(f"{first}\n+ {second}" if not grouped else f"{first}\n+ {second}")
 
+    def build_mode_card(self, key):
+        card, _value, detail = self.build_action_card("MODE", lambda key=key: self.tap_mode_tile(key))
+        name = self.inline_action_title(card)
+        card.note_label = self.label("", "hs-action-note", 0); card.note_label.set_xalign(0); card.note_label.set_ellipsize(Pango.EllipsizeMode.END); card.note_label.set_max_width_chars(1); card.note_label.set_hexpand(True); card.note_label.set_visible(False)
+        card.insert_child_after(card.note_label, card.head)
+        return card, name, detail
+
     # ---- listening-mode tiles: one tap runs a list of steps (KEF power / input / volume, Home Assistant switches and scripts, infrared buttons) ----
     def mode_step_text(self, step):
         kind, value = step.get("do"), step.get("value")
@@ -243,7 +257,7 @@ class HomeDashboardMixin:
             card, value, detail = self.hs_modes[key]; cfg = self.hs_cfg.get(key) or {}; steps = cfg.get("steps") or []
             if key in self.mode_running: continue   # the running tile shows its own progress
             self.set_action_state(card, "play", None)
-            value.set_text(cfg.get("label") or "Listening mode")
+            value.set_text(cfg.get("label") or "Listening mode"); card.note_label.set_text(cfg.get("note") or ""); card.note_label.set_visible(bool(cfg.get("note")))
             detail.set_text(f"{len(steps)} step{'s' if len(steps) != 1 else ''} \u00b7 tap to run" if steps else "Add steps in the builder")
 
     def tap_mode_tile(self, key):
@@ -258,24 +272,41 @@ class HomeDashboardMixin:
             def done():
                 self.set_action_state(card, "play", "alert" if error else None); value.set_text(error and "Stopped" or (self.hs_cfg.get(key) or {}).get("label") or "Done")
                 detail.set_text(error or "Done"); 
-                GLib.timeout_add_seconds(4, lambda: (self.refresh_mode_tiles([key]), False)[1]); return False
+                GLib.timeout_add_seconds(12 if error else 4, lambda: (self.refresh_mode_tiles([key]), False)[1]); return False
             GLib.idle_add(done)
+        def kef_status():
+            data = get_json(BUS + "/api/listening/status", timeout=3) or {}
+            return data.get("kef") or {}
+        def listening(action, value, timeout):
+            result = post_json(BUS + "/api/listening/command", {"action": action, "value": value}, timeout=timeout)
+            # Roon often takes longer than the controller waits to confirm a wake or a volume change: that is not a failure, so wait and look for ourselves.
+            if isinstance(result, dict) and "not confirmed" in str(result.get("error", "")):
+                for _ in range(24):
+                    time.sleep(.5); status = kef_status()
+                    if (action == "power" and status.get("powered") is value) or (action == "volume" and status.get("volume") == value): return {"ok": True}
+                return {"ok": True, "unconfirmed": True}   # carry on: the speaker is most likely just slow to report
+            return result
         def call(step):
             kind = step["do"]
-            if kind == "kef_power": return post_json(BUS + "/api/listening/command", {"action": "power", "value": step["value"] == "on"}, timeout=25)
-            if kind == "kef_input": return post_json(BUS + "/api/listening/command", {"action": "input", "value": step["value"]}, timeout=40)
-            if kind == "kef_volume": return post_json(BUS + "/api/listening/command", {"action": "volume", "value": int(step["value"])}, timeout=25)
-            if kind in ("ha_on", "ha_off"): return post_json(BUS + "/api/device/home-state", {"entity_id": step["entity_id"], "enabled": kind == "ha_on"}, timeout=10)
-            if kind == "ha_run": return post_json(BUS + "/api/device/home-toggle", {"entity_id": step["entity_id"]}, timeout=10)
-            return post_json(BUS + "/api/listening/command", {"action": "remote", "value": {"entity_id": step["entity_id"], "device": step["device"], "command": step["command"]}}, timeout=15)
+            if kind == "kef_power":
+                want = step["value"] == "on"
+                if kef_status().get("powered") is want: return {"ok": True}   # already so: nothing to do
+                return listening("power", want, 25)
+            if kind == "kef_input": return post_json(BUS + "/api/listening/command", {"action": "input", "value": step["value"]}, timeout=45)
+            if kind == "kef_volume": return listening("volume", int(step["value"]), 25)
+            if kind in ("ha_on", "ha_off"): return post_json(BUS + "/api/device/home-state", {"entity_id": step["entity_id"], "enabled": kind == "ha_on"}, timeout=15)
+            if kind == "ha_run": return post_json(BUS + "/api/device/home-toggle", {"entity_id": step["entity_id"]}, timeout=15)
+            return post_json(BUS + "/api/listening/command", {"action": "remote", "value": {"entity_id": step["entity_id"], "device": step["device"], "command": step["command"]}}, timeout=20)
         def run():
             for index, step in enumerate(steps, 1):
                 title = (self.hs_cfg.get(key) or {}).get("label") or "Listening mode"
                 show(title, f"{index}/{len(steps)} \u00b7 {self.mode_step_text(step)}")
+                print(f"RoonDeck mode {key}: step {index}/{len(steps)} {step}", flush=True)
                 try: result = call(step)
                 except Exception as exc: result = {"error": str(exc)}
-                if result is None: finish(f"{self.mode_step_text(step)}: no answer"); return
-                if isinstance(result, dict) and result.get("error"): finish(f"{self.mode_step_text(step)}: {result['error']}"[:80]); return
+                print(f"RoonDeck mode {key}: step {index} -> {result}", flush=True)
+                if result is None: finish(f"Step {index}, {self.mode_step_text(step)}: no answer"); return
+                if isinstance(result, dict) and result.get("error"): finish(f"Step {index}, {self.mode_step_text(step)}: {result['error']}"[:90]); return
                 if step.get("wait"): time.sleep(float(step["wait"]))
             finish()
         threading.Thread(target=run, daemon=True).start()

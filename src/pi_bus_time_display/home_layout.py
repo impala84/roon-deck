@@ -11,7 +11,7 @@ SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border", "parked", "steps"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border", "parked", "steps", "note"}
 MODES = ("roondeck.mode", "roondeck.mode2", "roondeck.mode3", "roondeck.mode4")   # listening-mode tiles: one tap runs a list of steps in order
 STEP_KINDS = ("kef_power", "kef_input", "kef_volume", "ha_on", "ha_off", "ha_run", "ir")
 MAX_STEPS = 12
@@ -109,6 +109,7 @@ def validate_layout(data):
         if "input" not in out: out.pop("input_alt", None)
         for name in ("download", "upload"):   # the network tile can show either direction, or both
             if tile.get(name) is False: out[name] = False
+        if isinstance(tile.get("note"), str) and tile["note"].strip() and entity_id.split("#")[0] in MODES: out["note"] = tile["note"].strip()[:60]   # a line under a listening mode's title
         if "steps" in tile and entity_id.split("#")[0] in MODES:
             steps = clean_steps(tile["steps"])
             if steps: out["steps"] = steps

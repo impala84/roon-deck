@@ -236,3 +236,9 @@ class ListeningModeStepTests(unittest.TestCase):
     def test_steps_belong_to_listening_mode_tiles_only(self):
         from pi_bus_time_display.home_layout import validate_layout
         self.assertNotIn("steps", validate_layout({"tiles": {"roondeck.cpu": {"label": "x", "steps": [{"do": "kef_power", "value": "on"}]}}})["tiles"]["roondeck.cpu"])
+
+    def test_a_listening_mode_keeps_a_description_line_and_other_tiles_do_not(self):
+        from pi_bus_time_display.home_layout import validate_layout
+        tiles = validate_layout({"tiles": {"roondeck.mode": {"note": "  Mac via USB DAC  "}, "roondeck.cpu": {"label": "x", "note": "no"}}})["tiles"]
+        self.assertEqual(tiles["roondeck.mode"]["note"], "Mac via USB DAC")
+        self.assertNotIn("note", tiles["roondeck.cpu"])

@@ -332,7 +332,7 @@ class HomePageMixin:
         if True:   # the power tile has the same three lines as the input tile
             # Icon and speaker name on top, the input it is on in large type, and a small hint underneath.
             card.input_label = self.label("", "hs-action-input", 0); card.input_label.set_xalign(0); card.input_label.set_ellipsize(Pango.EllipsizeMode.END); card.input_label.set_max_width_chars(1); card.input_label.set_hexpand(True)
-            card.insert_child_after(card.input_label, card.head); card.input_label.set_margin_top(4); card.input_label.set_valign(Gtk.Align.CENTER); card.value_label.set_wrap(False); card.value_label.set_lines(1); card.value_label.set_xalign(0); card.value_label.set_hexpand(False); card.value_label.set_halign(Gtk.Align.START); card.value_label.set_max_width_chars(14)   # as wide as the name, right beside the icon
+            card.insert_child_after(card.input_label, card.head); card.input_label.set_margin_top(4); card.input_label.set_valign(Gtk.Align.CENTER); self.inline_action_title(card)   # the name right beside the icon, on both KEF tiles
         self.kef_tiles[key] = card; self.populate_kef_tile(key, card, self.listening_data)
         return card
 

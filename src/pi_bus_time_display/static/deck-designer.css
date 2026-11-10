@@ -309,3 +309,5 @@
 .hd-seg button[draggable=true]{cursor:grab}.hd-seg button.over{outline:2px solid #a78bfa;outline-offset:1px}
 
 .hd-steps{display:grid;gap:10px}.hd-step{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:10px;border:1px solid #44414c;border-radius:12px;background:rgba(255,255,255,.03)}.hd-step>b{padding-top:8px;color:#a998e0}.hd-step select,.hd-step input[type=text],.hd-step input[type=number]{width:100%}.hd-stepwait{display:flex;gap:6px;align-items:center;color:#a09cab;font-size:13px}.hd-stepwait input{width:72px!important}.hd-stepbtns{display:grid;gap:6px}.hd-stepbtns button{padding:4px 10px;min-height:0}
+
+.hd-d-note{display:block;text-align:left;color:#d3dcec;font-size:calc(1.3cqw*var(--k,1))}

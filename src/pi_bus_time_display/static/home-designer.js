@@ -34,7 +34,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border', 'parked', 'steps']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border', 'parked', 'steps', 'note']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const KEF = {'roondeck.kef': 'KEF speaker', 'roondeck.kef_power': 'KEF power', 'roondeck.kef_input': 'KEF input', 'roondeck.kef_volume': 'KEF volume'};
   const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3', 'roondeck.mode': 'Listening mode', 'roondeck.mode2': 'Listening mode 2', 'roondeck.mode3': 'Listening mode 3', 'roondeck.mode4': 'Listening mode 4'};
@@ -279,7 +279,7 @@
     if (MODES.includes(B(id))) {
       const count = (tile.steps || []).length, chip = h('span', {class: 'hd-d-achip'});
       chip.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || 'Listening mode')),
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || 'Listening mode')), tile.note ? h('small', {class: 'hd-d-note'}, tile.note) : null,
         h('span', {class: 'hd-d-spacer'}), h('small', {class: 'hd-d-livefoot'}, count ? `${count} step${count === 1 ? '' : 's'} \u00b7 tap to run` : 'Add steps in the tile options')))];
     }
     if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
@@ -675,7 +675,8 @@
       return h('div', {class: 'hd-step'}, h('b', {}, String(index + 1)), h('div', {class: 'hd-stack'}, kind, detail, h('label', {class: 'hd-stepwait'}, 'Then wait ', wait, ' s')), h('div', {class: 'hd-stepbtns'}, move(-1, 'Move up', '↑'), move(1, 'Move down', '↓'), del));
     });
     const add = h('button', {type: 'button', class: 'secondary'}, '+ Add step'); add.disabled = steps.length >= 12; add.onclick = () => { steps.push({do: 'kef_power', value: 'on', wait: 2}); save(steps); };
-    return [field('Steps', h('div', {class: 'hd-steps'}, ...rows, add), 'One tap runs these in order, waiting the set time after each: for example KEF on, wait 5 s, DAC switch on, wait 3 s, KEF input AUX, KEF volume 25. It stops and shows the problem if a step fails. A step with no device chosen is left out when you save.')];
+    const note = h('input', {type: 'text', maxlength: '60', placeholder: 'e.g. Mac via USB DAC', value: tile.note || ''}); note.onchange = () => patchTile(id, {note: note.value.trim()});
+    return [field('Description (optional)', note, 'A line under the title.'), field('Steps', h('div', {class: 'hd-steps'}, ...rows, add), 'One tap runs these in order, waiting the set time after each: for example KEF on, wait 5 s, DAC switch on, wait 3 s, KEF input AUX, KEF volume 25. It stops and shows the problem if a step fails. A step with no device chosen is left out when you save.')];
   }
   let dragPage = null;
   function movePage(from, to) {
