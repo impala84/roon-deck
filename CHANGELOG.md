@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.170 Alpine — 11 November 2026
+
+- **KEF input word on the same line as its neighbours:** "Off", "Wi-Fi", "AUX" now sit on the same baseline as "Group" and "Up to date", a little lower and clear of the icon.
+- **Square bus tile layout:** the minutes sit higher and "then 16 min" is tucked right under them, as one block. The word "Bus" now sits in white beside the route number circle (also in the builder preview).
+
 ## 1.2.0-beta.169 Alpine — 10 November 2026
 
 - **The screen sleeps again between TV volume changes:** a volume change while the screen is already awake on the TV page now keeps it up only for the short remote wake time (30 seconds by default), then it sleeps, as it already did when the screen started asleep. Each turn of the volume restarts that short time; a touch still keeps the full idle time.
