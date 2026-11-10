@@ -99,7 +99,7 @@ class HomePageMixin:
         entities = home.get("entities", []) if dashboard else [entity for entity in home.get("entities", []) if not (entity.get("tile") or {}).get("page")]   # small screens have no pages
         if not dashboard:
             entities = [{"entity_id": key, "widget": self.kef_tile(key), "tile": tile} for key, tile in (home.get("cards") or {}).items()
-                        if key.split("#")[0] in KEF_CARDS and tile.get("show") and not tile.get("page")] + entities
+                        if key.split("#")[0] in KEF_CARDS and tile.get("show") and not tile.get("page") and not tile.get("parked")] + entities
         entities = entities[:64 if dashboard else 8]
         original = self.window.has_css_class("original-landscape")
         self.home_grid.set_row_spacing(10 if original else 18); self.home_grid.set_column_spacing(12 if original else 18)

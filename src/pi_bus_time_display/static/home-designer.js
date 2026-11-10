@@ -34,7 +34,7 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border', 'parked']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const KEF = {'roondeck.kef': 'KEF speaker', 'roondeck.kef_power': 'KEF power', 'roondeck.kef_input': 'KEF input', 'roondeck.kef_volume': 'KEF volume'};
   const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
@@ -53,11 +53,14 @@
   const pageCount = () => dashColumns() ? Math.max(1, Math.min(MAX_PAGES, layout.pages || 1)) : 1;
   const pageOf = id => Math.min(pageCount() - 1, (layout.tiles[id] || {}).page || 0);
   const onPage = id => pageCount() < 2 || pageOf(id) === Math.min(pageNo, pageCount() - 1);
-  const deviceIds = () => allDevices().filter(onPage);
+  const deviceIds = () => allDevices().filter(onPage).filter(id => !isParked(id));
   const allIds = () => dashColumns() ? [...Object.keys(CARDS), ...Object.keys(layout.tiles).filter(key => key.includes('#') && B(key) in CARDS), ...liveShown(), ...allDevices()] : [...liveShown().filter(key => B(key) in KEF), ...allDevices()];
-  const ids = () => allIds().filter(onPage);
-  const hasOnPage = (base, page) => instancesOf(base).some(key => pageOf(key) === page && (key in layout.tiles || textIds().includes(key) || key in CARDS));
-  const withPage = tile => { const next = {...tile}; if (pageNo > 0 && pageCount() > 1) next.page = pageNo; else delete next.page; return next; };
+  // The holding pen: tiles set aside with their options, on no page, until they are placed again.
+  const isParked = id => !!(layout.tiles[id] || {}).parked;
+  const parkedIds = () => allIds().filter(isParked);
+  const ids = () => allIds().filter(onPage).filter(id => !isParked(id));
+  const hasOnPage = (base, page) => instancesOf(base).some(key => !isParked(key) && pageOf(key) === page && (key in layout.tiles || textIds().includes(key) || key in CARDS));
+  const withPage = tile => { const next = {...tile}; delete next.parked; if (pageNo > 0 && pageCount() > 1) next.page = pageNo; else delete next.page; return next; };
   const nameOf = id => CARDS[B(id)] || LIVE[B(id)] || catalog.find(item => item.entity_id === B(id))?.name || states[B(id)]?.name || B(id);
   // Until the owner has placed either card, the player sits top-left and the bus under it.
   const CARD_HOME = {'roondeck.player': {col: 0, row: 0}, 'roondeck.bus': {col: 0, row: 2}};
@@ -76,7 +79,7 @@
       if (!before.includes(key) && pageCount() > 1) layout.tiles[key] = withPage(layout.tiles[key] || {});
       kept.push(key);
     }
-    const others = before.filter(key => !onPage(key) && !kept.includes(key));
+    const others = before.filter(key => (isParked(key) || !onPage(key)) && !kept.includes(key));   // tiles on other pages and in the holding pen stay in the list
     const keys = pageNo > 0 ? [...others, ...kept] : [...kept, ...others];
     textarea.value = [...new Set(keys.map(B))].join(', ');
     textarea.dispatchEvent(new Event('input', {bubbles: true}));
@@ -91,6 +94,31 @@
     else if (B(id) in LIVE) delete layout.tiles[id];
     else { markDirty(); setIds(ids().filter(other => other !== id)); return; }
     markDirty(); render();
+  }
+  // Sets a tile aside in the holding pen (keeping its options), and puts one back on the page being edited.
+  function parkTile(id) {
+    const {col, row, page, ...rest} = layout.tiles[id] || {};
+    layout.tiles[id] = {...rest, parked: true}; selected = -1; markDirty(); render();
+  }
+  function placeTile(id) {
+    if (ids().length >= pageLimit()) return;
+    const {parked, col, row, page, ...rest} = layout.tiles[id] || {};   // it takes the first free place on this page
+    const next = withPage(rest); if (Object.keys(next).length) layout.tiles[id] = next; else delete layout.tiles[id];
+    if (!isCard(id) && !textIds().includes(B(id)) && !id.includes('#')) setIds([...ids(), id]);
+    selected = ids().indexOf(id); markDirty(); render();
+  }
+  function penView() {
+    const keys = parkedIds(), pen = h('div', {class: 'hd-pen'}, h('h4', {}, `Holding pen${keys.length ? ` · ${keys.length}` : ''}`));
+    const full = ids().length >= pageLimit();
+    pen.append(h('div', {class: 'hd-penrow'}, keys.length ? keys.map(id => {
+      const tile = layout.tiles[id] || {}, chip = h('button', {type: 'button', class: 'hd-penchip', title: full ? 'This page is full' : `Place ${tile.label || nameOf(id)} on page ${pageNo + 1}`, disabled: full},
+        h('span', {class: 'hd-pendot', style: `background:${accent(id)}`}), h('span', {}, tile.label || nameOf(id)), h('small', {}, 'Place here'));
+      chip.onclick = () => placeTile(id); return chip;
+    }) : h('p', {class: 'cd-muted'}, 'Nothing set aside. Drag a tile here, or use "Move to holding pen", to keep it and its settings off every page. It stays here while you change page, so you can place it on another one.')));
+    pen.ondragover = event => { if (dragTile) { event.preventDefault(); pen.classList.add('over'); } };
+    pen.ondragleave = () => pen.classList.remove('over');
+    pen.ondrop = event => { event.preventDefault(); pen.classList.remove('over'); const id = dragTile; if (!id) return; closeGrid(); dragTile = null; live = null; parkTile(id); };
+    return pen;
   }
   // Copy and paste a tile, with its options, onto another page (or the same one): select a tile, press Cmd/Ctrl+C, change page, press Cmd/Ctrl+V.
   let clip = null;
@@ -497,7 +525,7 @@
     }))) : null;
     const dots = pageCount() > 1 ? h('div', {class: 'hd-dots'}, Array.from({length: pageCount()}, (_, number) => h('i', {class: number === Math.min(pageNo, pageCount() - 1) ? 'on' : ''}))) : null;
     if (dots) { const head = screenBox.querySelector('.hd-head'); if (head) head.insertBefore(dots, head.lastChild); }   // in the header row, so the tiles keep their place
-    return h('div', {class: 'hd-preview'}, dash ? pageBar() : null, screenBox, columnPicker, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
+    return h('div', {class: 'hd-preview'}, dash ? pageBar() : null, screenBox, dash ? penView() : null, columnPicker, h('p', {class: 'cd-muted'}, `Preview of your ${shape.label}, ${shape.portrait ? 'portrait' : 'landscape'}. ${list.length} of ${LIMIT} tiles. Drag a tile anywhere on the grid, drag its right edge to make it wider or its bottom edge to make it taller, or drag a device in from the list.`), h('p', {class: 'cd-muted hd-note'}, 'The screen size and orientation come from Display › Screen hardware. If this preview does not match your touchscreen, set them there.'));
   }
 
   /* ------------------------------------------------------------ inspector */
@@ -668,6 +696,7 @@
     if (isCard(id)) {
       const drop = id in CARDS ? null : h('button', {type: 'button', class: 'secondary'}, 'Remove tile');
       if (drop) drop.onclick = () => removeTile(id);
+      const pen = h('button', {type: 'button', class: 'secondary'}, 'Move to holding pen'); pen.onclick = () => parkTile(id);
       const check = (text, checked, patch) => { const box = h('input', {type: 'checkbox'}); box.checked = checked; box.onchange = () => patchTile(id, patch(box.checked)); return h('label', {class: 'dd-check'}, box, h('span', {}, text)); };
       const artwork = h('div', {class: 'hd-seg', role: 'group', 'aria-label': 'Artwork'}, [['background', 'Background'], ['fade', 'Fade'], ['thumb', 'Thumbnail'], ['off', 'None']].map(([value, text]) => {
         const button = h('button', {type: 'button', 'aria-pressed': String((tile.art || 'background') === value)}, text); button.onclick = () => patchTile(id, {art: value === 'background' ? '' : value}); return button;
@@ -694,15 +723,16 @@
       })();
       return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields, ...inputFields,
         B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
-        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height. To copy it to another page, press Cmd/Ctrl+C, change page, then Cmd/Ctrl+V.'), pageField(id), drop ? h('div', {class: 'hd-actions'}, drop) : null, message);
+        field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height. To copy it to another page, press Cmd/Ctrl+C, change page, then Cmd/Ctrl+V.'), pageField(id), h('div', {class: 'hd-actions'}, dashColumns() ? pen : null, drop), message);
     }
     const remove = h('button', {type: 'button', class: 'secondary'}, 'Remove tile'); remove.onclick = () => removeTile(id);
+    const penButton = h('button', {type: 'button', class: 'secondary'}, 'Move to holding pen'); penButton.onclick = () => parkTile(id);
     return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile · ${nameOf(id)}`),
       field('Width', segmented, 'Sizes snap to the screen grid. Drag a tile\u2019s right edge to change its width, or its bottom edge to make it taller.'), pageField(id),
       field('Label', label), linkField, field('Icon', h('div', {class: 'hd-stack'}, chips, icons, clearIcon)),
       h('div', {class: 'hd-actions'}, upload, clearImage, h('small', {}, 'An image fills the tile behind the icon and label.')), file,
       field(tile.color ? 'Colour when on (set for this tile)' : 'Colour when on (standard for this kind of device)', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)),
-      h('div', {class: 'hd-actions'}, remove), message);
+      h('div', {class: 'hd-actions'}, dashColumns() ? penButton : null, remove), message);
   }
 
   /* ------------------------------------------------------------ device list */

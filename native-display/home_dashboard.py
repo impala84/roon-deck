@@ -441,13 +441,14 @@ class HomeDashboardMixin:
             if key in self.kef_tiles: self.style_kef_tile(widget, record)
             if base_of(key) == "roondeck.bus":   # every bus tile has its own widgets and its own route
                 widget = self.bus_tile(key).box; self.bus_defaults[key] = record.get("route") or None
+            if record.get("parked"): continue   # in the holding pen
             if base_of(key) not in ("roondeck.player", "roondeck.bus") and not record.get("show"): continue
             tile = dict(record); tile.setdefault("rows", rows)
             if base_of(key) == "roondeck.kef": tile["rows"] = max(2, tile.get("rows") or 2)   # the combined KEF tile needs two rows
             if home_cell and untouched and tile.get("page", 0) == 0 and not isinstance(tile.get("col"), int): tile["col"], tile["row"] = home_cell   # the player top-left, the bus under it
             virtual.append({"entity_id": key, "domain": "roondeck", "widget": widget, "tile": tile})
         entities = virtual + list(entities)
-        entities = [entity for entity in entities if (entity.get("tile") or {}).get("page", 0) == self.hs_page or (self.hs_pages < 2 and self.hs_page == 0)]   # one page at a time
+        entities = [entity for entity in entities if not (entity.get("tile") or {}).get("parked") and ((entity.get("tile") or {}).get("page", 0) == self.hs_page or (self.hs_pages < 2 and self.hs_page == 0))]   # one page at a time
         shown = [entity for entity in entities if entity.get("widget") is not None]
         self.hs_cfg = {key: {} for key in GROUP_KEYS}
         for entity in shown:

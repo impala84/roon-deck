@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.171 Alpine — 11 November 2026
+
+- **Holding pen in the Home builder:** a tray under the preview for tiles you are not using. Drag a tile onto it, or press "Move to holding pen" on the selected tile, and the tile comes off the page with its options kept (colour, size, label, route, KEF inputs and the rest). The pen is the same on every page, so you can park a tile on one page and place it on another with one click ("Place here"). Parked tiles are not drawn on the touchscreen.
+
 ## 1.2.0-beta.170 Alpine — 11 November 2026
 
 - **KEF input word on the same line as its neighbours:** "Off", "Wi-Fi", "AUX" now sit on the same baseline as "Group" and "Up to date", a little lower and clear of the icon.

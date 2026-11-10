@@ -11,7 +11,7 @@ SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border", "parked"}
 KEF_CARDS = ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume")
 MAX_PAGES = 4
 COLUMNS = (2, 3)
@@ -75,6 +75,7 @@ def validate_layout(data):
         for name in ("download", "upload"):   # the network tile can show either direction, or both
             if tile.get(name) is False: out[name] = False
         if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
+        if tile.get("parked") is True: out["parked"] = True   # set aside in the holding pen: kept, with its options, but not shown on any page
         if tile.get("also"):
             also = tile["also"]
             if not isinstance(also, list) or len(also) > 4 or any(not isinstance(item, str) or not ENTITY.fullmatch(item) or item == entity_id or "#" in item for item in also):

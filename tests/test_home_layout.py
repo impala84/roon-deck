@@ -13,6 +13,12 @@ class HomeLayoutTests(unittest.TestCase):
         self.assertEqual(saved["tiles"]["roondeck.kef#1"]["rows"], 2)
         self.assertNotIn("rows", saved["tiles"]["roondeck.kef_volume"])
 
+    def test_a_parked_tile_keeps_its_options_and_is_marked_for_the_pi(self):
+        saved = validate_layout({"tiles": {"light.lamp": {"parked": True, "color": "#fb923c", "label": "Lamp"}, "roondeck.cpu#1": {"parked": True, "show": True}}})
+        self.assertEqual(saved["tiles"]["light.lamp"], {"parked": True, "color": "#fb923c", "label": "Lamp"})
+        self.assertTrue(saved["tiles"]["roondeck.cpu#1"]["parked"])
+        self.assertNotIn("parked", validate_layout({"tiles": {"light.lamp": {"parked": False, "label": "Lamp"}}})["tiles"]["light.lamp"])
+
     def test_valid_layout_round_trips(self):
         folder = Path(tempfile.mkdtemp()); path = folder / "home-layout.json"
         saved = save_layout(path, {"tiles": {"light.study_uplight": {"size": "full", "label": "Uplight", "icon": "icon-bulb-hd5.png", "image": "wood.png", "color": "#fb923c"}}})
