@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.169 Alpine — 10 November 2026
+
+- **The screen sleeps again between TV volume changes:** a volume change while the screen is already awake on the TV page now keeps it up only for the short remote wake time (30 seconds by default), then it sleeps, as it already did when the screen started asleep. Each turn of the volume restarts that short time; a touch still keeps the full idle time.
+
 ## 1.2.0-beta.168 Alpine — 10 November 2026
 
 - **TV volume keeps its own page and still sleeps:** turning the volume while the BluOS player is on one of its own inputs (the TV) wakes the screen onto the large TV volume page and keeps it there for the short wake, then the screen sleeps again as before. A volume change while you are already on that page leaves it alone instead of jumping to Now Playing. (beta.167 held the Roon page up whenever the player was on an input, which stopped the screen sleeping between volume changes; that is removed.)

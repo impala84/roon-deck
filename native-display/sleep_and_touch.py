@@ -157,6 +157,12 @@ class SleepAndTouchMixin:
             self.stack.set_visible_child_name(self.last_mode or "bus")
         return False
 
+    def shorten_idle_for_remote_wake(self):
+        """A volume change from the TV remote or a dial keeps the screen up only for the short remote wake time, then it sleeps again."""
+        idle = max(0, int(getattr(self, "settings_data", {}).get("daytime_inactivity_seconds", 0) or 0))
+        short = max(5, int(getattr(self, "settings_data", {}).get("remote_wake_seconds", 30) or 30))
+        if idle > short: self.last_interaction = time.monotonic() - (idle - short)
+
     def wake(self, *_, remote=False, view=None):
         now = time.monotonic()
         source = _[0] if _ else "input"

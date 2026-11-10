@@ -864,11 +864,11 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20
                 and not (isinstance(getattr(self, "deck_volume_ago", None), (int, float)) and self.deck_volume_ago < 10)):   # a Stream Deck turn changes the volume quietly
             # The volume moved and nobody touched the screen (the remote, the Surface Dial or a Stream Deck dial).
-            if on_tv_page: pass   # already on the TV volume page: stay there
+            if on_tv_page: self.shorten_idle_for_remote_wake()   # already on the TV volume page: stay there, and sleep again shortly after the last turn
             else:
                 target = "http://127.0.0.1:8766/"
                 # What the BluOS player is on decides the page: its own input (the TV) gets the large volume page, whatever Roon is doing; otherwise the track.
-                if on_player_input: self.requested_audio_view = "source"; self.set_roon_view("source")
+                if on_player_input: self.requested_audio_view = "source"; self.set_roon_view("source"); self.shorten_idle_for_remote_wake()
                 else:
                     if ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
                     if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
