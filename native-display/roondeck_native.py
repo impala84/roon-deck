@@ -857,8 +857,10 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             # Now Playing page: with the HDMI ARC input active that is the large volume page, otherwise the playing track.
             target = "http://127.0.0.1:8766/"
             # Roon playing: its Now Playing page. Nothing playing: the large HDMI/ARC volume page.
-            if ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
-            elif ((roon or {}).get("amplifier") or {}).get("active_input"): self.requested_audio_view = "source"
+            amplifier_now = (roon or {}).get("amplifier") or {}
+            # What the BluOS player is on decides the page: its own input (the TV) gets the large volume page, whatever Roon is doing; otherwise the track.
+            if amplifier_now.get("connected") and amplifier_now.get("active_input"): self.requested_audio_view = "source"
+            elif ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
             if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
             print("RoonDeck showing the screen for a volume change: " + target, flush=True)
         scheduled_wake = bool(

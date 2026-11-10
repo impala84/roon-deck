@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.167 Alpine — 10 November 2026
+
+- **The screen follows what the BluOS player is on:** when the BluOS player is playing one of its own inputs (the TV over HDMI ARC, for example), turning the volume now shows the large TV volume page and the screen stays there while that input is active, instead of flashing Now Playing and dropping back to Bus Times. When the input stops, the screen returns to Bus Times after the usual "return after playback" delay. The Now Playing track page is only chosen for a volume change when the player is not on one of its own inputs.
+
 ## 1.2.0-beta.166 Alpine — 10 November 2026
 
 - **The square bus tile is only for the half-column size:** beta.165 also switched ordinary one-column bus tiles to the square layout. Those now look as they did before; only a half-column, one-row bus tile is square.

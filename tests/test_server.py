@@ -507,6 +507,21 @@ class DisplayModeTests(unittest.TestCase):
             with patch("pi_bus_time_display.server.time.monotonic", return_value=1400):
                 self.assertEqual(automatic_display_target(state, mode, {"zone": {"state": "paused"}}, morning), "/")
 
+    def test_player_input_such_as_the_tv_keeps_the_roon_page_and_then_returns_to_the_bus(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mode = Path(directory) / "display-mode"
+            mode.write_text("auto\n", encoding="utf-8")
+            state = State(Config(auto_switch_to_roon=True, roon_idle_return_seconds=300))
+            morning = datetime(2026, 9, 29, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+            tv = {"zone": {"state": "stopped"}, "amplifier": {"connected": True, "active_input": {"id": "hdmi", "name": "TV"}}}
+            idle = {"zone": {"state": "stopped"}, "amplifier": {"connected": True, "active_input": None}}
+            with patch("pi_bus_time_display.server.time.monotonic", return_value=1000):
+                self.assertEqual(automatic_display_target(state, mode, tv, morning), "http://127.0.0.1:8766/")
+            with patch("pi_bus_time_display.server.time.monotonic", return_value=1100):
+                self.assertEqual(automatic_display_target(state, mode, tv, morning), "http://127.0.0.1:8766/")
+            with patch("pi_bus_time_display.server.time.monotonic", return_value=1500):
+                self.assertEqual(automatic_display_target(state, mode, idle, morning), "/")
+
     def test_active_playback_keeps_automatic_display_on_even_overnight(self):
         with tempfile.TemporaryDirectory() as directory:
             mode = Path(directory) / "display-mode"

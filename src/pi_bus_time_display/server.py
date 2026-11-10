@@ -678,13 +678,17 @@ def automatic_display_target(state: State, mode_path: Path, roon: dict | None, n
         state.manual_mode_signature = None
         state.manual_mode_period = None
     zone_state = ((roon or {}).get("zone") or {}).get("state")
-    if zone_state == "playing":
+    amplifier = (roon or {}).get("amplifier") or {}
+    # The BluOS player is playing one of its own inputs (the TV over HDMI ARC, say): the screen follows it like it follows Roon playback,
+    # instead of showing the volume page briefly and then dropping back to Bus Times.
+    on_player_input = bool(amplifier.get("connected") and amplifier.get("active_input"))
+    if zone_state == "playing" or on_player_input:
         state.last_roon_playing = monotonic
     playback_recent = bool(
         state.last_roon_playing
         and monotonic - state.last_roon_playing <= state.config.roon_idle_return_seconds
     )
-    if zone_state == "playing" or (state.config.auto_switch_to_roon and playback_recent):
+    if zone_state == "playing" or on_player_input or (state.config.auto_switch_to_roon and playback_recent):
         return "http://127.0.0.1:8766/" if roon is not None else "/roon-unavailable.html"
     if monotonic < state.awake_until:
         return "http://127.0.0.1:8766/" if (state.awake_view == "roon" or not state.config.bus_enabled) and roon is not None else "/" if state.config.bus_enabled else "/roon-unavailable.html"
