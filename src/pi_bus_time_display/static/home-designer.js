@@ -344,7 +344,7 @@
     else if (tile.icon) node.append(h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};opacity:${lit ? 1 : .5};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}));
     else node.append(h('span', {class: 'hd-dot', style: `background:${colour};opacity:${lit ? 1 : .45}`}));
     if (!dashColumns()) node.append(h('span', {class: 'hd-name'}, tile.label || nameOf(id)));
-    if (isCard(id) && !tile.color) { node.style.background = '#232228'; node.style.borderColor = tile.border || '#44414c'; }   // the standard card look, unless the owner picked a colour
+    if (isCard(id) && !tile.color && B(id) !== 'roondeck.bus') { node.style.background = '#232228'; node.style.borderColor = tile.border || '#44414c'; }   // the standard card look, unless the owner picked a colour
     for (const axis of dashColumns() ? ['x', 'y', 'w', 'n', 'se', 'sw', 'ne', 'nw'] : ['x', 'y']) {
       const handle = h('span', {class: `hd-stretch hd-stretch-${axis}`, 'data-axis': axis, draggable: 'false', title: 'Drag to resize this tile', 'aria-hidden': 'true'});
       handle.onpointerdown = event => stretch(event, id, axis, node);
