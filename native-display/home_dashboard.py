@@ -9,6 +9,7 @@ from native_common import FamilyIcon, BUS, ROON, get_json, post_json
 from home_page import tile_colour_rules
 import os
 import threading
+import time
 import types
 from pathlib import Path
 from gi.repository import GLib, Gtk, Pango
@@ -21,7 +22,8 @@ CARD_DOMAINS = {"light": "light", "fan": "fan", "climate": "snow"}
 SAMPLES = 45                # readings kept for the live tiles
 SAMPLE_SECONDS = 2
 GROUP_KEYS = ("roondeck.group", "roondeck.group2", "roondeck.group3")
-ACTION_KEYS = ("roondeck.update",) + GROUP_KEYS   # tiles that do something when tapped
+MODE_KEYS = ("roondeck.mode", "roondeck.mode2", "roondeck.mode3", "roondeck.mode4")   # listening-mode tiles: a tap runs their steps in order
+ACTION_KEYS = ("roondeck.update",) + GROUP_KEYS + MODE_KEYS   # tiles that do something when tapped
 SPARK_GREEN, SPARK_BLUE = (0.43, 0.85, 0.68), (0.42, 0.66, 1.0)
 
 
@@ -75,6 +77,7 @@ class HomeDashboardMixin:
         self.hs_mem, self.hs_mem_value, self.hs_mem_detail, self.hs_mem_area = self.build_stat_card("MEMORY", corner=True)
         self.hs_upd, self.hs_upd_value, self.hs_upd_detail = self.build_action_card("SOFTWARE", self.tap_update_tile)
         self.hs_groups = {key: self.build_action_card("ZONES", lambda key=key: self.tap_group_tile(key)) for key in GROUP_KEYS}
+        self.hs_modes = {key: self.build_action_card("MODE", lambda key=key: self.tap_mode_tile(key)) for key in MODE_KEYS}; self.mode_running = {}
         self.upd_info, self.upd_checked, self.upd_checking, self.group_outputs, self.group_polled, self.hs_cfg = None, 0.0, False, [], 0.0, {}
         self.hs_vol = self.build_volume_card()
         self.stat_cpu, self.stat_down, self.stat_up, self.stat_mem = [], [], [], []
@@ -225,6 +228,58 @@ class HomeDashboardMixin:
             grouped = self.zones_grouped(first, second)
             self.set_action_state(card, "link", "active" if grouped else None); value.set_text("Ungroup" if grouped else "Group"); detail.set_text(f"{first}\n+ {second}" if not grouped else f"{first}\n+ {second}")
 
+    # ---- listening-mode tiles: one tap runs a list of steps (KEF power / input / volume, Home Assistant switches and scripts, infrared buttons) ----
+    def mode_step_text(self, step):
+        kind, value = step.get("do"), step.get("value")
+        names = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "aux": "AUX", "optical": "Optical"}
+        if kind == "kef_power": return "KEF " + value
+        if kind == "kef_input": return "KEF input " + names.get(value, str(value))
+        if kind == "kef_volume": return f"KEF volume {value}"
+        if kind in ("ha_on", "ha_off", "ha_run"): return {"ha_on": "Turn on ", "ha_off": "Turn off ", "ha_run": "Run "}[kind] + str(step.get("entity_id", "")).split(".", 1)[-1].replace("_", " ")
+        return f"Remote: {step.get('command', '')}"
+
+    def refresh_mode_tiles(self, keys):
+        for key in keys:
+            card, value, detail = self.hs_modes[key]; cfg = self.hs_cfg.get(key) or {}; steps = cfg.get("steps") or []
+            if key in self.mode_running: continue   # the running tile shows its own progress
+            self.set_action_state(card, "play", None)
+            value.set_text(cfg.get("label") or "Listening mode")
+            detail.set_text(f"{len(steps)} step{'s' if len(steps) != 1 else ''} \u00b7 tap to run" if steps else "Add steps in the builder")
+
+    def tap_mode_tile(self, key):
+        steps = list((self.hs_cfg.get(key) or {}).get("steps") or [])
+        if not steps or key in self.mode_running: return
+        self.mode_running[key] = True; card, value, detail = self.hs_modes[key]
+        self.set_action_state(card, "play", "active")
+        def show(title, text):
+            GLib.idle_add(lambda: (value.set_text(title), detail.set_text(text)) and False); return False
+        def finish(error=None):
+            self.mode_running.pop(key, None)
+            def done():
+                self.set_action_state(card, "play", "alert" if error else None); value.set_text(error and "Stopped" or (self.hs_cfg.get(key) or {}).get("label") or "Done")
+                detail.set_text(error or "Done"); 
+                GLib.timeout_add_seconds(4, lambda: (self.refresh_mode_tiles([key]), False)[1]); return False
+            GLib.idle_add(done)
+        def call(step):
+            kind = step["do"]
+            if kind == "kef_power": return post_json(BUS + "/api/listening/command", {"action": "power", "value": step["value"] == "on"}, timeout=25)
+            if kind == "kef_input": return post_json(BUS + "/api/listening/command", {"action": "input", "value": step["value"]}, timeout=40)
+            if kind == "kef_volume": return post_json(BUS + "/api/listening/command", {"action": "volume", "value": int(step["value"])}, timeout=25)
+            if kind in ("ha_on", "ha_off"): return post_json(BUS + "/api/device/home-state", {"entity_id": step["entity_id"], "enabled": kind == "ha_on"}, timeout=10)
+            if kind == "ha_run": return post_json(BUS + "/api/device/home-toggle", {"entity_id": step["entity_id"]}, timeout=10)
+            return post_json(BUS + "/api/listening/command", {"action": "remote", "value": {"entity_id": step["entity_id"], "device": step["device"], "command": step["command"]}}, timeout=15)
+        def run():
+            for index, step in enumerate(steps, 1):
+                title = (self.hs_cfg.get(key) or {}).get("label") or "Listening mode"
+                show(title, f"{index}/{len(steps)} \u00b7 {self.mode_step_text(step)}")
+                try: result = call(step)
+                except Exception as exc: result = {"error": str(exc)}
+                if result is None: finish(f"{self.mode_step_text(step)}: no answer"); return
+                if isinstance(result, dict) and result.get("error"): finish(f"{self.mode_step_text(step)}: {result['error']}"[:80]); return
+                if step.get("wait"): time.sleep(float(step["wait"]))
+            finish()
+        threading.Thread(target=run, daemon=True).start()
+
     def tap_group_tile(self, key):
         cfg = self.hs_cfg.get(key) or {}
         if not cfg.get("zone") or not cfg.get("with"): return
@@ -297,6 +352,7 @@ class HomeDashboardMixin:
         if on_home and "roondeck.update" in self.hs_live_shown: self.refresh_update_tile()
         shown_groups = [key for key in GROUP_KEYS if key in self.hs_live_shown]
         if on_home and shown_groups: self.refresh_group_tiles(shown_groups)
+        if on_home: self.refresh_mode_tiles([key for key in MODE_KEYS if key in self.hs_live_shown])
         if "roondeck.network" in self.hs_live_shown:
             show_down, show_up = self.net_show
             if show_down: self.hs_net_value.set_markup(big_rate(self.stat_down[-1]) if self.stat_down else "—"); self.hs_net_detail.set_text(f"up {rate(self.stat_up[-1])}" if show_up and self.stat_up else "")
@@ -427,7 +483,7 @@ class HomeDashboardMixin:
         def base_of(key): return key.split("#")[0]
         # The same card can be on several pages ("roondeck.cpu#2"): each copy has its own place and options, but they share one widget, which only ever shows on one page at a time.
         widgets = {"roondeck.player": (self.hs_player, 2, (0, 0)), "roondeck.bus": (self.hs_bus, 1, (0, 2)), "roondeck.cpu": (self.hs_cpu, 1, None), "roondeck.memory": (self.hs_mem, 1, None),
-                   "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), "roondeck.volume": (self.hs_vol, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}}
+                   "roondeck.update": (self.hs_upd, 1, None), "roondeck.network": (self.hs_net, 1, None), "roondeck.volume": (self.hs_vol, 1, None), **{key: (self.hs_groups[key][0], 1, None) for key in GROUP_KEYS}, **{key: (self.hs_modes[key][0], 1, None) for key in MODE_KEYS}}
         for key in cards:
             if base_of(key) in ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume"):
                 widgets[key] = (self.kef_tile(key), 2 if base_of(key) == "roondeck.kef" else 1, None)
@@ -450,9 +506,9 @@ class HomeDashboardMixin:
         entities = virtual + list(entities)
         entities = [entity for entity in entities if not (entity.get("tile") or {}).get("parked") and ((entity.get("tile") or {}).get("page", 0) == self.hs_page or (self.hs_pages < 2 and self.hs_page == 0))]   # one page at a time
         shown = [entity for entity in entities if entity.get("widget") is not None]
-        self.hs_cfg = {key: {} for key in GROUP_KEYS}
+        self.hs_cfg = {key: {} for key in GROUP_KEYS + MODE_KEYS}
         for entity in shown:
-            if base_of(entity["entity_id"]) in GROUP_KEYS: self.hs_cfg[base_of(entity["entity_id"])] = entity["tile"]
+            if base_of(entity["entity_id"]) in GROUP_KEYS + MODE_KEYS: self.hs_cfg[base_of(entity["entity_id"])] = entity["tile"]
         self.hs_opts = next((dict(entity["tile"]) for entity in shown if base_of(entity["entity_id"]) == "roondeck.player"), {})
         net = next((entity["tile"] for entity in shown if base_of(entity["entity_id"]) == "roondeck.network"), {})
         self.net_show = (net.get("download") is not False, net.get("upload") is not False)   # either direction can be switched off, never both
@@ -461,6 +517,7 @@ class HomeDashboardMixin:
             top = tuple(int(front[index:index + 2], 16) for index in (1, 3, 5)); base = tuple(int(back[index:index + 2], 16) for index in (1, 3, 5))
             return "#" + "".join(f"{round(low + (high - low) * amount):02x}" for high, low in zip(top, base))
         self.hs_live_shown = {base_of(entity["entity_id"]) for entity in shown if base_of(entity["entity_id"]) in ("roondeck.cpu", "roondeck.network", "roondeck.memory", "roondeck.volume") + ACTION_KEYS}
+        self.refresh_mode_tiles([key for key in MODE_KEYS if key in self.hs_live_shown])
         rules = []
         for entity in shown:                       # each card can have its own colour; without one it keeps the standard card look
             name = "hs-custom-" + base_of(entity["entity_id"]).replace(".", "-"); colour = entity["tile"].get("color")

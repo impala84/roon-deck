@@ -217,3 +217,22 @@ class BusRouteTests(unittest.TestCase):
     def test_bus_route_must_be_letters_and_numbers(self):
         with self.assertRaises(ValueError):
             validate_layout({"tiles": {"roondeck.bus": {"route": "4 2"}}})
+
+
+class ListeningModeStepTests(unittest.TestCase):
+    def test_a_listening_mode_keeps_its_steps_in_order_with_their_waits(self):
+        from pi_bus_time_display.home_layout import validate_layout
+        steps = [{"do": "kef_power", "value": "on", "wait": 5}, {"do": "ha_on", "entity_id": "switch.dac", "wait": 3}, {"do": "kef_input", "value": "aux"}, {"do": "kef_volume", "value": 25}, {"do": "ir", "entity_id": "remote.x", "device": "amp", "command": "power"}]
+        clean = validate_layout({"tiles": {"roondeck.mode": {"label": "Hi-fi", "show": True, "steps": steps}}})["tiles"]["roondeck.mode"]
+        self.assertEqual(clean["steps"], steps)
+
+    def test_unfinished_steps_are_left_out_and_bad_ones_are_refused(self):
+        from pi_bus_time_display.home_layout import validate_layout
+        clean = validate_layout({"tiles": {"roondeck.mode2": {"steps": [{"do": "ha_run", "entity_id": ""}, {"do": "kef_power", "value": "off"}]}}})["tiles"]["roondeck.mode2"]
+        self.assertEqual(clean["steps"], [{"do": "kef_power", "value": "off"}])
+        for bad in ({"do": "explode"}, {"do": "kef_volume", "value": 500}, {"do": "kef_power", "value": "maybe"}, {"do": "kef_power", "value": "on", "wait": 99}):
+            with self.assertRaises(ValueError): validate_layout({"tiles": {"roondeck.mode": {"steps": [bad]}}})
+
+    def test_steps_belong_to_listening_mode_tiles_only(self):
+        from pi_bus_time_display.home_layout import validate_layout
+        self.assertNotIn("steps", validate_layout({"tiles": {"roondeck.cpu": {"label": "x", "steps": [{"do": "kef_power", "value": "on"}]}}})["tiles"]["roondeck.cpu"])

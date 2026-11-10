@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.179 Alpine — 11 November 2026
+
+- **Listening-mode tiles:** a new tile (up to four, "Listening mode" in Add tiles) that runs a list of steps with one tap. Add steps yourself, in any order and mix: KEF power on/off, KEF input, KEF volume, turn a Home Assistant device on or off, run a script or scene, or press an infrared button (your Broadlink remote, device and button). Each step has its own "then wait N seconds", so a DAC has time to power up before the next step. The tile shows progress ("2/5 · KEF input AUX") and stops with the problem if a step fails. Steps with no device chosen are left out on save.
+
 ## 1.2.0-beta.178 Alpine — 11 November 2026
 
 - **KEF input tile:** the title now sits left, beside the icon (the icon was taking the spare width and pushing it to the right edge).

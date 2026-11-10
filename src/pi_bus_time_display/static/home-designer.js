@@ -34,10 +34,11 @@
   /* ------------------------------------------------------------ state */
   let roonOutputs = [], catalog = [], states = {}, art = [], layout = {tiles: {}}, system = {}, selected = -1, query = '', addSource = 'own', kind = 'All', dirty = false, dragId = null, dragIndex = null, dragTile = null, live = null, devicesOpen = null, snapshot = null;
   // On the dashboard layout the player and the next bus are tiles on the same grid as the devices.
-  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border', 'parked']);   // what the server accepts for a tile
+  const TILE_KEYS = new Set(['size', 'rows', 'col', 'row', 'label', 'icon', 'image', 'color', 'also', 'half', 'sub', 'show', 'art', 'scrubber', 'volume', 'heading', 'align', 'download', 'upload', 'zone', 'with', 'input', 'input_alt', 'page', 'route', 'border', 'parked', 'steps']);   // what the server accepts for a tile
   const CARDS = {'roondeck.player': 'Now Playing', 'roondeck.bus': 'Next bus'};
   const KEF = {'roondeck.kef': 'KEF speaker', 'roondeck.kef_power': 'KEF power', 'roondeck.kef_input': 'KEF input', 'roondeck.kef_volume': 'KEF volume'};
-  const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3'};
+  const LIVE = {...KEF, 'roondeck.cpu': 'CPU', 'roondeck.memory': 'Memory', 'roondeck.network': 'Network', 'roondeck.volume': 'Volume', 'roondeck.update': 'Update', 'roondeck.group': 'Group zones', 'roondeck.group2': 'Group zones 2', 'roondeck.group3': 'Group zones 3', 'roondeck.mode': 'Listening mode', 'roondeck.mode2': 'Listening mode 2', 'roondeck.mode3': 'Listening mode 3', 'roondeck.mode4': 'Listening mode 4'};
+  const MODES = ['roondeck.mode', 'roondeck.mode2', 'roondeck.mode3', 'roondeck.mode4'];   // tiles that run a list of steps
   const GROUPS = ['roondeck.group', 'roondeck.group2', 'roondeck.group3'];   // optional live tiles the owner adds
   // The same device or card can be on several pages: the copies are kept as "light.lamp#2" and behave as tiles of their own.
   const B = id => id.split('#')[0];
@@ -275,6 +276,12 @@
     }
     if (B(id) === 'roondeck.bus' && height === 1 && !!tile.half) return [h('div', {class: 'hd-d-bus hd-d-sq'}, h('span', {class: 'hd-d-sqtop'}, h('span', {class: 'hd-d-numchip', style: `color:${busAccent(id)}`}, busRouteNumber(id)), h('b', {class: 'hd-d-sqname'}, 'Bus')), h('span', {class: 'hd-d-sqmin'}, h('b', {}, '7'), h('small', {}, 'min')), h('small', {class: 'hd-d-sqthen'}, 'then 11 min'))];   // the square bus tile
     if (B(id) === 'roondeck.bus') return [h('div', {class: 'hd-d-bus'}, h('span', {class: 'hd-d-chip'}, (() => { const bus = h('span', {class: 'hd-glyph', style: 'color:#d3dcec'}); bus.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14"/><circle cx="9" cy="14.5" r=".8"/><circle cx="15" cy="14.5" r=".8"/><path d="M8 18v2M16 18v2"/></svg>'; return bus; })()), h('span', {class: 'hd-d-route'}, h('b', {}, tileOf(id).route || '42'), h('small', {}, 'then 11 min')), h('span', {class: 'hd-d-minutes'}, h('b', {}, '7'), h('small', {}, 'min')))];
+    if (MODES.includes(B(id))) {
+      const count = (tile.steps || []).length, chip = h('span', {class: 'hd-d-achip'});
+      chip.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      return [h('div', {class: 'hd-d-live hd-d-action'}, h('span', {class: 'hd-d-livetext hd-d-actiontext'}, h('span', {class: 'hd-d-head'}, chip, h('b', {class: 'hd-d-big'}, tile.label || 'Listening mode')),
+        h('span', {class: 'hd-d-spacer'}), h('small', {class: 'hd-d-livefoot'}, count ? `${count} step${count === 1 ? '' : 's'} \u00b7 tap to run` : 'Add steps in the tile options')))];
+    }
     if (B(id) === 'roondeck.update' || GROUPS.includes(B(id))) {
       const upd = B(id) === 'roondeck.update', zones = [tile.zone, tile.with].filter(Boolean);
       const chip = h('span', {class: 'hd-d-achip'}); chip.innerHTML = upd
@@ -640,6 +647,36 @@
     const button = h('button', {type: 'button', class: 'secondary hd-iconbtn', title: text, 'aria-label': text});
     button.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`; return button;
   }
+  const STEP_LABELS = {kef_power: 'KEF power', kef_input: 'KEF input', kef_volume: 'KEF volume', ha_on: 'Turn on (Home Assistant)', ha_off: 'Turn off (Home Assistant)', ha_run: 'Run script or scene', ir: 'Infrared button'};
+  const STEP_DEFAULTS = {kef_power: {value: 'on'}, kef_input: {value: 'aux'}, kef_volume: {value: 20}, ha_on: {entity_id: ''}, ha_off: {entity_id: ''}, ha_run: {entity_id: ''}, ir: {entity_id: '', device: '', command: ''}};
+  function modeFields(id) {
+    if (!MODES.includes(B(id))) return [];
+    const tile = tileOf(id), steps = (tile.steps || []).map(step => ({...step}));
+    const save = next => { patchTile(id, {steps: next}); };   // an empty list clears the tile's steps
+    const entityPick = (step, index, domains) => {
+      const options = catalog.filter(item => domains.includes(item.domain)), known = options.some(item => item.entity_id === step.entity_id);
+      const select = h('select', {}, h('option', {value: ''}, 'Choose a device'), ...(step.entity_id && !known ? [h('option', {value: step.entity_id}, step.entity_id)] : []), ...options.map(item => h('option', {value: item.entity_id}, item.name || item.entity_id)));
+      select.value = step.entity_id || ''; select.onchange = () => { steps[index].entity_id = select.value; save(steps); }; return select;
+    };
+    const text = (step, index, key, placeholder) => { const input = h('input', {type: 'text', placeholder, value: step[key] || ''}); input.onchange = () => { steps[index][key] = input.value.trim(); save(steps); }; return input; };
+    const rows = steps.map((step, index) => {
+      const kind = h('select', {}, Object.entries(STEP_LABELS).map(([value, name]) => h('option', {value}, name))); kind.value = step.do;
+      kind.onchange = () => { const wait = steps[index].wait; steps[index] = {do: kind.value, ...STEP_DEFAULTS[kind.value]}; if (wait) steps[index].wait = wait; save(steps); };
+      let detail;
+      if (step.do === 'kef_power') { detail = h('select', {}, h('option', {value: 'on'}, 'On'), h('option', {value: 'off'}, 'Off (standby)')); detail.value = step.value; detail.onchange = () => { steps[index].value = detail.value; save(steps); }; }
+      else if (step.do === 'kef_input') { detail = h('select', {}, [['wifi', 'Wi-Fi'], ['bluetooth', 'Bluetooth'], ['aux', 'AUX'], ['optical', 'Optical']].map(([value, name]) => h('option', {value}, name))); detail.value = step.value; detail.onchange = () => { steps[index].value = detail.value; save(steps); }; }
+      else if (step.do === 'kef_volume') { detail = h('input', {type: 'number', min: '0', max: '100', value: String(step.value ?? 20)}); detail.onchange = () => { steps[index].value = Math.max(0, Math.min(100, parseInt(detail.value, 10) || 0)); save(steps); }; }
+      else if (step.do === 'ha_run') detail = entityPick(step, index, ['script', 'scene']);
+      else if (step.do === 'ir') detail = h('div', {class: 'hd-stack'}, text(step, index, 'entity_id', 'Remote, e.g. remote.broadlink'), text(step, index, 'device', 'Device, e.g. amp'), text(step, index, 'command', 'Button, e.g. power'));
+      else detail = entityPick(step, index, ['switch', 'input_boolean', 'light', 'fan', 'climate', 'media_player']);
+      const wait = h('input', {type: 'number', min: '0', max: '60', step: '0.5', value: String(step.wait || 0), 'aria-label': 'Wait after this step, in seconds'}); wait.onchange = () => { const seconds = Math.max(0, Math.min(60, parseFloat(wait.value) || 0)); if (seconds) steps[index].wait = seconds; else delete steps[index].wait; save(steps); };
+      const move = (by, name, glyph) => { const button = h('button', {type: 'button', class: 'secondary', title: name, 'aria-label': name}, glyph); button.disabled = index + by < 0 || index + by >= steps.length; button.onclick = () => { steps.splice(index + by, 0, steps.splice(index, 1)[0]); save(steps); }; return button; };
+      const del = h('button', {type: 'button', class: 'secondary', title: 'Remove step', 'aria-label': 'Remove step'}, '×'); del.onclick = () => { steps.splice(index, 1); save(steps); };
+      return h('div', {class: 'hd-step'}, h('b', {}, String(index + 1)), h('div', {class: 'hd-stack'}, kind, detail, h('label', {class: 'hd-stepwait'}, 'Then wait ', wait, ' s')), h('div', {class: 'hd-stepbtns'}, move(-1, 'Move up', '↑'), move(1, 'Move down', '↓'), del));
+    });
+    const add = h('button', {type: 'button', class: 'secondary'}, '+ Add step'); add.disabled = steps.length >= 12; add.onclick = () => { steps.push({do: 'kef_power', value: 'on', wait: 2}); save(steps); };
+    return [field('Steps', h('div', {class: 'hd-steps'}, ...rows, add), 'One tap runs these in order, waiting the set time after each: for example KEF on, wait 5 s, DAC switch on, wait 3 s, KEF input AUX, KEF volume 25. It stops and shows the problem if a step fails. A step with no device chosen is left out when you save.')];
+  }
   let dragPage = null;
   function movePage(from, to) {
     if (from === to) return;
@@ -779,7 +816,7 @@
         const pickInput = (key, empty) => { const select = h('select', {}, h('option', {value: ''}, empty), INPUTS.map(([value, text]) => h('option', {value}, text))); select.value = tile[key] || ''; select.onchange = () => patchTile(id, {[key]: select.value}); return select; };
         return [field('Input', pickInput('input', 'Choose an input'), 'One tap on the tile switches the KEF to this input. If the speaker is in standby it is woken first.'), field('Alternate input (optional)', pickInput('input_alt', 'None'), 'Set a second input and the tile toggles between the two.')];
       })();
-      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF ? [field('Title', label)] : []), ...playerFields, ...netFields, ...groupFields, ...inputFields,
+      return h('div', {class: 'hd-group'}, h('h4', {}, `Selected tile \u00b7 ${nameOf(id)}`), ...(B(id) in KEF || MODES.includes(B(id)) ? [field('Title', label)] : []), ...modeFields(id), ...playerFields, ...netFields, ...groupFields, ...inputFields,
         B(id) === 'roondeck.bus' ? h('div', {class: 'hd-stack'}, busRoute(id), h('p', {class: 'cd-muted'}, 'The tile takes the colour of the route it shows. Choose route colours and their strength under Services \u203a Bus.')) : field('Colour', h('div', {class: 'hd-stack'}, swatches, tile.color ? useDefault : null)), (isCard(id) && B(id) !== 'roondeck.bus' && !tile.color) ? field('Border', h('div', {class: 'hd-stack'}, borderSwatches, tile.border ? noBorder : null), 'A brighter border for a tile that has no colour. Choose a colour above and the border follows it.') : null,
         field('Width', segmented, 'Drag the tile to move it, its right edge to change the width (down to half a column), or its bottom edge to change the height. To copy it to another page, press Cmd/Ctrl+C, change page, then Cmd/Ctrl+V.'), pageField(id), h('div', {class: 'hd-actions'}, dashColumns() ? pen : null, drop), message);
     }

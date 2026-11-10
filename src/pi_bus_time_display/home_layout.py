@@ -11,7 +11,10 @@ SIZES = {"auto", "quarter", "half", "full"}
 ART_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,78}\.png")
 ENTITY = re.compile(r"[a-z_]+\.[a-z0-9_]{1,100}(#[1-3])?")   # "light.lamp#2" is a second copy of that tile, on another page
 BASE = re.compile(r"#[1-3]$")
-TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border", "parked"}
+TILE_KEYS = {"size", "rows", "col", "row", "label", "icon", "image", "color", "also", "half", "sub", "show", "art", "scrubber", "volume", "heading", "align", "download", "upload", "zone", "with", "input", "input_alt", "page", "route", "border", "parked", "steps"}
+MODES = ("roondeck.mode", "roondeck.mode2", "roondeck.mode3", "roondeck.mode4")   # listening-mode tiles: one tap runs a list of steps in order
+STEP_KINDS = ("kef_power", "kef_input", "kef_volume", "ha_on", "ha_off", "ha_run", "ir")
+MAX_STEPS = 12
 KEF_CARDS = ("roondeck.kef", "roondeck.kef_power", "roondeck.kef_input", "roondeck.kef_volume")
 MAX_PAGES = 4
 COLUMNS = (2, 3)
@@ -25,6 +28,38 @@ GROUPS = ("roondeck.group", "roondeck.group2", "roondeck.group3")   # action til
 def base_id(entity_id):
     """The device or card a tile copy belongs to: light.lamp#2 is a copy of light.lamp."""
     return BASE.sub("", entity_id)
+
+
+def clean_steps(raw):
+    """The steps of a listening-mode tile: each is something to do (KEF power, input or volume; a Home Assistant switch or script; an infrared button) and how long to wait afterwards."""
+    if not isinstance(raw, list) or len(raw) > MAX_STEPS: raise ValueError(f"A listening mode can have up to {MAX_STEPS} steps")
+    steps = []
+    for item in raw:
+        if not isinstance(item, dict) or item.get("do") not in STEP_KINDS: raise ValueError("Choose what each step does")
+        kind, step = item["do"], {"do": item["do"]}
+        if kind == "kef_power":
+            if item.get("value") not in ("on", "off"): raise ValueError("A KEF power step is on or off")
+            step["value"] = item["value"]
+        elif kind == "kef_input":
+            if item.get("value") not in ("wifi", "bluetooth", "aux", "optical"): raise ValueError("Choose a KEF input")
+            step["value"] = item["value"]
+        elif kind == "kef_volume":
+            value = item.get("value")
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 100: raise ValueError("KEF volume is 0 to 100")
+            step["value"] = value
+        elif kind in ("ha_on", "ha_off", "ha_run"):
+            entity = item.get("entity_id")
+            if not entity: continue   # not chosen yet: left out
+            if not isinstance(entity, str) or not re.fullmatch(r"[a-z_]+\.[a-z0-9_]{1,100}", entity): raise ValueError("Choose a Home Assistant device for the step")
+            step["entity_id"] = entity
+        else:
+            if not all(isinstance(item.get(name), str) and item[name].strip() for name in ("entity_id", "device", "command")): continue   # remote, device and button not all filled in: left out
+            for name, top in (("entity_id", 100), ("device", 80), ("command", 120)): step[name] = item[name].strip()[:top]
+        wait = item.get("wait", 0)
+        if isinstance(wait, bool) or not isinstance(wait, (int, float)) or not 0 <= wait <= 60: raise ValueError("Wait between 0 and 60 seconds after a step")
+        if wait: step["wait"] = round(float(wait), 1) if wait != int(wait) else int(wait)
+        steps.append(step)
+    return steps
 
 
 def validate_layout(data):
@@ -74,6 +109,9 @@ def validate_layout(data):
         if "input" not in out: out.pop("input_alt", None)
         for name in ("download", "upload"):   # the network tile can show either direction, or both
             if tile.get(name) is False: out[name] = False
+        if "steps" in tile and entity_id.split("#")[0] in MODES:
+            steps = clean_steps(tile["steps"])
+            if steps: out["steps"] = steps
         if tile.get("show") is True: out["show"] = True   # a live tile the owner has added
         if tile.get("parked") is True: out["parked"] = True   # set aside in the holding pen: kept, with its options, but not shown on any page
         if tile.get("also"):
@@ -135,7 +173,7 @@ def with_layout(home, layout):
         entity_id = item.get("entity_id")
         entities.append({**item, "tile": tiles[entity_id]} if entity_id in tiles else item)
         entities.extend({**item, "tile": tile} for tile in copies.get(entity_id, []))
-    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, VOLUME, UPDATE, *GROUPS, *KEF_CARDS)
+    cards_of = (PLAYER, BUS, CPU, NETWORK, MEMORY, VOLUME, UPDATE, *GROUPS, *MODES, *KEF_CARDS)
     out = {**home, "entities": entities, "cards": {key: tiles[key] for key in tiles if base_id(key) in cards_of}}
     if (layout or {}).get("columns") in COLUMNS: out["columns"] = layout["columns"]
     if isinstance((layout or {}).get("pages"), int) and layout["pages"] > 1: out["pages"] = layout["pages"]
