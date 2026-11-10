@@ -640,10 +640,29 @@
     const button = h('button', {type: 'button', class: 'secondary hd-iconbtn', title: text, 'aria-label': text});
     button.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[kind]}</svg>`; return button;
   }
+  let dragPage = null;
+  function movePage(from, to) {
+    if (from === to) return;
+    const count = pageCount(), order = Array.from({length: count}, (_, n) => n); order.splice(to, 0, order.splice(from, 1)[0]);   // order[newPosition] = oldPage
+    const where = {}; order.forEach((old, now) => { where[old] = now; });
+    for (const [key, tile] of Object.entries(layout.tiles)) {
+      if (tile.parked) continue;
+      const now = where[pageOf(key)]; layout.tiles[key] = {...tile}; if (now > 0) layout.tiles[key].page = now; else delete layout.tiles[key].page;
+    }
+    pageNo = where[Math.min(pageNo, count - 1)]; selected = -1; markDirty(); render();
+  }
   function pageBar() {
     const count = pageCount(), here = Math.min(pageNo, count - 1), tabs = Array.from({length: count}, (_, number) => {
-      const button = h('button', {type: 'button', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
-      button.onclick = () => { pageNo = number; selected = -1; render(); }; return button;
+      const button = h('button', {type: 'button', draggable: count > 1 ? 'true' : 'false', title: count > 1 ? 'Drag to put this page in a different order' : '', 'aria-pressed': String(number === here)}, `Page ${number + 1}`);
+      button.onclick = () => { pageNo = number; selected = -1; render(); };
+      if (count > 1) {   // drag a page tab onto another to move that page there; the tiles keep their page, only the page numbers change
+        button.ondragstart = event => { dragPage = number; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', `page-${number}`); };
+        button.ondragend = () => { dragPage = null; document.querySelectorAll('.hd-pages .over').forEach(n => n.classList.remove('over')); };
+        button.ondragover = event => { if (dragPage === null || dragPage === number) return; event.preventDefault(); button.classList.add('over'); };
+        button.ondragleave = () => button.classList.remove('over');
+        button.ondrop = event => { if (dragPage === null) return; event.preventDefault(); const from = dragPage; dragPage = null; movePage(from, number); };
+      }
+      return button;
     });
     const actions = [];
     if (count < MAX_PAGES) {

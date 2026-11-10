@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.176 Alpine — 11 November 2026
+
+- **Reorder Home pages by dragging:** drag a page tab (Page 1, Page 2…) onto another to move that page there. Tiles stay on their page; the builder renumbers them, and you stay on the page you moved. Save to apply to the touchscreen.
+
 ## 1.2.0-beta.175 Alpine — 11 November 2026
 
 - **Builder: Update and Group tiles no longer overlap their text** in the preview and holding pen (smaller chip, tighter note). Holding-pen tiles use the same proportions as the layout, with an even gap and a short "Drag or click" caption.

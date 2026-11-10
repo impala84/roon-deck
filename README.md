@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current development release is **1.2.0-beta.175**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
+The current development release is **1.2.0-beta.176**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path.
 

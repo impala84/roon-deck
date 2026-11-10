@@ -306,3 +306,4 @@
 .hd-d-action .hd-d-achip{width:calc(3.4cqw*var(--k,1));height:calc(3.4cqw*var(--k,1))}.hd-d-action .hd-d-livetext{padding:calc(1.2cqw*var(--k,1)) calc(1.6cqw*var(--k,1))}.hd-d-action .hd-d-head{gap:calc(.3cqw*var(--k,1))}.hd-d-action .hd-d-big{line-height:1.1}.hd-d-action .hd-d-livefoot{font-size:calc(1.15cqw*var(--k,1));line-height:1.15}
 /* Holding pen: items sized to their tile, short caption that never widens the item */
 .hd-penrow{gap:18px}.hd-penitem{justify-items:start}.hd-penitem small{white-space:nowrap}
+.hd-seg button[draggable=true]{cursor:grab}.hd-seg button.over{outline:2px solid #a78bfa;outline-offset:1px}
