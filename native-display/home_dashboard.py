@@ -280,11 +280,12 @@ class HomeDashboardMixin:
         def listening(action, value, timeout):
             result = post_json(BUS + "/api/listening/command", {"action": action, "value": value}, timeout=timeout)
             # Roon often takes longer than the controller waits to confirm a wake or a volume change: that is not a failure, so wait and look for ourselves.
-            if isinstance(result, dict) and "not confirmed" in str(result.get("error", "")):
-                for _ in range(24):
+            # A speaker that is off may not be visible to Roon at all, so a wake can come back as an error too: for power, any error means "look and see".
+            if isinstance(result, dict) and result.get("error") and (action == "power" or "not confirmed" in str(result.get("error", ""))):
+                for _ in range(40):
                     time.sleep(.5); status = kef_status()
                     if (action == "power" and status.get("powered") is value) or (action == "volume" and status.get("volume") == value): return {"ok": True}
-                return {"ok": True, "unconfirmed": True}   # carry on: the speaker is most likely just slow to report
+                return {"ok": True, "unconfirmed": True}   # carry on: the speaker is most likely just slow to report (a later input step wakes it anyway)
             return result
         def call(step):
             kind = step["do"]

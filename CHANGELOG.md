@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.182 Alpine — 11 November 2026
+
+- **Listening-mode steps can use any Home Assistant script, switch or remote:** the controller refused a step's device unless it was also shared on Home ("Entity is not available on this display"), which is why the DAC step failed. A step's device or script is now allowed because a listening-mode tile uses it, and so is its infrared button.
+- **KEF power-on from off:** if Roon cannot see a switched-off speaker the wake comes back as an error; the mode now waits (up to 20 s) for it to report on and carries on, since the next KEF input step wakes it anyway.
+
 ## 1.2.0-beta.181 Alpine — 11 November 2026
 
 - **Titles really beside the icon:** the layout step that puts a small tile's title under its icon exempted only the KEF input tile. The KEF power tile (LSX) and listening-mode tiles (Mac) are exempted too, so their titles sit inline with the icon.

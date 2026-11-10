@@ -80,10 +80,25 @@ def accessory_request(data, *, helper_action="accessories"):
 
 
 class State:
+    def mode_remote_allowed(self, value):
+        """An infrared step is allowed when it is exactly one saved in a listening-mode tile."""
+        try:
+            wanted = {key: value.get(key) for key in ("entity_id", "device", "command")}
+            for tile in load_layout(self.state_dir / "home-layout.json").get("tiles", {}).values():
+                for step in tile.get("steps") or []:
+                    if step.get("do") == "ir" and all(step.get(key) == wanted[key] for key in wanted): return True
+        except Exception: pass
+        return False
+
     def home_entity_ids(self):
         """Entities RoonDeck may control: those shared on Home plus any a Stream Deck design uses."""
         try: extra = referenced_entities(self.listening.settings())
         except Exception: extra = set()
+        try:   # and the devices, scripts and remotes a listening-mode tile's steps use, so a mode works without each also being shared on Home
+            for key, tile in load_layout(self.state_dir / "home-layout.json").get("tiles", {}).items():
+                for step in tile.get("steps") or []:
+                    if step.get("entity_id"): extra.add(step["entity_id"])
+        except Exception: pass
         return (*self.config.home_assistant_entities, *self.config.home_assistant_deck_entities, *sorted(extra))
 
     def __init__(self, config: Config, state_dir: Path | None = None):
@@ -1610,8 +1625,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                         result = {"ok": True}
                     elif data.get("action") == "remote":
                         value = data.get("value")
-                        if not state.config.home_assistant_enabled or not remote_step_allowed(state.listening.settings(), value):
-                            raise ValueError("Choose a remote step saved on a Stream Deck dial")
+                        if not state.config.home_assistant_enabled or not (remote_step_allowed(state.listening.settings(), value) or state.mode_remote_allowed(value)):
+                            raise ValueError("Choose a remote step saved on a Stream Deck dial or a listening-mode tile")
                         home_assistant_request(state.config, "/api/services/remote/send_command", {"entity_id": value["entity_id"], "device": value["device"], "command": value["command"]})
                         result = {"ok": True}
                     else:
