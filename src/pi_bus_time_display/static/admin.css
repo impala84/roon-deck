@@ -217,5 +217,37 @@ body.admin-page{--admin-sidebar-width:clamp(150px,18vw,220px);position:fixed;ins
 
 .route-colours{display:grid;gap:8px;margin:10px 0 16px}.route-colour-row{display:grid;grid-template-columns:auto 1fr minmax(120px,200px);align-items:center;gap:6px;margin:0}.route-colour-row select{margin:0}
 
-/* Automation: sections sit in aligned rows (Overnight | Morning buses, Staying awake | Playback, Daytime inactivity | Touchscreen browsing) instead of packing tightly */
-.admin-page #panel-automation .settings-grid{grid-auto-rows:auto;grid-auto-flow:row;align-items:stretch;row-gap:0}.admin-page #panel-automation .settings-group{grid-row-end:auto!important;align-self:stretch;padding-top:6px;margin-bottom:20px}
+/* Keep the contents of neighbouring Automation sections at the same starting height. */
+.admin-page #panel-automation .settings-grid {
+  grid-auto-rows: auto;
+  grid-auto-flow: row;
+  align-items: start;
+  row-gap: 20px;
+}
+.admin-page #panel-automation .settings-group {
+  grid-row-end: auto !important;
+  padding-top: 6px;
+}
+.admin-page #panel-automation .settings-group > label {
+  grid-column: 1 / -1;
+}
+.admin-page #panel-automation .number-unit {
+  grid-template-columns: minmax(0, 1fr) 7ch;
+}
+.admin-page #panel-automation .automation-duration-pair > label > small {
+  display: block;
+  margin-top: 8px;
+}
+@media (min-width: 801px) {
+  @container (min-width: 350px) {
+    .admin-page #panel-automation .automation-duration-pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: 0;
+    }
+    .admin-page #panel-automation .automation-duration-pair > label {
+      display: grid;
+      grid-row: span 3;
+      grid-template-rows: subgrid;
+    }
+  }
+}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.187 Alpine — 12 November 2026
+
+- Align related fields in web Automation settings. Time and duration inputs line up across sections, and the paired wake duration inputs stay level when a label wraps. Narrow screens stack the fields.
+
 ## 1.2.0-beta.186 Alpine — 12 November 2026
 
 - **Automation page in aligned rows:** Overnight | Morning buses, Staying awake | Playback, Daytime inactivity | Touchscreen browsing. Headings now line up across both columns instead of packing wherever they fit. The tap, Dial/TV-remote and clock settings sit under their own "Staying awake" heading.
