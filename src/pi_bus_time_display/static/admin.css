@@ -216,3 +216,6 @@ body.admin-page{--admin-sidebar-width:clamp(150px,18vw,220px);position:fixed;ins
 .admin-page .device-about .about-disclaimer{margin-top:18px}
 
 .route-colours{display:grid;gap:8px;margin:10px 0 16px}.route-colour-row{display:grid;grid-template-columns:auto 1fr minmax(120px,200px);align-items:center;gap:6px;margin:0}.route-colour-row select{margin:0}
+
+/* Automation: sections sit in aligned rows (Overnight | Morning buses, Staying awake | Playback, Daytime inactivity | Touchscreen browsing) instead of packing tightly */
+.admin-page #panel-automation .settings-grid{grid-auto-rows:auto;grid-auto-flow:row;align-items:stretch;row-gap:0}.admin-page #panel-automation .settings-group{grid-row-end:auto!important;align-self:stretch;padding-top:6px;margin-bottom:20px}

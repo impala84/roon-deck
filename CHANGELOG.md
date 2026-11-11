@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.186 Alpine — 12 November 2026
+
+- **Automation page in aligned rows:** Overnight | Morning buses, Staying awake | Playback, Daytime inactivity | Touchscreen browsing. Headings now line up across both columns instead of packing wherever they fit. The tap, Dial/TV-remote and clock settings sit under their own "Staying awake" heading.
+
 ## 1.2.0-beta.185 Alpine — 12 November 2026
 
 - **Automation page alignment:** the "Show Bus Times in the morning" checkbox moves under its Show from / Until times, so those fields line up with Sleep from / Weekday wake at again.
