@@ -852,6 +852,11 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 self.wake("volume change", remote=True, view="roon")
                 target = "http://127.0.0.1:8766/"
                 print("RoonDeck waking for a volume change on the TV page", flush=True)
+            elif ((roon or {}).get("zone") or {}).get("state") == "playing":
+                # Music is playing: a volume change wakes onto Now Playing, not onto whatever page was showing before it slept (often Bus Times).
+                self.wake("volume change", remote=True, view="roon"); self.set_roon_view("now"); self.requested_audio_view = "now"
+                target = "http://127.0.0.1:8766/"
+                print("RoonDeck waking for a volume change while playing", flush=True)
             else:
                 # Wake to whatever was showing before it slept (Bus Times, Home or a Roon page), not Now Playing.
                 self.wake("volume change", remote=True)

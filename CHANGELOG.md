@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.183 Alpine — 11 November 2026
+
+- **Waking for a volume change while music plays now shows Now Playing:** it was waking onto whichever page was showing before the screen slept (often Bus Times), even with Roon playing.
+
 ## 1.2.0-beta.182 Alpine — 11 November 2026
 
 - **Listening-mode steps can use any Home Assistant script, switch or remote:** the controller refused a step's device unless it was also shared on Home ("Entity is not available on this display"), which is why the DAC step failed. A step's device or script is now allowed because a listening-mode tile uses it, and so is its infrared button.
