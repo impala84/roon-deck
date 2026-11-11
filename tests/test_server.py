@@ -657,3 +657,13 @@ class DisplayModeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MorningWindowSwitchTests(unittest.TestCase):
+    def test_the_morning_bus_window_can_be_turned_off(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from pi_bus_time_display.server import within_window
+        now = datetime(2026, 11, 12, 8, 0, tzinfo=ZoneInfo("Asia/Singapore"))
+        self.assertTrue(within_window(Config(morning_start="07:00", morning_end="09:30"), now))
+        self.assertFalse(within_window(Config(morning_start="07:00", morning_end="09:30", morning_enabled=False), now))

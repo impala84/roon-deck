@@ -252,6 +252,7 @@ class State:
 
 
 def within_window(config: Config, now: datetime) -> bool:
+    if not config.morning_enabled: return False
     start = wall_time.fromisoformat(config.morning_start)
     end = wall_time.fromisoformat(config.morning_end)
     return start <= now.timetz().replace(tzinfo=None) < end
@@ -509,6 +510,7 @@ def write_config(path: Path, config: Config) -> None:
         f"stale_after_seconds = {config.stale_after_seconds}",
         f"morning_start = {json.dumps(config.morning_start)}",
         f"morning_end = {json.dumps(config.morning_end)}",
+        f"morning_enabled = {str(config.morning_enabled).lower()}",
         f"scheduled_wake_enabled = {str(config.scheduled_wake_enabled).lower()}",
         f"weekend_wake_enabled = {str(config.weekend_wake_enabled).lower()}",
         f"weekend_wake_time = {json.dumps(config.weekend_wake_time)}",
@@ -1259,7 +1261,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     "bus_stop_code": config.bus_stop_code, "bus_stop_name": config.bus_stop_name,
                     "services": list(config.services), "service_colours": config.service_colours, "route_tint": config.route_tint, "walking_minutes": config.walking_minutes,
                     "poll_seconds": config.poll_seconds, "morning_start": config.morning_start,
-                    "morning_end": config.morning_end, "scheduled_wake_enabled": config.scheduled_wake_enabled,
+                    "morning_end": config.morning_end, "morning_enabled": config.morning_enabled, "scheduled_wake_enabled": config.scheduled_wake_enabled,
                     "weekend_wake_enabled": config.weekend_wake_enabled, "weekend_wake_time": config.weekend_wake_time,
                     "sleep_start": config.sleep_start,
                     "sleep_end": config.sleep_end, "roon_display_url": config.roon_display_url,
@@ -1996,6 +1998,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     walking_minutes=int(data.get("walking_minutes", current.walking_minutes)), poll_seconds=int(data.get("poll_seconds", current.poll_seconds)),
                     stale_after_seconds=current.stale_after_seconds,
                     morning_start=str(data.get("morning_start", current.morning_start)), morning_end=str(data.get("morning_end", current.morning_end)),
+                    morning_enabled=bool(data.get("morning_enabled", current.morning_enabled)),
                     scheduled_wake_enabled=bool(data.get("scheduled_wake_enabled", current.scheduled_wake_enabled)),
                     weekend_wake_enabled=bool(data.get("weekend_wake_enabled", current.weekend_wake_enabled)),
                     weekend_wake_time=str(data.get("weekend_wake_time", current.weekend_wake_time)),

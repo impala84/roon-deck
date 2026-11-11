@@ -25,6 +25,7 @@ class Config:
     stale_after_seconds: int = 75
     morning_start: str = "06:00"
     morning_end: str = "10:00"
+    morning_enabled: bool = True   # off: no special morning Bus Times window
     scheduled_wake_enabled: bool = True
     weekend_wake_enabled: bool = False
     weekend_wake_time: str = "08:00"

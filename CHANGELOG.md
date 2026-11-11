@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.184 Alpine — 12 November 2026
+
+- **Morning buses can be switched off:** Settings > Automation > Morning buses has a "Show Bus Times in the morning" checkbox. Off, the morning window (and its keep-awake and Bus Times behaviour) is ignored entirely; the times are hidden while it is off.
+
 ## 1.2.0-beta.183 Alpine — 11 November 2026
 
 - **Waking for a volume change while music plays now shows Now Playing:** it was waking onto whichever page was showing before the screen slept (often Bus Times), even with Roon playing.

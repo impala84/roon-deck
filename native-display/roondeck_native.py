@@ -630,7 +630,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
     def bus_window_active(self, config):
         """True while the configured morning bus-time window is running (and bus times are enabled)."""
         try:
-            if not config.get("bus_enabled", True): return False
+            if not config.get("bus_enabled", True) or not config.get("morning_enabled", True): return False
             current = datetime.now(TZ).timetz().replace(tzinfo=None)
             return datetime_time.fromisoformat(str(config["morning_start"])) <= current < datetime_time.fromisoformat(str(config["morning_end"]))
         except (KeyError, TypeError, ValueError): return False
