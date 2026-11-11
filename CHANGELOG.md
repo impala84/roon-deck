@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.185 Alpine — 12 November 2026
+
+- **Automation page alignment:** the "Show Bus Times in the morning" checkbox moves under its Show from / Until times, so those fields line up with Sleep from / Weekday wake at again.
+
 ## 1.2.0-beta.184 Alpine — 12 November 2026
 
 - **Morning buses can be switched off:** Settings > Automation > Morning buses has a "Show Bus Times in the morning" checkbox. Off, the morning window (and its keep-awake and Bus Times behaviour) is ignored entirely; the times are hidden while it is off.
