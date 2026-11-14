@@ -329,16 +329,18 @@
     const domain = domainOf(id), info = states[B(id)] || {}, scene = domain === 'scene';
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
     const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
+    const fanSteps = domain === 'fan' && Number.isFinite(info.percentage_step) && info.percentage_step > 0 && info.percentage_step < 50 ? Math.max(2, Math.round(100 / info.percentage_step)) : 0;   // a stepped fan has a few speeds, not a percentage
+    const shown = fanSteps ? Math.round(pct * fanSteps / 100) * 100 / fanSteps : pct;
     const name = tile.label || nameOf(id);
     const chip = h('span', {class: 'hd-d-chip', style: `opacity:${lit ? 1 : .6}`}, tile.icon ? h('span', {class: 'hd-icon hd-icon-tint', style: `background:${colour};-webkit-mask-image:url(${artUrl(tile.icon)});mask-image:url(${artUrl(tile.icon)})`}) : svgOf(scene ? 'scene' : domain === 'light' ? 'bulb' : domain === 'fan' ? 'fan' : domain === 'climate' ? 'snow' : 'switch', colour));
     if (scene) return [h('div', {class: 'hd-d-scene'}, chip, h('span', {class: 'hd-d-text'}, h('b', {}, name)))];
-    const text = h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, level ? (lit ? `${pct}%` : 'OFF') : (lit ? 'ON' : 'OFF')));
+    const text = h('span', {class: 'hd-d-text'}, h('b', {}, name), h('small', {}, level ? (lit ? (fanSteps ? `Speed ${Math.round(pct * fanSteps / 100)} of ${fanSteps}` : `${pct}%`) : 'OFF') : (lit ? 'ON' : 'OFF')));
     if (tile.half) {
       const switchOf = !level ? h('span', {class: `hd-d-switch${lit ? ' on' : ''}`, style: lit ? `background:${colour}` : ''}, h('i', {})) : null;
       return [h('div', {class: 'hd-d-device hd-d-half'}, h('span', {class: 'hd-d-row'}, chip, h('span', {class: 'hd-d-fill'}), switchOf), text,
-        level ? h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? pct : 0}%;background:${colour}`})) : null)];
+        level ? h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? shown : 0}%;background:${colour}`}), ...Array.from({length: fanSteps ? fanSteps + 1 : 0}, (_, stop) => h('s', {style: `left:${stop * 100 / fanSteps}%`}))) : null)];
     }
-    if (level) return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text), h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? pct : 0}%;background:${colour}`})))];
+    if (level) return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text), h('span', {class: 'hd-d-slider'}, h('i', {style: `width:${lit ? shown : 0}%;background:${colour}`}), ...Array.from({length: fanSteps ? fanSteps + 1 : 0}, (_, stop) => h('s', {style: `left:${stop * 100 / fanSteps}%`}))))];
     return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'}, chip, text, h('span', {class: `hd-d-switch${lit ? ' on' : ''}`, style: lit ? `background:${colour}` : ''}, h('i', {}))))];
   }
   function tileView(cell, rowMode) {

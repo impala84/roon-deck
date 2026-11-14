@@ -655,6 +655,13 @@ class HomeDashboardMixin:
         icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
         return icon
 
+    @staticmethod
+    def fan_steps(entity):
+        """How many speeds a fan has when Home Assistant says it moves in steps (percentage_step 33.3 = three speeds); 0 for a smooth fan."""
+        step = entity.get("percentage_step")
+        if entity.get("domain") != "fan" or not isinstance(step, (int, float)) or step <= 0 or step >= 50: return 0
+        return max(2, round(100 / step))
+
     def home_detail(self, entity, on):
         state = str(entity.get("state", "unknown"))
         if entity.get("available", True) is False: return "UNAVAILABLE"
@@ -663,6 +670,8 @@ class HomeDashboardMixin:
         if entity.get("supports_level"):
             level = entity.get("percentage")
             if level is None and entity.get("brightness") is not None: level = round(float(entity["brightness"]) * 100 / 255)
+            steps = self.fan_steps(entity)
+            if steps and on and level is not None: return f"SPEED {round(level * steps / 100)} OF {steps}"   # a stepped fan shows its speed, not a percentage
             return f"{round(level)}%" if on and level is not None else ("ON" if on else "OFF")
         return "ON" if on else "OFF" if state in {"on", "off"} else state.upper()
 
@@ -705,8 +714,12 @@ class HomeDashboardMixin:
         if has_level:
             level = entity.get("percentage")
             if level is None and entity.get("brightness") is not None: level = round(float(entity["brightness"]) * 100 / 255)
-            slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1); slider.add_css_class("home-level"); slider.add_css_class("home-slider")
-            slider.set_draw_value(False); slider.set_hexpand(True); slider.set_value(float(level or 0)); slider.connect("value-changed", self.change_home_value, entity_id); inner.append(slider)
+            steps = self.fan_steps(entity)
+            slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, steps or 100, 1); slider.add_css_class("home-level"); slider.add_css_class("home-slider")
+            if steps:   # a stepped fan: the slider has one stop per speed, with a tick at each
+                slider.steps = steps; slider.set_round_digits(0)
+                for stop in range(steps + 1): slider.add_mark(stop, Gtk.PositionType.BOTTOM, None)
+            slider.set_draw_value(False); slider.set_hexpand(True); slider.set_value(round(float(level or 0) * steps / 100) if steps else float(level or 0)); slider.connect("value-changed", self.change_home_value, entity_id); inner.append(slider)
         else:
             tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.toggle_home(None, entity_id)); card.add_controller(tap)
         card.append(inner)

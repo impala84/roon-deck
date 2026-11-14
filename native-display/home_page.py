@@ -285,7 +285,8 @@ class HomePageMixin:
         if not entity_id: return
         previous = self.home_value_timeouts.pop(entity_id, None)
         if previous is not None: GLib.source_remove(previous)
-        self.home_value_timeouts[entity_id] = GLib.timeout_add(260, self.send_home_value, entity_id, round(scale.get_value()))
+        steps = getattr(scale, "steps", 0); value = round(scale.get_value() * 100 / steps) if steps else round(scale.get_value())   # a stepped fan: stop n of steps is n/steps of full speed
+        self.home_value_timeouts[entity_id] = GLib.timeout_add(260, self.send_home_value, entity_id, value)
 
     def send_home_value(self, entity_id, value):
         self.home_value_timeouts.pop(entity_id, None)

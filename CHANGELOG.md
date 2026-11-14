@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.188 Alpine — 14 November 2026
+
+- **Stepped fans show their steps:** a fan that Home Assistant reports as stepped (for example three speeds) now reads "Speed 2 of 3" instead of a percentage, and its slider has one stop per speed with a tick at each, on the touchscreen and in the builder preview. Moving it sends the matching speed. Smooth (percentage) fans are unchanged.
+
 ## 1.2.0-beta.187 Alpine — 12 November 2026
 
 - Align related fields in web Automation settings. Time and duration inputs line up across sections, and the paired wake duration inputs stay level when a label wraps. Narrow screens stack the fields.
