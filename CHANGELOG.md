@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.189 Alpine — 14 November 2026
+
+- **Stepped fans: middle speeds no longer jump to full:** a stop is sent rounded down (66%, not 67%, for two of three), because Home Assistant rounds a fan's percentage up to the next speed.
+
 ## 1.2.0-beta.188 Alpine — 14 November 2026
 
 - **Stepped fans show their steps:** a fan that Home Assistant reports as stepped (for example three speeds) now reads "Speed 2 of 3" instead of a percentage, and its slider has one stop per speed with a tick at each, on the touchscreen and in the builder preview. Moving it sends the matching speed. Smooth (percentage) fans are unchanged.
