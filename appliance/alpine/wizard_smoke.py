@@ -24,7 +24,11 @@ for stage in range(7):
 # Text and touch targets must grow with the panel and every page, including the
 # on-screen keyboard, must still fit the screen.
 monitor = Gdk.Display.get_default().get_monitors().get_item(0).get_geometry()
-assert app.scale == max(1.0, min(min(monitor.width, monitor.height) / 480, 2.2)), app.scale
+expected = Wizard.display_scale((monitor.width, monitor.height))
+assert app.scale == expected, app.scale
+assert Wizard.display_scale((1280, 800), "touch2-10") == 1.25
+assert Wizard.display_scale((1280, 800), "touch2-7") == 800 / 480
+assert Wizard.display_scale((800, 480), "original") == 1.0
 review = os.environ.get("PI_HOME_WIZARD_REVIEW")
 for stage in range(7):
     app.stage = stage; app.render()

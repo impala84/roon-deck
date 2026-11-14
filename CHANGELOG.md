@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1-beta.190 Alpine — 14 November 2026
+
+- **10-inch setup is properly sized:** the first-boot wizard now recognises the 10-inch Touch Display 2 and uses touch-friendly 1.25× sizing instead of enlarging the entire interface to 1.67× from resolution alone. The keyboard, text and buttons no longer dominate the screen; smaller displays keep their existing scaling.
+
 ## 1.2.0 Alpine — 14 November 2026
 
 - **Pi 5 + 10-inch Touch Display 2 fresh installs:** the release includes a dedicated image that forces the display's four-lane DSI overlay, fixing the boot path where the Pi showed storage activity but the panel and backlight stayed off. The normal auto-detecting ARM64 image remains available for other displays.

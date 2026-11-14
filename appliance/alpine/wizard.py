@@ -9,6 +9,8 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
 from setup_service import SOCKET
 
 BRAND_ASSETS = Path(__file__).resolve().parent / "assets" / "brand"
+DISPLAY_PROFILE = Path("/etc/pi-home/display-profile")
+BOOT_CONFIG = Path("/boot/config.txt")
 
 
 def wordmark_picture(target_height=26):
@@ -41,10 +43,32 @@ class Wizard(Gtk.Application):
         except (AttributeError, TypeError):
             return 800, 480
 
+    @staticmethod
+    def display_profile():
+        """Read the saved panel, or recognise the dedicated 10-inch image on its first boot."""
+        try:
+            profile = DISPLAY_PROFILE.read_text(encoding="utf-8").strip()
+            if profile: return profile
+        except OSError:
+            pass
+        try:
+            if "dtoverlay=vc4-kms-dsi-ili79600-10-1inch" in BOOT_CONFIG.read_text(encoding="utf-8"):
+                return "touch2-10"
+        except OSError:
+            pass
+        return ""
+
     @classmethod
-    def display_scale(cls):
+    def display_scale(cls, size=None, profile=None):
         """Text and touch targets grow with the panel; the 800x480 original stays 1.0."""
-        return max(1.0, min(min(cls.screen_size()) / 480, 2.2))
+        automatic = max(1.0, min(min(size or cls.screen_size()) / 480, 2.2))
+        profile = cls.display_profile() if profile is None else profile
+        # At 1280x800 the old resolution-only rule made the entire wizard 1.67x.
+        # The 10-inch panel has a lower physical pixel density than the smaller
+        # Touch Display 2 models, so that produced huge text and a keyboard that
+        # filled nearly the whole screen. Keep comfortable 48-50px touch targets
+        # without changing the deliberately larger scaling on the 5/7-inch panels.
+        return min(automatic, 1.25) if profile == "touch2-10" else automatic
 
     @staticmethod
     def stylesheet(scale, height=480):
