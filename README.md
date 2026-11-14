@@ -1,6 +1,6 @@
 # RoonDeck
 
-The current development release is **1.2.0-beta.189**, based on stable **1.1.8**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. Installable beta releases use the existing Beta updater channel. The latest complete stable image is available from the [1.1.8 release](https://github.com/impala84/roon-deck/releases/tag/v1.1.8-alpine). See [the beta hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling the new optional features.
+The current stable release is **1.2.0**. It adds optional Stream Deck + input, original KEF LSX controls and shared listening modes, alongside the existing Surface Dial and WireGuard features. The complete stable images are available from the [1.2.0 release](https://github.com/impala84/roon-deck/releases/tag/v1.2.0-alpine). See [the hardware test guide](docs/REMOTE-ACCESS-AND-DIAL.md) before enabling optional hardware features.
 
 The image includes profiles for the Raspberry Pi Original Touch Display and Touch Display 2 family. Raspberry Pi 3 B+ with the Original Touch Display remains a hardware acceptance target rather than an automated test environment, so use a spare card and retain Ethernet or SSH as a recovery path.
 
@@ -59,7 +59,7 @@ Roon owns transport, zones, playback, queue and library/catalogue data. Optional
 
 Do not run production commands on a development Mac.
 
-1. Download the latest [release image](https://github.com/impala84/roon-deck/releases) and check its SHA-256. Flash it with Raspberry Pi Imager onto a spare card (flashing erases the card). Connect the official display and, if possible, Ethernet.
+1. Download the latest [release image](https://github.com/impala84/roon-deck/releases) and check its SHA-256. For a Raspberry Pi 5 with the official 10-inch Touch Display 2, choose the image whose name ends in `Pi5-TouchDisplay2-10inch.img.gz`; it forces the panel's required four-lane DSI overlay. Use the normal `Alpine-arm64.img.gz` image for other displays. Flash it with Raspberry Pi Imager onto a spare card (flashing erases the card). Connect the official display and, if possible, Ethernet.
 2. Boot the Pi and follow the touchscreen wizard: choose the display and orientation, name the device, set the SSH username and web password (at least eight characters) and choose optional software (Roon Bridge, Netdata).
 3. In Roon, open **Settings → Extensions**, enable **RoonDeck**, then select the desired zone in RoonDeck. If you installed Roon Bridge, separately enable the Pi's RAAT output under Roon **Settings → Audio**.
 4. Open `http://<device-name>.local:8765/admin` (or the Pi's IP address) on a trusted local network and sign in with the web password from the wizard. Display profile and orientation are under **Display → Screen hardware**; Touch Display 2 overlay changes require one reboot, so select the exact panel rather than using an assumed rotation.

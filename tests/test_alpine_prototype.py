@@ -168,6 +168,18 @@ class AlpinePrototypeTests(unittest.TestCase):
         self.assertIn("pi-home-alpine-beta.img", script)
         self.assertNotIn("pi-home-alpine-prototype.img", script)
 
+    def test_ten_inch_touch_display_image_forces_the_pi5_four_lane_overlay(self):
+        default = (ROOT / "appliance/alpine/config.txt").read_text()
+        touch2 = (ROOT / "appliance/alpine/config-touch2-10.txt").read_text()
+        factory = (ROOT / "appliance/alpine/build-image.sh").read_text()
+        workflow = (ROOT / ".github/workflows/alpine-image.yml").read_text()
+        self.assertIn("display_auto_detect=1", default)
+        self.assertNotIn("vc4-kms-dsi-ili79600-10-1inch", default)
+        self.assertIn("display_auto_detect=0", touch2)
+        self.assertIn("dtoverlay=vc4-kms-dsi-ili79600-10-1inch", touch2)
+        self.assertIn("pi-home-alpine-beta-touch2-10.img.gz", factory)
+        self.assertIn("Pi5-TouchDisplay2-10inch", workflow)
+
     def test_image_includes_first_boot_storage_expansion_before_application(self):
         dockerfile = (ROOT / "appliance/alpine/Dockerfile").read_text()
         provision = (ROOT / "appliance/alpine/provision.sh").read_text()

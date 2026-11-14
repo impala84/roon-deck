@@ -2,7 +2,7 @@
 # ARM64 Linux factory: writes regular temporary files, never a physical disk.
 set -euo pipefail
 [[ $(uname -s) == Linux && $(uname -m) == aarch64 ]] || { echo 'Build on ARM64 Linux (or use the GitHub Alpine image workflow).'; exit 1; }
-for tool in docker sudo sfdisk mkfs.vfat mkfs.ext4 mcopy truncate dd gzip sha256sum python3; do command -v "$tool" >/dev/null || { echo "Missing build tool: $tool"; exit 1; }; done
+for tool in docker sudo sfdisk mkfs.vfat mkfs.ext4 mcopy mtype truncate dd gzip sha256sum python3; do command -v "$tool" >/dev/null || { echo "Missing build tool: $tool"; exit 1; }; done
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 out="$repo/dist/alpine"
 mkdir -p "$out"
@@ -41,8 +41,17 @@ truncate -s 2050M "$build_dir/pi-home-alpine-beta.img"
 printf 'label: dos\nstart=2048,size=524288,type=c,bootable\nstart=526336,size=3670016,type=83\n' | sfdisk "$build_dir/pi-home-alpine-beta.img"
 dd if="$build_dir/boot.fat" of="$build_dir/pi-home-alpine-beta.img" bs=1M seek=1 conv=notrunc status=none
 dd if="$build_dir/root.ext4" of="$build_dir/pi-home-alpine-beta.img" bs=1M seek=257 conv=notrunc status=none
+cp --sparse=always "$build_dir/pi-home-alpine-beta.img" "$build_dir/pi-home-alpine-beta-touch2-10.img"
+cp "$build_dir/boot.fat" "$build_dir/boot-touch2-10.fat"
+mcopy -o -i "$build_dir/boot-touch2-10.fat" "$repo/appliance/alpine/config-touch2-10.txt" ::config.txt
+mtype -i "$build_dir/boot-touch2-10.fat" ::config.txt | grep -qx 'display_auto_detect=0'
+mtype -i "$build_dir/boot-touch2-10.fat" ::config.txt | grep -qx 'dtoverlay=vc4-kms-dsi-ili79600-10-1inch'
+dd if="$build_dir/boot-touch2-10.fat" of="$build_dir/pi-home-alpine-beta-touch2-10.img" bs=1M seek=1 conv=notrunc status=none
 gzip -c "$build_dir/pi-home-alpine-beta.img" > "$out/pi-home-alpine-beta.img.gz"
+gzip -c "$build_dir/pi-home-alpine-beta-touch2-10.img" > "$out/pi-home-alpine-beta-touch2-10.img.gz"
 (cd "$out" && sha256sum pi-home-alpine-beta.img.gz > pi-home-alpine-beta.img.gz.sha256)
+(cd "$out" && sha256sum pi-home-alpine-beta-touch2-10.img.gz > pi-home-alpine-beta-touch2-10.img.gz.sha256)
 cp "$build_dir/rootfs/opt/pi-home/appliance/alpine/packages-resolved.txt" "$out/"
 git -C "$repo" rev-parse HEAD > "$out/source-commit.txt"
 echo "Alpine Beta image: $out/pi-home-alpine-beta.img.gz"
+echo "Alpine Beta Pi 5 + 10-inch Touch Display 2 image: $out/pi-home-alpine-beta-touch2-10.img.gz"

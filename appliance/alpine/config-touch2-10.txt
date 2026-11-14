@@ -1,0 +1,11 @@
+arm_64bit=1
+kernel=vmlinuz-rpi
+initramfs initramfs-rpi followkernel
+cmdline=cmdline.txt
+disable_overscan=1
+display_auto_detect=0
+dtoverlay=vc4-kms-v3d
+# The 10-inch Touch Display 2 uses a four-lane DSI panel that is not reliably
+# selected by firmware auto-detection on every Pi 5. This image variant forces
+# the matching kernel overlay so the panel and its backlight bind at boot.
+dtoverlay=vc4-kms-dsi-ili79600-10-1inch

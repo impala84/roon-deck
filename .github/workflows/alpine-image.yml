@@ -53,6 +53,8 @@ jobs:
         run: bash appliance/alpine/build-image.sh
       - name: Verify a fresh image expands on a larger card
         run: bash appliance/alpine/verify-storage-expansion.sh dist/alpine/pi-home-alpine-beta.img.gz
+      - name: Verify the Pi 5 + 10-inch Touch Display 2 image expands on a larger card
+        run: bash appliance/alpine/verify-storage-expansion.sh dist/alpine/pi-home-alpine-beta-touch2-10.img.gz
       - name: Validate Alpine runtime without pretending to boot the Pi
         run: |
           docker run --rm --user morningbus pi-home-alpine:beta .venv/bin/python appliance/alpine/smoke.py
@@ -106,11 +108,16 @@ jobs:
           [[ $(cat dist/alpine/source-commit.txt) == "$GITHUB_SHA" ]] || { echo 'Image was not built from this commit.'; exit 1; }
           cd dist/alpine
           image="RoonDeck-${version}-Alpine-arm64.img.gz"
+          touch2_image="RoonDeck-${version}-Alpine-arm64-Pi5-TouchDisplay2-10inch.img.gz"
           mv pi-home-alpine-beta.img.gz "$image"
+          mv pi-home-alpine-beta-touch2-10.img.gz "$touch2_image"
           sha256sum "$image" > "$image.sha256"
-          rm -f pi-home-alpine-beta.img.gz.sha256
+          sha256sum "$touch2_image" > "$touch2_image.sha256"
+          rm -f pi-home-alpine-beta.img.gz.sha256 pi-home-alpine-beta-touch2-10.img.gz.sha256
           cd ../..
-          printf '\nThe attached image was built and validated from commit `%s`.\n\nFlashing the image erases the selected SD card. Verify the SHA-256 checksum before flashing.\n' "$GITHUB_SHA" >> notes.md
+          printf '\nThe attached images were built and validated from commit `%s`.\n\nFor a Raspberry Pi 5 with the official 10-inch Touch Display 2, flash the `Pi5-TouchDisplay2-10inch` image. It forces the four-lane display overlay needed to bring up the panel and backlight. Other displays should use the standard ARM64 image.\n\nFlashing an image erases the selected SD card. Verify its SHA-256 checksum before flashing.\n' "$GITHUB_SHA" >> notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --title "RoonDeck ${version} Alpine" --notes-file notes.md \
-            "dist/alpine/$image" "dist/alpine/$image.sha256" dist/alpine/packages-resolved.txt dist/alpine/source-commit.txt
+            "dist/alpine/$image" "dist/alpine/$image.sha256" \
+            "dist/alpine/$touch2_image" "dist/alpine/$touch2_image.sha256" \
+            dist/alpine/packages-resolved.txt dist/alpine/source-commit.txt
           echo "Published $tag."

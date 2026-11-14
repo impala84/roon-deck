@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 Alpine — 14 November 2026
+
+- **Pi 5 + 10-inch Touch Display 2 fresh installs:** the release includes a dedicated image that forces the display's four-lane DSI overlay, fixing the boot path where the Pi showed storage activity but the panel and backlight stayed off. The normal auto-detecting ARM64 image remains available for other displays.
+- **Stable 1.2:** promotes the completed 1.2 beta work, including responsive display profiles, expanded Roon discovery and listening controls, Home Assistant tiles and automations, optional remote access and input devices, backup/recovery, and appliance reliability improvements.
+- The image and application pass the stable release checks. Physical acceptance of the dedicated display image still requires a flash on the Pi 5 and 10-inch panel.
+
 ## 1.2.0-beta.189 Alpine — 14 November 2026
 
 - **Stepped fans: middle speeds no longer jump to full:** a stop is sent rounded down (66%, not 67%, for two of three), because Home Assistant rounds a fan's percentage up to the next speed.
