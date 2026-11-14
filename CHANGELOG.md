@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.3 Alpine — 14 November 2026
+## 1.2.3-beta.191 Alpine — 14 November 2026
 
 - **Two-digit bus minutes fit the tile:** on the one-column bus tile (especially on the portrait screen) "20 min" pushed past the tile's right edge. Minutes of 10 or more are now set slightly smaller, the side padding is a little tighter, and "then N min" is cut with an ellipsis rather than widening the tile.
 
