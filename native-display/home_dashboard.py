@@ -110,7 +110,7 @@ class HomeDashboardMixin:
         chip = Gtk.Box(); chip.add_css_class("home-icon-chip"); chip.add_css_class("hs-bus-chip"); chip.set_valign(Gtk.Align.CENTER); chip.set_halign(Gtk.Align.CENTER)
         icon = FamilyIcon("bus", 44); icon.add_css_class("hs-bus-glyph"); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.set_hexpand(True); chip.set_hexpand(False); chip.set_halign(Gtk.Align.START); chip.append(icon); bus.append(chip); tile.glyph, tile.size = icon, ""   # the glyph expands inside the chip so it is centred in the circle
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
-        tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); text.append(tile.route); text.append(tile.then); bus.append(text)
+        tile.route = self.label("", "hs-route"); tile.then = self.label("", "hs-then"); tile.then.set_ellipsize(Pango.EllipsizeMode.END); tile.then.set_xalign(0); text.append(tile.route); text.append(tile.then); bus.append(text)
         arrival = Gtk.Box(spacing=8); arrival.set_valign(Gtk.Align.CENTER)
         tile.minutes = self.label("", "hs-minutes"); tile.unit = self.label("min", "hs-unit"); tile.unit.set_valign(Gtk.Align.BASELINE); tile.minutes.set_valign(Gtk.Align.BASELINE); arrival.set_baseline_position(Gtk.BaselinePosition.CENTER); arrival.append(tile.minutes); arrival.append(tile.unit); bus.append(arrival)
         # The square version, for a half-column, one-row tile: the route number in the circle where the icon would be, the next arrival in the middle, "then" below.
@@ -477,7 +477,8 @@ class HomeDashboardMixin:
             tile.box.add_css_class("hs-bus-" + (colour if colour in ROUTE_TINTS else "amber"))   # the same colour as that route on the Bus Times page
             tile.route.set_text(str(chosen.get("service", "")))
             tile.minutes.set_text("—" if not minutes else "Due" if minutes[0] == 0 else str(minutes[0])); tile.unit.set_visible(bool(minutes) and minutes[0] != 0)
-            (tile.minutes.add_css_class if minutes and minutes[0] == 0 else tile.minutes.remove_css_class)("hs-minutes-due")   # the word "Due" is set smaller than a number so it fits the tile
+            (tile.minutes.add_css_class if minutes and minutes[0] == 0 else tile.minutes.remove_css_class)("hs-minutes-due")
+            (tile.minutes.add_css_class if minutes and minutes[0] >= 10 else tile.minutes.remove_css_class)("hs-minutes-long")   # two digits are set a little smaller so "20 min" stays inside the tile   # the word "Due" is set smaller than a number so it fits the tile
             tile.then.set_text(f"then {minutes[1]} min" if len(minutes) > 1 else ""); tile.then.set_visible(len(minutes) > 1)
             due = bool(minutes) and minutes[0] == 0
             tile.cnum.set_text(str(chosen.get("service", ""))); (tile.cnum.add_css_class if len(str(chosen.get("service", ""))) > 3 else tile.cnum.remove_css_class)("is-long")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.190 Alpine — 14 November 2026
+
+- **Two-digit bus minutes fit the tile:** on the one-column bus tile (especially on the portrait screen) "20 min" pushed past the tile's right edge. Minutes of 10 or more are now set slightly smaller, the side padding is a little tighter, and "then N min" is cut with an ellipsis rather than widening the tile.
+
 ## 1.2.2 Alpine — 14 November 2026
 
 - **First-boot keyboard is always present:** setup pages with a text field now open the built-in keyboard immediately, and tapping any field explicitly opens and targets it. This no longer depends on a touchscreen focus event that the physical Pi 5/10-inch Wayland session did not emit.
