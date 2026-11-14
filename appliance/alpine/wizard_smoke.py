@@ -54,6 +54,12 @@ for stage in range(7):
 app.stage = 0; app.progress = {}; app.render()
 assert "Choose your display" in app.title.get_text()
 assert app.footer.get_last_child().get_label() == "Apply and restart"
+app.display_profile = lambda: "touch2-10"
+app.render()
+profile = app.content.get_first_child().get_next_sibling()
+rotation = profile.get_next_sibling()
+assert profile.get_selected() == 4
+assert rotation.get_selected() == 1
 calls = []
 def capture(data, callback):
     calls.append(data)

@@ -17,6 +17,19 @@ def connected_output(root):
 
 MATRICES = {"normal": "1 0 0 0 1 0", "90": "0 1 0 -1 0 1",
             "180": "-1 0 1 0 -1 1", "270": "0 -1 1 1 0 0"}
+TOUCH2_10_OVERLAY = "dtoverlay=vc4-kms-dsi-ili79600-10-1inch"
+
+
+def display_settings(root):
+    profile_file = root / "etc/pi-home/display-profile"
+    transform_file = root / "etc/pi-home/display-transform"
+    profile = profile_file.read_text().strip() if profile_file.exists() else None
+    rotation = transform_file.read_text().strip() if transform_file.exists() else None
+    try: dedicated_touch2_10 = TOUCH2_10_OVERLAY in (root / "boot/config.txt").read_text()
+    except OSError: dedicated_touch2_10 = False
+    if dedicated_touch2_10 and profile in (None, "", "auto"):
+        return "touch2-10", "90"
+    return profile, rotation or "normal"
 
 
 def touch_names(profile):
@@ -78,10 +91,7 @@ def main():
         time.sleep(.1)
     rules = root / "etc/udev/rules.d/99-pi-home-dsi-touch.rules"
     rules.parent.mkdir(parents=True, exist_ok=True)
-    saved = root / "etc/pi-home/display-transform"
-    rotation = saved.read_text().strip() if saved.exists() else "normal"
-    profile_file = root / "etc/pi-home/display-profile"
-    profile = profile_file.read_text().strip() if profile_file.exists() else None
+    profile, rotation = display_settings(root)
     atomic(rules, mapping_rule(output, rotation, profile) if output else "# No single connected DSI output; leave external touch devices unchanged.\n")
     subprocess.run(["udevadm", "control", "--reload-rules"], check=True, timeout=10)
     subprocess.run(["udevadm", "trigger", "--subsystem-match=input", "--action=change"], check=True, timeout=10)

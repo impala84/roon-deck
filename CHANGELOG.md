@@ -3,6 +3,7 @@
 ## 1.2.2 Alpine — 14 November 2026
 
 - **First-boot keyboard is always present:** setup pages with a text field now open the built-in keyboard immediately, and tapping any field explicitly opens and targets it. This no longer depends on a touchscreen focus event that the physical Pi 5/10-inch Wayland session did not emit.
+- **The dedicated 10-inch image identifies its own hardware:** it defaults setup to Touch Display 2 · 10-inch and 90° landscape, and applies the matching ILI touch calibration even if no profile has been saved yet. “Automatic / HDMI” can no longer silently leave that image with an unrotated or inverted touchscreen.
 
 ## 1.2.1 Alpine — 14 November 2026
 

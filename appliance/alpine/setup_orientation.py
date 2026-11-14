@@ -4,6 +4,8 @@ import re
 import subprocess
 import time
 
+TOUCH2_10_OVERLAY = "dtoverlay=vc4-kms-dsi-ili79600-10-1inch"
+
 
 def choose_output(text):
     name = None
@@ -15,9 +17,18 @@ def choose_output(text):
     return None, False
 
 
-def main():
-    saved = Path("/etc/pi-home/display-transform")
+def configured_rotation(root=Path("/")):
+    profile_file = root / "etc/pi-home/display-profile"
+    saved = root / "etc/pi-home/display-transform"
+    profile = profile_file.read_text().strip() if profile_file.exists() else None
     rotation = saved.read_text().strip() if saved.exists() else None
+    try: dedicated_touch2_10 = TOUCH2_10_OVERLAY in (root / "boot/config.txt").read_text()
+    except OSError: dedicated_touch2_10 = False
+    return "90" if dedicated_touch2_10 and profile in (None, "", "auto") else rotation
+
+
+def main():
+    rotation = configured_rotation()
     for _ in range(30):
         try:
             result = subprocess.run(["wlr-randr"], capture_output=True, text=True, timeout=3)

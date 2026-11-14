@@ -738,11 +738,27 @@ class AlpineSetupTests(unittest.TestCase):
             orientation.main()
         self.assertEqual(run.call_args.args[0], ["wlr-randr", "--output", "DSI-1", "--transform", "normal"])
 
+    def test_dedicated_ten_inch_image_defaults_to_landscape_before_setup(self):
+        spec = importlib.util.spec_from_file_location("orientation_defaults", ROOT / "appliance/alpine/setup_orientation.py")
+        orientation = importlib.util.module_from_spec(spec); spec.loader.exec_module(orientation)
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True)
+        (boot / "config.txt").write_text("dtoverlay=vc4-kms-dsi-ili79600-10-1inch\n")
+        self.assertEqual(orientation.configured_rotation(self.root), "90")
+        config = self.root / "etc/pi-home"; (config / "display-profile").write_text("auto")
+        (config / "display-transform").write_text("normal")
+        self.assertEqual(orientation.configured_rotation(self.root), "90")
+
     def test_touch_mapping_is_scoped_to_goodix_and_one_connected_dsi(self):
         import sys
         spec = importlib.util.spec_from_file_location("input_mapping", ROOT / "appliance/alpine/input_mapping.py")
         mapping = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {"setup_service": module}): spec.loader.exec_module(mapping)
+        boot = self.root / "boot"; boot.mkdir(exist_ok=True)
+        (boot / "config.txt").write_text("dtoverlay=vc4-kms-dsi-ili79600-10-1inch\n")
+        self.assertEqual(mapping.display_settings(self.root), ("touch2-10", "90"))
+        config = self.root / "etc/pi-home"; (config / "display-profile").write_text("auto")
+        (config / "display-transform").write_text("normal")
+        self.assertEqual(mapping.display_settings(self.root), ("touch2-10", "90"))
         drm = self.root / "sys/class/drm"; drm.mkdir(parents=True)
         for name, status in (("card1-DSI-1", "connected"), ("card1-HDMI-A-1", "connected"), ("card2-DSI-2", "disconnected")):
             connector = drm / name; connector.mkdir(); (connector / "status").write_text(status)

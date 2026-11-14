@@ -48,7 +48,7 @@ class Wizard(Gtk.Application):
         """Read the saved panel, or recognise the dedicated 10-inch image on its first boot."""
         try:
             profile = DISPLAY_PROFILE.read_text(encoding="utf-8").strip()
-            if profile: return profile
+            if profile and profile != "auto": return profile
         except OSError:
             pass
         try:
@@ -214,11 +214,15 @@ class Wizard(Gtk.Application):
         if self.stage == 0:
             self.content.append(self.label("First choose your display and orientation. This screen uses the panel’s native orientation so touch matches. We’ll restart to apply picture and touch together, then continue setup."))
             profiles = ["auto", "original", "touch2-5", "touch2-7", "touch2-10"]
+            saved_profile = self.progress.get("profile")
+            detected_profile = self.display_profile()
+            selected_profile = detected_profile if saved_profile in (None, "auto") and detected_profile == "touch2-10" else (saved_profile or "auto")
             profile = Gtk.DropDown.new_from_strings(["Automatic / HDMI", "Original Touch Display", "Touch Display 2 · 5-inch", "Touch Display 2 · 7-inch", "Touch Display 2 · 10-inch"])
-            profile.set_selected(profiles.index(self.progress.get("profile", "auto"))); self.content.append(profile)
+            profile.set_selected(profiles.index(selected_profile)); self.content.append(profile)
             rotations = ["normal", "90", "180", "270"]
+            selected_rotation = "90" if selected_profile == "touch2-10" and saved_profile in (None, "auto") else self.progress.get("rotation", "normal")
             rotation = Gtk.DropDown.new_from_strings(["Native orientation", "90° clockwise · landscape", "180°", "270° clockwise · landscape"])
-            rotation.set_selected(rotations.index(self.progress.get("rotation", "normal"))); self.content.append(rotation)
+            rotation.set_selected(rotations.index(selected_rotation)); self.content.append(rotation)
             profile.connect("notify::selected", lambda *_: rotation.set_selected(1 if profiles[profile.get_selected()].startswith("touch2-") else 0))
             def apply_orientation():
                 def saved(result):
