@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2 Alpine — 14 November 2026
+
+- **First-boot keyboard is always present:** setup pages with a text field now open the built-in keyboard immediately, and tapping any field explicitly opens and targets it. This no longer depends on a touchscreen focus event that the physical Pi 5/10-inch Wayland session did not emit.
+
 ## 1.2.1 Alpine — 14 November 2026
 
 - **Correctly sized 10-inch first-boot setup:** the Pi 5 + 10-inch Touch Display 2 image keeps the working four-lane DSI boot fix and now sizes its wizard, keyboard, text and buttons for the physically larger panel instead of scaling them up from resolution alone.

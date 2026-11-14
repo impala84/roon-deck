@@ -149,6 +149,7 @@ class Wizard(Gtk.Application):
     def field(self, placeholder, text="", secret=False):
         entry = Gtk.Entry(); entry.set_placeholder_text(placeholder); entry.set_text(text); entry.set_visibility(not secret)
         focus = Gtk.EventControllerFocus(); focus.connect("enter", lambda *_: self.select_entry(entry)); entry.add_controller(focus)
+        tap = Gtk.GestureClick(); tap.connect("pressed", lambda *_: self.select_entry(entry)); entry.add_controller(tap)
         self.fields.append(entry); self.content.append(entry); return entry
 
     def secret_field(self, placeholder):
@@ -282,6 +283,14 @@ class Wizard(Gtk.Application):
             child.set_hexpand(True)
             child = child.get_next_sibling()
         if self.footer.get_last_child(): self.footer.get_last_child().add_css_class("primary")
+        # Do not depend on a compositor-specific focus transition to reveal the
+        # only keyboard available during setup. Physical Wayland touch can place
+        # the caret without emitting EventControllerFocus.enter. Field pages
+        # therefore open the keyboard immediately; tapping any other field also
+        # selects it explicitly through GestureClick above.
+        if self.fields:
+            self.fields[0].grab_focus()
+            self.select_entry(self.fields[0])
 
     def next(self): self.stage += 1; self.render()
     def back(self): self.stage -= 1; self.render()

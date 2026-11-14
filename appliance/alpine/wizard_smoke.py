@@ -32,7 +32,9 @@ assert Wizard.display_scale((800, 480), "original") == 1.0
 review = os.environ.get("PI_HOME_WIZARD_REVIEW")
 for stage in range(7):
     app.stage = stage; app.render()
-    if app.fields: app.select_entry(app.fields[0])
+    if app.fields:
+        assert app.entry is app.fields[0]
+        assert app.keyboard.get_visible()
     # Keys are laid out a few frames after the keyboard appears; wait for them rather than a fixed count.
     for _ in range(300):
         while context.pending(): context.iteration(False)
