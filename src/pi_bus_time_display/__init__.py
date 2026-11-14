@@ -1,3 +1,3 @@
 """RoonDeck appliance."""
 
-__version__ = "1.2.1-beta.190"
+__version__ = "1.2.1"
