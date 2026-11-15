@@ -162,7 +162,9 @@ class HomePageMixin:
                 tile_widget = Gtk.Overlay(); tile_widget.add_css_class("home-tile"); tile_widget.set_overflow(Gtk.Overflow.HIDDEN); tile_widget.set_vexpand(True)
                 picture = Gtk.Picture.new_for_paintable(art_image); picture.set_content_fit(Gtk.ContentFit.COVER); picture.set_can_shrink(True); picture.set_opacity(.55)
                 tile_widget.set_child(picture); tile_widget.add_overlay(box); box.remove_css_class("home-tile"); box.add_css_class("home-tile-content")
-            state = str(entity.get("state", "unknown")); detail = state.upper()
+            state = str(entity.get("state", "unknown"))
+            read_only = entity.get("read_only")
+            detail = entity["detail"] if read_only else state.upper()
             if entity.get("percentage") is not None: detail += f" · {entity['percentage']}%"
             if state in {"on", "open", "playing"}: tile_widget.add_css_class("on")
             control_row = Gtk.Box(spacing=5); control_row.set_vexpand(True)
@@ -183,13 +185,17 @@ class HomePageMixin:
             if tile.get("icon") and icon_texture is None: self.home_signature = None
             if icon_texture is not None:
                 icon = Gtk.Image.new_from_paintable(icon_texture); icon.set_pixel_size(icon_size); icon.set_opacity(1 if (state in {"on", "open", "playing"} or scene) else .72)
+            elif read_only: icon = Gtk.Image.new_from_icon_name("weather-showers-symbolic"); icon.set_pixel_size(icon_size)
             else: icon = FamilyIcon("check" if scene else domain if domain in {"fan", "light"} else "switchon" if state == "on" else "switch", icon_size)
             icon.set_size_request(icon_slot, icon_slot); icon.set_halign(Gtk.Align.CENTER); icon.set_valign(Gtk.Align.CENTER); icon.add_css_class("home-icon")
-            button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not row_mode); button.set_vexpand(True); button.set_child(icon)
-            if scene:
-                button.add_css_class("scene-action"); button.scene_tile = tile_widget; button.set_sensitive(bool(entity.get("available", True))); button.connect("clicked", self.activate_home_scene, entity.get("entity_id", ""))
-            else: button.connect("clicked", self.toggle_home, entity.get("entity_id", ""))
-            control_row.append(button)
+            if read_only:
+                control_row.append(icon)
+            else:
+                button = Gtk.Button(); button.add_css_class("home-device-button"); button.set_hexpand(not row_mode); button.set_vexpand(True); button.set_child(icon)
+                if scene:
+                    button.add_css_class("scene-action"); button.scene_tile = tile_widget; button.set_sensitive(bool(entity.get("available", True))); button.connect("clicked", self.activate_home_scene, entity.get("entity_id", ""))
+                else: button.connect("clicked", self.toggle_home, entity.get("entity_id", ""))
+                control_row.append(button)
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); details.set_hexpand(True); details.set_valign(Gtk.Align.CENTER)
             if entity.get("supports_level"):
                 level = entity.get("percentage")
@@ -200,6 +206,7 @@ class HomePageMixin:
             box.append(control_row)
             name = self.label(tile.get("label") or entity.get("name", "Device"), "home-name", 0 if row_mode else .5); name.set_wrap(True); name.set_lines(2); name.set_justify(Gtk.Justification.LEFT if row_mode else Gtk.Justification.CENTER); (details if row_mode else box).append(name)
             state_label = self.label(detail, "home-state", 0 if row_mode else .5); (details if row_mode else box).append(state_label)
+            if read_only: state_label.set_wrap(True); state_label.set_lines(2)
             if scene: button.scene_status_label = state_label; state_label.set_visible(bool(detail))
             if row_mode: box.append(details)
             if custom:

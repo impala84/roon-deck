@@ -1,0 +1,9 @@
+{
+  "domain": "nea_rain",
+  "name": "NEA Rain Nowcast",
+  "version": "0.1.0",
+  "documentation": "https://github.com/impala84/roon-deck/tree/main/integrations/nea-rain",
+  "codeowners": [],
+  "iot_class": "cloud_polling",
+  "requirements": ["numpy>=2.1", "pillow>=11", "pyproj>=3.7", "scipy>=1.15"]
+}

@@ -4,6 +4,7 @@ import os
 import re
 import tomllib
 
+RAIN_SENSOR = "sensor.home_rain_nowcast"
 HOME_ASSISTANT_DOMAINS = {"fan", "light", "scene", "script", "switch", "input_boolean", "climate"}
 from dataclasses import dataclass
 from pathlib import Path
@@ -163,6 +164,7 @@ def load_config(path: Path) -> Config:
     if len(config.home_assistant_deck_entities) > 40:
         raise ValueError("A maximum of forty Stream Deck Home Assistant entities can be used")
     unsupported = [item for item in (*config.home_assistant_entities, *config.home_assistant_deck_entities) if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
+    unsupported = [item for item in unsupported if item != RAIN_SENSOR or item in config.home_assistant_deck_entities]
     if unsupported:
         raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
     if config.bluos_player_address and any(char.isspace() for char in config.bluos_player_address):

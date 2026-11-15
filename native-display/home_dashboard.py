@@ -647,6 +647,8 @@ class HomeDashboardMixin:
         if tile.get("icon") and texture is None: self.home_signature = None   # the picture has not arrived yet: try again next refresh
         if texture is not None:
             icon = Gtk.Image.new_from_paintable(texture); icon.set_pixel_size(glyph); icon.set_opacity(1 if on else .75)
+        elif entity.get("read_only"):
+            icon = Gtk.Image.new_from_icon_name("weather-showers-symbolic"); icon.set_pixel_size(glyph)
         else:
             if domain in {"scene", "script"}: name = "check"
             elif domain in CARD_DOMAINS: name = CARD_DOMAINS[domain]
@@ -665,6 +667,7 @@ class HomeDashboardMixin:
 
     def home_detail(self, entity, on):
         state = str(entity.get("state", "unknown"))
+        if entity.get("read_only"): return entity["detail"]
         if entity.get("available", True) is False: return "UNAVAILABLE"
         if state == "mixed": return f"{entity.get('linked_on', 0)} OF {entity.get('linked_total', 0)} ON"
         if entity.get("domain") == "climate": return entity.get("detail", state.upper()) if on else "OFF"
@@ -686,16 +689,24 @@ class HomeDashboardMixin:
         big = self.home_big_tiles() and not half
         if big: card.add_css_class("home-big")
         icon = self.home_icon_for(entity, domain, on, scale * (1.5 if big else 1), accent)
-        chip = 88 if big else round((48 if half else 58) * scale); button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
-        button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
+        read_only = entity.get("read_only")
+        if read_only:
+            top.append(icon)
+        else:
+            chip = 88 if big else round((48 if half else 58) * scale)
+            button = Gtk.Button(); button.add_css_class("home-device-button"); button.add_css_class("home-icon-chip"); button.set_size_request(chip, chip)
+            button.set_valign(Gtk.Align.CENTER); button.set_halign(Gtk.Align.START); button.set_child(icon); button.connect("clicked", self.toggle_home, entity_id); top.append(button)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); text.set_hexpand(True); text.set_valign(Gtk.Align.CENTER)
         name = self.label((entity.get("tile") or {}).get("label") or entity.get("name", "Device"), "home-name", 0); name.set_ellipsize(Pango.EllipsizeMode.END)
         name.set_max_width_chars(1)   # let the card narrow the name instead of the name widening the card
         name.set_wrap(False); name.set_lines(1)   # one line, cut with an ellipsis: a long name must never make its tile (and so the whole grid) taller
-        text.append(name); text.append(self.label(self.home_detail(entity, on), "home-state", 0))
+        detail = self.label(self.home_detail(entity, on), "home-state", 0)
+        if read_only:
+            detail.set_wrap(True); detail.set_lines(2); detail.set_ellipsize(Pango.EllipsizeMode.END)
+        text.append(name); text.append(detail)
         has_level = bool(entity.get("supports_level"))
         switch = None
-        if not has_level:
+        if not has_level and not read_only:
             switch = Gtk.Box(); switch.add_css_class("home-switch"); switch.set_valign(Gtk.Align.CENTER); switch.set_halign(Gtk.Align.END); switch.set_hexpand(False)
             if on: switch.add_css_class("on")
             knob = Gtk.Box(); knob.add_css_class("home-switch-knob"); knob.set_hexpand(True); knob.set_halign(Gtk.Align.END if on else Gtk.Align.START); switch.append(knob)
@@ -721,7 +732,7 @@ class HomeDashboardMixin:
                 slider.steps = steps; slider.set_round_digits(0)
                 for stop in range(steps + 1): slider.add_mark(stop, Gtk.PositionType.BOTTOM, None)
             slider.set_draw_value(False); slider.set_hexpand(True); slider.set_value(round(float(level or 0) * steps / 100) if steps else float(level or 0)); slider.connect("value-changed", self.change_home_value, entity_id); inner.append(slider)
-        else:
+        elif not read_only:
             tap = Gtk.GestureClick(); tap.connect("released", lambda *_: self.toggle_home(None, entity_id)); card.add_controller(tap)
         card.append(inner)
         return card

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.192 Alpine — 15 November 2026
+
+- Add a read-only Home rain tile for the NEA radar sensor in Home Assistant. The tile shows possible arrival windows, rain now, and when radar data is unavailable.
+
 ## 1.2.3-beta.191 Alpine — 14 November 2026
 
 - **Two-digit bus minutes fit the tile:** on the one-column bus tile (especially on the portrait screen) "20 min" pushed past the tile's right edge. Minutes of 10 or more are now set slightly smaller, the side padding is a little tighter, and "then N min" is cut with an ellipsis rather than widening the tile.

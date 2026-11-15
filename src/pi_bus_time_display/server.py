@@ -15,13 +15,14 @@ import time
 import urllib.request
 import urllib.error
 from http.cookies import SimpleCookie
-from datetime import datetime, time as wall_time
+from datetime import datetime, time as wall_time, timezone
+from math import ceil
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
-from .config import Config, HOME_ASSISTANT_DOMAINS, load_config, load_env
+from .config import Config, HOME_ASSISTANT_DOMAINS, RAIN_SENSOR, load_config, load_env
 from .domain import normalise, parse_route_colours
 from .lta import LTAError, fetch, simulated
 from .observability import OpenObserveLogger, openobserve_endpoint
@@ -429,6 +430,29 @@ def play_trigger_watch(state: State, stop: threading.Event) -> None:
             LOG.warning("Play trigger failed: %s", error)
 
 
+def rain_tile_detail(raw_state, attributes, now):
+    try:
+        scan = datetime.fromisoformat(attributes["radar_at"])
+        if not 0 <= (now - scan).total_seconds() <= 600:
+            return "Radar unavailable"
+        if raw_state == "approaching":
+            arrival = datetime.fromisoformat(attributes["arrival_at"])
+            minutes = ceil((arrival - now).total_seconds() / 300) * 5
+            if 0 < minutes <= 30:
+                if minutes <= 5:
+                    return "Rain possible within 10 min"
+                return f"Rain possible in {minutes - 5}–{min(30, minutes + 5)} min"
+            return "Arrival uncertain"
+    except (KeyError, TypeError, ValueError):
+        return "Radar unavailable"
+    return {
+        "clear": "No tracked rain approaching",
+        "raining": "Rain now",
+        "uncertain": "Arrival uncertain",
+        "warming_up": "Waiting for radar",
+    }.get(raw_state, "Radar unavailable")
+
+
 def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserveLogger | None = None) -> None:
     last_status: str | None = None
     while not stop.is_set():
@@ -443,7 +467,7 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
         try:
             raw = home_assistant_request(config, "/api/states")
             layout_tiles = load_layout(state.state_dir / "home-layout.json").get("tiles", {})
-            linked = {entity_id: tile.get("also", []) for entity_id, tile in layout_tiles.items() if tile.get("also") and entity_id in config.home_assistant_entities}
+            linked = {entity_id: tile.get("also", []) for entity_id, tile in layout_tiles.items() if tile.get("also") and entity_id in config.home_assistant_entities and entity_id != RAIN_SENSOR}
             also_ids = {item for group in linked.values() for item in group}
             shown = set(config.home_assistant_entities) | set(config.home_assistant_deck_entities) | referenced_entities(state.listening.settings())
             selected = shown | also_ids
@@ -472,6 +496,10 @@ def home_assistant_poll(state: State, stop: threading.Event, events: OpenObserve
                     entry["percentage"] = climate_percent(attributes)
                     temperature = attributes.get("temperature")
                     if isinstance(temperature, (int, float)): entry["detail"] = f"{temperature:g} °C"
+                if entity_id == RAIN_SENSOR:
+                    entry["read_only"] = True
+                    entry["detail"] = rain_tile_detail(raw_state, attributes, datetime.now(timezone.utc))
+                    entry["on"] = raw_state in {"approaching", "raining"} and entry["detail"] != "Radar unavailable"
                 if entity_id in linked:
                     states = [raw_state] + [str((by_id.get(other) or {}).get("state", "unknown")) for other in linked[entity_id]]
                     on_count = sum(1 for value in states if value == "on")
@@ -1386,7 +1414,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     raw = home_assistant_request(state.config, "/api/states")
                     catalog = sorted(({"entity_id": item["entity_id"], "domain": item["entity_id"].split(".", 1)[0],
                                        "name": (item.get("attributes") or {}).get("friendly_name") or item["entity_id"]}
-                                      for item in (raw if isinstance(raw, list) else []) if str(item.get("entity_id", "")).split(".", 1)[0] in HOME_ASSISTANT_DOMAINS),
+                                      for item in (raw if isinstance(raw, list) else []) if str(item.get("entity_id", "")).split(".", 1)[0] in HOME_ASSISTANT_DOMAINS or item.get("entity_id") == RAIN_SENSOR),
                                      key=lambda item: item["name"].lower())
                     self.send_json(200, json.dumps({"entities": catalog}).encode())
                 except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
@@ -1838,6 +1866,8 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     if entity_id not in state.home_entity_ids():
                         raise ValueError("Entity is not available on this dashboard")
                     domain = entity_id.split(".", 1)[0]
+                    if domain not in HOME_ASSISTANT_DOMAINS:
+                        raise ValueError("This entity type cannot be controlled")
                     if self.path == "/api/home/value":
                         home_assistant_set_value(state.config, entity_id, int(data.get("value", 0)))
                     elif self.path == "/api/home/state":
@@ -1980,6 +2010,7 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 if len(requested_deck_entities) > 40:
                     raise ValueError("Choose no more than forty Stream Deck entities")
                 unsupported = [item for item in (*requested_home_entities, *requested_deck_entities) if item.split(".", 1)[0] not in HOME_ASSISTANT_DOMAINS]
+                unsupported = [item for item in unsupported if item != RAIN_SENSOR or item in requested_deck_entities]
                 if unsupported:
                     raise ValueError("Unsupported Home Assistant entity: " + unsupported[0])
                 home_url = str(data.get("home_assistant_url", current.home_assistant_url)).strip()

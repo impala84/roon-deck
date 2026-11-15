@@ -327,6 +327,8 @@
         net ? h('small', {class: 'hd-d-livefoot'}, down ? (tile.upload === false ? '' : 'up 0.3 Mbit/s') : 'upload') : null))];
     }
     const domain = domainOf(id), info = states[B(id)] || {}, scene = domain === 'scene';
+    if (domain === 'sensor') return [h('div', {class: 'hd-d-device'}, h('span', {class: 'hd-d-row'},
+      svgOf('cloud', colour), h('span', {class: 'hd-d-text'}, h('b', {}, tile.label || nameOf(id)), h('small', {}, info.detail || 'Radar unavailable'))))];
     const level = ['light', 'fan', 'climate'].includes(domain) && (info.supports_level !== false);
     const pct = Number.isFinite(info.percentage) ? info.percentage : Number.isFinite(info.brightness) ? Math.round(info.brightness * 100 / 255) : 50;
     const fanSteps = domain === 'fan' && Number.isFinite(info.percentage_step) && info.percentage_step > 0 && info.percentage_step < 50 ? Math.max(2, Math.round(100 / info.percentage_step)) : 0;   // a stepped fan has a few speeds, not a percentage

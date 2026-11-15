@@ -534,7 +534,7 @@
     try { art = (await SHARED().call('GET', undefined, '/api/admin/listening/art')).art || []; } catch (_) { art = []; }
     try { const response = await fetch('/api/home/status', {cache: 'no-store'}); if (response.ok) { const body = await response.json(); entities = [...(body.entities || []), ...(body.deck_entities || [])]; } } catch (_) { entities = []; }
     try { const response = await fetch('/api/admin/config', {cache: 'no-store'}); if (response.ok) haUrl = String((await response.json()).home_assistant_url || ''); } catch (_) { haUrl = ''; }
-    try { const response = await fetch('/api/admin/home-catalog', {cache: 'no-store'}); if (response.ok) catalog = (await response.json()).entities || []; } catch (_) { catalog = []; }
+    try { const response = await fetch('/api/admin/home-catalog', {cache: 'no-store'}); if (response.ok) catalog = ((await response.json()).entities || []).filter(item => item.domain !== 'sensor'); } catch (_) { catalog = []; }
   }
   async function start() {
     if (built && dirty) return;   // never overwrite unsaved edits when the shared settings reload
