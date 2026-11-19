@@ -29,7 +29,7 @@ class SoundCloudPageMixin:
         self.sc_tab = self.button("SOUNDCLOUD", lambda *_: self.open_discover("soundcloud"), "")
         self.discover_tabs["soundcloud"] = self.sc_tab; self.discover_subnav.append(self.sc_tab); self.sc_tab.set_visible(False)
         # Long mixes are hard to scrub, so SoundCloud's page gets 30-second jumps either side of the transport.
-        self.sc_back = self.icon_button("skip-back-30", lambda *_: self.sc_skip(-30), "sc-skip"); self.sc_forward = self.icon_button("skip-forward-30", lambda *_: self.sc_skip(30), "sc-skip")
+        self.sc_back = self.icon_button("skip-back-thirty", lambda *_: self.sc_skip(-30), "sc-skip"); self.sc_forward = self.icon_button("skip-forward-thirty", lambda *_: self.sc_skip(30), "sc-skip")
         self.sc_back.set_tooltip_text("Back 30 seconds"); self.sc_forward.set_tooltip_text("Forward 30 seconds")
         for button in (self.sc_back, self.sc_forward): button.set_size_request(50, 50); button.set_valign(Gtk.Align.CENTER); button.set_visible(False)
         self.controls.insert_child_after(self.sc_back, self.library_add); self.controls.append(self.sc_forward)
