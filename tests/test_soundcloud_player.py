@@ -36,7 +36,8 @@ class SoundCloudTests(unittest.TestCase):
         self.assertEqual(items[0]["url"], "https://soundcloud.com/artist/track-0")
 
     def test_browse_keeps_only_soundcloud_links(self):
-        items = sc.browse("https://soundcloud.com/someone/", "likes")
+        with mock.patch.object(sc, "likes_via_api", side_effect=RuntimeError("offline")):   # never reach the real SoundCloud from a test
+            items = sc.browse("https://soundcloud.com/someone/", "likes")
         self.assertEqual([item["title"] for item in items], ["Liked"])
 
     def test_inputs_are_validated(self):
