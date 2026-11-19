@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.201 Alpine — 19 November 2026
+
+- **30-second jumps on SoundCloud's Now Playing page:** a round-arrow 30 button either side of the transport goes back or forward 30 seconds, and tapping twice jumps a minute, so finding your place in a long mix no longer means scrubbing the bar. It works while paused too. Native display code, not run on a real screen yet.
+
 ## 1.2.3-beta.200 Alpine — 19 November 2026
 
 - **SoundCloud and Roon have their own Now Playing pages:** NOW PLAYING is Roon's page and SOUNDCLOUD (in the same row) is the player's, so you can flip between the two at once. Playing a SoundCloud track opens its page. A paused SoundCloud track lets go of the DAC after a few seconds and remembers its place, and when Roon starts it waits instead of being stopped, so pressing play on the SoundCloud page carries on from the same spot. This also stops a paused SoundCloud track from blocking Roon's sound.

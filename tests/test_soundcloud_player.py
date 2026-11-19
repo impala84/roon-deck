@@ -134,6 +134,15 @@ class LikesAndParkingTests(unittest.TestCase):
         player.pause(False)
         self.assertEqual(started, [(0, 42)]); self.assertIsNone(player.parked)
 
+    def test_skip_moves_relative_and_adjusts_a_parked_bookmark(self):
+        player = sc.Player(); calls = []
+        player.process = type("P", (), {"poll": lambda self: None})(); player.ipc = lambda *command: calls.append(command)
+        player.skip(30); player.skip(-9999)
+        self.assertEqual(calls, [("seek", 30, "relative"), ("seek", -600, "relative")])
+        player.process = None; player.parked = {"index": 0, "position": 100}
+        player.skip(-30); self.assertEqual(player.parked["position"], 70)
+        player.skip(-600); self.assertEqual(player.parked["position"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

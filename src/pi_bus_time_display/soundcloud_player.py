@@ -394,6 +394,13 @@ class Player:
     def stop(self):
         with self.lock: self.stop_process(); self.paused = False; self.parked = None
 
+    def skip(self, seconds):
+        """Jump backwards or forwards by a fixed amount, handy for finding your place in a long mix."""
+        seconds = max(-600, min(600, int(float(seconds))))
+        with self.lock:
+            if self.parked is not None: self.parked["position"] = max(0, self.parked["position"] + seconds)
+            elif self.running(): self.ipc("seek", seconds, "relative")
+
     def seek(self, position):
         with self.lock:
             if self.parked is not None: self.parked["position"] = max(0, int(float(position)))
@@ -467,6 +474,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/previous": player.step(-1)
             elif path == "/stop": player.stop()
             elif path == "/seek": player.seek(data.get("position", 0))
+            elif path == "/skip": player.skip(data.get("seconds", 0))
             elif path == "/settings": player.save_settings(data.get("profile"), data.get("audio_device"))
             else: return self.send(404, {"error": "Not found"})
             self.send(200, {"ok": True, **player.state()})

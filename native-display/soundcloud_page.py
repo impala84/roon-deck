@@ -28,6 +28,11 @@ class SoundCloudPageMixin:
         # A tab beside Recent, Browse and Daily, shown only once the player is installed and running.
         self.sc_tab = self.button("SOUNDCLOUD", lambda *_: self.open_discover("soundcloud"), "")
         self.discover_tabs["soundcloud"] = self.sc_tab; self.discover_subnav.append(self.sc_tab); self.sc_tab.set_visible(False)
+        # Long mixes are hard to scrub, so SoundCloud's page gets 30-second jumps either side of the transport.
+        self.sc_back = self.icon_button("skip-back-30", lambda *_: self.sc_skip(-30), "sc-skip"); self.sc_forward = self.icon_button("skip-forward-30", lambda *_: self.sc_skip(30), "sc-skip")
+        self.sc_back.set_tooltip_text("Back 30 seconds"); self.sc_forward.set_tooltip_text("Forward 30 seconds")
+        for button in (self.sc_back, self.sc_forward): button.set_size_request(50, 50); button.set_valign(Gtk.Align.CENTER); button.set_visible(False)
+        self.controls.insert_child_after(self.sc_back, self.library_add); self.controls.append(self.sc_forward)
         GLib.timeout_add_seconds(3, self.sc_tick)
 
     # ---- the player service ------------------------------------------------------------------------------------
@@ -90,6 +95,7 @@ class SoundCloudPageMixin:
     # ---- Now Playing ---------------------------------------------------------------------------------------------
     def apply_soundcloud_now(self):
         """While SoundCloud is playing the normal Now Playing screen shows it, with its own cover, progress and transport."""
+        for button in (self.sc_back, self.sc_forward): button.set_visible(True); button.set_sensitive(True)
         state = self.sc_state or {}; track = state.get("track") or {}
         self.zone.set_text(("SOUNDCLOUD · " + state["stream"]).upper() if state.get("stream") else "SOUNDCLOUD"); self.title.set_text(track.get("title") or "SoundCloud"); self.artist.set_text(track.get("artist") or "")
         position, duration = int(state.get("position") or 0), int(state.get("duration") or 0)
@@ -123,6 +129,12 @@ class SoundCloudPageMixin:
 
     def sc_control(self, action):
         self.sc_post({"previous": "/previous", "next": "/next"}.get(action, "/pause"))
+
+    def sc_skip(self, seconds):
+        state = self.sc_state or {}; duration = float(state.get("duration") or 0)
+        position = max(0.0, float(state.get("position") or 0) + seconds)
+        state["position"] = min(position, duration) if duration else position   # show the jump at once; the next poll corrects it
+        self.apply_soundcloud_now(); self.sc_post("/skip", {"seconds": seconds})
 
     def sc_seek(self, seconds): self.sc_post("/seek", {"position": seconds})
 
