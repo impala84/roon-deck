@@ -24,7 +24,7 @@ def clock(seconds):
 class SoundCloudPageMixin:
     def setup_soundcloud(self):
         self.sc_available = False; self.sc_state = {}; self.sc_items = []; self.sc_shown = None; self.sc_source_button = None
-        self.sc_mode = "likes"; self.sc_search_mode = False; self.sc_request = 0; self.sc_art_url = ""
+        self.sc_mode = "likes"; self.sc_search_mode = False; self.sc_request = 0; self.sc_art_url = ""; self.sc_viewing = False; self.sc_search_nav = None
         # A tab beside Recent, Browse and Daily, shown only once the player is installed and running.
         self.sc_tab = self.button("SOUNDCLOUD", lambda *_: self.open_discover("soundcloud"), "")
         self.discover_tabs["soundcloud"] = self.sc_tab; self.discover_subnav.append(self.sc_tab); self.sc_tab.set_visible(False)
@@ -52,6 +52,19 @@ class SoundCloudPageMixin:
 
     def sc_now_active(self): return bool((self.sc_state or {}).get("active"))
 
+    def sc_viewing_active(self):
+        """True while the SoundCloud Now Playing page is the one on screen (Roon's has its own NOW PLAYING tab)."""
+        return bool(self.sc_viewing and self.sc_now_active())
+
+    def sc_sync_tabs(self):
+        """NOW PLAYING is Roon's page and SOUNDCLOUD is the player's: only one of them is lit."""
+        if not hasattr(self, "sc_viewing"): return
+        on_now = self.roon_views.get_visible_child_name() in {"now", "details"}
+        if self.sc_source_button is not None:
+            (self.sc_source_button.add_css_class if on_now and self.sc_viewing else self.sc_source_button.remove_css_class)("active")
+        if on_now and self.sc_viewing: self.now_playing_tab.remove_css_class("active")
+        elif on_now: self.now_playing_tab.add_css_class("active")
+
     def sc_apply(self, state):
         available = isinstance(state, dict) and "active" in state
         self.sc_state = state if available else {}
@@ -59,11 +72,19 @@ class SoundCloudPageMixin:
             self.sc_available = available; self.sc_tab.set_visible(available); self.bluos_input_signature = None   # rebuild the source row
             if getattr(self, "state", None) is not None: self.render_bluos_inputs((self.state or {}).get("amplifier") or {}, bool((self.state or {}).get("zone")))
         if not self.sc_now_active(): self.sc_art_url = ""   # the next track loads its cover again
-        if available and self.sc_now_active() and self.roon_views.get_visible_child_name() == "now": self.apply_soundcloud_now()
+        if self.sc_viewing and not self.sc_now_active(): self.sc_leave_page()   # the track ended or was stopped: Roon's page again
+        elif available and self.sc_viewing_active() and self.roon_views.get_visible_child_name() == "now": self.apply_soundcloud_now()
+
+    def sc_leave_page(self):
+        """Hand the Now Playing page back to Roon without moving you off whatever screen you are on."""
+        self.sc_viewing = False
+        if self.roon_views.get_visible_child_name() == "now" and self.state is not None: self.image_key = None; self.render_roon_body(self.state)
+        self.sc_sync_tabs()
 
     def show_soundcloud(self, *_):
-        """The source button: while SoundCloud is playing you are already on its Now Playing screen; otherwise go and pick something."""
-        if self.sc_now_active(): self.set_roon_view("now"); self.apply_soundcloud_now()
+        """The source button: SoundCloud's own Now Playing page while it has a track, otherwise Discover to pick one."""
+        if self.sc_now_active():
+            self.sc_viewing = True; self.set_roon_view("now"); self.apply_soundcloud_now(); self.sc_sync_tabs()
         else: self.open_discover("soundcloud")
 
     # ---- Now Playing ---------------------------------------------------------------------------------------------
@@ -82,7 +103,7 @@ class SoundCloudPageMixin:
         index = int(state.get("index") or 0)
         self.prev.set_sensitive(index > 0); self.next.set_sensitive(index + 1 < int(state.get("queue") or 0)); self.play.set_sensitive(True)
         for control in (self.mute, self.volume_down, self.volume, self.volume_up): control.set_visible(False)   # the DAC sets the volume
-        self.volume_value.set_text("FIXED VOLUME"); self.volume_value.set_hexpand(True); self.volume_value.set_xalign(.5); self.volume_value.add_css_class("fixed-volume-label")
+        self.volume_value.set_text((state.get("stream") or "FIXED VOLUME").upper()); self.volume_value.set_hexpand(True); self.volume_value.set_xalign(.5); self.volume_value.add_css_class("fixed-volume-label")
         self.library_add.set_visible(False)
         art = track.get("cover") or track.get("artwork") or ""
         if art and art != self.sc_art_url:
@@ -110,25 +131,51 @@ class SoundCloudPageMixin:
         if not getattr(self, "sc_search_mode", False): return
         self.sc_search_mode = False
         self.browser_search_entry.set_placeholder_text("Search Roon"); self.search_nav.set_visible(True)
+        if self.sc_search_nav is not None: self.sc_search_nav.set_visible(False)
+
+    def sc_ensure_search_nav(self):
+        """The Roon search page's left column, with SoundCloud's own sections, so searching keeps the same layout."""
+        if self.sc_search_nav is None:
+            nav = Gtk.Box(spacing=2); nav.add_css_class("browser-sidebar"); nav.add_css_class("library-sidebar")
+            for value, label in (("likes", "LIKES"), ("playlists", "PLAYLISTS"), ("search", "SEARCH")):
+                button = self.button(label, lambda _button, choice=value: self.sc_select(choice) if choice != "search" else None, "browser-filter"); button.get_child().set_xalign(0)
+                if value == "search": button.add_css_class("active")
+                nav.append(button)
+            portrait = getattr(self, "responsive_portrait", False)
+            nav.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
+            nav.set_vexpand(not portrait); nav.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
+            self.browser_search_panel.insert_child_after(nav, self.search_nav); self.sc_search_nav = nav
+        return self.sc_search_nav
 
     def sc_open_section(self):
         """Called by open_discover once the Discover page is showing the SoundCloud tab."""
         self.sc_end_search_mode()
         if not self.sc_available:
             self.sc_message("SoundCloud is not running. Install it in the web admin: Services → Music → SoundCloud."); return
-        self.sc_select("likes" if (self.sc_state or {}).get("profile") else "search")
+        self.sc_select("likes")
+
+    def sc_header(self, text, css):
+        """A heading or notice whose line sits level with the first item of the left-hand column."""
+        first = next(iter((getattr(self, "discovery_sidebar_buttons", None) or {}).values()), None)
+        height = first.measure(Gtk.Orientation.VERTICAL, -1)[0] if first is not None else 44
+        top = 0 if self.window.has_css_class("original-landscape") else 4   # the column's own top padding
+        label = self.label(text, css); label.add_css_class("sc-heading"); label.set_hexpand(True)
+        if len(text) > 60:
+            label.set_wrap(True); label.set_valign(Gtk.Align.START); label.set_margin_top(top + max(0, (height - 20) // 2)); return label
+        label.set_wrap(False); label.set_ellipsize(Pango.EllipsizeMode.END); label.set_valign(Gtk.Align.CENTER)
+        row = Gtk.Box(); row.set_size_request(-1, height); row.set_margin_top(top); row.append(label); return row
 
     def sc_message(self, text):
         self.sc_request += 1
         while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
-        self.discovery_list.append(self.label(text, "browser-message"))
+        self.discovery_list.append(self.sc_header(text, "browser-message"))
 
     def sc_select(self, value):
         self.sc_mode = value; self.sc_request += 1
         self.sync_discovery_sidebar()
         if value == "search":
             self.sc_search_mode = True
-            self.browser_search_entry.set_text(""); self.browser_search_entry.set_placeholder_text("Search SoundCloud"); self.search_nav.set_visible(False)
+            self.browser_search_entry.set_text(""); self.browser_search_entry.set_placeholder_text("Search SoundCloud"); self.search_nav.set_visible(False); self.sc_ensure_search_nav().set_visible(True)
             self.set_roon_view("search"); self.browser_search_entry.grab_focus()
             return
         self.sc_end_search_mode(); self.set_roon_view("discover")
@@ -154,10 +201,12 @@ class SoundCloudPageMixin:
         if items is None:
             self.sc_message((result or {}).get("error") if isinstance(result, dict) and result.get("error") else "SoundCloud did not answer. Check the Pi's connection and try again."); return
         if not items:
-            self.sc_message("Nothing found."); return
+            profile = (self.sc_state or {}).get("profile") or ""
+            self.sc_message({"likes": "No public likes found for “%s”. Check the profile name in the web admin, and that your likes are public." % profile,
+                             "playlists": "No public playlists found for “%s”." % profile}.get(self.sc_mode, "Nothing found.")); return
         self.sc_items = items
         while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
-        title = self.label(heading, "browser-section"); title.set_wrap(False); title.set_ellipsize(Pango.EllipsizeMode.END); self.discovery_list.append(title)
+        self.discovery_list.append(self.sc_header(heading, "browser-section"))
         for index, item in enumerate(items): self.discovery_list.append(self.sc_row(item, index, playlists))
         self.discovery_scroll.get_vadjustment().set_value(0)
 
@@ -196,4 +245,5 @@ class SoundCloudPageMixin:
 
     def sc_play(self, index):
         self.sc_post("/play", {"items": self.sc_items, "index": index})
-        self.set_roon_view("now")   # playing belongs on the Now Playing screen
+        self.sc_viewing = True; self.set_roon_view("now")   # playing opens SoundCloud's Now Playing page; the NOW PLAYING tab stays Roon's
+        self.sc_sync_tabs()

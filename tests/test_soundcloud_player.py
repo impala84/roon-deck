@@ -56,7 +56,7 @@ class SoundCloudTests(unittest.TestCase):
             def wait(self, timeout=None): self.ended.wait(timeout); return 15
             def terminate(self): self.ended.set()
             def kill(self): self.ended.set()
-        with mock.patch.object(sc, "pause_roon") as pause, mock.patch.object(player, "spawn", side_effect=lambda url: spawned.append(url) or Proc()), mock.patch.object(player, "ipc", return_value=None):
+        with mock.patch.object(sc, "pause_roon") as pause, mock.patch.object(player, "spawn", side_effect=lambda url, start=0: spawned.append(url) or Proc()), mock.patch.object(player, "ipc", return_value=None):
             player.play([{"url": "https://soundcloud.com/a/one", "title": "One"}, {"url": "https://soundcloud.com/a/two", "title": "Two"}], 1)
             self.assertEqual(spawned, ["https://soundcloud.com/a/two"]); pause.assert_called()
             state = player.state(); self.assertTrue(state["active"]); self.assertEqual(state["track"]["title"], "Two"); self.assertEqual(state["index"], 1)
@@ -92,6 +92,46 @@ class StreamFormatTests(unittest.TestCase):
         self.assertEqual(player.stream_format(), "AAC · 256 kbps · 44.1 kHz · resampled to 48 kHz")
         values["audio-out-params"] = {"samplerate": 44100}; values["audio-bitrate"] = None
         self.assertEqual(player.stream_format(), "AAC · 44.1 kHz")
+
+
+class LikesAndParkingTests(unittest.TestCase):
+    def test_likes_parse_from_api_collection(self):
+        collection = [{"kind": "like", "track": {"kind": "track", "permalink_url": "https://soundcloud.com/a/b", "title": "B", "user": {"username": "A"},
+                                                   "full_duration": 185000, "artwork_url": "https://i1.sndcdn.com/artworks-x-large.jpg"}},
+                      {"kind": "like", "playlist": {"kind": "playlist", "permalink_url": "https://soundcloud.com/a/sets/p"}}]
+        items = sc.tracks_from_api(collection)
+        self.assertEqual(len(items), 1)
+        self.assertEqual((items[0]["title"], items[0]["artist"], items[0]["duration"]), ("B", "A", 185))
+        self.assertIn("t200x200", items[0]["artwork"])
+
+    def test_likes_use_the_api_and_fall_back_to_ytdlp(self):
+        sc._CACHE.clear()
+        with mock.patch.object(sc, "likes_via_api", return_value=[{"url": "https://soundcloud.com/a/b", "title": "B", "artist": "A", "duration": 1, "artwork": "x"}]), \
+             mock.patch.object(sc, "run_ytdlp", side_effect=AssertionError("yt-dlp must not run")):
+            self.assertEqual(sc.browse("someone", "likes")[0]["title"], "B")
+        sc._CACHE.clear()
+        with mock.patch.object(sc, "likes_via_api", side_effect=RuntimeError("SoundCloud could not be reached.")), \
+             mock.patch.object(sc, "run_ytdlp", return_value=[{"url": "https://soundcloud.com/a/c", "title": "C", "artist": "", "duration": 0, "artwork": "x"}]):
+            self.assertEqual(sc.browse("someone", "likes")[0]["title"], "C")
+        with mock.patch.object(sc, "likes_via_api", side_effect=RuntimeError("There is no SoundCloud profile called “x”.")):
+            sc._CACHE.clear()
+            with self.assertRaises(RuntimeError): sc.browse("someone", "likes")
+
+    def test_parking_keeps_the_place_and_resumes(self):
+        player = sc.Player(); player.queue = [{"url": "https://soundcloud.com/a/b", "title": "B", "duration": 300}]; player.index = 0
+        class Proc:
+            def __init__(self): self.dead = False
+            def poll(self): return 1 if self.dead else None
+            def terminate(self): self.dead = True
+            def wait(self, timeout=None): return 0
+        player.process = Proc(); player.ipc = lambda *command: 42 if command[-1] == "time-pos" else None
+        player.park()
+        state = player.state()
+        self.assertTrue(state["active"]); self.assertTrue(state["paused"]); self.assertEqual(state["position"], 42)
+        started = []
+        player.play_index = lambda index, start=0: started.append((index, start))
+        player.pause(False)
+        self.assertEqual(started, [(0, 42)]); self.assertIsNone(player.parked)
 
 
 if __name__ == "__main__":

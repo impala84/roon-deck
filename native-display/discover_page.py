@@ -322,7 +322,7 @@ class DiscoverPageMixin:
 
     def discovery_secondary_navigation(self):
         if self.discovery_section == "soundcloud":
-            return (("search", "SEARCH"), ("likes", "LIKES"), ("playlists", "PLAYLISTS")), getattr(self, "sc_mode", "likes")
+            return (("likes", "LIKES"), ("playlists", "PLAYLISTS"), ("search", "SEARCH")), getattr(self, "sc_mode", "likes")
         if self.discovery_section == "recent":
             return (("added", "ADDED"), ("listened", "LISTENED")), self.discovery_recent_mode
         if self.discovery_section == "daily":

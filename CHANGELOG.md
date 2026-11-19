@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3-beta.200 Alpine — 19 November 2026
+
+- **SoundCloud and Roon have their own Now Playing pages:** NOW PLAYING is Roon's page and SOUNDCLOUD (in the same row) is the player's, so you can flip between the two at once. Playing a SoundCloud track opens its page. A paused SoundCloud track lets go of the DAC after a few seconds and remembers its place, and when Roon starts it waits instead of being stopped, so pressing play on the SoundCloud page carries on from the same spot. This also stops a paused SoundCloud track from blocking Roon's sound.
+- **Stream format replaces the fixed-volume text on SoundCloud's page** (for example AAC · 160 KBPS · 44.1 KHZ), reading the bitrate from the stream when mpv does not report it directly.
+- **Discover → SoundCloud:** the left-hand list is now LIKES, PLAYLISTS, SEARCH and opens on Likes. Search keeps the Roon search layout with its left-hand column and a narrower keyboard. The heading above the results (and any message) sits level with the first item in that column.
+- **Likes now load:** your likes are read from SoundCloud directly, with yt-dlp as the fallback, because yt-dlp's likes listing comes back empty on some versions. An empty list now says whose likes were checked and what to look at. Native display code, not run on a real screen yet.
+
 ## 1.2.3-beta.199 Alpine — 19 November 2026
 
 - **SoundCloud sound quality on the Pi:** SoundCloud now plays straight to the DAC (ALSA `hw:`, no mixing or resampling in between) with mpv's software volume pinned at 100 percent, replay gain and normalising off, and the best audio stream SoundCloud offers. If a DAC refuses the direct format it falls back to ALSA's converting output automatically and says so in the service log. The ALSA mixer is left alone so the level never changes unexpectedly.

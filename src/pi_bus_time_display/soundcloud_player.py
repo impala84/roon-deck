@@ -16,6 +16,7 @@ import socket
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +27,7 @@ ROON = os.getenv("ROONDECK_ROON_URL", "http://127.0.0.1:8766")
 STATE_DIR = Path(os.getenv("PI_HOME_STATE_DIR", "/var/lib/pi-home"))
 IPC_SOCKET = os.getenv("ROONDECK_SOUNDCLOUD_IPC", "/tmp/roondeck-soundcloud-mpv.sock")
 TRACK_URL = re.compile(r"^https://(?:www\.|m\.|on\.|api\.|api-v2\.)?soundcloud\.com/[A-Za-z0-9_./~%?=&-]{1,300}$")
+PARK_SECONDS = 8
 PROFILE = re.compile(r"^[A-Za-z0-9_-]{1,60}$")
 KINDS = {"tracks": "tracks", "likes": "likes", "reposts": "reposts", "playlists": "sets"}
 
@@ -144,9 +146,72 @@ def search(query, limit=20) -> list[dict]:
     return add_covers(run_ytdlp(["--", "scsearch%d:%s" % (count, query)], cache_key=("search", query.lower(), count)))
 
 
+_CLIENT = {"id": "", "at": 0.0}
+API = "https://api-v2.soundcloud.com"
+
+
+def fetch_text(url, limit=3_000_000, timeout=12):
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux aarch64) RoonDeck", "Accept": "*/*"})
+    with urllib.request.urlopen(request, timeout=timeout) as response: return response.read(limit).decode("utf-8", "replace")
+
+
+def client_id():
+    """The public client id SoundCloud's own web player uses, found in its scripts (yt-dlp does the same). Kept for an hour."""
+    if _CLIENT["id"] and time.monotonic() - _CLIENT["at"] < 3600: return _CLIENT["id"]
+    page = fetch_text("https://soundcloud.com/", 2_000_000)
+    for source in reversed(re.findall(r'<script[^>]+src="(https://a-v2\.sndcdn\.com/assets/[^"]+\.js)"', page)):
+        try: found = re.search(r'client_id\s*[:=]\s*"([A-Za-z0-9]{32})"', fetch_text(source))
+        except OSError: continue
+        if found:
+            _CLIENT["id"] = found.group(1); _CLIENT["at"] = time.monotonic(); return _CLIENT["id"]
+    raise RuntimeError("SoundCloud's web player could not be read.")
+
+
+def api_get(path, **params):
+    query = urllib.parse.urlencode({**params, "client_id": client_id()})
+    try: return json.loads(fetch_text(API + path + "?" + query, 4_000_000))
+    except urllib.error.HTTPError as error:
+        if error.code == 401: _CLIENT["id"] = ""   # the id was rotated: look it up again next time
+        raise
+
+
+def tracks_from_api(collection, wrapper="track") -> list[dict]:
+    items = []
+    for entry in collection or []:
+        track = entry.get(wrapper) if isinstance(entry, dict) and isinstance(entry.get(wrapper), dict) else entry
+        if not isinstance(track, dict): continue
+        url = str(track.get("permalink_url") or "")
+        if not TRACK_URL.fullmatch(url) or track.get("kind", "track") != "track": continue
+        user = track.get("user") if isinstance(track.get("user"), dict) else {}
+        art = str(track.get("artwork_url") or user.get("avatar_url") or "")
+        items.append({"url": url, "title": str(track.get("title") or "Untitled")[:200], "artist": str(user.get("username") or "")[:120],
+                      "duration": int((track.get("full_duration") or track.get("duration") or 0) / 1000), "artwork": art_url(art)})
+    return items
+
+
+def likes_via_api(name, count) -> list[dict]:
+    try:
+        user = api_get("/resolve", url="https://soundcloud.com/" + name)
+        data = api_get("/users/%d/likes" % int(user["id"]), limit=count)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError("There is no SoundCloud profile called “%s”. Use the part of your profile link after soundcloud.com/." % name if error.code == 404 else "SoundCloud refused the request (%s)." % error.code) from error
+    except (OSError, ValueError, KeyError, TypeError) as error: raise RuntimeError("SoundCloud could not be reached.") from error
+    return tracks_from_api(data.get("collection"))
+
+
 def browse(profile, kind="likes", limit=50) -> list[dict]:
     if kind not in KINDS: raise ValueError("Choose tracks, likes, reposts or playlists.")
     name = clean_profile(profile); count = max(1, min(int(limit), 100))
+    if kind == "likes":
+        key = ("browse", name, kind, count); cached = _CACHE.get(key)
+        if cached and time.monotonic() - cached[0] < CACHE_SECONDS: return cached[1]
+        try: items = likes_via_api(name, count)
+        except RuntimeError as error:
+            print("SoundCloud likes via the API failed (%s); trying yt-dlp." % error, flush=True)
+            if "no SoundCloud profile" in str(error): raise
+        else:
+            if items: _CACHE[key] = (time.monotonic(), items)
+            return add_covers(items)
     return add_covers(run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/%s" % (name, KINDS[kind])], timeout=60, cache_key=("browse", name, kind, count)))
 
 
@@ -200,7 +265,7 @@ class Player:
     def __init__(self):
         self.lock = threading.RLock(); self.queue: list[dict] = []; self.index = -1
         self.process = None; self.generation = 0; self.paused = False; self.error = ""
-        self.device = ""; self.profile = ""; self.shared_output = False; self.started = 0.0; self.load_settings()
+        self.device = ""; self.profile = ""; self.shared_output = False; self.started = 0.0; self.parked = None; self.pause_token = 0; self.load_settings()
 
     # ---- settings ------------------------------------------------------------------------------------------------
     def load_settings(self):
@@ -243,7 +308,7 @@ class Player:
             try: process.wait(2)
             except subprocess.TimeoutExpired: process.kill()
 
-    def spawn(self, url):
+    def spawn(self, url, start=0):
         # Bit-perfect as far as SoundCloud allows: ALSA output at full software volume (the DAC or amp sets the level),
         # no replay gain or normalising, and the best audio stream SoundCloud offers.
         command = ["mpv", "--no-video", "--no-terminal", "--audio-display=no", "--idle=no", "--msg-level=all=warn", "--input-ipc-server=" + IPC_SOCKET,
@@ -253,6 +318,7 @@ class Player:
         if device: command.append("--audio-device=" + device)
         self.started = time.monotonic()
         print("SoundCloud playing on %s: %s" % (device or "mpv's default output", url), flush=True)
+        if start > 0: command.append("--start=%d" % int(start))
         command += ["--", url]
         try: Path(IPC_SOCKET).unlink(missing_ok=True)
         except OSError: pass
@@ -284,11 +350,11 @@ class Player:
             if cover: item["cover"] = art_url(cover, "t500x500")
         except (IndexError, KeyError): pass
 
-    def play_index(self, index):
+    def play_index(self, index, start=0):
         with self.lock:
-            self.stop_process(); self.index = index; self.error = ""; self.paused = False
+            self.stop_process(); self.index = index; self.error = ""; self.paused = False; self.parked = None
             pause_roon()
-            try: process = self.spawn(self.queue[index]["url"])
+            try: process = self.spawn(self.queue[index]["url"], start)
             except FileNotFoundError: self.error = "mpv is not installed."; return
             self.process = process
             threading.Thread(target=self.fill_artwork, args=(index,), daemon=True).start()
@@ -298,10 +364,27 @@ class Player:
 
     def pause(self, value=None):
         with self.lock:
+            if self.parked is not None:   # waiting with the DAC released: pressing play carries on where it stopped
+                if value is None or not value:
+                    parked, self.parked = self.parked, None; self.play_index(parked["index"], parked["position"])
+                return
             if not self.running(): return
             self.paused = (not self.paused) if value is None else bool(value)
-            self.ipc("set_property", "pause", self.paused)
+            self.ipc("set_property", "pause", self.paused); self.pause_token += 1
             if not self.paused: pause_roon()
+            else: threading.Timer(PARK_SECONDS, self.park_if_still_paused, args=(self.pause_token,)).start()
+
+    def park_if_still_paused(self, token):
+        with self.lock:
+            if token == self.pause_token and self.running() and self.paused: self.park()
+
+    def park(self):
+        """Let go of the DAC but remember the track and position. A paused mpv still holds an ALSA device, which would
+        leave Roon without sound, so a paused or interrupted track waits as a bookmark and restarts from it on play."""
+        with self.lock:
+            if not self.running() or not 0 <= self.index < len(self.queue): return
+            position = self.ipc("get_property", "time-pos")
+            self.parked = {"index": self.index, "position": int(position or 0)}; self.stop_process(); self.paused = True
 
     def step(self, amount):
         with self.lock:
@@ -309,19 +392,23 @@ class Player:
             if 0 <= target < len(self.queue): self.play_index(target)
 
     def stop(self):
-        with self.lock: self.stop_process(); self.paused = False
+        with self.lock: self.stop_process(); self.paused = False; self.parked = None
 
     def seek(self, position):
         with self.lock:
-            if self.running(): self.ipc("set_property", "time-pos", max(0, float(position)))
+            if self.parked is not None: self.parked["position"] = max(0, int(float(position)))
+            elif self.running(): self.ipc("set_property", "time-pos", max(0, float(position)))
 
     def stream_format(self):
         """What is really playing, e.g. "AAC · 256 kbps · 44.1 kHz": the codec and rate mpv decoded and the rate it sent to the DAC."""
         codec = self.ipc("get_property", "audio-codec-name"); bitrate = self.ipc("get_property", "audio-bitrate")
+        if not isinstance(bitrate, (int, float)) or bitrate <= 0:   # streamed (HLS) audio reports its rate on the track instead
+            for entry in self.ipc("get_property", "track-list") or []:
+                if isinstance(entry, dict) and entry.get("type") == "audio" and entry.get("selected"): bitrate = entry.get("hls-bitrate") or entry.get("demux-bitrate"); break
         source = self.ipc("get_property", "audio-params") or {}; out = self.ipc("get_property", "audio-out-params") or {}
         parts = []
         if codec: parts.append(str(codec).upper())
-        if isinstance(bitrate, (int, float)) and bitrate > 0: parts.append("%d kbps" % round(bitrate / 1000))
+        if isinstance(bitrate, (int, float)) and bitrate > 0: parts.append("%d kbps" % round(bitrate / 1000 if bitrate >= 1000 else bitrate))
         rate = source.get("samplerate") if isinstance(source, dict) else None
         if rate: parts.append("%g kHz" % (rate / 1000))
         if isinstance(out, dict) and rate and out.get("samplerate") and out["samplerate"] != rate: parts.append("resampled to %g kHz" % (out["samplerate"] / 1000))
@@ -331,6 +418,11 @@ class Player:
         with self.lock:
             running = self.running(); track = self.queue[self.index] if running and 0 <= self.index < len(self.queue) else None
             position = duration = None; stream = ""
+            if not running and self.parked is not None and 0 <= self.parked["index"] < len(self.queue):
+                track = self.queue[self.parked["index"]]
+                return {"active": True, "paused": True, "parked": True, "track": track, "index": self.parked["index"], "queue": len(self.queue),
+                        "position": self.parked["position"], "duration": int(track.get("duration") or 0), "error": self.error, "profile": self.profile,
+                        "audio_device": self.device, "audio_chosen": self.device or best_output(), "stream": "", "direct": False}
             if running:
                 position = self.ipc("get_property", "time-pos"); duration = self.ipc("get_property", "duration"); stream = self.stream_format()
             return {"active": running, "paused": self.paused if running else False, "track": track, "index": self.index if running else -1,
@@ -341,7 +433,7 @@ class Player:
         """Roon started playing: the DAC belongs to it now."""
         while True:
             time.sleep(2)
-            if self.running() and not self.paused and roon_playing(): self.stop()
+            if self.running() and roon_playing(): self.park()   # keep the track and position, free the DAC
 
 
 player = Player()

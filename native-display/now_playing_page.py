@@ -312,7 +312,8 @@ class NowPlayingPageMixin:
 
     def render_roon(self, data):
         self.render_roon_body(data)
-        if self.sc_now_active(): self.apply_soundcloud_now()   # SoundCloud playing: the Now Playing screen shows it instead of the paused Roon track
+        if self.sc_viewing and (self.sc_state or {}).get("paused") and ((data or {}).get("zone") or {}).get("state") == "playing": self.sc_leave_page()   # Roon took over the DAC
+        if self.sc_viewing_active(): self.apply_soundcloud_now()   # the SoundCloud page is the one showing; Roon's keeps updating behind it
 
     def render_roon_body(self, data):
         self.state = data
@@ -395,6 +396,7 @@ class NowPlayingPageMixin:
         for input_id, button in self.bluos_source_buttons.items():
             if self.requested_audio_view == "source" and input_id == active_id: button.add_css_class("active")
             else: button.remove_css_class("active")
+        if hasattr(self, "sc_sync_tabs"): self.sc_sync_tabs()
 
     def refresh_music_subnav_layout(self):
         """Discard a stale allocation after optional music tabs change."""
@@ -503,10 +505,14 @@ class NowPlayingPageMixin:
         if name == "queue": self.queue_tab.add_css_class("active")
         elif name in {"browse", "search"}: self.browser_tab.add_css_class("active")
         elif name in {"now", "details"}: self.now_playing_tab.add_css_class("active")
+        if hasattr(self, "sc_sync_tabs"): self.sc_sync_tabs()
         if name == "queue": GLib.idle_add(self.scroll_queue_to_current)
 
     def show_roon_now(self, *_):
+        was_soundcloud = self.sc_viewing; self.sc_viewing = False
         self.set_roon_view("now")
+        if was_soundcloud and self.state is not None: self.image_key = None; self.render_roon_body(self.state)   # Roon's page again, with its own cover and volume
+        self.sc_sync_tabs()
 
     def toggle_now_playing_details(self, *_):
         self.set_roon_view("now" if self.detail_takeover.get_visible() else "details")
@@ -688,7 +694,7 @@ class NowPlayingPageMixin:
             threading.Thread(target=post_json, args=(ROON + "/api/queue/play", {"queue_item_id": queue_item_id}), daemon=True).start()
 
     def control(self, action):
-        if self.sc_now_active(): self.sc_control(action); return
+        if self.sc_viewing_active(): self.sc_control(action); return
         if action == "playpause" and (((self.state or {}).get("amplifier") or {}).get("active_input")): action = "resume"
         threading.Thread(target=post_json, args=(ROON + "/api/control", {"action": action}), daemon=True).start()
 
@@ -743,7 +749,7 @@ class NowPlayingPageMixin:
 
     def change_seek(self, scale):
         if self.seek_updating: return
-        if not self.sc_now_active() and (not self.state or not (self.state.get("zone") or {}).get("can_seek")):
+        if not self.sc_viewing_active() and (not self.state or not (self.state.get("zone") or {}).get("can_seek")):
             return
         if self.seek_timeout is not None:
             GLib.source_remove(self.seek_timeout)
@@ -751,6 +757,6 @@ class NowPlayingPageMixin:
 
     def send_seek(self, seconds):
         self.seek_timeout = None
-        if self.sc_now_active(): self.sc_seek(seconds); return False
+        if self.sc_viewing_active(): self.sc_seek(seconds); return False
         threading.Thread(target=post_json, args=(ROON + "/api/seek", {"seconds": seconds}), daemon=True).start()
         return False

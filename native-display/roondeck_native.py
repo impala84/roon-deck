@@ -376,7 +376,8 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         self.browser_discovery_sidebar.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
         self.browser_sidebar_spacer.set_hexpand(portrait); self.browser_sidebar_spacer.set_vexpand(not portrait)
         self.search_nav.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
-        for sidebar in (self.browser_sidebar, self.browser_discovery_sidebar, self.discovery_sidebar, self.search_nav):
+        if getattr(self, "sc_search_nav", None) is not None: self.sc_search_nav.set_orientation(Gtk.Orientation.HORIZONTAL if portrait else Gtk.Orientation.VERTICAL)
+        for sidebar in (self.browser_sidebar, self.browser_discovery_sidebar, self.discovery_sidebar, self.search_nav, *([self.sc_search_nav] if getattr(self, "sc_search_nav", None) is not None else [])):
             sidebar.set_vexpand(not portrait); sidebar.set_valign(Gtk.Align.START if portrait else Gtk.Align.FILL)
             sidebar.set_spacing(4 if portrait and width < 600 else round(width * .036) if portrait else 0 if original_landscape else 2)
         # Portrait tabs are a real second row, not an overlay on the clock.
@@ -713,7 +714,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             # can snapshot the intentionally black sleep surface.
             GLib.timeout_add(350, self.capture_display, capture_id, 0)
         self.polling = False
-        image = get_bytes(f"{ROON}/api/image?key={quote(key, safe='')}") if key and key != self.image_key and not self.sc_now_active() else None   # SoundCloud's cover stays while it plays
+        image = get_bytes(f"{ROON}/api/image?key={quote(key, safe='')}") if key and key != self.image_key and not self.sc_viewing_active() else None   # SoundCloud's cover stays while its page is showing
         if image:
             GLib.idle_add(self.apply_artwork, key, image)
         album_detail_image = get_bytes(f"{ROON}/api/image?key={quote(album_detail_key, safe='')}&size=600") if album_detail_key and album_detail_key != self.detail_album_image_key else None
