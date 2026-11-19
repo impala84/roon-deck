@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.195 Alpine — 19 November 2026
+
+- **SoundCloud on the touchscreen (part 2):** once the SoundCloud player is installed (web admin → Integrations → SoundCloud), a SOUNDCLOUD button appears in the Now Playing source row. It opens a page with search (on-screen keyboard), LIKES and PLAYLISTS for the profile name saved in the admin, and previous, pause and next, with a bar showing the current track. SoundCloud and Roon take turns on the DAC, and SoundCloud playing keeps the screen awake like Roon does. The admin tab gains a profile name and optional audio output. This is native display code that has not been run on a real screen yet.
+
 ## 1.2.3-beta.194 Alpine — 19 November 2026
 
 - **SoundCloud player (part 1, backend):** a new optional SoundCloud tab under Integrations in the web admin installs mpv and yt-dlp and starts a small player service on the Pi. It searches SoundCloud and your public likes, tracks and playlists, and plays through the Pi's own audio output. It is not connected to Roon: starting a track pauses the Roon zone, and Roon playing stops SoundCloud, so the two take turns on the DAC. The touchscreen page and the button in the Now Playing source row follow in the next beta, so for now this only installs and runs the service. SoundCloud's own API is closed to new apps, so search uses yt-dlp, which SoundCloud does not officially support and which may need updating if SoundCloud changes.

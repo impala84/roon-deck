@@ -99,6 +99,7 @@ class NowPlayingPageMixin:
         queue_scroll.get_vadjustment().connect("value-changed", self.load_visible_queue_artwork)
         self.queue_list.connect_scroll(queue_scroll)
         self.roon_views.add_named(queue_scroll, "queue")
+        self.roon_views.add_named(self.build_soundcloud_view(), "soundcloud")
         browser = Gtk.Overlay(); browser.add_css_class("browser-view"); browser.set_vexpand(True); browser.set_hexpand(True)
         browser_body = Gtk.Box(spacing=0); browser_body.set_vexpand(True); browser_body.set_hexpand(True); browser.set_child(browser_body); self.browser_body = browser_body
         self.browser_section_buttons = {}; sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2); sidebar.add_css_class("browser-sidebar"); sidebar.add_css_class("library-sidebar")
@@ -373,14 +374,17 @@ class NowPlayingPageMixin:
     def render_bluos_inputs(self, amplifier, have_roon):
         inputs = list(amplifier.get("inputs") or [])
         signature = [(str(item.get("id")), item.get("name") or "Input") for item in inputs]
-        if signature != getattr(self, "bluos_input_signature", None):
-            self.bluos_input_signature = signature
+        if signature != getattr(self, "bluos_input_signature", None) or getattr(self, "sc_shown", None) != getattr(self, "sc_available", False):
+            self.bluos_input_signature = signature; self.sc_shown = getattr(self, "sc_available", False)
             while child := self.roon_subnav.get_first_child(): self.roon_subnav.remove(child)
             self.bluos_source_buttons = {}
             for input_id, name in signature:
                 button = self.button(name.upper(), lambda _button, value=input_id: self.select_bluos_input(value), "")
                 button.set_hexpand(getattr(self, "responsive_portrait", False))
                 self.bluos_source_buttons[input_id] = button; self.roon_subnav.append(button)
+            self.sc_source_button = None
+            if getattr(self, "sc_available", False):
+                self.sc_source_button = self.button("SOUNDCLOUD", self.show_soundcloud, ""); self.sc_source_button.set_hexpand(getattr(self, "responsive_portrait", False)); self.roon_subnav.append(self.sc_source_button)
             self.roon_subnav.append(self.now_playing_tab); self.roon_subnav.append(self.queue_tab); self.roon_subnav.append(self.browser_tab)
             self.refresh_music_subnav_layout()
         active_id = str((amplifier.get("active_input") or {}).get("id") or "")
@@ -461,7 +465,7 @@ class NowPlayingPageMixin:
             if docked:
                 self.browser_artist_scroll.set_visible(False)
                 self.browser_search_columns.set_visible(False)
-        if name in {"now", "queue", "browse", "source", "discover"}: self.requested_audio_view = name
+        if name in {"now", "queue", "browse", "source", "discover", "soundcloud"}: self.requested_audio_view = name
         if name in {"now", "queue", "source", "details"}:
             self.discovery_active = False; self.discovery_request += 1
         exploring = self.discovery_active and name in {"discover", "browse", "search"}

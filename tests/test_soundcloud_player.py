@@ -82,3 +82,10 @@ class SoundCloudTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AdminBridgeTests(unittest.TestCase):
+    def test_request_to_a_missing_player_is_none(self):
+        from pi_bus_time_display.server import soundcloud_request
+        with mock.patch("urllib.request.urlopen", side_effect=OSError("refused")):
+            self.assertIsNone(soundcloud_request("/state"))

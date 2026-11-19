@@ -18,11 +18,12 @@ from sleep_and_touch import SleepAndTouchMixin
 from now_playing_page import NowPlayingPageMixin
 from discover_page import DiscoverPageMixin
 from browse_page import BrowsePageMixin
+from soundcloud_page import SoundCloudPageMixin
 from artwork import ArtworkMixin
 from screen_preview import ScreenPreviewMixin
 
 
-class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin, NowPlayingPageMixin, DiscoverPageMixin, BrowsePageMixin, ArtworkMixin, ScreenPreviewMixin, Gtk.Application):
+class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin, SleepAndTouchMixin, NowPlayingPageMixin, SoundCloudPageMixin, DiscoverPageMixin, BrowsePageMixin, ArtworkMixin, ScreenPreviewMixin, Gtk.Application):
     def tidy_memory(self):
         import gc
         gc.collect()
@@ -917,6 +918,8 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             self.inactivity_sleeping = False; self.last_interaction = time.monotonic(); self.set_screen_power(True, force=True)
             print("RoonDeck waking for the morning bus window", flush=True)
         # Inside the morning bus window the display stays on for the school run, whatever the idle timeout says.
+        soundcloud_playing = bool((getattr(self, "sc_state", None) or {}).get("active") and not (getattr(self, "sc_state", None) or {}).get("paused"))
+        if soundcloud_playing and target != "/sleep.html": self.last_interaction = time.monotonic()   # SoundCloud playing keeps the panel lit, like Roon
         inactivity_due = bool(not playing and inactivity_seconds and time.monotonic() - self.last_interaction >= inactivity_seconds and target != "/sleep.html"
                               and not self.bus_window_active(effective_config))
         if inactivity_due and not self.inactivity_sleeping:

@@ -894,6 +894,17 @@ def connected_network_snapshot() -> dict:
     return {"name": name, "interface": interface, "type": "Wi-Fi" if link_type in {"wifi", "802-11-wireless"} else "Ethernet" if link_type == "ethernet" else link_type, "address": address_match.group(1) if address_match else "", "signal": signal, "speed": speed}
 
 
+def soundcloud_request(path, payload=None):
+    """Talk to the optional SoundCloud player service on this Pi. None means it is not installed or not running."""
+    try:
+        request = urllib.request.Request("http://127.0.0.1:8767" + path, data=None if payload is None else json.dumps(payload).encode(), headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=3) as response: return json.loads(response.read(100000))
+    except urllib.error.HTTPError as error:
+        try: return json.loads(error.read(100000))
+        except ValueError: return {"error": "SoundCloud player error"}
+    except (OSError, ValueError): return None
+
+
 def service_state(name: str) -> str:
     """Return a small, truthful systemd state without keeping a preference."""
     if os.getenv("PI_HOME_APPLIANCE_PLATFORM") == "alpine-prototype":
@@ -1228,6 +1239,11 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 if query.get("color"): body = tint_icon(body, query["color"][0])
                 self.send_response(200); self.send_header("Content-Type", "image/png"); self.send_header("Cache-Control", "max-age=300")
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if self.path == "/api/admin/soundcloud":
+                if not self.authorised(): return
+                result = soundcloud_request("/state")
+                self.send_json(200, json.dumps({"running": result is not None, "profile": (result or {}).get("profile", ""), "audio_device": (result or {}).get("audio_device", "")}).encode())
+                return
             if self.path == "/api/admin/listening":
                 if not self.authorised(): return
                 try:
@@ -1492,6 +1508,19 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                     temporary = folder / f".{name}.tmp"
                     temporary.write_bytes(body); os.replace(temporary, folder / name)
                     self.send_json(200, json.dumps({"ok": True, "name": name}).encode())
+                except (ValueError, TypeError, OSError) as error:
+                    self.send_json(400, json.dumps({"error": str(error)}).encode())
+                return
+            if self.path == "/api/admin/soundcloud":
+                if not self.authorised(): return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 2000: raise ValueError("SoundCloud settings are too large")
+                    data = json.loads(self.rfile.read(length))
+                    result = soundcloud_request("/settings", {"profile": str(data.get("profile", "")), "audio_device": str(data.get("audio_device", ""))})
+                    if result is None: raise ValueError("The SoundCloud player is not running. Install or start it first.")
+                    if result.get("error"): raise ValueError(result["error"])
+                    self.send_json(200, json.dumps({"ok": True}).encode())
                 except (ValueError, TypeError, OSError) as error:
                     self.send_json(400, json.dumps({"error": str(error)}).encode())
                 return
