@@ -25,6 +25,10 @@ class SoundCloudTests(unittest.TestCase):
         self.bin = tempfile.TemporaryDirectory(); self.addCleanup(self.bin.cleanup)
         path = Path(self.bin.name) / "yt-dlp"; path.write_text(FAKE_YTDLP); path.chmod(path.stat().st_mode | stat.S_IEXEC)
         patcher = mock.patch.dict(os.environ, {"PATH": self.bin.name + os.pathsep + os.environ["PATH"]}); patcher.start(); self.addCleanup(patcher.stop)
+        cover = mock.patch.object(sc, "oembed_cover", return_value="https://i1.sndcdn.com/artworks-abc-t500x500.jpg"); cover.start(); self.addCleanup(cover.stop)
+
+    def test_search_results_get_small_covers(self):
+        self.assertEqual(sc.search("q")[0]["artwork"], "https://i1.sndcdn.com/artworks-abc-t200x200.jpg")
 
     def test_search_parses_tracks(self):
         items = sc.search("  some   query ")
@@ -99,6 +103,7 @@ class CacheAndPlaylistTests(unittest.TestCase):
         path.write_text('#!/usr/bin/env python3\nimport json,sys\nopen(%r,"a").write("x")\nprint(json.dumps({"url":"https://soundcloud.com/a/t","title":"T","uploader":"A","duration":1}))\n' % str(self.log)); path.chmod(path.stat().st_mode | stat.S_IEXEC)
         patcher = mock.patch.dict(os.environ, {"PATH": self.bin.name + os.pathsep + os.environ["PATH"]}); patcher.start(); self.addCleanup(patcher.stop)
         sc._CACHE.clear()
+        cover = mock.patch.object(sc, "oembed_cover", return_value=""); cover.start(); self.addCleanup(cover.stop)
 
     def test_repeat_searches_use_the_cache(self):
         sc.search("same"); sc.search("same"); sc.search("Same")
@@ -110,3 +115,28 @@ class CacheAndPlaylistTests(unittest.TestCase):
 
     def test_api_track_links_are_accepted(self):
         self.assertTrue(sc.clean_url("https://api.soundcloud.com/tracks/123456"))
+
+
+class OutputTests(unittest.TestCase):
+    CARDS = """ 0 [vc4hdmi0       ]: vc4-hdmi - vc4-hdmi-0
+                      vc4-hdmi-0
+ 1 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones
+                      bcm2835 Headphones
+ 2 [sndrpihifiberry]: HifiberryDacp - snd_rpi_hifiberry_dacplus
+                      snd_rpi_hifiberry_dacplus
+"""
+
+    def test_the_dac_is_preferred_over_hdmi_and_headphones(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "cards"; path.write_text(self.CARDS)
+            cards = sc.sound_cards(str(path))
+            self.assertEqual([card["id"] for card in cards], ["vc4hdmi0", "Headphones", "sndrpihifiberry"])
+            self.assertEqual(sc.best_output(cards), "alsa/plughw:CARD=sndrpihifiberry,DEV=0")
+
+    def test_no_cards_means_mpv_default(self):
+        self.assertEqual(sc.best_output([]), "")
+
+    def test_cover_sizes(self):
+        self.assertEqual(sc.art_url("https://i1.sndcdn.com/artworks-x-large.jpg"), "https://i1.sndcdn.com/artworks-x-t200x200.jpg")
+        self.assertEqual(sc.art_url("https://i1.sndcdn.com/artworks-x-t500x500.png", "t500x500"), "https://i1.sndcdn.com/artworks-x-t500x500.png")
+        self.assertEqual(sc.art_url("http://insecure/x.jpg"), "")

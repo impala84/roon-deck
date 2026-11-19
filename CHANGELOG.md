@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3-beta.198 Alpine — 19 November 2026
+
+- **SoundCloud plays through your DAC:** SoundCloud was playing to mpv's default output, which on a Pi is usually HDMI, so a DAC board or USB DAC stayed silent. It now picks a sound card itself (a DAC board or USB DAC ahead of the headphone socket and HDMI), and Services → Music → SoundCloud has an Audio output list to choose one by hand. The chosen output and any mpv warning (such as a busy device) are written to the service log.
+- **Cover thumbnails in SoundCloud lists:** search results, likes, playlists and playlist tracks now show each track's cover, fetched from SoundCloud's public oEmbed, and Now Playing uses a larger cover.
+- **SoundCloud on Now Playing:** FIXED VOLUME is centred like it is for Roon's fixed-volume outputs. The SOUNDCLOUD source button keeps you on Now Playing while SoundCloud is playing instead of jumping to Discover, and it opens Discover only when nothing is playing.
+- **The screen no longer goes to sleep during a slow SoundCloud search:** waiting for a search or list now counts as activity. Native display code, not run on a real screen yet.
+
 ## 1.2.3-beta.197 Alpine — 19 November 2026
 
 - **SoundCloud now uses the existing screens:** browsing and search moved into Discover, which gains a SOUNDCLOUD tab (and the SOUNDCLOUD button in the Now Playing source row opens it). SEARCH uses the same on-screen keyboard as Roon search; LIKES and PLAYLISTS show your public profile (open a playlist to see its tracks). Tapping a track plays it and returns to the normal Now Playing screen, which shows the SoundCloud track with its cover, progress bar and the usual previous, pause and next buttons, and no volume controls because the DAC sets the volume. The separate SoundCloud page is gone.

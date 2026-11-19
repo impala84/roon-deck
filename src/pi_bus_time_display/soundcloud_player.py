@@ -8,6 +8,7 @@ Only the standard library is used. yt-dlp and mpv are installed on the appliance
 """
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import re
@@ -47,6 +48,45 @@ def clean_profile(value) -> str:
     return name
 
 
+ART_SIZE = re.compile(r"-(?:large|small|badge|tiny|crop|original|t\d+x\d+)(\.[A-Za-z]+)$")
+
+
+def art_url(url, size="t200x200") -> str:
+    """SoundCloud cover links carry their size in the name; pick a small one for lists and a big one for Now Playing."""
+    url = str(url or "")
+    if not url.startswith("https://"): return ""
+    return ART_SIZE.sub("-%s\\1" % size, url, count=1)
+
+
+_COVERS: dict = {}
+
+
+def oembed_cover(url) -> str:
+    """SoundCloud's public oEmbed answer carries a cover even when yt-dlp's quick listing has none."""
+    if url in _COVERS: return _COVERS[url]
+    cover = ""
+    try:
+        request = urllib.request.Request("https://soundcloud.com/oembed?format=json&url=" + urllib.parse.quote(url, safe=""), headers={"User-Agent": "RoonDeck"})
+        with urllib.request.urlopen(request, timeout=5) as response: cover = str(json.loads(response.read(200_000)).get("thumbnail_url") or "")
+    except (OSError, ValueError): pass
+    if len(_COVERS) > 2000: _COVERS.clear()
+    _COVERS[url] = cover
+    return cover
+
+
+def add_covers(items, budget=6.0):
+    """Give every listed track a small cover, in parallel, without holding the list up for long."""
+    missing = [item for item in items if not item.get("artwork")]
+    if not missing: return items
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        futures = {pool.submit(oembed_cover, item["url"]): item for item in missing}
+        done, _ = concurrent.futures.wait(futures, timeout=budget)
+        for future in done:
+            try: futures[future]["artwork"] = art_url(future.result())
+            except Exception: pass
+    return items
+
+
 def parse_entries(output: str) -> list[dict]:
     """Turn yt-dlp's flat listing (one JSON object per line, or one playlist object) into track dictionaries."""
     entries = []
@@ -64,7 +104,7 @@ def parse_entries(output: str) -> list[dict]:
             art = str(entry.get("thumbnail") or (thumbs[-1].get("url") if thumbs and isinstance(thumbs[-1], dict) else "") or "")
             entries.append({"url": url, "title": str(entry.get("title") or "Untitled")[:200],
                             "artist": str(entry.get("uploader") or entry.get("channel") or "")[:120],
-                            "duration": int(entry.get("duration") or 0), "artwork": art if art.startswith("https://") else ""})
+                            "duration": int(entry.get("duration") or 0), "artwork": art_url(art)})
     return entries
 
 
@@ -101,19 +141,19 @@ def _run_ytdlp(arguments: list[str], timeout: int) -> list[dict]:
 
 def search(query, limit=20) -> list[dict]:
     query = clean_query(query); count = max(1, min(int(limit), 30))
-    return run_ytdlp(["--", "scsearch%d:%s" % (count, query)], cache_key=("search", query.lower(), count))
+    return add_covers(run_ytdlp(["--", "scsearch%d:%s" % (count, query)], cache_key=("search", query.lower(), count)))
 
 
 def browse(profile, kind="likes", limit=50) -> list[dict]:
     if kind not in KINDS: raise ValueError("Choose tracks, likes, reposts or playlists.")
     name = clean_profile(profile); count = max(1, min(int(limit), 100))
-    return run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/%s" % (name, KINDS[kind])], timeout=60, cache_key=("browse", name, kind, count))
+    return add_covers(run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/%s" % (name, KINDS[kind])], timeout=60, cache_key=("browse", name, kind, count)))
 
 
 def tracks_of(url, limit=100) -> list[dict]:
     """The tracks inside a playlist (or any SoundCloud link that lists tracks)."""
     url = clean_url(url)
-    return run_ytdlp(["--playlist-end", str(max(1, min(int(limit), 200))), "--", url], timeout=60, cache_key=("tracks", url))
+    return add_covers(run_ytdlp(["--playlist-end", str(max(1, min(int(limit), 200))), "--", url], timeout=60, cache_key=("tracks", url)))
 
 
 def roon_get(path):
@@ -131,6 +171,29 @@ def pause_roon():
         request = urllib.request.Request(ROON + "/api/control", data=json.dumps({"action": "pause"}).encode(), headers={"Content-Type": "application/json"})
         urllib.request.urlopen(request, timeout=2).read()
     except (OSError, ValueError): pass
+
+
+def sound_cards(path="/proc/asound/cards"):
+    """The Pi's sound cards as mpv device names. Roon Bridge and the audio board pick a card by hand; mpv's default is
+    often HDMI, which is silent on a DAC, so SoundCloud chooses the DAC (a HAT or USB card) unless told otherwise."""
+    try: lines = Path(path).read_text().splitlines()
+    except OSError: return []
+    cards = []
+    for line in lines:
+        match = re.match(r"^\s*(\d+)\s+\[([^\]]+?)\s*\]:\s*(.*)$", line)
+        if match: cards.append({"index": int(match.group(1)), "id": match.group(2), "kind": match.group(3).strip(), "name": match.group(3).strip()})
+        elif cards and line.strip(): cards[-1]["name"] = line.strip()
+    for card in cards:
+        text = (card["id"] + " " + card["kind"] + " " + card["name"]).lower()
+        card["rank"] = 0 if "hdmi" in text else 1 if "headphones" in text or "bcm2835" in text else -1 if "loopback" in text or "dummy" in text else 2
+        card["device"] = "alsa/plughw:CARD=%s,DEV=0" % card["id"]
+    return cards
+
+
+def best_output(cards=None):
+    cards = sound_cards() if cards is None else cards
+    usable = [card for card in cards if card["rank"] >= 0]
+    return max(usable, key=lambda card: (card["rank"], -card["index"]))["device"] if usable else ""
 
 
 class Player:
@@ -181,12 +244,14 @@ class Player:
             except subprocess.TimeoutExpired: process.kill()
 
     def spawn(self, url):
-        command = ["mpv", "--no-video", "--no-terminal", "--audio-display=no", "--idle=no", "--really-quiet", "--input-ipc-server=" + IPC_SOCKET]
-        if self.device: command.append("--audio-device=" + self.device)
+        command = ["mpv", "--no-video", "--no-terminal", "--audio-display=no", "--idle=no", "--msg-level=all=warn", "--input-ipc-server=" + IPC_SOCKET]
+        device = self.device or best_output()
+        if device: command.append("--audio-device=" + device)
+        print("SoundCloud playing on %s: %s" % (device or "mpv's default output", url), flush=True)
         command += ["--", url]
         try: Path(IPC_SOCKET).unlink(missing_ok=True)
         except OSError: pass
-        return subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return subprocess.Popen(command, stdout=subprocess.DEVNULL)   # mpv's warnings (a busy or missing device) go to the service log
 
     def watch(self, process, generation):
         code = process.wait()
@@ -204,14 +269,11 @@ class Player:
             self.queue = tracks; self.play_index(max(0, min(int(index), len(tracks) - 1)))
 
     def fill_artwork(self, index):
-        """Search results rarely carry a cover. SoundCloud's public oEmbed answer has one, so fetch it for the playing track."""
+        """A larger cover for the Now Playing screen."""
         try:
-            item = self.queue[index]
-            if item.get("artwork"): return
-            request = urllib.request.Request("https://soundcloud.com/oembed?format=json&url=" + urllib.parse.quote(item["url"], safe=""), headers={"User-Agent": "RoonDeck"})
-            with urllib.request.urlopen(request, timeout=6) as response: art = str(json.loads(response.read(200_000)).get("thumbnail_url") or "")
-            if art.startswith("https://"): item["artwork"] = art
-        except (OSError, ValueError, IndexError, KeyError): pass
+            item = self.queue[index]; cover = oembed_cover(item["url"])
+            if cover: item["cover"] = art_url(cover, "t500x500")
+        except (IndexError, KeyError): pass
 
     def play_index(self, index):
         with self.lock:
@@ -252,7 +314,7 @@ class Player:
                 position = self.ipc("get_property", "time-pos"); duration = self.ipc("get_property", "duration")
             return {"active": running, "paused": self.paused if running else False, "track": track, "index": self.index if running else -1,
                     "queue": len(self.queue), "position": int(position or 0), "duration": int(duration or (track or {}).get("duration") or 0),
-                    "error": self.error, "profile": self.profile, "audio_device": self.device}
+                    "error": self.error, "profile": self.profile, "audio_device": self.device, "audio_chosen": self.device or best_output()}
 
     def yield_to_roon(self):
         """Roon started playing: the DAC belongs to it now."""
@@ -275,6 +337,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/state": return self.send(200, player.state())
+        if self.path == "/outputs": return self.send(200, {"outputs": sound_cards(), "chosen": player.device or best_output()})
         self.send(404, {"error": "Not found"})
 
     def do_POST(self):

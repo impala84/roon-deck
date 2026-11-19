@@ -8,6 +8,7 @@ time, so starting a track pauses Roon and Roon playing stops SoundCloud.
 from __future__ import annotations
 
 import threading
+import time
 
 from native_common import FamilyIcon, get_bytes, get_json, post_json
 from gi.repository import Gdk, GLib, Gtk, Pango
@@ -32,9 +33,16 @@ class SoundCloudPageMixin:
     # ---- the player service ------------------------------------------------------------------------------------
     def sc_call(self, path, payload=None, then=None, timeout=60):
         def work():
+            GLib.idle_add(self.sc_keep_awake)
             result = get_json(SOUNDCLOUD + path, timeout=1.0) if payload is None else post_json(SOUNDCLOUD + path, payload, timeout=timeout)
             if then: GLib.idle_add(then, result)
+            GLib.idle_add(self.sc_keep_awake)
         threading.Thread(target=work, daemon=True).start()
+
+    def sc_keep_awake(self):
+        """A slow SoundCloud search must not let the idle timer put the screen to sleep while you wait for the answer."""
+        if getattr(self, "sc_search_mode", False) or self.discovery_section == "soundcloud": self.last_interaction = time.monotonic()
+        return False
 
     def sc_post(self, path, payload=None):
         self.sc_call(path, payload or {}, lambda result: (self.sc_apply(result), False)[1])
@@ -53,7 +61,10 @@ class SoundCloudPageMixin:
         if not self.sc_now_active(): self.sc_art_url = ""   # the next track loads its cover again
         if available and self.sc_now_active() and self.roon_views.get_visible_child_name() == "now": self.apply_soundcloud_now()
 
-    def show_soundcloud(self, *_): self.open_discover("soundcloud")
+    def show_soundcloud(self, *_):
+        """The source button: while SoundCloud is playing you are already on its Now Playing screen; otherwise go and pick something."""
+        if self.sc_now_active(): self.set_roon_view("now"); self.apply_soundcloud_now()
+        else: self.open_discover("soundcloud")
 
     # ---- Now Playing ---------------------------------------------------------------------------------------------
     def apply_soundcloud_now(self):
@@ -71,9 +82,9 @@ class SoundCloudPageMixin:
         index = int(state.get("index") or 0)
         self.prev.set_sensitive(index > 0); self.next.set_sensitive(index + 1 < int(state.get("queue") or 0)); self.play.set_sensitive(True)
         for control in (self.mute, self.volume_down, self.volume, self.volume_up): control.set_visible(False)   # the DAC sets the volume
-        self.volume_value.set_text("FIXED VOLUME")
+        self.volume_value.set_text("FIXED VOLUME"); self.volume_value.set_hexpand(True); self.volume_value.set_xalign(.5); self.volume_value.add_css_class("fixed-volume-label")
         self.library_add.set_visible(False)
-        art = track.get("artwork") or ""
+        art = track.get("cover") or track.get("artwork") or ""
         if art and art != self.sc_art_url:
             self.sc_art_url = art
             threading.Thread(target=self.sc_load_art, args=(art,), daemon=True).start()
@@ -152,6 +163,10 @@ class SoundCloudPageMixin:
 
     def sc_row(self, item, index, playlist):
         row = Gtk.Box(spacing=14); row.set_hexpand(True)
+        picture = Gtk.Picture(); picture.add_css_class("queue-art"); picture.set_can_shrink(True); picture.set_content_fit(Gtk.ContentFit.COVER); self.set_browser_placeholder(picture)
+        slot = Gtk.ScrolledWindow(); slot.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER); slot.set_propagate_natural_width(False); slot.set_propagate_natural_height(False)
+        slot.set_min_content_width(72); slot.set_max_content_width(72); slot.set_min_content_height(72); slot.set_max_content_height(72); slot.set_valign(Gtk.Align.CENTER); slot.set_child(picture); row.append(slot)
+        self.sc_load_thumbnail(picture, item.get("artwork"))
         copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3); copy.set_valign(Gtk.Align.CENTER); copy.set_hexpand(True)
         title = self.label(item.get("title") or "Untitled", "queue-title"); title.set_ellipsize(Pango.EllipsizeMode.END); copy.append(title)
         subtitle = self.label(item.get("artist") or "SoundCloud", "queue-meta"); subtitle.set_ellipsize(Pango.EllipsizeMode.END); copy.append(subtitle); row.append(copy)
@@ -159,6 +174,21 @@ class SoundCloudPageMixin:
         button = Gtk.Button(); button.add_css_class("browser-row"); button.add_css_class("mix-track-row"); button.set_child(row); button.set_vexpand(False)
         button.connect("clicked", lambda *_: self.sc_open_playlist(item) if playlist else self.sc_play(index))
         return button
+
+    def sc_load_thumbnail(self, picture, url):
+        if not url: return
+        cache = self.__dict__.setdefault("sc_thumbnails", {})
+        if url in cache: picture.set_paintable(cache[url]); return
+        def load():
+            texture = self.decode_artwork(get_bytes(url, timeout=6.0))
+            def apply():
+                if texture:
+                    if len(cache) > 120: cache.clear()
+                    cache[url] = texture
+                    if picture.get_root() is not None: picture.set_paintable(texture)
+                return False
+            GLib.idle_add(apply)
+        threading.Thread(target=load, daemon=True).start()
 
     def sc_open_playlist(self, item):
         self.sc_request += 1; request = self.sc_request; self.sc_show_loading()

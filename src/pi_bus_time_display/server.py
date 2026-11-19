@@ -1241,8 +1241,10 @@ def make_handler(state: State, config_path: Path, env_path: Path, mode_path: Pat
                 self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if self.path == "/api/admin/soundcloud":
                 if not self.authorised(): return
-                result = soundcloud_request("/state")
-                self.send_json(200, json.dumps({"running": result is not None, "profile": (result or {}).get("profile", ""), "audio_device": (result or {}).get("audio_device", "")}).encode())
+                result = soundcloud_request("/state"); outputs = soundcloud_request("/outputs") or {}
+                self.send_json(200, json.dumps({"running": result is not None, "profile": (result or {}).get("profile", ""), "audio_device": (result or {}).get("audio_device", ""),
+                                                "outputs": [{"name": card.get("name", ""), "id": card.get("id", ""), "device": card.get("device", "")} for card in outputs.get("outputs", []) if card.get("rank", 0) >= 0],
+                                                "chosen": outputs.get("chosen", "")}).encode())
                 return
             if self.path == "/api/admin/listening":
                 if not self.authorised(): return
