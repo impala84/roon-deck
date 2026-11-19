@@ -45,7 +45,7 @@ ALPINE_SYSTEM_ACTIONS = {
     "netdata_claim_command", "netdata_install", "netdata_official_install", "netdata_disconnect", "netdata_lightweight", "performance_profile",
     "device_credentials", "install_tools", "install_streamdeck", "display_on", "display_off",
     "set_brightness", "set_display", "set_wifi", "set_hostname", "roon_install", "roon_start", "roon_stop", "roon_restart",
-    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "leds_enable", "leds_disable", "set_audio_hat",
+    "airplay_install", "airplay_start", "airplay_stop", "airplay_restart", "airplay_configure", "soundcloud_install", "soundcloud_start", "soundcloud_stop", "soundcloud_restart", "leds_enable", "leds_disable", "set_audio_hat",
 }
 SYSTEM_ACTIONS = ALPINE_SYSTEM_ACTIONS | {
     "leds_enable", "leds_disable",
@@ -984,6 +984,7 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
     network = connected_network_snapshot()
     active_wifi = network["name"] if network["type"] == "Wi-Fi" else active_wifi_ssid()
     airplay_service = service_state("shairport-sync.service")
+    soundcloud_service = service_state("roondeck-soundcloud.service")
     try:
         update_status = (state_dir / "update-status").read_text(encoding="utf-8").strip()
     except OSError:
@@ -1039,6 +1040,8 @@ def system_snapshot(state_dir: Path, include_diagnostics: bool = False, config: 
                              "netdata": config.touch_netdata if config else True},
         "roon_bridge_operation_status": (state_dir / "roonbridge-install-status").read_text().strip() if (state_dir / "roonbridge-install-status").is_file() else "",
         "airplay": airplay_service,
+        "soundcloud": soundcloud_service,
+        "soundcloud_operation_status": (state_dir / "soundcloud-install-status").read_text().strip() if (state_dir / "soundcloud-install-status").is_file() else "",
         "airplay_name": (state_dir / "airplay-name").read_text().strip() if (state_dir / "airplay-name").is_file() else "RoonDeck",
         "airplay_operation_status": (state_dir / "airplay-install-status").read_text().strip() if (state_dir / "airplay-install-status").is_file() else "",
         "roon_controller": roon_controller,

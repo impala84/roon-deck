@@ -418,6 +418,30 @@ def ensure_playback_priority(root, run=None, profile=None):
             except OSError: pass
 
 
+SOUNDCLOUD_SERVICE = """#!/sbin/openrc-run
+description=\"RoonDeck SoundCloud player\"
+supervisor=supervise-daemon
+command=/opt/pi-home/.venv/bin/python
+command_args="-m pi_bus_time_display.soundcloud_player"
+command_user=morningbus:audio
+directory=/opt/pi-home
+respawn_delay=5
+respawn_max=10
+respawn_period=600
+output_log=/var/log/pi-home/soundcloud.log
+error_log=/var/log/pi-home/soundcloud-error.log
+export PI_HOME_STATE_DIR=/var/lib/pi-home
+depend() { need localmount; after pi-home-api pi-home-roon; }
+"""
+
+
+def ensure_soundcloud_service(root):
+    root = Path(root)
+    service = root / "etc/init.d/roondeck-soundcloud"
+    if not service.exists() or service.read_text() != SOUNDCLOUD_SERVICE:
+        atomic(service, SOUNDCLOUD_SERVICE, 0o755)
+
+
 def configure_airplay(root, name="RoonDeck"):
     """Write the small, owned Shairport Sync configuration used by RoonDeck."""
     root = Path(root)
@@ -574,6 +598,7 @@ class Setup:
         self.netdata_install_lock = threading.Lock()
         self.roon_install_lock = threading.Lock()
         self.airplay_install_lock = threading.Lock()
+        self.soundcloud_install_lock = threading.Lock()
         self.software_lock = threading.Lock()
         self.update_process = None
         self.progress = self.root / "var/lib/pi-home-setup/progress.json"
@@ -619,7 +644,7 @@ class Setup:
         The date marker survives helper restarts and repeated DST clock hours.
         """
         try:
-            if any(lock.locked() for lock in (self.tools_lock, self.netdata_install_lock, self.roon_install_lock, self.airplay_install_lock)):
+            if any(lock.locked() for lock in (self.tools_lock, self.netdata_install_lock, self.roon_install_lock, self.airplay_install_lock, self.soundcloud_install_lock)):
                 return False
             config = tomllib.loads(read(self.root / "etc/pi-home/config.toml"))
             if config.get("auto_update_enabled") is not True or not self.saved().get("complete"):
@@ -802,6 +827,26 @@ class Setup:
             atomic(status, "Failed: " + message + "\n")
         finally:
             self.airplay_install_lock.release()
+
+    def install_soundcloud(self):
+        """Install the SoundCloud player: Alpine's mpv and yt-dlp plus RoonDeck's small player service."""
+        status = self.root / "var/lib/pi-home/soundcloud-install-status"
+        status.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            atomic(status, "Installing mpv and yt-dlp…\n")
+            self.run(["apk", "add", "--no-cache", "mpv", "yt-dlp"])
+            # The player runs as the unprivileged RoonDeck user, which needs the sound card group.
+            try: self.run(["addgroup", "morningbus", "audio"])
+            except Exception: pass   # already a member
+            ensure_soundcloud_service(self.root)
+            self.run(["rc-update", "add", "roondeck-soundcloud", "default"])
+            self.run(["rc-service", "roondeck-soundcloud", "restart"])
+            atomic(status, "SoundCloud installed and running. Open SoundCloud in the Now Playing source row on the touchscreen.\n")
+        except Exception as error:
+            message = str(error) if isinstance(error, ValueError) else "SoundCloud installation failed. Check the network and try again."
+            atomic(status, "Failed: " + message + "\n")
+        finally:
+            self.soundcloud_install_lock.release()
 
     def install_setup_software(self, choices):
         """Install optional services serially; persist choices, never credentials."""
@@ -1042,6 +1087,24 @@ class Setup:
             status = self.root / "var/lib/pi-home/roonbridge-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
             atomic(status, "Roon Bridge installation queued…\n")
             threading.Thread(target=self.install_roon_bridge, daemon=True).start()
+            return {"ok": True, "queued": True}
+        if action in {"soundcloud_start", "soundcloud_stop", "soundcloud_restart"}:
+            if not state.get("complete"): raise ValueError("Finish setup before changing services.")
+            if not (self.root / "etc/init.d/roondeck-soundcloud").is_file(): raise ValueError("SoundCloud is not installed on this appliance.")
+            if action == "soundcloud_start":
+                self.run(["rc-update", "add", "roondeck-soundcloud", "default"]); self.run(["rc-service", "roondeck-soundcloud", "start"])
+            elif action == "soundcloud_stop":
+                self.run(["rc-service", "roondeck-soundcloud", "stop"]); self.run(["rc-update", "del", "roondeck-soundcloud", "default"])
+            else:
+                ensure_soundcloud_service(self.root); self.run(["rc-service", "roondeck-soundcloud", "restart"])
+            return {"ok": True}
+        if action == "soundcloud_install":
+            if not state.get("complete"): raise ValueError("Finish setup before installing SoundCloud.")
+            if (self.root / "etc/init.d/roondeck-soundcloud").is_file() and (self.root / "usr/bin/mpv").is_file(): raise ValueError("SoundCloud is already installed.")
+            if not self.soundcloud_install_lock.acquire(blocking=False): return {"ok": True, "queued": False}
+            status = self.root / "var/lib/pi-home/soundcloud-install-status"; status.parent.mkdir(parents=True, exist_ok=True)
+            atomic(status, "SoundCloud installation queued…\n")
+            threading.Thread(target=self.install_soundcloud, daemon=True).start()
             return {"ok": True, "queued": True}
         if action == "airplay_install":
             if not state.get("complete"): raise ValueError("Finish setup before installing AirPlay.")

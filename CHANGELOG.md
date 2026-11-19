@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.194 Alpine — 19 November 2026
+
+- **SoundCloud player (part 1, backend):** a new optional SoundCloud tab under Integrations in the web admin installs mpv and yt-dlp and starts a small player service on the Pi. It searches SoundCloud and your public likes, tracks and playlists, and plays through the Pi's own audio output. It is not connected to Roon: starting a track pauses the Roon zone, and Roon playing stops SoundCloud, so the two take turns on the DAC. The touchscreen page and the button in the Now Playing source row follow in the next beta, so for now this only installs and runs the service. SoundCloud's own API is closed to new apps, so search uses yt-dlp, which SoundCloud does not officially support and which may need updating if SoundCloud changes.
+
 ## 1.2.3-beta.193 Alpine — 19 November 2026
 
 - **TV volume page holds while the screen is awake:** changing the volume from the TV remote showed the large volume page, but the display flipped back to the previous page a few seconds before it went to sleep. It now stays on the volume page for as long as the screen is on, and returns to the page it was on only once the display has switched off, so waking it later (or touching it) picks up where you left it. Touching the screen during that time simply hands control back to you.
