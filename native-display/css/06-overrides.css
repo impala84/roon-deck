@@ -652,3 +652,4 @@ button.menu-scrim { background: transparent; background-image: none; border: 0; 
 .hs-bus.hs-bus-xl .hs-minutes.hs-minutes-long { font-size: 136px; }
 .hs-bus.hs-bus-lg { padding: 0 28px 14px 36px; }
 .browser-section.sc-heading, .portrait .browser-section.sc-heading, .portrait.large-portrait .browser-section.sc-heading { padding: 0; }
+.volume-number.fixed-volume-label.sc-stream { color: #b4b6c0; font-weight: 450; }

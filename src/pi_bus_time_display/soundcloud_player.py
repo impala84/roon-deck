@@ -189,14 +189,34 @@ def tracks_from_api(collection, wrapper="track") -> list[dict]:
     return items
 
 
+class NoLikes(RuntimeError):
+    """The profile resolved but no likes could be read; says whose profile was checked so a wrong name is obvious."""
+    def __init__(self, message, likes=0): super().__init__(message); self.likes = likes
+
+
+def hydrate(collection):
+    """SoundCloud lists most liked tracks as bare ids; fetch the details for those in one request."""
+    wanted = [str(entry["track"]["id"]) for entry in collection if isinstance(entry, dict) and isinstance(entry.get("track"), dict)
+              and not entry["track"].get("permalink_url") and entry["track"].get("id")]
+    if not wanted: return collection
+    full = {str(track.get("id")): track for track in api_get("/tracks", ids=",".join(wanted[:50])) if isinstance(track, dict)}
+    return [{**entry, "track": full.get(str(entry["track"].get("id")), entry["track"])} if str(entry.get("track", {}).get("id")) in full else entry for entry in collection]
+
+
 def likes_via_api(name, count) -> list[dict]:
     try:
         user = api_get("/resolve", url="https://soundcloud.com/" + name)
         data = api_get("/users/%d/likes" % int(user["id"]), limit=count)
+        collection = hydrate(data.get("collection") or [])
+        items = tracks_from_api(collection)
+        if not items:
+            liked = int(user.get("likes_count") or 0); who = "“%s” (soundcloud.com/%s)" % (user.get("username") or name, user.get("permalink") or name)
+            raise NoLikes(("SoundCloud shows no likes on %s. Is that your profile? Set the exact name from your profile link in the web admin." % who) if not liked
+                          else "SoundCloud lists %d likes on %s but none of them could be read." % (liked, who), liked)
+        return items
     except urllib.error.HTTPError as error:
         raise RuntimeError("There is no SoundCloud profile called “%s”. Use the part of your profile link after soundcloud.com/." % name if error.code == 404 else "SoundCloud refused the request (%s)." % error.code) from error
     except (OSError, ValueError, KeyError, TypeError) as error: raise RuntimeError("SoundCloud could not be reached.") from error
-    return tracks_from_api(data.get("collection"))
 
 
 def browse(profile, kind="likes", limit=50) -> list[dict]:
@@ -208,9 +228,13 @@ def browse(profile, kind="likes", limit=50) -> list[dict]:
         try: items = likes_via_api(name, count)
         except RuntimeError as error:
             print("SoundCloud likes via the API failed (%s); trying yt-dlp." % error, flush=True)
-            if "no SoundCloud profile" in str(error): raise
+            if "no SoundCloud profile" in str(error) or (isinstance(error, NoLikes) and not error.likes): raise
+            try: found = run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/likes" % name], timeout=60, cache_key=("browse", name, kind, count))
+            except RuntimeError: found = []
+            if not found and isinstance(error, NoLikes): raise
+            return add_covers(found)
         else:
-            if items: _CACHE[key] = (time.monotonic(), items)
+            _CACHE[key] = (time.monotonic(), items)
             return add_covers(items)
     return add_covers(run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/%s" % (name, KINDS[kind])], timeout=60, cache_key=("browse", name, kind, count)))
 

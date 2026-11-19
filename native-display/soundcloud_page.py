@@ -92,7 +92,7 @@ class SoundCloudPageMixin:
 
     def sc_leave_page(self):
         """Hand the Now Playing page back to Roon without moving you off whatever screen you are on."""
-        self.sc_viewing = False
+        self.sc_viewing = False; self.volume_value.remove_css_class("sc-stream")
         if self.roon_views.get_visible_child_name() == "now" and self.state is not None: self.image_key = None; self.render_roon_body(self.state)
         self.sc_sync_tabs()
 
@@ -119,10 +119,13 @@ class SoundCloudPageMixin:
         index = int(state.get("index") or 0)
         self.prev.set_sensitive(index > 0); self.next.set_sensitive(index + 1 < int(state.get("queue") or 0)); self.play.set_sensitive(True)
         for control in (self.mute, self.volume_down, self.volume, self.volume_up): control.set_visible(False)   # the DAC sets the volume
-        self.volume_value.set_text((state.get("stream") or "FIXED VOLUME").upper()); self.volume_value.set_hexpand(True); self.volume_value.set_xalign(.5); self.volume_value.add_css_class("fixed-volume-label")
+        self.volume_value.set_text((state.get("stream") or "FIXED VOLUME").upper()); self.volume_value.set_hexpand(True); self.volume_value.set_xalign(.5); self.volume_value.add_css_class("fixed-volume-label"); self.volume_value.add_css_class("sc-stream")
         self.library_add.set_visible(False)
         art = track.get("cover") or track.get("artwork") or ""
-        if art and art != self.sc_art_url:
+        cached = getattr(self, "sc_art_cache", None)
+        if art and cached and cached[0] == art:   # Roon's idle render may have cleared the picture since: put it back
+            if self.image_key != "soundcloud:" + art: self.artwork.set_paintable(cached[1]); self.image_key = "soundcloud:" + art
+        elif art and art != self.sc_art_url:
             self.sc_art_url = art
             threading.Thread(target=self.sc_load_art, args=(art,), daemon=True).start()
         elif not art and self.sc_art_url == "":
@@ -132,7 +135,9 @@ class SoundCloudPageMixin:
         data = get_bytes(url, timeout=6.0)
         if data and url == self.sc_art_url:
             def apply():
-                try: self.artwork.set_paintable(Gdk.Texture.new_from_bytes(GLib.Bytes.new(data))); self.image_key = "soundcloud:" + url
+                try:
+                    texture = Gdk.Texture.new_from_bytes(GLib.Bytes.new(data)); self.sc_art_cache = (url, texture)
+                    self.artwork.set_paintable(texture); self.image_key = "soundcloud:" + url
                 except GLib.Error: pass
                 return False
             GLib.idle_add(apply)

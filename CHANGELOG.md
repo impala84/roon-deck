@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3-beta.203 Alpine — 19 November 2026
+
+- **SoundCloud likes:** liked tracks that SoundCloud lists as bare ids are now filled in, which is a likely reason the list looked empty. If there is still nothing, the message names the profile it checked and how many likes SoundCloud reports for it, so a wrong profile name is easy to spot.
+- **SoundCloud artwork:** the cover is kept and put back if Roon's idle page clears the picture, so it no longer goes missing on the SoundCloud page.
+- **Skip buttons** show just the arrows, without the 30. The stream format line (AAC · 160 KBPS …) is a brighter grey. Native display code, not run on a real screen yet.
+
 ## 1.2.3-beta.202 Alpine — 19 November 2026
 
 - **SoundCloud player now restarts after an update:** the updater never restarted the SoundCloud service, so the Pi kept running the old player after each beta. That is why the 30-second buttons bounced back to Roon (the old player did not know that command), the bitrate never appeared, and the DAC choice may not have taken effect. The updater now restarts it, and the player also restarts itself once idle when its own code changes.

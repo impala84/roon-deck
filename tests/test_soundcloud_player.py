@@ -143,6 +143,16 @@ class LikesAndParkingTests(unittest.TestCase):
         player.skip(-30); self.assertEqual(player.parked["position"], 70)
         player.skip(-600); self.assertEqual(player.parked["position"], 0)
 
+    def test_bare_liked_tracks_are_filled_in_and_empty_likes_name_the_profile(self):
+        stub = {"track": {"kind": "track", "id": 7}}
+        full = {"id": 7, "kind": "track", "permalink_url": "https://soundcloud.com/a/seven", "title": "Seven", "user": {"username": "A"}, "duration": 1000}
+        with mock.patch.object(sc, "api_get", return_value=[full]):
+            self.assertEqual(sc.tracks_from_api(sc.hydrate([stub]))[0]["title"], "Seven")
+        replies = iter([{"id": 5, "username": "Dave", "permalink": "dave", "likes_count": 0}, {"collection": []}])
+        with mock.patch.object(sc, "api_get", side_effect=lambda *a, **k: next(replies)):
+            with self.assertRaises(sc.NoLikes) as caught: sc.likes_via_api("dave", 50)
+        self.assertIn("soundcloud.com/dave", str(caught.exception)); self.assertEqual(caught.exception.likes, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

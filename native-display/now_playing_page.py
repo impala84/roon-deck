@@ -316,7 +316,7 @@ class NowPlayingPageMixin:
         self.render_roon_body(data)
         if self.sc_viewing and (self.sc_state or {}).get("paused") and ((data or {}).get("zone") or {}).get("state") == "playing": self.sc_leave_page()   # Roon took over the DAC
         if self.sc_viewing_active(): self.apply_soundcloud_now()   # the SoundCloud page is the one showing; Roon's keeps updating behind it
-        elif hasattr(self, "sc_back"): self.sc_back.set_visible(False); self.sc_forward.set_visible(False)
+        elif hasattr(self, "sc_back"): self.sc_back.set_visible(False); self.sc_forward.set_visible(False); self.volume_value.remove_css_class("sc-stream")
 
     def render_roon_body(self, data):
         self.state = data
