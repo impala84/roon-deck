@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3-beta.199 Alpine — 19 November 2026
+
+- **SoundCloud sound quality on the Pi:** SoundCloud now plays straight to the DAC (ALSA `hw:`, no mixing or resampling in between) with mpv's software volume pinned at 100 percent, replay gain and normalising off, and the best audio stream SoundCloud offers. If a DAC refuses the direct format it falls back to ALSA's converting output automatically and says so in the service log. The ALSA mixer is left alone so the level never changes unexpectedly.
+- **Stream format on Now Playing:** the zone line shows what is really playing, for example SOUNDCLOUD · AAC · 256 KBPS · 44.1 KHZ, plus a note if the audio had to be resampled. SoundCloud's own limit still applies: free accounts get lower-bitrate streams and nothing is lossless.
+
 ## 1.2.3-beta.198 Alpine — 19 November 2026
 
 - **SoundCloud plays through your DAC:** SoundCloud was playing to mpv's default output, which on a Pi is usually HDMI, so a DAC board or USB DAC stayed silent. It now picks a sound card itself (a DAC board or USB DAC ahead of the headphone socket and HDMI), and Services → Music → SoundCloud has an Audio output list to choose one by hand. The chosen output and any mpv warning (such as a busy device) are written to the service log.
