@@ -32,6 +32,8 @@ class SoundCloudPageMixin:
         self.sc_back = self.icon_button("skip-back-thirty", lambda *_: self.sc_skip(-30), "sc-skip"); self.sc_forward = self.icon_button("skip-forward-thirty", lambda *_: self.sc_skip(30), "sc-skip")
         self.sc_back.set_tooltip_text("Back 30 seconds"); self.sc_forward.set_tooltip_text("Forward 30 seconds")
         for button in (self.sc_back, self.sc_forward): button.set_size_request(50, 50); button.set_valign(Gtk.Align.CENTER); button.set_visible(False)
+        if not (getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500):
+            for button in (self.sc_back, self.sc_forward): button.get_child().set_pixel_size(50)
         self.controls.insert_child_after(self.sc_back, self.library_add); self.controls.append(self.sc_forward)
         GLib.timeout_add_seconds(3, self.sc_tick)
 
@@ -53,7 +55,7 @@ class SoundCloudPageMixin:
         self.sc_call(path, payload or {}, lambda result: (self.sc_apply(result), False)[1])
 
     def sc_tick(self):
-        self.sc_call("/state", None, lambda state: (self.sc_apply(state), False)[1]); return True
+        self.sc_call("/state", None, lambda state: (self.sc_apply(state, poll=True), False)[1]); return True
 
     def sc_now_active(self): return bool((self.sc_state or {}).get("active"))
 
@@ -70,7 +72,15 @@ class SoundCloudPageMixin:
         if on_now and self.sc_viewing: self.now_playing_tab.remove_css_class("active")
         elif on_now: self.now_playing_tab.add_css_class("active")
 
-    def sc_apply(self, state):
+    def sc_apply(self, state, poll=False):
+        """Take a state reply from the player. A failed command (an older player without it, a timeout) must not look like the
+        player going away and drop you off the page, so only repeated failed polls count as unavailable."""
+        if isinstance(state, dict) and "active" in state: self.sc_misses = 0
+        elif poll and state is None:
+            self.sc_misses = getattr(self, "sc_misses", 0) + 1
+            if self.sc_misses < 2: return
+        elif poll: return
+        else: return
         available = isinstance(state, dict) and "active" in state
         self.sc_state = state if available else {}
         if available != self.sc_available:

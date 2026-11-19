@@ -77,6 +77,8 @@ class NowPlayingPageMixin:
         self.library_status = "unknown"; self.set_library_icon(False)
         self.prev = self.icon_button("media-skip-backward-symbolic", lambda *_: self.control("previous")); self.play = self.icon_button("media-playback-start-symbolic", lambda *_: self.control("playpause"), "play"); self.play.get_child().set_pixel_size(42); self.next = self.icon_button("media-skip-forward-symbolic", lambda *_: self.control("next"))
         self.prev.set_size_request(50, 50); self.prev.set_valign(Gtk.Align.CENTER); self.play.set_size_request(68, 68); self.play.set_valign(Gtk.Align.CENTER); self.next.set_size_request(50, 50); self.next.set_valign(Gtk.Align.CENTER)
+        if not (getattr(self, "viewport_width", 800) <= 820 and getattr(self, "viewport_height", 480) <= 500):   # larger glyphs in the big circles; the small panel keeps its sizes
+            self.prev.get_child().set_pixel_size(44); self.next.get_child().set_pixel_size(44); self.play.get_child().set_pixel_size(54)
         self.controls.append(self.library_add); self.controls.append(self.prev); self.controls.append(self.play); self.controls.append(self.next); centre.append(self.controls)
         self.library_message = self.label("", "browser-message", .5); self.library_message.set_wrap(True); self.library_message.set_visible(False); centre.append(self.library_message)
         volume_row = Gtk.Box(spacing=2); volume_row.add_css_class("now-volume-row"); self.volume_row = volume_row; self.mute = self.button("MUTE", self.toggle_audio_mute, "utility"); self.mute.add_css_class("now-mute"); self.mute.set_size_request(62, 38); volume_row.append(self.mute)

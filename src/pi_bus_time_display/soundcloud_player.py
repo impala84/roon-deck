@@ -482,8 +482,19 @@ class Handler(BaseHTTPRequestHandler):
         except RuntimeError as error: self.send(502, {"error": str(error)})
 
 
+def restart_when_updated():
+    """After a software update, exit once nothing is playing so the service supervisor starts the new code."""
+    me = Path(__file__); started = me.stat().st_mtime
+    while True:
+        time.sleep(20)
+        try: changed = me.stat().st_mtime != started
+        except OSError: continue
+        if changed and not player.running(): os._exit(0)
+
+
 def main():
     threading.Thread(target=player.yield_to_roon, daemon=True).start()
+    threading.Thread(target=restart_when_updated, daemon=True).start()
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 

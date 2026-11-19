@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3-beta.202 Alpine — 19 November 2026
+
+- **SoundCloud player now restarts after an update:** the updater never restarted the SoundCloud service, so the Pi kept running the old player after each beta. That is why the 30-second buttons bounced back to Roon (the old player did not know that command), the bitrate never appeared, and the DAC choice may not have taken effect. The updater now restarts it, and the player also restarts itself once idle when its own code changes.
+- **A failed SoundCloud command no longer drops you off its page:** only repeated failed polls count as the player being unavailable.
+- **Larger glyphs in the transport circles** (previous, play, next) on the larger touchscreens, and a bigger, bolder 30 on the skip buttons.
+
 ## 1.2.3-beta.201 Alpine — 19 November 2026
 
 - **30-second jumps on SoundCloud's Now Playing page:** a round-arrow 30 button either side of the transport goes back or forward 30 seconds, and tapping twice jumps a minute, so finding your place in a long mix no longer means scrubbing the bar. It works while paused too. Native display code, not run on a real screen yet.

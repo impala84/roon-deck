@@ -255,6 +255,8 @@ def restart():
         run(["rc-service", "--nodeps", "roondeck-dial", "restart"], timeout=45)
     if Path("/etc/runlevels/default/roondeck-discovery").exists() and (APP / "src/pi_bus_time_display/sood_relay.py").is_file():
         run(["rc-service", "--nodeps", "roondeck-discovery", "restart"], timeout=45)
+    if Path("/etc/runlevels/default/roondeck-soundcloud").exists() and (APP / "src/pi_bus_time_display/soundcloud_player.py").is_file():
+        run(["rc-service", "--nodeps", "roondeck-soundcloud", "restart"], timeout=45)   # otherwise it keeps running the old player code
     try: DISPLAY_REVISION.unlink()
     except FileNotFoundError: pass
     run(["rc-service", "--nodeps", "pi-home-display", "start"], timeout=45)
