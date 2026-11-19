@@ -186,7 +186,7 @@ def sound_cards(path="/proc/asound/cards"):
     for card in cards:
         text = (card["id"] + " " + card["kind"] + " " + card["name"]).lower()
         card["rank"] = 0 if "hdmi" in text else 1 if "headphones" in text or "bcm2835" in text else -1 if "loopback" in text or "dummy" in text else 2
-        card["device"] = "alsa/plughw:CARD=%s,DEV=0" % card["id"]
+        card["device"] = "alsa/hw:CARD=%s,DEV=0" % card["id"]   # straight to the DAC: no ALSA mixing or resampling in between
     return cards
 
 
@@ -200,7 +200,7 @@ class Player:
     def __init__(self):
         self.lock = threading.RLock(); self.queue: list[dict] = []; self.index = -1
         self.process = None; self.generation = 0; self.paused = False; self.error = ""
-        self.device = ""; self.profile = ""; self.load_settings()
+        self.device = ""; self.profile = ""; self.shared_output = False; self.started = 0.0; self.load_settings()
 
     # ---- settings ------------------------------------------------------------------------------------------------
     def load_settings(self):
@@ -244,9 +244,14 @@ class Player:
             except subprocess.TimeoutExpired: process.kill()
 
     def spawn(self, url):
-        command = ["mpv", "--no-video", "--no-terminal", "--audio-display=no", "--idle=no", "--msg-level=all=warn", "--input-ipc-server=" + IPC_SOCKET]
+        # Bit-perfect as far as SoundCloud allows: ALSA output at full software volume (the DAC or amp sets the level),
+        # no replay gain or normalising, and the best audio stream SoundCloud offers.
+        command = ["mpv", "--no-video", "--no-terminal", "--audio-display=no", "--idle=no", "--msg-level=all=warn", "--input-ipc-server=" + IPC_SOCKET,
+                   "--ao=alsa", "--volume=100", "--volume-max=100", "--replaygain=no", "--audio-normalize-downmix=no", "--ytdl-format=bestaudio/best"]
         device = self.device or best_output()
+        if device and self.shared_output: device = device.replace("alsa/hw:", "alsa/plughw:")   # the DAC refused the direct format
         if device: command.append("--audio-device=" + device)
+        self.started = time.monotonic()
         print("SoundCloud playing on %s: %s" % (device or "mpv's default output", url), flush=True)
         command += ["--", url]
         try: Path(IPC_SOCKET).unlink(missing_ok=True)
@@ -259,7 +264,11 @@ class Player:
             if generation != self.generation: return   # we stopped or replaced it ourselves
             self.process = None
             if code == 0 and self.index + 1 < len(self.queue): self.play_index(self.index + 1)
-            elif code != 0: self.error = "That track could not be played."; self.paused = False
+            elif code != 0:
+                device = self.device or best_output()
+                if "alsa/hw:" in device and not self.shared_output and time.monotonic() - self.started < 6:
+                    self.shared_output = True; print("The DAC refused a direct stream; falling back to ALSA's converting output.", flush=True); self.play_index(self.index); return
+                self.error = "That track could not be played."; self.paused = False
 
     # ---- transport -----------------------------------------------------------------------------------------------
     def play(self, items, index=0):
@@ -306,15 +315,27 @@ class Player:
         with self.lock:
             if self.running(): self.ipc("set_property", "time-pos", max(0, float(position)))
 
+    def stream_format(self):
+        """What is really playing, e.g. "AAC · 256 kbps · 44.1 kHz": the codec and rate mpv decoded and the rate it sent to the DAC."""
+        codec = self.ipc("get_property", "audio-codec-name"); bitrate = self.ipc("get_property", "audio-bitrate")
+        source = self.ipc("get_property", "audio-params") or {}; out = self.ipc("get_property", "audio-out-params") or {}
+        parts = []
+        if codec: parts.append(str(codec).upper())
+        if isinstance(bitrate, (int, float)) and bitrate > 0: parts.append("%d kbps" % round(bitrate / 1000))
+        rate = source.get("samplerate") if isinstance(source, dict) else None
+        if rate: parts.append("%g kHz" % (rate / 1000))
+        if isinstance(out, dict) and rate and out.get("samplerate") and out["samplerate"] != rate: parts.append("resampled to %g kHz" % (out["samplerate"] / 1000))
+        return " · ".join(parts)
+
     def state(self):
         with self.lock:
             running = self.running(); track = self.queue[self.index] if running and 0 <= self.index < len(self.queue) else None
-            position = duration = None
+            position = duration = None; stream = ""
             if running:
-                position = self.ipc("get_property", "time-pos"); duration = self.ipc("get_property", "duration")
+                position = self.ipc("get_property", "time-pos"); duration = self.ipc("get_property", "duration"); stream = self.stream_format()
             return {"active": running, "paused": self.paused if running else False, "track": track, "index": self.index if running else -1,
                     "queue": len(self.queue), "position": int(position or 0), "duration": int(duration or (track or {}).get("duration") or 0),
-                    "error": self.error, "profile": self.profile, "audio_device": self.device, "audio_chosen": self.device or best_output()}
+                    "error": self.error, "profile": self.profile, "audio_device": self.device, "audio_chosen": self.device or best_output(), "stream": stream, "direct": "alsa/hw:" in (self.device or best_output()) and not self.shared_output}
 
     def yield_to_roon(self):
         """Roon started playing: the DAC belongs to it now."""

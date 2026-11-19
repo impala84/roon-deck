@@ -84,6 +84,16 @@ class SoundCloudTests(unittest.TestCase):
             self.assertRaises(ValueError, player.save_settings, audio_device="x;y")
 
 
+class StreamFormatTests(unittest.TestCase):
+    def test_stream_format_and_resample(self):
+        player = sc.Player()
+        values = {"audio-codec-name": "aac", "audio-bitrate": 256000, "audio-params": {"samplerate": 44100}, "audio-out-params": {"samplerate": 48000}}
+        player.ipc = lambda command, name: values.get(name)
+        self.assertEqual(player.stream_format(), "AAC · 256 kbps · 44.1 kHz · resampled to 48 kHz")
+        values["audio-out-params"] = {"samplerate": 44100}; values["audio-bitrate"] = None
+        self.assertEqual(player.stream_format(), "AAC · 44.1 kHz")
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -131,7 +141,7 @@ class OutputTests(unittest.TestCase):
             path = Path(folder) / "cards"; path.write_text(self.CARDS)
             cards = sc.sound_cards(str(path))
             self.assertEqual([card["id"] for card in cards], ["vc4hdmi0", "Headphones", "sndrpihifiberry"])
-            self.assertEqual(sc.best_output(cards), "alsa/plughw:CARD=sndrpihifiberry,DEV=0")
+            self.assertEqual(sc.best_output(cards), "alsa/hw:CARD=sndrpihifiberry,DEV=0")
 
     def test_no_cards_means_mpv_default(self):
         self.assertEqual(sc.best_output([]), "")

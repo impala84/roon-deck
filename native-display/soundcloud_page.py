@@ -70,7 +70,7 @@ class SoundCloudPageMixin:
     def apply_soundcloud_now(self):
         """While SoundCloud is playing the normal Now Playing screen shows it, with its own cover, progress and transport."""
         state = self.sc_state or {}; track = state.get("track") or {}
-        self.zone.set_text("SOUNDCLOUD"); self.title.set_text(track.get("title") or "SoundCloud"); self.artist.set_text(track.get("artist") or "")
+        self.zone.set_text(("SOUNDCLOUD · " + state["stream"]).upper() if state.get("stream") else "SOUNDCLOUD"); self.title.set_text(track.get("title") or "SoundCloud"); self.artist.set_text(track.get("artist") or "")
         position, duration = int(state.get("position") or 0), int(state.get("duration") or 0)
         self.seek_updating = True; self.progress.set_range(0, max(1, duration)); self.progress.set_value(min(position, duration) if duration else 0)
         self.progress.set_sensitive(bool(duration)); self.seek_updating = False
