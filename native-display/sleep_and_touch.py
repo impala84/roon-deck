@@ -157,6 +157,24 @@ class SleepAndTouchMixin:
             self.stack.set_visible_child_name(self.last_mode or "bus")
         return False
 
+    def pin_for_remote(self):
+        """A TV-remote volume change shows the large volume page and holds it for as long as the screen stays awake.
+
+        Without this the controller's short remote-wake window ended first and the screen flipped back to the previous page,
+        a few seconds before the idle sleep. The page to go back to is remembered and restored once the display has gone off."""
+        if getattr(self, "remote_pin", None): return
+        if int(getattr(self, "settings_data", {}).get("daytime_inactivity_seconds", 0) or 0) <= 0: return   # never sleeps, so nothing would release the pin
+        self.remote_pin = {"mode": self.last_mode, "view": self.roon_views.get_visible_child_name(), "requested": self.requested_audio_view, "at": time.monotonic()}
+
+    def end_remote_pin(self, restore=True):
+        pin = getattr(self, "remote_pin", None); self.remote_pin = None
+        if not pin or not restore: return
+        # The display is off (or the controller says sleep): wake later on the page that was showing before the remote.
+        self.last_mode = pin["mode"]; self.requested_audio_view = pin["requested"]
+        if pin["view"] and pin["view"] != "source": self.set_roon_view(pin["view"])
+        elif pin["view"] == "source": self.set_roon_view("now")
+        print("RoonDeck remote volume page released: back to " + str(pin["mode"]), flush=True)
+
     def shorten_idle_for_remote_wake(self):
         """A volume change from the TV remote or a dial keeps the screen up only for the short remote wake time, then it sleeps again."""
         idle = max(0, int(getattr(self, "settings_data", {}).get("daytime_inactivity_seconds", 0) or 0))

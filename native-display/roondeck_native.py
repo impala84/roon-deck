@@ -848,7 +848,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 and any(item is not None for item in volume_signature) and target is not None):
             if on_player_input or on_tv_page:
                 # Watching TV: wake onto the large TV volume page, and let the controller hold it for the short wake, then sleep again.
-                self.requested_audio_view = "source"; self.set_roon_view("source")
+                self.pin_for_remote(); self.requested_audio_view = "source"; self.set_roon_view("source")
                 self.wake("volume change", remote=True, view="roon")
                 target = "http://127.0.0.1:8766/"
                 print("RoonDeck waking for a volume change on the TV page", flush=True)
@@ -873,7 +873,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             else:
                 target = "http://127.0.0.1:8766/"
                 # What the BluOS player is on decides the page: its own input (the TV) gets the large volume page, whatever Roon is doing; otherwise the track.
-                if on_player_input: self.requested_audio_view = "source"; self.set_roon_view("source"); self.shorten_idle_for_remote_wake()
+                if on_player_input: self.pin_for_remote(); self.requested_audio_view = "source"; self.set_roon_view("source"); self.shorten_idle_for_remote_wake()
                 else:
                     if ((roon or {}).get("zone") or {}).get("state") == "playing": self.requested_audio_view = "now"
                     if self.roon_views.get_visible_child_name() != "now": self.set_roon_view("now")
@@ -923,6 +923,13 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             self.inactivity_sleeping = True
             self.prepare_sleep_wake()
             print(f"RoonDeck sleeping after {inactivity_seconds}s without a touch", flush=True)
+        pin = getattr(self, "remote_pin", None)
+        if pin:
+            touched = getattr(self, "last_touch", 0.0) > pin["at"] or self.browse_last_interaction > pin["at"]
+            if self.inactivity_sleeping or target == "/sleep.html" or self.settings_open or touched:
+                self.end_remote_pin(restore=not touched and not self.settings_open)   # a touch means they are using it: leave the page alone
+            elif target is not None:
+                target = "http://127.0.0.1:8766/"   # hold the TV volume page while awake, whatever the controller's short wake window says
         if self.settings_open and target != "/sleep.html" and not self.inactivity_sleeping:
             return False
         if target is None and not self.inactivity_sleeping:

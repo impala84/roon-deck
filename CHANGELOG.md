@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.193 Alpine — 19 November 2026
+
+- **TV volume page holds while the screen is awake:** changing the volume from the TV remote showed the large volume page, but the display flipped back to the previous page a few seconds before it went to sleep. It now stays on the volume page for as long as the screen is on, and returns to the page it was on only once the display has switched off, so waking it later (or touching it) picks up where you left it. Touching the screen during that time simply hands control back to you.
+
 ## 1.2.3-beta.192 Alpine — 15 November 2026
 
 - Add a read-only Home rain tile for the NEA radar sensor in Home Assistant. The tile shows possible arrival windows, rain now, and when radar data is unavailable.
