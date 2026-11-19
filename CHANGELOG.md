@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.196 Alpine — 19 November 2026
+
+- **SoundCloud settings now load in the web admin:** the SoundCloud tab stayed on "Checking…" and never showed its Install button, because its status code was added to an old unused copy of the appliance panel. It now reports Not installed, Running or Stopped. The five music tabs (Roon, Roon Bridge, BluOS, AirPlay, SoundCloud) also sit on one row instead of wrapping.
+
 ## 1.2.3-beta.195 Alpine — 19 November 2026
 
 - **SoundCloud on the touchscreen (part 2):** once the SoundCloud player is installed (web admin → Integrations → SoundCloud), a SOUNDCLOUD button appears in the Now Playing source row. It opens a page with search (on-screen keyboard), LIKES and PLAYLISTS for the profile name saved in the admin, and previous, pause and next, with a bar showing the current track. SoundCloud and Roon take turns on the DAC, and SoundCloud playing keeps the screen awake like Roon does. The admin tab gains a profile name and optional audio output. This is native display code that has not been run on a real screen yet.
