@@ -82,6 +82,7 @@ class DiscoverPageMixin:
 
     def open_discover(self, section="recent", mix="", picks=False, recent_mode=None):
         if section == "recent": self.discovery_recent_mode = recent_mode or "added"
+        if section != "soundcloud": self.sc_end_search_mode()
         self.discovery_pages = {}
         self.discovery_browser_origin = False; self.discovery_tidal_pending = False
         self.discovery_active = True; self.discovery_section = section; self.discovery_mix = mix
@@ -95,6 +96,13 @@ class DiscoverPageMixin:
         self.set_mode("roon")
         if section == "browse":
             self.request_browser("section", section="albums")
+        elif section == "soundcloud":
+            self.sync_discovery_sidebar()
+            while child := self.discovery_list.get_first_child(): self.discovery_list.remove(child)
+            self.discovery_pictures = {}; self.discovery_cards = []
+            self.apply_discovery_layout()
+            self.discovery_scroll.get_vadjustment().set_value(0)
+            self.sc_open_section()
         elif section == "surprise":
             # Do not expose the previous Browse rail/grid while the asynchronous
             # Surprise preview is being prepared.
@@ -116,7 +124,7 @@ class DiscoverPageMixin:
 
     def request_discovery(self, request=None):
         request = self.discovery_request if request is None else request
-        if request != self.discovery_request or not self.discovery_active or self.discovery_section in {"browse", "surprise"}: return False
+        if request != self.discovery_request or not self.discovery_active or self.discovery_section in {"browse", "surprise", "soundcloud"}: return False
         section = "mix" if self.discovery_mix else ("daily-home" if self.discovery_section == "daily" else self.discovery_section)
         if section == "recent" and self.discovery_recent_mode == "added": section = "added"
         mix = self.discovery_mix
@@ -313,6 +321,8 @@ class DiscoverPageMixin:
             self.browse_last_interaction = time.monotonic()
 
     def discovery_secondary_navigation(self):
+        if self.discovery_section == "soundcloud":
+            return (("search", "SEARCH"), ("likes", "LIKES"), ("playlists", "PLAYLISTS")), getattr(self, "sc_mode", "likes")
         if self.discovery_section == "recent":
             return (("added", "ADDED"), ("listened", "LISTENED")), self.discovery_recent_mode
         if self.discovery_section == "daily":
@@ -324,6 +334,7 @@ class DiscoverPageMixin:
         return (), ""
 
     def select_discovery_secondary(self, value):
+        if self.discovery_section == "soundcloud": self.sc_select(value); return
         if self.discovery_section == "releases":
             if value == "tidal":
                 self.discovery_browser_origin = True; self.discovery_active = True; self.discovery_tidal_pending = True

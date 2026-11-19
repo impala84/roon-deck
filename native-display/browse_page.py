@@ -246,6 +246,7 @@ class BrowsePageMixin:
         self.browser_scrub_dragging = False
 
     def show_browser_search(self, *_):
+        self.sc_end_search_mode()
         self.set_roon_view("search"); self.browser_search_entry.grab_focus()
 
     def browser_keyboard_key(self, value):
@@ -260,6 +261,7 @@ class BrowsePageMixin:
         entry.set_text(text); entry.set_position(position)
 
     def submit_browser_search(self, *_):
+        if getattr(self, "sc_search_mode", False): self.sc_submit_search(); return
         query = self.browser_search_entry.get_text().strip()
         if query:
             if getattr(self, "browser_search_timer", None):
@@ -270,6 +272,7 @@ class BrowsePageMixin:
     def schedule_browser_search(self, *_):
         if getattr(self, "browser_search_timer", None): GLib.source_remove(self.browser_search_timer)
         self.browser_search_timer = None
+        if getattr(self, "sc_search_mode", False): return   # SoundCloud searches only when you tap SEARCH
         if getattr(self, "responsive_portrait", False) and self.roon_views.get_visible_child_name() == "search":
             if len(self.browser_search_entry.get_text().strip()) >= 2:
                 self.browser_search_timer = GLib.timeout_add(600, self.run_scheduled_browser_search)

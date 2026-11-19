@@ -713,7 +713,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
             # can snapshot the intentionally black sleep surface.
             GLib.timeout_add(350, self.capture_display, capture_id, 0)
         self.polling = False
-        image = get_bytes(f"{ROON}/api/image?key={quote(key, safe='')}") if key and key != self.image_key else None
+        image = get_bytes(f"{ROON}/api/image?key={quote(key, safe='')}") if key and key != self.image_key and not self.sc_now_active() else None   # SoundCloud's cover stays while it plays
         if image:
             GLib.idle_add(self.apply_artwork, key, image)
         album_detail_image = get_bytes(f"{ROON}/api/image?key={quote(album_detail_key, safe='')}&size=600") if album_detail_key and album_detail_key != self.detail_album_image_key else None

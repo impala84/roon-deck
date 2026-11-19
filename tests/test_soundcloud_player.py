@@ -89,3 +89,24 @@ class AdminBridgeTests(unittest.TestCase):
         from pi_bus_time_display.server import soundcloud_request
         with mock.patch("urllib.request.urlopen", side_effect=OSError("refused")):
             self.assertIsNone(soundcloud_request("/state"))
+
+
+class CacheAndPlaylistTests(unittest.TestCase):
+    def setUp(self):
+        self.bin = tempfile.TemporaryDirectory(); self.addCleanup(self.bin.cleanup)
+        self.log = Path(self.bin.name) / "calls"
+        path = Path(self.bin.name) / "yt-dlp"
+        path.write_text('#!/usr/bin/env python3\nimport json,sys\nopen(%r,"a").write("x")\nprint(json.dumps({"url":"https://soundcloud.com/a/t","title":"T","uploader":"A","duration":1}))\n' % str(self.log)); path.chmod(path.stat().st_mode | stat.S_IEXEC)
+        patcher = mock.patch.dict(os.environ, {"PATH": self.bin.name + os.pathsep + os.environ["PATH"]}); patcher.start(); self.addCleanup(patcher.stop)
+        sc._CACHE.clear()
+
+    def test_repeat_searches_use_the_cache(self):
+        sc.search("same"); sc.search("same"); sc.search("Same")
+        self.assertEqual(len(self.log.read_text()), 1)
+
+    def test_playlist_tracks_need_a_soundcloud_link(self):
+        self.assertEqual(sc.tracks_of("https://soundcloud.com/a/sets/mix")[0]["title"], "T")
+        self.assertRaises(ValueError, sc.tracks_of, "https://example.com/list")
+
+    def test_api_track_links_are_accepted(self):
+        self.assertTrue(sc.clean_url("https://api.soundcloud.com/tracks/123456"))

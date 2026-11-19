@@ -15,6 +15,7 @@ import socket
 import subprocess
 import threading
 import time
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -23,7 +24,7 @@ HOST, PORT = "127.0.0.1", int(os.getenv("ROONDECK_SOUNDCLOUD_PORT", "8767"))
 ROON = os.getenv("ROONDECK_ROON_URL", "http://127.0.0.1:8766")
 STATE_DIR = Path(os.getenv("PI_HOME_STATE_DIR", "/var/lib/pi-home"))
 IPC_SOCKET = os.getenv("ROONDECK_SOUNDCLOUD_IPC", "/tmp/roondeck-soundcloud-mpv.sock")
-TRACK_URL = re.compile(r"^https://(?:www\.|m\.|on\.)?soundcloud\.com/[A-Za-z0-9_./~%?=&-]{1,300}$")
+TRACK_URL = re.compile(r"^https://(?:www\.|m\.|on\.|api\.|api-v2\.)?soundcloud\.com/[A-Za-z0-9_./~%?=&-]{1,300}$")
 PROFILE = re.compile(r"^[A-Za-z0-9_-]{1,60}$")
 KINDS = {"tracks": "tracks", "likes": "likes", "reposts": "reposts", "playlists": "sets"}
 
@@ -67,24 +68,52 @@ def parse_entries(output: str) -> list[dict]:
     return entries
 
 
-def run_ytdlp(arguments: list[str], timeout: int = 40) -> list[dict]:
+_CACHE: dict = {}
+CACHE_SECONDS = 600
+
+
+def run_ytdlp(arguments: list[str], timeout: int = 40, cache_key=None) -> list[dict]:
+    """Run yt-dlp. Answers are kept for ten minutes, and if SoundCloud fails the last good answer is still shown."""
+    now = time.monotonic()
+    cached = _CACHE.get(cache_key) if cache_key else None
+    if cached and now - cached[0] < CACHE_SECONDS: return cached[1]
+    try:
+        entries = _run_ytdlp(arguments, timeout)
+    except RuntimeError:
+        if cached: return cached[1]
+        raise
+    if cache_key and entries: _CACHE[cache_key] = (now, entries)
+    return entries
+
+
+def _run_ytdlp(arguments: list[str], timeout: int) -> list[dict]:
     try:
         result = subprocess.run(["yt-dlp", "--flat-playlist", "--dump-json", "--no-warnings", "--ignore-errors", *arguments],
                                 capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError as error: raise RuntimeError("yt-dlp is not installed.") from error
     except subprocess.TimeoutExpired as error: raise RuntimeError("SoundCloud took too long to answer.") from error
     entries = parse_entries(result.stdout)
+    if result.returncode != 0:
+        print("yt-dlp exit %s: %s" % (result.returncode, (result.stderr or "").strip()[-400:]), flush=True)   # appears in the service's log
     if not entries and result.returncode != 0: raise RuntimeError("SoundCloud could not be reached. If this keeps happening yt-dlp may need updating.")
     return entries
 
 
 def search(query, limit=20) -> list[dict]:
-    return run_ytdlp(["--", "scsearch%d:%s" % (max(1, min(int(limit), 30)), clean_query(query))])
+    query = clean_query(query); count = max(1, min(int(limit), 30))
+    return run_ytdlp(["--", "scsearch%d:%s" % (count, query)], cache_key=("search", query.lower(), count))
 
 
 def browse(profile, kind="likes", limit=50) -> list[dict]:
     if kind not in KINDS: raise ValueError("Choose tracks, likes, reposts or playlists.")
-    return run_ytdlp(["--playlist-end", str(max(1, min(int(limit), 100))), "--", "https://soundcloud.com/%s/%s" % (clean_profile(profile), KINDS[kind])], timeout=60)
+    name = clean_profile(profile); count = max(1, min(int(limit), 100))
+    return run_ytdlp(["--playlist-end", str(count), "--", "https://soundcloud.com/%s/%s" % (name, KINDS[kind])], timeout=60, cache_key=("browse", name, kind, count))
+
+
+def tracks_of(url, limit=100) -> list[dict]:
+    """The tracks inside a playlist (or any SoundCloud link that lists tracks)."""
+    url = clean_url(url)
+    return run_ytdlp(["--playlist-end", str(max(1, min(int(limit), 200))), "--", url], timeout=60, cache_key=("tracks", url))
 
 
 def roon_get(path):
@@ -174,6 +203,16 @@ class Player:
             if not tracks: raise ValueError("Nothing to play.")
             self.queue = tracks; self.play_index(max(0, min(int(index), len(tracks) - 1)))
 
+    def fill_artwork(self, index):
+        """Search results rarely carry a cover. SoundCloud's public oEmbed answer has one, so fetch it for the playing track."""
+        try:
+            item = self.queue[index]
+            if item.get("artwork"): return
+            request = urllib.request.Request("https://soundcloud.com/oembed?format=json&url=" + urllib.parse.quote(item["url"], safe=""), headers={"User-Agent": "RoonDeck"})
+            with urllib.request.urlopen(request, timeout=6) as response: art = str(json.loads(response.read(200_000)).get("thumbnail_url") or "")
+            if art.startswith("https://"): item["artwork"] = art
+        except (OSError, ValueError, IndexError, KeyError): pass
+
     def play_index(self, index):
         with self.lock:
             self.stop_process(); self.index = index; self.error = ""; self.paused = False
@@ -181,6 +220,7 @@ class Player:
             try: process = self.spawn(self.queue[index]["url"])
             except FileNotFoundError: self.error = "mpv is not installed."; return
             self.process = process
+            threading.Thread(target=self.fill_artwork, args=(index,), daemon=True).start()
             threading.Thread(target=self.watch, args=(process, self.generation), daemon=True).start()
 
     def running(self): return bool(self.process and self.process.poll() is None)
@@ -244,6 +284,7 @@ class Handler(BaseHTTPRequestHandler):
             path = self.path
             if path == "/search": return self.send(200, {"items": search(data.get("query"), data.get("limit", 20))})
             if path == "/browse": return self.send(200, {"items": browse(data.get("profile") or player.profile, data.get("kind", "likes"), data.get("limit", 50))})
+            if path == "/tracks": return self.send(200, {"items": tracks_of(data.get("url"))})
             if path == "/play": player.play(data.get("items"), data.get("index", 0))
             elif path == "/pause": player.pause(data.get("paused"))
             elif path == "/next": player.step(1)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3-beta.197 Alpine — 19 November 2026
+
+- **SoundCloud now uses the existing screens:** browsing and search moved into Discover, which gains a SOUNDCLOUD tab (and the SOUNDCLOUD button in the Now Playing source row opens it). SEARCH uses the same on-screen keyboard as Roon search; LIKES and PLAYLISTS show your public profile (open a playlist to see its tracks). Tapping a track plays it and returns to the normal Now Playing screen, which shows the SoundCloud track with its cover, progress bar and the usual previous, pause and next buttons, and no volume controls because the DAC sets the volume. The separate SoundCloud page is gone.
+- **SoundCloud lists no longer vanish:** results are kept for ten minutes and the last good list is shown if SoundCloud briefly refuses a request, and yt-dlp errors are written to the service log. Covers come from SoundCloud's public oEmbed. This is native display code that has not been run on a real screen.
+
 ## 1.2.3-beta.196 Alpine — 19 November 2026
 
 - **SoundCloud settings now load in the web admin:** the SoundCloud tab stayed on "Checking…" and never showed its Install button, because its status code was added to an old unused copy of the appliance panel. It now reports Not installed, Running or Stopped. The five music tabs (Roon, Roon Bridge, BluOS, AirPlay, SoundCloud) also sit on one row instead of wrapping.
