@@ -842,12 +842,19 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
         volume_signature = (zone_volume.get("value"), zone_volume.get("is_muted"), amp_volume.get("value"), amp_volume.get("muted"))
         previous_volume = getattr(self, "volume_signature", None)
         self.volume_signature = volume_signature
+        # A value that drops out of the readings for a poll (the BluOS player or Roon not answering for a moment) and then comes
+        # back is not a volume change. Only a reading that really differs from the last one seen counts.
+        known = self.__dict__.setdefault("volume_known", [None] * len(volume_signature)); earlier = tuple(known); volume_moved = False
+        for index, reading in enumerate(volume_signature):
+            if reading is None: continue
+            if known[index] is not None and known[index] != reading: volume_moved = True
+            known[index] = reading
+        if volume_moved: print("RoonDeck volume reading changed: %s -> %s" % (earlier, tuple(known)), flush=True)
         asleep = self.inactivity_sleeping or target == "/sleep.html" or self.stack.get_visible_child_name() == "sleep"
         amplifier_now = (roon or {}).get("amplifier") or {}
         on_player_input = bool(amplifier_now.get("connected") and amplifier_now.get("active_input"))   # the BluOS player is on one of its own inputs, the TV for one
         on_tv_page = self.stack.get_visible_child_name() == "roon" and self.roon_views.get_visible_child_name() == "source"
-        if (asleep and previous_volume is not None and volume_signature != previous_volume
-                and any(item is not None for item in volume_signature) and target is not None):
+        if asleep and volume_moved and target is not None:
             if on_player_input or on_tv_page:
                 # Watching TV: wake onto the large TV volume page, and let the controller hold it for the short wake, then sleep again.
                 self.pin_for_remote(); self.requested_audio_view = "source"; self.set_roon_view("source")
@@ -865,8 +872,7 @@ class Display(BusPageMixin, HomeDashboardMixin, HomePageMixin, SettingsPageMixin
                 # The controller still reports sleep until it has seen the wake request; show the previous screen meanwhile.
                 target = {"home": "/home", "roon": "http://127.0.0.1:8766/"}.get(self.last_mode, "/")
                 print("RoonDeck waking for a volume change", flush=True)
-        elif (not asleep and previous_volume is not None and volume_signature != previous_volume
-                and any(item is not None for item in volume_signature) and target not in (None, "/sleep.html")
+        elif (not asleep and volume_moved and target not in (None, "/sleep.html")
                 and not self.settings_open
                 and time.monotonic() - getattr(self, "last_touch", 0.0) > 20 and time.monotonic() - self.browse_last_interaction > 20 and time.monotonic() - getattr(self, "volume_local_at", 0.0) > 20
                 and not (isinstance(getattr(self, "deck_volume_ago", None), (int, float)) and self.deck_volume_ago < 10)):   # a Stream Deck turn changes the volume quietly

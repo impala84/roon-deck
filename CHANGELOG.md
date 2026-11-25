@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3-beta.204 Alpine — 25 November 2026
+
+- **The screen no longer jumps back to the TV volume page by itself:** a volume reading that dropped out for a poll (the BluOS player or Roon not answering for a moment) and then returned counted as a volume change, so with the player on the TV input the panel kept pulling you from Bus Times back to the large volume page, with nothing touched on the TV. Only a reading that actually differs from the last one seen now counts. When one does, the log records the old and new readings (`RoonDeck volume reading changed`), so if it ever still happens the cause will be visible.
+
 ## 1.2.3-beta.203 Alpine — 19 November 2026
 
 - **SoundCloud likes:** liked tracks that SoundCloud lists as bare ids are now filled in, which is a likely reason the list looked empty. If there is still nothing, the message names the profile it checked and how many likes SoundCloud reports for it, so a wrong profile name is easy to spot.

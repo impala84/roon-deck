@@ -171,7 +171,7 @@ class DisplayRotationTests(unittest.TestCase):
         self.assertIn("contact_at <= self.sleep_entered_at", display)
         self.assertIn("self.inactivity_sleeping = True\n            self.prepare_sleep_wake()", display)
         self.assertIn('self.wake("volume change", remote=True)', display)
-        self.assertIn("volume_signature != previous_volume", display)
+        self.assertIn("if known[index] is not None and known[index] != reading: volume_moved = True", display)   # a reading dropping out for a poll is not a volume change
         self.assertIn("settings_opened_at", display)
         self.assertIn("def watch_memory(self):", display)
         self.assertIn("RoonDeck memory:", display)
